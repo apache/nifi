@@ -37,13 +37,11 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -90,7 +88,8 @@ import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FIL
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
-@SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class})
+@SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class,
+        CopyAzureBlobStorage_v12.class})
 @CapabilityDescription("Puts content into a blob on Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({@WritesAttribute(attribute = ATTR_NAME_CONTAINER, description = ATTR_DESCRIPTION_CONTAINER),
@@ -105,35 +104,11 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
         @WritesAttribute(attribute = ATTR_NAME_ERROR_CODE, description = ATTR_DESCRIPTION_ERROR_CODE),
         @WritesAttribute(attribute = ATTR_NAME_IGNORED, description = ATTR_DESCRIPTION_IGNORED)})
 public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 implements ClientSideEncryptionSupport {
-
-    public static final PropertyDescriptor CREATE_CONTAINER = new PropertyDescriptor.Builder()
-            .name("create-container")
-            .displayName("Create Container")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .description("Specifies whether to check if the container exists and to automatically create it if it does not. " +
-                    "Permission to list containers is required. If false, this check is not made, but the Put operation " +
-                    "will fail if the container does not exist.")
-            .build();
-
-    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(true)
-            .allowableValues(AzureStorageConflictResolutionStrategy.class)
-            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION.getValue())
-            .description("Specifies whether an existing blob will have its contents replaced upon conflict.")
-            .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
-            CREATE_CONTAINER,
-            CONFLICT_RESOLUTION,
+            AzureStorageUtils.CREATE_CONTAINER,
+            AzureStorageUtils.CONFLICT_RESOLUTION,
             BLOB_NAME,
             RESOURCE_TRANSFER_SOURCE,
             FILE_RESOURCE_SERVICE,
@@ -162,9 +137,9 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         }
 
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
+        final boolean createContainer = context.getProperty(AzureStorageUtils.CREATE_CONTAINER).asBoolean();
         final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(CONFLICT_RESOLUTION).getValue());
+        final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).getValue());
         final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
 
         long startNanos = System.nanoTime();

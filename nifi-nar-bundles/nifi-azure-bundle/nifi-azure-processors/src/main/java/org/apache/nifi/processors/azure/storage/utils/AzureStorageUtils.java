@@ -30,6 +30,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.proxy.SocksVersion;
+import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 import reactor.netty.http.client.HttpClient;
 
 public final class AzureStorageUtils {
@@ -106,6 +107,29 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
+            .build();
+
+    public static final PropertyDescriptor CREATE_CONTAINER = new PropertyDescriptor.Builder()
+            .name("create-container")
+            .displayName("Create Container")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .description("Specifies whether to check if the container exists and to automatically create it if it does not. " +
+                    "Permission to list containers is required. If false, this check is not made, but the Put operation " +
+                    "will fail if the container does not exist.")
+            .build();
+
+    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+            .name("conflict-resolution-strategy")
+            .displayName("Conflict Resolution Strategy")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .allowableValues(AzureStorageConflictResolutionStrategy.class)
+            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION.getValue())
+            .description("Specifies whether an existing blob will have its contents replaced upon conflict.")
             .build();
 
     public static final String SAS_TOKEN_BASE_DESCRIPTION = "Shared Access Signature token, including the leading '?'. Specify either SAS token (recommended) or Account Key.";
