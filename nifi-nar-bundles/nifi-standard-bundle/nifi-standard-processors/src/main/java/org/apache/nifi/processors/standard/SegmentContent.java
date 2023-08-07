@@ -37,6 +37,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -90,9 +91,11 @@ public class SegmentContent extends AbstractProcessor {
 
     public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
             .name("Segment Size")
+            .displayName("Segment Size")
             .description("The maximum data size in bytes for each segment")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final Relationship REL_SEGMENTS = new Relationship.Builder()
@@ -138,7 +141,7 @@ public class SegmentContent extends AbstractProcessor {
         }
 
         final String segmentId = UUID.randomUUID().toString();
-        final long segmentSize = context.getProperty(SIZE).asDataSize(DataUnit.B).longValue();
+        final long segmentSize = context.getProperty(SIZE).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue();
 
         final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
