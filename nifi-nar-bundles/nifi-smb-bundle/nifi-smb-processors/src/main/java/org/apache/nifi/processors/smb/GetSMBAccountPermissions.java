@@ -48,8 +48,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
-import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
+import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
 import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 @Tags({"windows, smb, security, account, permissions"})
@@ -58,6 +58,26 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
         @WritesAttribute(attribute = "accountRights", description = "The account rights of the given account")
 })
 public class GetSMBAccountPermissions extends AbstractProcessor {
+
+    public static final PropertyDescriptor RETURN_ATTR_NAME = new PropertyDescriptor.Builder()
+            .name("Result Attribute Name")
+            .description("Name of the attribute where permissions will be stored. " +
+                    "This will be a FlowFile attribute if destination set to flowfile-attribute," +
+                    " and JSON property if destination set to flowfile-content")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .defaultValue("accountRights")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SEPARATOR = new PropertyDescriptor.Builder()
+            .name("Array separator")
+            .description("If return type is scalar, this property indicates the separator to use between array elements. Ignored if return type is 'json'")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .defaultValue(";")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
@@ -113,7 +133,10 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT, USE_ENCRYPTION, ACCESS_LEVEL, TIMEOUT);
+
+    public static final List<PropertyDescriptor> properties = List.of(RETURN_ATTR_NAME, SEPARATOR,
+            ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT,
+            USE_ENCRYPTION, ACCESS_LEVEL, TIMEOUT);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -134,11 +157,13 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .description("FlowFiles are routed to failure relationship when SMB server returns STATUS_OBJECT_NAME_NOT_FOUND (0xC0000034)")
             .build();
 
+
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.unmodifiableSet(
                 new LinkedHashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_NOT_FOUND)));
     }
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -147,13 +172,17 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
         if (flowFile == null) {
             flowFile = session.create();
         }
+
+        final String attrName = context.getProperty(RETURN_ATTR_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String separator = context.getProperty(SEPARATOR).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).evaluateAttributeExpressions(flowFile).getValue() : null;
+        final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN)
+                .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
         final String accessLevel = context.getProperty(ACCESS_LEVEL).evaluateAttributeExpressions(flowFile).getValue();
-        final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet() ?
-                context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions(flowFile).getValue() : null;
+        final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet()
+                ? context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions(flowFile).getValue() : null;
         final String sidString = context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions(flowFile).getValue();
         getLogger().debug("Looking up account rights for account {} on host {} with access level {}",
                 new Object[]{sidString, hostname, accessLevel});
@@ -169,8 +198,6 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
         try (Connection connection = smbClient.connect(hostname);
             Session smbSession = connection.authenticate(ac)) {
             final RPCTransport transport = SMBTransportFactories.LSASVC.getTransport(smbSession);
-            long sessionId = smbSession.getSessionId();
-            String sessionKey = smbSession.getSessionContext().getSessionKey().toString();
             getLogger().debug("Connected to SMB service");
             final LocalSecurityAuthorityService service = new LocalSecurityAuthorityService(transport);
 
@@ -178,14 +205,12 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             String[] accountRights = service.getAccountRights(handle, accountSid);
 
             // add account rights to incoming flowfile and pass it to success relationship
-            if (flowFile != null) {
-                flowFile = session.putAttribute(flowFile, "accountRights", String.join(",", accountRights));
-                session.transfer(flowFile, REL_SUCCESS);
-            }
+            session.putAttribute(flowFile, attrName, String.join(separator, accountRights));
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (RPCException rpce) {
             //check error code
             if(rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
-                getLogger().warn("Could not find account with SID {} on host {}", new Object[]{sidString, hostname});
+                getLogger().info("Could not find account with SID {} on host {}", new Object[]{sidString, hostname});
                 context.yield();
                 smbClient.getServerList().unregister(hostname);
                 session.transfer(flowFile, REL_NOT_FOUND);

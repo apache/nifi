@@ -235,5 +235,7 @@ fi
 printf %s\\n "$distributionUrl" > "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain/mvnw.url"
 mv -- "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
 
+export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain anetac --domain-owner $AWS_DOMAIN_OWNER --region $AWS_DEFAULT_REGION --query authorizationToken --output text`
+
 clean || :
 exec_maven "$@"
