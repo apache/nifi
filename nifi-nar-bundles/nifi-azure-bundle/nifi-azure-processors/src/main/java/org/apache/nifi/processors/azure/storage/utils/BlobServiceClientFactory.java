@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.storage.utils;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.ProxyOptions;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.util.ClientOptions;
 import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredentialBuilder;
@@ -59,6 +60,9 @@ public class BlobServiceClientFactory extends AbstractStorageClientFactory<Azure
             case MANAGED_IDENTITY:
                 clientBuilder.credential(new ManagedIdentityCredentialBuilder()
                         .clientId(credentialsDetails.getManagedIdentityClientId())
+                        .httpClient(new NettyAsyncHttpClientBuilder()
+                                .proxy(credentialsDetails.getProxyOptions())
+                                .build())
                         .build());
                 break;
             case SERVICE_PRINCIPAL:
@@ -66,6 +70,9 @@ public class BlobServiceClientFactory extends AbstractStorageClientFactory<Azure
                         .tenantId(credentialsDetails.getServicePrincipalTenantId())
                         .clientId(credentialsDetails.getServicePrincipalClientId())
                         .clientSecret(credentialsDetails.getServicePrincipalClientSecret())
+                        .httpClient(new NettyAsyncHttpClientBuilder()
+                                .proxy(credentialsDetails.getProxyOptions())
+                                .build())
                         .build());
                 break;
             case ACCESS_TOKEN:

@@ -83,6 +83,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
@@ -92,7 +94,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET
+            SERVICE_PRINCIPAL_CLIENT_SECRET,
+            PROXY_CONFIGURATION_SERVICE
     ));
 
     private ConfigurationContext context;
@@ -183,6 +186,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
+
+        credentialsBuilder.setProxyOptions(AzureStorageUtils.getProxyOptions(context));
 
         return credentialsBuilder.build();
     }
