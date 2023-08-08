@@ -107,7 +107,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
 
     public static final PropertyDescriptor AD_SERVER_NAME = new PropertyDescriptor.Builder()
             .name("AD Server Name")
-            .description("Name of Active Directory Serer")
+            .description("Name of Active Directory Server")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
