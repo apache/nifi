@@ -51,6 +51,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -114,9 +115,18 @@ public class EnumerateAccountRights extends AbstractProcessor {
 
     public static final PropertyDescriptor SID_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("SID field name")
-            .description("Name of record field that contains Active Directory SID")
+            .description("Name of record field that contains Active Directory SID. Can be a coma separated list of fields.")
             .required(true)
             .defaultValue("objectSid")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MEMBER_OF_FIELD_NAME = new PropertyDescriptor.Builder()
+            .name("MemberOf field name")
+            .description("Name of record field that contains groups that the user is a member of")
+            .required(false)
+            .defaultValue("memberof")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -184,6 +194,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
         properties.add(ACCESS_LEVEL);
         properties.add(AD_SERVER_NAME);
         properties.add(SID_FIELD_NAME);
+        properties.add(MEMBER_OF_FIELD_NAME);
         properties.add(PERMISSIONS_FIELD_NAME);
         properties.add(SEPARATOR);
         return properties;
@@ -196,7 +207,10 @@ public class EnumerateAccountRights extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-        final String sidFieldName = context.getProperty(SID_FIELD_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String sidFieldName = context.getProperty(SID_FIELD_NAME)
+                .evaluateAttributeExpressions(flowFile).getValue();
+        final String memberOfFieldName = context.getProperty(MEMBER_OF_FIELD_NAME)
+                .evaluateAttributeExpressions(flowFile).getValue();
         final String permissionsFieldName = context.getProperty(PERMISSIONS_FIELD_NAME)
                 .evaluateAttributeExpressions(flowFile).getValue();
         final String separator = context.getProperty(SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
@@ -257,7 +271,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
                             return;
                         }
 
-                        firstRecord = processADRecord(firstRecord,  sidFieldName, permissionsFieldName, separator, handle, service);
+                        firstRecord = processADRecord(firstRecord,  sidFieldName, memberOfFieldName, permissionsFieldName, separator, handle, service);
 
                         final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
                         try (final RecordSetWriter writer = writerFactory
@@ -268,7 +282,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
 
                             Record record;
                             while ((record = reader.nextRecord()) != null) {
-                                final Record processed = processADRecord(record, sidFieldName, permissionsFieldName,
+                                final Record processed = processADRecord(record, sidFieldName, memberOfFieldName, permissionsFieldName,
                                         separator, handle, service);
                                 writer.write(processed);
                             }
@@ -311,6 +325,8 @@ public class EnumerateAccountRights extends AbstractProcessor {
      * local security authority service for the account rights.
      * @param record the record to process
      * @param sidFieldName the name of the field containing the SID
+     *                     (can be a comma separated list of fields)
+     * @param memberOfFieldName the name of the field containing the member of information
      * @param permissionsFieldName the name of the field to add the account rights to
      * @param separator the separator to use when joining the account rights
      * @param handle the policy handle to use
@@ -318,23 +334,74 @@ public class EnumerateAccountRights extends AbstractProcessor {
      * @return the processed record
      * @throws IOException if an error occurs
      */
-    protected Record processADRecord(Record record, String sidFieldName, String permissionsFieldName,
+    protected Record processADRecord(Record record, String sidFieldName, String memberOfFieldName, String permissionsFieldName,
                                      String separator, PolicyHandle handle,
                                      LocalSecurityAuthorityService service) throws IOException {
-        final String sid = record.getAsString(sidFieldName);
-        try {
-            final SID accountSid = SID.fromString(sid);
-            String[] accountRights = service.getAccountRights(handle, accountSid);
-            // Add accountRights to the record
-            record.setValue(permissionsFieldName, String.join(separator, accountRights));
-        } catch (RPCException rpce) {
-            if(rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
-                getLogger().info("Could not find account with SID {}", new Object[]{sid});
-            } else {
-                getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
+        final String[] sidFieldNames = sidFieldName.split(",");
+        ArrayList<String> rightsArray = new ArrayList<>();
+
+        // get permissions for each SID. Normally, this is the account's SID and the primaryGroup's SID
+        for (String sidField : sidFieldNames) {
+            final String sidString = record.getAsString(sidField);
+            if(sidString != null && !sidString.isEmpty()) {
+                try {
+                    final SID sid = SID.fromString(sidString);
+                    rightsArray.addAll(Arrays.asList(service.getAccountRights(handle, sid)));
+                    getLogger().debug("Found permissions for {} in {}", sidString, sidField);
+                } catch (RPCException rpce) {
+                    if (rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
+                        getLogger().debug("Could not find permissions for {} found in {}", sidString, sidField);
+                    } else {
+                        getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
+                    }
+                }
             }
-            record.setValue(permissionsFieldName, "");
         }
+
+        //Look up SIDs for DNs in memberOf
+        final Object[] parentGroups = record.getAsArray(memberOfFieldName);
+        if(parentGroups != null && parentGroups.length > 0) {
+            List<String> parentNames = new ArrayList<>();
+            for (Object parentName : parentGroups) {
+                    if(parentName == null || parentName.toString().isEmpty()) {
+                        getLogger().debug("Empty string in {}. Skipping", memberOfFieldName);
+                        continue;
+                    }
+                    // extract the first CN=... part of the DN
+                    parentNames.add(parentName.toString().split(",")[0].replace("CN=", ""));
+            }
+            try {
+                final SID[] parentSids = service.lookupSIDsForNames(handle, parentNames.toArray(new String[parentNames.size()]));
+                if(parentSids == null || parentSids.length == 0) {
+                    getLogger().debug("Could not find SIDs for parent groups {}. Skipping", parentNames);
+                } else {
+                    getLogger().debug("Found {} SIDs for parent groups {}", parentSids.length, parentNames);
+                    for (SID parentSid : parentSids) {
+                        if (parentSid == null) {
+                            continue;
+                        }
+                        rightsArray.addAll(Arrays.asList(service.getAccountRights(handle, parentSid)));
+                        getLogger().debug("Found permissions for parent group {}", parentSid);
+                    }
+                }
+            } catch (RPCException rpce) {
+                if (rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
+                    getLogger().debug("Could not find permissions for parent. Message: {}", rpce.getMessage());
+                } else {
+                    getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
+                }
+            }
+        } else {
+            getLogger().debug("{} is empty ({})", memberOfFieldName, record.getAsString(memberOfFieldName));
+        }
+
+        //convert rightsArray to a Set
+        getLogger().debug("Found {} permissions", rightsArray.size());
+        Set<String> rightsSet = new HashSet<String>(rightsArray);
+        // Add permissions field to the record
+        record.setValue(permissionsFieldName, String.join(separator, rightsSet));
+        getLogger().debug("Added {} permissions to record", rightsSet.size());
+        //update record schema
         record.incorporateInactiveFields();
         return record;
     }
