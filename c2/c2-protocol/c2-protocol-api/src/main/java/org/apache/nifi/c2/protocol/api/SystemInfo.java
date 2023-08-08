@@ -45,6 +45,7 @@ public class SystemInfo implements Serializable {
 
     @ApiModelProperty
     private Double cpuUtilization;
+    private Double cpuLoadAverage;
 
     public String getMachineArch() {
         return machineArch;
@@ -92,5 +93,13 @@ public class SystemInfo implements Serializable {
 
     public void setvCores(Integer vCores) {
         this.vCores = vCores;
+    }
+
+    public Double getCpuLoadAverage() {
+        return cpuLoadAverage;
+    }
+
+    public void setCpuLoadAverage(Double cpuLoadAverage) {
+        this.cpuLoadAverage = cpuLoadAverage;
     }
 }
