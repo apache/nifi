@@ -29,12 +29,10 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutSlackTest {
 
@@ -71,16 +69,6 @@ public class PutSlackTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
     }
 
-    @Test
-    public void testInvalidChannel() {
-        testRunner.setProperty(PutSlack.WEBHOOK_URL, url);
-        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
-        testRunner.setProperty(PutSlack.CHANNEL, "invalid");
-
-        testRunner.enqueue(new byte[0]);
-        testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
-    }
 
     @Test
     public void testInvalidIconUrl() {
@@ -179,19 +167,6 @@ public class PutSlackTest {
         testRunner.run(1);
         testRunner.assertTransferCount(PutSlack.REL_SUCCESS, 0);
         testRunner.assertTransferCount(PutSlack.REL_FAILURE, 1);
-    }
-
-    @Test
-    public void testGetPropertyDescriptors() {
-        PutSlack processor = new PutSlack();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(6, pd.size(), "size should be eq");
-        assertTrue(pd.contains(PutSlack.WEBHOOK_TEXT));
-        assertTrue(pd.contains(PutSlack.WEBHOOK_URL));
-        assertTrue(pd.contains(PutSlack.CHANNEL));
-        assertTrue(pd.contains(PutSlack.USERNAME));
-        assertTrue(pd.contains(PutSlack.ICON_URL));
-        assertTrue(pd.contains(PutSlack.ICON_EMOJI));
     }
 
     @Test

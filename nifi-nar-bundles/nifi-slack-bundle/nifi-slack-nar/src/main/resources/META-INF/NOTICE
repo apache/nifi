@@ -49,3 +49,12 @@ The following binary components are provided under the Common Development and Di
 
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
+    (CDDL 1.1) JSR 356: Java API for WebSocket (javax.websocket:javax.websocket-api:1.1)
+
+************************
+Eclipse Public License 2.0
+************************
+
+The following binary components are provided under the Eclipse Public License 2.0.
+
+    (EPL 2.0) Tyrus Standalone Client (org.glassfish.tyrus.bundles:tyrus-standalone-client:jar:2.1.3)
