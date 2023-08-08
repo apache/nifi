@@ -98,7 +98,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .description("The fully-qualified class name of the JDBC driver. Example: com.mysql.jdbc.Driver")
             .defaultValue(null)
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new DriverClassValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
