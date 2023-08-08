@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static io.krakens.grok.api.GrokUtils.getNameGroups;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -61,6 +42,25 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static io.krakens.grok.api.GrokUtils.getNameGroups;
 
 @EventDriven
 @SideEffectFree
@@ -113,7 +113,8 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Buffer Size")
-            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions.  Files larger than the specified maximum will not be fully evaluated.")
+            .description("Specifies the maximum amount of data to buffer (per FlowFile) in order to apply the regular expressions. " +
+                "FlowFiles larger than the specified maximum will not be fully evaluated.")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .addValidator(StandardValidators.createDataSizeBoundsValidator(0, Integer.MAX_VALUE))
@@ -122,7 +123,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_CAPTURE_GROUP_LENGTH = new PropertyDescriptor.Builder()
             .name("Maximum Capture Group Length")
-            .description("Specifies the maximum number of characters a given capture group value can have.  Any characters beyond the max will be truncated.")
+            .description("Specifies the maximum number of characters a given capture group value can have. Any characters beyond the max will be truncated.")
             .required(false)
             .defaultValue("1024")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -451,7 +452,7 @@ public class ExtractText extends AbstractProcessor {
                 } else {
                     int start = j == 0 ? startGroupIdx : 1;
                     for (int i = start; i <= matcher.groupCount(); i++) {
-                        final String key = new StringBuilder(baseKey).append(".").append(i + j).toString();
+                        final String key = baseKey + "." + (i + j);
                         String value = matcher.group(i);
                         if (value != null && !value.isEmpty()) {
                             if (value.length() > maxCaptureGroupLength) {
@@ -475,10 +476,10 @@ public class ExtractText extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, regexResults);
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_MATCH);
-            logger.info("Matched {} Regular Expressions and added attributes to FlowFile {}", new Object[]{regexResults.size(), flowFile});
+            logger.info("Matched {} Regular Expressions and added attributes to FlowFile {}", regexResults.size(), flowFile);
         } else {
             session.transfer(flowFile, REL_NO_MATCH);
-            logger.info("Did not match any Regular Expressions for  FlowFile {}", new Object[]{flowFile});
+            logger.info("Did not match any Regular Expressions for  FlowFile {}", flowFile);
         }
 
     }

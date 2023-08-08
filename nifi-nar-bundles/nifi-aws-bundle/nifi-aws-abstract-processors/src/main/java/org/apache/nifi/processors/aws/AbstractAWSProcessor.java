@@ -124,6 +124,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("Region")
+            .description("The AWS Region to connect to.")
             .required(true)
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
@@ -131,6 +132,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
+            .description("The amount of time to wait in order to establish a connection to AWS or receive data from AWS before timing out.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")
