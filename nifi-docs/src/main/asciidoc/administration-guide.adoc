@@ -341,7 +341,7 @@ may be set:
 |==================================================================================================================================================
 
 Each property should take the form of a comma-separated list of common cipher names as specified
-link:https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#ciphersuites[here^].  Regular expressions
+link:https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html[here^].  Regular expressions
 (for example `^.*GCM_SHA256$`) may also be specified.
 
 The semantics match the use of the following Jetty APIs:
@@ -1998,7 +1998,7 @@ image:argon2-salt.png["Argon2 Salt & IV Encoding"]
 
 === Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
 
-Because of US export regulations, default JVMs have link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits[limits imposed on the strength of cryptographic operations^] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
+Because of US export regulations, default JVMs have link:https://docs.oracle.com/en/java/javase/17/security/oracle-providers.html[limits imposed on the strength of cryptographic operations^] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
 
 PBE is the process of deriving a cryptographic key for encryption or decryption from _user-provided secret material_, usually a password. Rather than a human remembering a (random-appearing) 32 or 64 character hexadecimal string, a password or passphrase is used.
 
@@ -2946,7 +2946,7 @@ Failure to do so, may result in errors similar to the following:
 2016-01-08 16:08:57,888 ERROR [pool-26-thread-1-SendThread(localhost:2181)] o.a.zookeeper.client.ZooKeeperSaslClient An error: (java.security.PrivilegedActionException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]) occurred when evaluating ZooKeeper Quorum Member's  received SASL token. ZooKeeper Client will go to AUTH_FAILED state.
 
 If there are problems communicating or authenticating with Kerberos, this
-link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/Troubleshooting.html[Troubleshooting Guide^] may be of value.
+link:https://docs.oracle.com/en/java/javase/17/security/troubleshooting.html[Troubleshooting Guide^] may be of value.
 
 One of the most important notes in the above Troubleshooting guide is the mechanism for turning on Debug output for Kerberos.
 This is done by setting the `sun.security.krb5.debug` environment variable.
