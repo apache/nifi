@@ -223,6 +223,8 @@ public class PutDatabaseRecordTest {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final TableSchema tableSchema = new TableSchema(
+                null,
+                null,
                 "PERSONS",
                 Arrays.asList(
                         new ColumnDescription("id", 4, true, 2, false),
@@ -259,6 +261,8 @@ public class PutDatabaseRecordTest {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final TableSchema tableSchema = new TableSchema(
+                null,
+                null,
                 "PERSONS",
                 Arrays.asList(
                         new ColumnDescription("id", 4, true, 2, false),
@@ -1374,6 +1378,8 @@ public class PutDatabaseRecordTest {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final TableSchema tableSchema = new TableSchema(
+                null,
+                null,
                 "PERSONS",
                 Arrays.asList(
                         new ColumnDescription("id", 4, true, 2, false),
