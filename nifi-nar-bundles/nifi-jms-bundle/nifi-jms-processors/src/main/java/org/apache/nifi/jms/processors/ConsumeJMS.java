@@ -151,7 +151,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .name("Durable subscription")
             .displayName("Durable Subscription")
             .description("If destination is Topic if present then make it the consumer durable. " +
-                         "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createDurableConsumer-javax.jms.Topic-java.lang.String-")
+                         "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createDurableConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("false")
@@ -162,7 +162,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .name("Shared subscription")
             .displayName("Shared Subscription")
             .description("If destination is Topic if present then make it the consumer shared. " +
-                         "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createSharedConsumer-javax.jms.Topic-java.lang.String-")
+                         "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createSharedConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("false")
