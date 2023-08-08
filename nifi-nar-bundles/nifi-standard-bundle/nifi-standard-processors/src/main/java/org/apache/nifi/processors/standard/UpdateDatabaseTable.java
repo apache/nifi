@@ -486,7 +486,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
 
-                    tableSchema = new TableSchema(tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
+                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
                     final String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
 
