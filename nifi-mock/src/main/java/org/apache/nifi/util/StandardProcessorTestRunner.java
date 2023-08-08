@@ -171,6 +171,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public boolean isYieldCalled() {
+        return getProcessContext().isYieldCalled();
+    }
+
+    @Override
     public void run() {
         run(1);
     }

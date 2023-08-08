@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8"/>
+    <title>ConsumeSlack</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<h2>Description:</h2>
+
+<p>
+ConsumeSlack allows for receiving messages from Slack using the <code>conversations.history</code> API.
+This allows for consuming message events for a given conversation, such as a Channel.
+The typical use case for this Processor involves retrieving not only new, incoming messages in real-time,
+but also historical messages that were posted before the Processor was created. Because of this, the Processor
+makes use of the <code>conversations.history</code> API. Because of this, it will not receive specific message events,
+such as notifications that a message was deleted, which would be available from the real-time streaming API.
+</p>
+
+<h2>Slack Setup</h2>
+<p>
+In order use this Processor, it requires that a Slack App be created and installed in your Slack workspace.
+The App must have the <code>channels:history</code> User Token Scope. Please see
+<a href="https://api.slack.com/start/quickstart">Slack's documentation</a> for the
+latest information on how to create an Application and install it into your workspace.
+</p>
+
+<p>
+As a simple description, you will need to follow these steps in order to make use of the ConsumeSlack Processor:
+</p>
+<ul>
+    <li>Create a Slack App. Click <a href="https://api.slack.com/apps">here</a> to get started. From here,
+        click the "Create New App" button and choose "From scratch." Give your App a name and choose the workspace
+        that you want to use for developing the app.
+    </li>
+    <li>Creating your app will take you to the configuration page for your application.
+        For example, <code>https://api.slack.com/apps/&lt;APP_IDENTIFIER&gt;</code>. From here, click on
+        "OAuth & Permissions" in the left-hand menu. Scroll down to the "Scopes" section and click the
+        "Add an OAuth Scope" button under 'Bot Token Scopes'. Choose the <code>channels:history</code> scope.
+    </li>
+    <li>
+        Scroll back to the top, and under the "OAuth Tokens for Your Workspace" section, click the
+        "Install to Workspace" button. This will prompt you to allow the application to be added to your workspace,
+        if you have the appropriate permissions. Otherwise, it will generate a notification for a Workspace Owner
+        to approve the installation.
+        Additionally, it will generate a "Bot User OAuth Token".
+    </li>
+    <li>
+        Copy the value of the "Bot User OAuth Token." This will be used as the value for the ConsumeSlack Processor's
+        <code>Access Token</code> property.
+    </li>
+    <li>
+        The Bot must then be enabled for each Channel that you would like to consume messages from. In order to do that,
+        in the Slack application, go to the Channel that you would like to consume from and press <code>/</code>. Choose the
+        <code>Add apps to this channel</code> option, and add the Application that you created as a Bot to the channel.
+    </li>
+    <li>
+        Alternatively, instead of creating an OAuth Scope of <code>channels:history</code> under "Bot Token Scopes",
+        you may choose to create an OAuth Scope of <code>channels:history</code> under the "User Token Scopes" section.
+        This will allow the token to be used for any channel that the user has access to, such as all public channels,
+        without the need to explicitly add a Bot to the channel.
+    </li>
+
+</ul>
+
+
+</body>
+</html>
