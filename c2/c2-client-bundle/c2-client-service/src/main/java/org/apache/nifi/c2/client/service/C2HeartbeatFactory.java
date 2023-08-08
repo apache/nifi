@@ -228,7 +228,7 @@ public class C2HeartbeatFactory {
 
         // getSystemLoadAverage is not available in Windows, so we need to prevent to send invalid data
         if (systemLoadAverage >= 0) {
-            systemInfo.setCpuUtilization(systemLoadAverage / (double) osMXBean.getAvailableProcessors());
+            systemInfo.setCpuLoadAverage(systemLoadAverage);
         }
 
         return systemInfo;
