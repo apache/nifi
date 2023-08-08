@@ -36,6 +36,7 @@
         <module>nifi-iceberg-services-nar</module>
         <module>nifi-iceberg-processors</module>
         <module>nifi-iceberg-processors-nar</module>
+        <module>nifi-iceberg-common</module>
     </modules>
 
     <dependencyManagement>
