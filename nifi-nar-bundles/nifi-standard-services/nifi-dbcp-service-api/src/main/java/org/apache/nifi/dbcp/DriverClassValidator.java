@@ -24,10 +24,10 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Database Connection URL Validator supports system attribute expressions and evaluates URL formatting
+ * Database Driver Class Validator supports system attribute expressions and evaluates class names against unsupported values
  */
-public class ConnectionUrlValidator implements Validator {
-    private static final Set<String> UNSUPPORTED_SCHEMES = Collections.singleton("jdbc:h2");
+public class DriverClassValidator implements Validator {
+    private static final Set<String> UNSUPPORTED_CLASSES = Collections.singleton("org.h2.Driver");
 
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -35,32 +35,23 @@ public class ConnectionUrlValidator implements Validator {
 
         if (input == null || input.isEmpty()) {
             builder.valid(false);
-            builder.explanation("Connection URL required");
+            builder.explanation("Driver Class required");
         } else {
-            final String url = context.newPropertyValue(input).evaluateAttributeExpressions().getValue().trim();
+            final String driverClass = context.newPropertyValue(input).evaluateAttributeExpressions().getValue().trim();
 
-            if (isUrlUnsupported(url)) {
+            if (isDriverClassUnsupported(driverClass)) {
                 builder.valid(false);
-                builder.explanation(String.format("Connection URL contains an unsupported scheme %s", UNSUPPORTED_SCHEMES));
+                builder.explanation(String.format("Driver Class is listed as unsupported %s", UNSUPPORTED_CLASSES));
             } else {
                 builder.valid(true);
-                builder.explanation("Connection URL is valid");
+                builder.explanation("Driver Class is valid");
             }
         }
 
         return builder.build();
     }
 
-    private boolean isUrlUnsupported(final String url) {
-        boolean unsupported = false;
-
-        for (final String unsupportedScheme : UNSUPPORTED_SCHEMES) {
-            if (url.contains(unsupportedScheme)) {
-                unsupported = true;
-                break;
-            }
-        }
-
-        return unsupported;
+    private boolean isDriverClassUnsupported(final String driverClass) {
+        return UNSUPPORTED_CLASSES.contains(driverClass);
     }
 }
