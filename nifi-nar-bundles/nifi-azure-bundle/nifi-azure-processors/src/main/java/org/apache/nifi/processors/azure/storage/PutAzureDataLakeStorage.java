@@ -69,7 +69,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
-@CapabilityDescription("Puts content into an Azure Data Lake Storage Gen 2")
+@CapabilityDescription("Writes the contents of a FlowFile as a file on Azure Data Lake Storage Gen 2")
 @WritesAttributes({@WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
         @WritesAttribute(attribute = ATTR_NAME_DIRECTORY, description = ATTR_DESCRIPTION_DIRECTORY),
         @WritesAttribute(attribute = ATTR_NAME_FILENAME, description = ATTR_DESCRIPTION_FILENAME),

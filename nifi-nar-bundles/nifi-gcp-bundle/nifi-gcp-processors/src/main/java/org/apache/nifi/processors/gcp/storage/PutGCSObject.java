@@ -107,17 +107,15 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "google cloud", "gcs", "archive", "put"})
-@CapabilityDescription("Puts flow files to a Google Cloud Bucket.")
+@CapabilityDescription("Writes the contents of a FlowFile as an object in a Google Cloud Storage.")
 @SeeAlso({FetchGCSObject.class, DeleteGCSObject.class, ListGCSBucket.class})
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the GCS Object",
         value = "The value of a User-Defined Metadata field to add to the GCS Object",
         description = "Allows user-defined metadata to be added to the GCS object as key/value pairs",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the " +
-                "GCS object"),
-        @ReadsAttribute(attribute = "mime.type", description = "Uses the FlowFile's MIME type as the content-type for " +
-                "the GCS object")
+        @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the GCS object"),
+        @ReadsAttribute(attribute = "mime.type", description = "Uses the FlowFile's MIME type as the content-type for the GCS object")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = BUCKET_ATTR, description = BUCKET_DESC),

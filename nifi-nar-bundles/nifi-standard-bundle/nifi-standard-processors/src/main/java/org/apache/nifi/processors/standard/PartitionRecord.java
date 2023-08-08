@@ -71,12 +71,11 @@ import java.util.stream.Stream;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Receives Record-oriented data (i.e., data that can be read by the configured Record Reader) and evaluates one or more RecordPaths against the "
-    + "each record in the incoming FlowFile. Each record is then grouped with other \"like records\" and a FlowFile is created for each group of \"like records.\" What it means for "
-    + "two records to be \"like records\" is determined by user-defined properties. The user is required to enter at least one user-defined property whose value is a RecordPath. Two "
-    + "records are considered alike if they have the same value for all configured RecordPaths. Because we know that all records in a given output FlowFile have the same value for the "
-    + "fields that are specified by the RecordPath, an attribute is added for each field. See Additional Details on the Usage page for more information and examples.")
-@DynamicProperty(name="The name given to the dynamic property is the name of the attribute that will be used to denote the value of the associted RecordPath.",
+@CapabilityDescription("Splits, or partitions, record-oriented data based on the configured fields in the data. One or more properties must be added. The name of the property is the name " +
+    "of an attribute to add. The value of the property is a RecordPath to evaluate against each Record. Two records will go to the same outbound FlowFile only if they have the same value for each " +
+    "of the given RecordPaths. Because we know that all records in a given output FlowFile have the same value for the fields that are specified by the RecordPath, an attribute is added for each " +
+    "field. See Additional Details on the Usage page for more information and examples.")
+@DynamicProperty(name="The name given to the dynamic property is the name of the attribute that will be used to denote the value of the associated RecordPath.",
     value="A RecordPath that points to a field in the Record.",
     description="Each dynamic property represents a RecordPath that will be evaluated against each record in an incoming FlowFile. When the value of the RecordPath is determined "
         + "for a Record, an attribute is added to the outgoing FlowFile. The name of the attribute is the same as the name of this property. The value of the attribute is the same as "

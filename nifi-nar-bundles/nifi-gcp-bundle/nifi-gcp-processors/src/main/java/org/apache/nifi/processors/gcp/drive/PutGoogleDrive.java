@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static java.lang.String.format;
-import static java.lang.String.valueOf;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.joining;
-import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
-
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.googleapis.media.MediaHttpUploader;
 import com.google.api.client.http.GenericUrl;
@@ -53,20 +29,6 @@ import com.google.api.services.drive.DriveRequest;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -95,10 +57,49 @@ import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
+import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
+
 @SeeAlso({ListGoogleDrive.class, FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"google", "drive", "storage", "put"})
-@CapabilityDescription("Puts content to a Google Drive Folder.")
+@CapabilityDescription("Writes the contents of a FlowFile as a file in Google Drive.")
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the Google Drive object.")
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
