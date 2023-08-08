@@ -27,14 +27,12 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.CertificateUtils;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.regex.Pattern;
 
@@ -107,7 +105,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
                 final Certificate[] certs = sslSession.getPeerCertificates();
                 if (certs != null && certs.length > 0) {
                     for (final Certificate cert : certs) {
-                        final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(cert);
+                        final X509Certificate x509Cert = toX509Certificate(cert);
                         foundSubject = x509Cert.getSubjectX500Principal().getName();
                         if (authorizedDNPattern.matcher(foundSubject).matches()) {
                             break;
@@ -120,8 +118,6 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
                 }
             } catch (final SSLPeerUnverifiedException e) {
                 logger.debug("Skipping DN authorization for request from {}", clientIp, e);
-            } catch (CertificateException e) {
-                throw new ProcessException("Certificate is not an X.509 certificate", e);
             }
         }
         // contextualize the DN and IP for use in the RPC implementation
@@ -152,6 +148,14 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
         final InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         final String hostString = inetSocketAddress.getHostString();
         return hostString == null ? UNKNOWN_IP : hostString;
+    }
+
+    private X509Certificate toX509Certificate(final Certificate certificate) {
+        if (certificate instanceof X509Certificate) {
+            return (X509Certificate) certificate;
+        } else {
+            throw new ProcessException("Certificate is not an X.509 certificate. Certificate type: " + certificate.getClass());
+        }
     }
 
 }
