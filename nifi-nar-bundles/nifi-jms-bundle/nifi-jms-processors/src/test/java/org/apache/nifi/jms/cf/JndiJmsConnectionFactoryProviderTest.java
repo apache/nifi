@@ -41,6 +41,10 @@ public class JndiJmsConnectionFactoryProviderTest {
 
     private static final String LDAP_PROVIDER_URL = "ldap://127.0.0.1";
 
+    private static final String LDAP_PROVIDER_URL_SPACED = String.format(" %s", LDAP_PROVIDER_URL);
+
+    private static final String LDAP_PROVIDER_URL_EXPRESSION = "ldap:${separator}//127.0.0.1";
+
     private static final String HOST_PORT_URL = "127.0.0.1:1024";
 
     private static final String LDAP_ALLOWED_URL_SCHEMES = "ldap";
@@ -82,6 +86,24 @@ public class JndiJmsConnectionFactoryProviderTest {
     }
 
     @Test
+    void testPropertiesInvalidUrlSchemeSpaced() {
+        setFactoryProperties();
+
+        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, LDAP_PROVIDER_URL_SPACED);
+
+        runner.assertNotValid(provider);
+    }
+
+    @Test
+    void testPropertiesInvalidUrlSchemeExpression() {
+        setFactoryProperties();
+
+        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, LDAP_PROVIDER_URL_EXPRESSION);
+
+        runner.assertNotValid(provider);
+    }
+
+    @Test
     void testPropertiesHostPortUrl() {
         setFactoryProperties();
 
@@ -89,7 +111,6 @@ public class JndiJmsConnectionFactoryProviderTest {
 
         runner.assertValid(provider);
     }
-
 
     @Test
     void testUrlSchemeValidSystemProperty() {

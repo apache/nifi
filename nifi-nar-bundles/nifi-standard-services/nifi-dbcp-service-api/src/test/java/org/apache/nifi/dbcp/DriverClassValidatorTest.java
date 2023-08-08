@@ -29,27 +29,27 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ConnectionUrlValidatorTest {
+class DriverClassValidatorTest {
 
-    private static final String SUBJECT = "Database URL";
+    private static final String SUBJECT = "Database Driver Class";
 
     private static final String EMPTY = "";
 
-    private static final String UNSUPPORTED_URL = "jdbc:h2:file";
+    private static final String UNSUPPORTED_DRIVER = "org.h2.Driver";
 
-    private static final String UNSUPPORTED_URL_SPACED = String.format(" %s ", UNSUPPORTED_URL);
+    private static final String UNSUPPORTED_DRIVER_SPACED = String.format(" %s ", UNSUPPORTED_DRIVER);
 
-    private static final String UNSUPPORTED_URL_EXPRESSION = String.format("${attribute}%s", UNSUPPORTED_URL);
+    private static final String UNSUPPORTED_DRIVER_EXPRESSION = String.format("${attribute}%s", UNSUPPORTED_DRIVER);
 
-    private static final String VENDOR_URL = "jdbc:vendor";
+    private static final String OTHER_DRIVER = "org.apache.nifi.Driver";
 
     private ValidationContext validationContext;
 
-    private ConnectionUrlValidator validator;
+    private DriverClassValidator validator;
 
     @BeforeEach
     void setValidator() {
-        validator = new ConnectionUrlValidator();
+        validator = new DriverClassValidator();
 
         final MockProcessContext processContext = (MockProcessContext) TestRunners.newTestRunner(NoOpProcessor.class).getProcessContext();
         validationContext = new MockValidationContext(processContext);
@@ -64,32 +64,32 @@ class ConnectionUrlValidatorTest {
     }
 
     @Test
-    void testValidateUnsupportedUrl() {
-        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL, validationContext);
+    void testValidateUnsupportedDriver() {
+        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_DRIVER, validationContext);
 
         assertNotNull(result);
         assertFalse(result.isValid());
     }
 
     @Test
-    void testValidateUnsupportedUrlExpressionLanguage() {
-        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL_EXPRESSION, validationContext);
+    void testValidateUnsupportedDriverExpressionLanguage() {
+        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_DRIVER_EXPRESSION, validationContext);
 
         assertNotNull(result);
         assertFalse(result.isValid());
     }
 
     @Test
-    void testValidateUnsupportedUrlSpaced() {
-        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL_SPACED, validationContext);
+    void testValidateUnsupportedDriverSpaced() {
+        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_DRIVER_SPACED, validationContext);
 
         assertNotNull(result);
         assertFalse(result.isValid());
     }
 
     @Test
-    void testValidateSupportedUrl() {
-        final ValidationResult result = validator.validate(SUBJECT, VENDOR_URL, validationContext);
+    void testValidateSupportedDriver() {
+        final ValidationResult result = validator.validate(SUBJECT, OTHER_DRIVER, validationContext);
 
         assertNotNull(result);
         assertTrue(result.isValid());
