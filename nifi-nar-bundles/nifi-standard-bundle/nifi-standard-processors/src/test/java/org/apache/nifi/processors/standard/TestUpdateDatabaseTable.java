@@ -50,6 +50,9 @@ public class TestUpdateDatabaseTable {
 
     private static final String createPersons = "CREATE TABLE \"persons\" (\"id\" integer primary key, \"name\" varchar(100), \"code\" integer)";
 
+    private static final String createSchema = "CREATE SCHEMA \"testSchema\"";
+
+
     @TempDir
     public static File tempDir;
 
@@ -87,6 +90,18 @@ public class TestUpdateDatabaseTable {
             s.execute("DROP TABLE \"persons\"");
         } catch (SQLException se) {
             // Ignore, table probably doesn't exist
+        }
+
+        try (Statement s = service.getConnection().createStatement()) {
+            s.execute("DROP TABLE \"newTable\"");
+        } catch (SQLException se) {
+            // Ignore, table probably doesn't exist
+        }
+
+        try (Statement s = service.getConnection().createStatement()) {
+            s.execute("DROP SCHEMA \"testSchema\"");
+        } catch (SQLException se) {
+            // Ignore, schema probably doesn't exist
         }
     }
 
@@ -407,6 +422,77 @@ public class TestUpdateDatabaseTable {
             flowFile.assertContentEquals("\"1\",\"name1\",\"0\",\"test\"\n");
         }
     }
+
+    @Test
+    public void testCreateTableNonDefaultSchema() throws Exception {
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createSchema);
+            }
+        }
+        runner = TestRunners.newTestRunner(processor);
+        MockRecordParser readerFactory = new MockRecordParser();
+
+        readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
+        readerFactory.addSchemaField(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
+        readerFactory.addSchemaField(new RecordField("code", RecordFieldType.INT.getDataType(), 0, true));
+        readerFactory.addSchemaField(new RecordField("newField", RecordFieldType.STRING.getDataType(), 0, true));
+        readerFactory.addRecord(1, "name1", 10);
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+
+        runner.setProperty(UpdateDatabaseTable.RECORD_READER, "mock-reader-factory");
+        runner.setProperty(UpdateDatabaseTable.SCHEMA_NAME, "testSchema");
+        runner.setProperty(UpdateDatabaseTable.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "false");
+        runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
+        runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "newTable");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "newTable");
+        // Verify the table has been created with the expected fields
+        try (Statement s = service.getConnection().createStatement()) {
+            // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
+            ResultSet rs = s.executeQuery("select * from sys.syscolumns where referenceid = (select tableid from sys.systables "
+                    + "join sys.sysschemas on sys.systables.schemaid = sys.sysschemas.schemaid where tablename = 'NEWTABLE' and sys.sysschemas.schemaname = 'TESTSCHEMA') order by columnnumber");
+            assertTrue(rs.next());
+            // Columns 2,3,4 are Column Name, Column Index, and Column Type
+            assertEquals("id", rs.getString(2));
+            assertEquals(1, rs.getInt(3));
+            assertEquals("INTEGER NOT NULL", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("name", rs.getString(2));
+            assertEquals(2, rs.getInt(3));
+            assertEquals("VARCHAR(100)", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("code", rs.getString(2));
+            assertEquals(3, rs.getInt(3));
+            assertEquals("INTEGER", rs.getString(4));
+
+            assertTrue(rs.next());
+            assertEquals("newField", rs.getString(2));
+            assertEquals(4, rs.getInt(3));
+            assertEquals("VARCHAR(100)", rs.getString(4));
+
+            // No more rows
+            assertFalse(rs.next());
+        }
+    }
+
 
     /**
      * Simple implementation only for testing purposes

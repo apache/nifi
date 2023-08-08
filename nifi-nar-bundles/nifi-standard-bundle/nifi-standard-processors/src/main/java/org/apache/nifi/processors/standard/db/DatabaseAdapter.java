@@ -178,9 +178,7 @@ public interface DatabaseAdapter {
         }
 
         createTableStatement.append("CREATE TABLE IF NOT EXISTS ")
-                .append(quoteTableName ? getTableQuoteString() : "")
-                .append(tableSchema.getTableName())
-                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(),tableSchema))
                 .append(" (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
@@ -215,5 +213,42 @@ public interface DatabaseAdapter {
 
     default String getSQLForDataType(int sqlType) {
         return JDBCType.valueOf(sqlType).getName();
+    }
+
+    default String generateTableName(final boolean quoteTableName, final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
+        final StringBuilder tableNameBuilder = new StringBuilder();
+        if (catalog != null) {
+            if (quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(catalog)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(catalog);
+            }
+
+            tableNameBuilder.append(".");
+        }
+
+        if (schemaName != null) {
+            if (quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(schemaName)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(schemaName);
+            }
+
+            tableNameBuilder.append(".");
+        }
+
+        if (quoteTableName) {
+            tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(tableSchema.getQuotedIdentifierString());
+        } else {
+            tableNameBuilder.append(tableName);
+        }
+
+        return tableNameBuilder.toString();
     }
 }
