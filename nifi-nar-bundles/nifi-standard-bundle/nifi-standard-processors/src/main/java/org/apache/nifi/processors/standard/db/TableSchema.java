@@ -34,10 +34,14 @@ public class TableSchema {
     private final Set<String> primaryKeyColumnNames;
     private final Map<String, ColumnDescription> columns;
     private final String quotedIdentifierString;
+    private final String catalogName;
+    private final String schemaName;
     private final String tableName;
 
-    public TableSchema(final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
+    public TableSchema(final String catalogName, final String schemaName, final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
                         final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
+        this.catalogName = catalogName;
+        this.schemaName = schemaName;
         this.tableName = tableName;
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
@@ -50,6 +54,14 @@ public class TableSchema {
                 requiredColumnNames.add(desc.getColumnName());
             }
         }
+    }
+
+    public String getCatalogName() {
+        return catalogName;
+    }
+
+    public String getSchemaName() {
+        return schemaName;
     }
 
     public String getTableName() {
@@ -128,7 +140,7 @@ public class TableSchema {
                 }
             }
 
-            return new TableSchema(tableName, cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
+            return new TableSchema(catalog, schema, tableName, cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
         }
     }
 
