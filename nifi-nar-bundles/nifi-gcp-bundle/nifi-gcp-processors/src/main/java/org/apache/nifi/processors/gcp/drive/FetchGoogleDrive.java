@@ -140,11 +140,10 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     }
 
 
-    public static final PropertyDescriptor FILE_ID = new PropertyDescriptor
-            .Builder().name("drive-file-id")
+    public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
+            .name("drive-file-id")
             .displayName("File ID")
-            .description("The Drive ID of the File to fetch. "
-            + "Please see Additional Details to obtain Drive ID.")
+            .description("The Drive ID of the File to fetch. Please see Additional Details for information on how to obtain the Drive ID.")
             .required(true)
             .defaultValue("${drive.id}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -198,16 +197,15 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
 
 
-    public static final Relationship REL_SUCCESS =
-            new Relationship.Builder()
-                    .name("success")
-                    .description("A FlowFile will be routed here for each successfully fetched File.")
-                    .build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("A FlowFile will be routed here for each successfully fetched File.")
+            .build();
 
-    public static final Relationship REL_FAILURE =
-            new Relationship.Builder().name("failure")
-                    .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
-                    .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
@@ -349,7 +347,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     private void handleErrorResponse(final ProcessSession session, final String fileId, FlowFile flowFile, final GoogleJsonResponseException e) {
         getLogger().error("Fetching File [{}] failed", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_CODE, "" + e.getStatusCode());
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getStatusCode()));
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
 
         flowFile = session.penalize(flowFile);

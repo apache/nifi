@@ -85,8 +85,9 @@ import java.util.zip.InflaterInputStream;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"content", "compress", "recompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy-hadoop", "snappy framed", "lz4-framed", "deflate", "zstd", "brotli"})
-@CapabilityDescription("Decompresses the contents of FlowFiles using a user-specified compression algorithm and recompresses the contents using the specified compression format properties. "
-        + "This processor operates in a very memory efficient way so very large objects well beyond the heap size are generally fine to process")
+@CapabilityDescription("Changes the compression algorithm used to compress the contents of a FlowFile by decompressing the contents of FlowFiles using a user-specified compression algorithm and " +
+    "recompressing the contents using the specified compression format properties. This processor operates in a very memory efficient way so very large objects well beyond " +
+    "the heap size are generally fine to process")
 @ReadsAttribute(attribute = "mime.type", description = "If the Decompression Format is set to 'use mime.type attribute', this attribute is used to "
         + "determine the decompression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "The appropriate MIME Type is set based on the value of the Compression Format property. If the Compression Format is 'no compression' this "

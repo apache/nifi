@@ -90,8 +90,10 @@ import java.util.zip.InflaterInputStream;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy-hadoop", "snappy framed", "lz4-framed", "deflate", "zstd", "brotli"})
 @CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type "
-    + "attribute as appropriate. This processor operates in a very memory efficient way so very large objects well beyond the heap size "
-    + "are generally fine to process")
+    + "attribute as appropriate. A common idiom is to precede CompressContent with IdentifyMimeType and configure Mode='decompress' AND Compression Format='use mime.type attribute'. "
+    + "When used in this manner, the MIME type is automatically detected and the data is decompressed, if necessary. "
+    + "If decompression is unnecessary, the data is passed through to the 'success' relationship."
+    + " This processor operates in a very memory efficient way so very large objects well beyond the heap size are generally fine to process.")
 @ReadsAttribute(attribute = "mime.type", description = "If the Compression Format is set to use mime.type attribute, this attribute is used to "
     + "determine the compression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
