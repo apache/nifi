@@ -158,10 +158,11 @@ public class JndiJmsConnectionFactoryProperties {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final ValidationResult.Builder builder = new ValidationResult.Builder().subject(subject).input(input);
 
-            if (input == null || input.isEmpty()) {
+            final String url = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+            if (url == null || url.isEmpty()) {
                 builder.valid(false);
                 builder.explanation("URL is required");
-            } else if (isUrlAllowed(input)) {
+            } else if (isUrlAllowed(url)) {
                 builder.valid(true);
                 builder.explanation("URL scheme allowed");
             } else {
@@ -176,7 +177,8 @@ public class JndiJmsConnectionFactoryProperties {
         private boolean isUrlAllowed(final String input) {
             final boolean allowed;
 
-            final Matcher matcher = URL_SCHEME_PATTERN.matcher(input);
+            final String normalizedUrl = input.trim();
+            final Matcher matcher = URL_SCHEME_PATTERN.matcher(normalizedUrl);
             if (matcher.matches()) {
                 final String scheme = matcher.group(SCHEME_GROUP);
                 allowed = isSchemeAllowed(scheme);

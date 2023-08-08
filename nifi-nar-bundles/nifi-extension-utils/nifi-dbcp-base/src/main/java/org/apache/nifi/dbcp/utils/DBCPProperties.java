@@ -22,6 +22,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.dbcp.ConnectionUrlValidator;
 import org.apache.nifi.dbcp.DBCPValidator;
+import org.apache.nifi.dbcp.DriverClassValidator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -67,7 +68,7 @@ public final class DBCPProperties {
             .description("Database driver class name")
             .defaultValue(null)
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new DriverClassValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
