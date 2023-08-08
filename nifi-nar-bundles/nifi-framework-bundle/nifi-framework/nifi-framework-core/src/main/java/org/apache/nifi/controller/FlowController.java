@@ -115,9 +115,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceResolver;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.controller.service.StandardControllerServiceApiLookup;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceResolver;
-import org.apache.nifi.controller.service.StandardControllerServiceApiLookup;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 import org.apache.nifi.controller.status.NodeStatus;
@@ -234,6 +234,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1406,7 +1407,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     public void shutdown(final boolean kill) {
         LOG.info("Initiating shutdown of FlowController...");
         this.shutdown = true;
-        flowManager.getRootGroup().stopProcessing();
+        final CompletableFuture<Void> rootGroupStopFuture = flowManager.getRootGroup().stopProcessing();
 
         readLock.lock();
         try {
@@ -1449,6 +1450,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 processScheduler.shutdownReportingTask(taskNode);
             }
 
+            final long shutdownEnd = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(gracefulShutdownSeconds);
+            if (!kill) {
+                try {
+                    rootGroupStopFuture.get(gracefulShutdownSeconds, TimeUnit.SECONDS);
+                } catch (final Exception e) {
+                    LOG.warn("Failed to wait until all components have gracefully stopped", e);
+                }
+            }
+
             if (kill) {
                 this.timerDrivenEngineRef.get().shutdownNow();
                 LOG.info("Initiated immediate shutdown of flow controller...");
@@ -1458,7 +1468,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             try {
-                this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds, TimeUnit.SECONDS);
+                // Give thread pool up to the configured amount of time to finish, but no less than 2 seconds,
+                // in order to allow for a more graceful shutdown.
+                final long millisToWait = Math.max(2000, shutdownEnd - System.currentTimeMillis());
+                this.timerDrivenEngineRef.get().awaitTermination(millisToWait, TimeUnit.MILLISECONDS);
             } catch (final InterruptedException ie) {
                 LOG.info("Interrupted while waiting for controller termination.");
             }
