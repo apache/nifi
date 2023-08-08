@@ -63,6 +63,8 @@ public interface TestRunner {
      */
     ProcessContext getProcessContext();
 
+    boolean isYieldCalled();
+
     /**
      * Performs exactly the same operation as calling {@link #run(int)} with a
      * value of 1.
