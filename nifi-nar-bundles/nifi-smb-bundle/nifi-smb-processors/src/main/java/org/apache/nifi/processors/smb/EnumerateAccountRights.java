@@ -115,7 +115,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
 
     public static final PropertyDescriptor SID_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("SID field name")
-            .description("Name of record field that contains Active Directory SID. Can be a coma separated list of fields.")
+            .description("Name of record field that contains Active Directory SID. Can be a comma separated list of fields.")
             .required(true)
             .defaultValue("objectSid")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
