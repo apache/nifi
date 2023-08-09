@@ -280,7 +280,7 @@
                             <value>
 <dependencies>
     <dependentValues>confluent-encoded</dependentValues>
-    <dependentValues>schema-name</dependentValues>
+    <dependentValues>schema-name-property</dependentValues>
     <dependentValues>hwx-schema-ref-attributes</dependentValues>
     <dependentValues>hwx-content-encoded-schema</dependentValues>
     <propertyName>schema-access-strategy</propertyName>
@@ -293,7 +293,7 @@
                             <key>schema-name</key>
                             <value>
 <dependencies>
-    <dependentValues>schema-name</dependentValues>
+    <dependentValues>schema-name-property</dependentValues>
     <propertyName>schema-access-strategy</propertyName>
 </dependencies>
 <name>schema-name</name>
@@ -303,7 +303,7 @@
                             <key>schema-version</key>
                             <value>
 <dependencies>
-    <dependentValues>schema-name</dependentValues>
+    <dependentValues>schema-name-property</dependentValues>
     <propertyName>schema-access-strategy</propertyName>
 </dependencies>
 <name>schema-version</name>
@@ -313,7 +313,7 @@
                             <key>schema-branch</key>
                             <value>
 <dependencies>
-    <dependentValues>schema-name</dependentValues>
+    <dependentValues>schema-name-property</dependentValues>
     <propertyName>schema-access-strategy</propertyName>
 </dependencies>
 <name>schema-branch</name>

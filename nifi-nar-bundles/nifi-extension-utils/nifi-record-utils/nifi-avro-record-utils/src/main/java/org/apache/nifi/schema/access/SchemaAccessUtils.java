@@ -33,7 +33,7 @@ import java.util.List;
 
 public class SchemaAccessUtils {
 
-    public static final AllowableValue SCHEMA_NAME_PROPERTY = new AllowableValue("schema-name", "Use 'Schema Name' Property",
+    public static final AllowableValue SCHEMA_NAME_PROPERTY = new AllowableValue("schema-name-property", "Use 'Schema Name' Property",
             "The name of the Schema to use is specified by the 'Schema Name' Property. The value of this property is used to lookup the Schema in the configured Schema Registry service.");
     public static final AllowableValue SCHEMA_TEXT_PROPERTY = new AllowableValue("schema-text-property", "Use 'Schema Text' Property",
             "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. "
