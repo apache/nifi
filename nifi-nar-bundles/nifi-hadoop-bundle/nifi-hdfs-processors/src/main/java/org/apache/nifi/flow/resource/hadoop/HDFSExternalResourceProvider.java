@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.flow.resource.hadoop;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import javax.net.SocketFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -31,6 +43,7 @@ import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationConte
 import org.apache.nifi.flow.resource.ImmutableExternalResourceDescriptor;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.processors.hadoop.ExtendedConfiguration;
+import org.apache.nifi.processors.hadoop.HDFSResourceHelper;
 import org.apache.nifi.processors.hadoop.HdfsResources;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
@@ -38,19 +51,11 @@ import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.SocketFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
-import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
+// Implementation considerations: The public methods are considered as steps orchestrated by clients. As of this, there is no direct dependency
+// or connection between {@code listResources} and {@code fetchExternalResource}: both are self-sufficing actions. As of this they do not share
+// a {@code FileSystem} instance but every method is responsible for collecting and maintaining one. This comes with a minimal overhead but due to
+// the nature of the service the method calls are relatively rare. Alternatively a provider could have a FileService instance maintained during its
+// lifecycle but that is considered a more error-prone approach as it comes with logic regularly checking for the state of the maintained instance.
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public class HDFSExternalResourceProvider implements ExternalResourceProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(HDFSExternalResourceProvider.class);
@@ -104,7 +109,6 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
         final HdfsResources hdfsResources = getHdfsResources();
 
         try {
-
             final FileStatus[] fileStatuses = hdfsResources.getUserGroupInformation()
                     .doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfsResources.getFileSystem().listStatus(sourceDirectory));
 
@@ -122,6 +126,8 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Provider cannot list resources", e);
+        } finally {
+            HDFSResourceHelper.closeFileSystem(hdfsResources.getFileSystem());
         }
     }
 
@@ -140,13 +146,16 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
         final HdfsResources hdfsResources = getHdfsResources();
 
         try {
-            return hdfsResources.getUserGroupInformation().doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> {
-                if (!hdfsResources.getFileSystem().exists(path)) {
-                    throw new IOException("Cannot find file in HDFS at location " + location);
-                }
+            final FSDataInputStream fsDataInputStream =
+                    hdfsResources.getUserGroupInformation().doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> {
+                        if (!hdfsResources.getFileSystem().exists(path)) {
+                            throw new IOException("Cannot find file in HDFS at location " + location);
+                        }
 
-                return hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT);
-            });
+                        return hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT);
+                    });
+            // The acquired InputStream is used by the client and cannot be closed here. The decorator is responsible for that.
+            return new HDFSResourceInputStream(hdfsResources.getFileSystem(), fsDataInputStream);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Error during acquiring file", e);
