@@ -77,7 +77,7 @@ public class SegmentContent extends AbstractProcessor {
             .name("Segment Size")
             .displayName("Segment Size")
             .description("The maximum data size in bytes for each segment")
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
