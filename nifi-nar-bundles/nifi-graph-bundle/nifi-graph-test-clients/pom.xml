@@ -25,7 +25,7 @@
     <artifactId>nifi-graph-test-clients</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <gremlin.version>3.6.4</gremlin.version>
+        <gremlin.version>3.7.0</gremlin.version>
         <janusgraph.version>0.6.3</janusgraph.version>
         <guava.version>32.0.1-jre</guava.version>
     </properties>
