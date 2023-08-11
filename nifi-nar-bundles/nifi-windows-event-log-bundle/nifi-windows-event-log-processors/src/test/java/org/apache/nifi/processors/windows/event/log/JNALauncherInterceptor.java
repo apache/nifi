@@ -14,38 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.windows.event.log;
 
-import com.sun.jna.Native;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import org.junit.Assert;
-import org.junit.runner.Description;
-import org.junit.runner.Runner;
-import org.junit.runner.notification.RunNotifier;
-import org.junit.runners.model.InitializationError;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-/**
- * Can't even use the JNA interface classes if the native library won't load.  This is a workaround to allow mocking them for unit tests.
- */
-public abstract class JNAOverridingJUnitRunner extends Runner {
+import com.sun.jna.Native;
+import com.sun.jna.platform.win32.Kernel32Util;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import org.junit.platform.launcher.LauncherInterceptor;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
+public class JNALauncherInterceptor implements LauncherInterceptor {
     public static final String NATIVE_CANONICAL_NAME = Native.class.getCanonicalName();
     public static final String LOAD_LIBRARY = "loadLibrary";
-    private final Runner delegate;
+    public static final String TEST_COMPUTER_NAME = "testComputerName";
+    public static final String KERNEL_32_UTIL_CANONICAL_NAME = Kernel32Util.class.getCanonicalName();
 
-    public JNAOverridingJUnitRunner(Class<?> klass) throws InitializationError {
+    private final URLClassLoader jnaMockClassLoader;
+
+    public JNALauncherInterceptor() {
         Map<String, Map<String, String>> classOverrideMap = getClassOverrideMap();
         String classpath = System.getProperty("java.class.path");
         URL[] result = Pattern.compile(File.pathSeparator).splitAsStream(classpath).map(Paths::get).map(Path::toAbsolutePath).map(Path::toUri)
@@ -54,12 +54,12 @@ public abstract class JNAOverridingJUnitRunner extends Runner {
                     try {
                         url = uri.toURL();
                     } catch (MalformedURLException e) {
-                        Assert.fail(String.format("Unable to create URL for classpath entry '%s'", uri));
+                        fail(String.format("Unable to create URL for classpath entry '%s'", uri));
                     }
                     return url;
                 })
                 .toArray(URL[]::new);
-        ClassLoader jnaMockClassloader = new URLClassLoader(result, null) {
+        jnaMockClassLoader = new URLClassLoader(result, null) {
             @Override
             protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
                 Map<String, String> classOverrides = classOverrideMap.get(name);
@@ -86,8 +86,8 @@ public abstract class JNAOverridingJUnitRunner extends Runner {
                     } catch (Exception e) {
                         throw new ClassNotFoundException(name, e);
                     }
-                } else if (name.startsWith("org.junit.") || name.startsWith("org.mockito")) {
-                    Class<?> result = JNAOverridingJUnitRunner.class.getClassLoader().loadClass(name);
+                } else if (name.startsWith("org.junit.")) {
+                    Class<?> result = JNALauncherInterceptor.class.getClassLoader().loadClass(name);
                     if (resolve) {
                         resolveClass(result);
                     }
@@ -96,23 +96,40 @@ public abstract class JNAOverridingJUnitRunner extends Runner {
                 return super.loadClass(name, resolve);
             }
         };
+    }
+
+    @Override
+    public <T> T intercept(final Invocation<T> invocation) {
+        final Thread currentThread = Thread.currentThread();
+        final ClassLoader originalClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(jnaMockClassLoader);
         try {
-            delegate = (Runner) jnaMockClassloader.loadClass(MockitoJUnitRunner.class.getCanonicalName()).getConstructor(Class.class)
-                    .newInstance(jnaMockClassloader.loadClass(klass.getCanonicalName()));
-        } catch (Exception e) {
-            throw new InitializationError(e);
+            return invocation.proceed();
+        } finally {
+            currentThread.setContextClassLoader(originalClassLoader);
         }
     }
 
-    protected abstract Map<String, Map<String, String>> getClassOverrideMap();
-
     @Override
-    public Description getDescription() {
-        return delegate.getDescription();
+    public void close() {
+        try {
+            jnaMockClassLoader.close();
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to close custom class loader", e);
+        }
     }
 
-    @Override
-    public void run(RunNotifier notifier) {
-        delegate.run(notifier);
+    private Map<String, Map<String, String>> getClassOverrideMap() {
+        final Map<String, Map<String, String>> classOverrideMap = new HashMap<>();
+
+        final Map<String, String> nativeOverrideMap = new HashMap<>();
+        nativeOverrideMap.put(LOAD_LIBRARY, "return null;");
+        classOverrideMap.put(NATIVE_CANONICAL_NAME, nativeOverrideMap);
+
+        final Map<String, String> kernel32UtilMap = new HashMap<>();
+        kernel32UtilMap.put("getComputerName", "return \"" + TEST_COMPUTER_NAME + "\";");
+        classOverrideMap.put(KERNEL_32_UTIL_CANONICAL_NAME, kernel32UtilMap);
+
+        return classOverrideMap;
     }
 }
