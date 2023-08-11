@@ -25,22 +25,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTest {
-    private static String matchAllWithSortByMsgWithSizeQuery;
-
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
         AbstractPaginatedJsonQueryElasticsearchTest.setUpBeforeClass();
-        matchAllWithSortByMsgWithSizeQuery = Files.readString(Paths.get("src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest/matchAllWithSortByMsgQueryWithSize.json"));
     }
 
     public AbstractPaginatedJsonQueryElasticsearch getProcessor() {
@@ -148,10 +142,8 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
 
         // Tests flowfile per page, hits splitting and hits combined
-        for(ResultOutputStrategy resultOutputStrategy : Arrays.asList(null, ResultOutputStrategy.PER_HIT, ResultOutputStrategy.PER_QUERY)) {
-            if(resultOutputStrategy != null) {
-                runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
-            }
+        for(ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
+            runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
 
             for(int iteration = 1; iteration < 4; iteration++) {
                 runOnce(runner);
@@ -166,11 +158,11 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
     }
 
     private static void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws IOException {
-        boolean noResultOutputStrategy = resultOutputStrategy == null;
+        boolean perResponseResultOutputStrategy = ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy);
         boolean perHitResultOutputStrategy = ResultOutputStrategy.PER_HIT.equals(resultOutputStrategy);
         final int expectedHitCount = 10 * iteration;
 
-        if (noResultOutputStrategy && (iteration == 1 || iteration == 2)) {
+        if (perResponseResultOutputStrategy && (iteration == 1 || iteration == 2)) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", String.valueOf(iteration));
@@ -182,7 +174,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
                 hit.assertAttributeEquals("page.number", String.valueOf(iteration));
             });
             assertState(runner.getStateManager(), paginationType, expectedHitCount, iteration);
-        } else if ((noResultOutputStrategy || perHitResultOutputStrategy) && iteration == 3) {
+        } else if ((perResponseResultOutputStrategy || perHitResultOutputStrategy) && iteration == 3) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
             assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
         } else if (ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {

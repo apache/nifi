@@ -38,15 +38,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractPaginatedJsonQueryElasticsearch> {
+   protected static String matchAllWithSortByMsgWithSizeQuery;
    private static final String TEST_DIR = "src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest";
    private static String matchAllWithSortByMessage;
-   private static String matchAllWithSortByMsg;
+   private static String matchAllWithSortByMsgWithoutSize;
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
         AbstractJsonQueryElasticsearchTest.setUpBeforeClass();
         matchAllWithSortByMessage = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
-        matchAllWithSortByMsg = Files.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
+        matchAllWithSortByMsgWithoutSize = Files.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
+        matchAllWithSortByMsgWithSizeQuery = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMsgQueryWithSize.json"));
     }
 
     public abstract boolean isInput();
@@ -206,7 +208,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setThrowErrorInDelete(true);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithoutSize);
 
         // still expect "success" output for exception during final clean-up
         runMultiple(runner);
@@ -224,7 +226,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL.getValue());
         runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL.getValue());
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithoutSize);
 
         // still expect "success" output for exception during final clean-up
         runMultiple(runner);
@@ -240,7 +242,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setThrowErrorInPit(true);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithoutSize);
 
         // expect "failure" output for exception during query setup
         runOnce(runner);
