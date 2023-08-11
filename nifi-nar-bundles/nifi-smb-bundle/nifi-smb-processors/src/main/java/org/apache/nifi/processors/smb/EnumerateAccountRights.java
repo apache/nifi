@@ -126,7 +126,7 @@ public class EnumerateAccountRights extends AbstractProcessor {
             .name("MemberOf field name")
             .description("Name of record field that contains groups that the user is a member of")
             .required(false)
-            .defaultValue("memberof")
+            .defaultValue("memberOf")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -370,29 +370,42 @@ public class EnumerateAccountRights extends AbstractProcessor {
                     // extract the first CN=... part of the DN
                     parentNames.add(parentName.toString().split(",")[0].replace("CN=", ""));
             }
+
+            // Look up SID values for each parent group
+            SID[] parentSids = null;
             try {
-                final SID[] parentSids = service.lookupSIDsForNames(handle, parentNames.toArray(new String[parentNames.size()]));
-                if(parentSids == null || parentSids.length == 0) {
-                    getLogger().debug("Could not find SIDs for parent groups {}. Skipping", parentNames);
-                } else {
-                    getLogger().debug("Found {} SIDs for parent groups {}", parentSids.length, parentNames);
-                    for (SID parentSid : parentSids) {
-                        if (parentSid == null) {
-                            continue;
-                        }
-                        rightsArray.addAll(Arrays.asList(service.getAccountRights(handle, parentSid)));
-                        getLogger().debug("Found permissions for parent group {}", parentSid);
-                    }
-                }
+                parentSids = service.lookupSIDsForNames(handle, parentNames.toArray(new String[parentNames.size()]));
             } catch (RPCException rpce) {
-                if (rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
-                    getLogger().debug("Could not find permissions for parent. Message: {}", rpce.getMessage());
+                if (rpce.getErrorCode() == SystemErrorCode.STATUS_NONE_MAPPED) {
+                    getLogger().debug("Could not find SIDs for any parent groups {}. Skipping", parentNames);
+                } else if (rpce.getErrorCode() == SystemErrorCode.ERROR_SOME_NOT_MAPPED) {
+                    getLogger().debug("Could not find SIDs for some of the parent groups {}", parentNames);
                 } else {
                     getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
                 }
             }
+
+            // Look up permissions for each parent group using their SIDs
+            if(parentSids != null && parentSids.length > 0) {
+                getLogger().debug("Found {} SIDs for parent groups {}", parentSids.length, parentNames);
+                for (SID parentSid : parentSids) {
+                    if (parentSid == null) {
+                        continue;
+                    }
+                    try {
+                        rightsArray.addAll(Arrays.asList(service.getAccountRights(handle, parentSid)));
+                        getLogger().debug("Found permissions for parent group {}", parentSid);
+                    } catch (RPCException rpce) {
+                        if (rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
+                            getLogger().debug("Could not find permissions for parent. Message: {}", rpce.getMessage());
+                        } else {
+                            getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
+                        }
+                    }
+                }
+            }
         } else {
-            getLogger().debug("{} is empty ({})", memberOfFieldName, record.getAsString(memberOfFieldName));
+            getLogger().debug("{} field is empty ({})", memberOfFieldName, record.getAsString(memberOfFieldName));
         }
 
         //convert rightsArray to a Set
