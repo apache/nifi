@@ -14,36 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.windows.event.log;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
 import com.sun.jna.platform.win32.WinError;
 import com.sun.jna.platform.win32.WinNT;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -55,13 +32,43 @@ import org.apache.nifi.util.MockSessionFactory;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(JNAJUnitRunner.class)
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Running tests may require {@code junit.platform.launcher.interceptors.enabled}
+ * property to be set to {@code true} to resolve class loading issues.
+ */
+@ExtendWith(MockitoExtension.class)
 public class ConsumeWindowsEventLogTest {
     @Mock
     Kernel32 kernel32;
@@ -78,36 +85,13 @@ public class ConsumeWindowsEventLogTest {
     private ConsumeWindowsEventLog evtSubscribe;
     private TestRunner testRunner;
 
-    public static List<WinNT.HANDLE> mockEventHandles(WEvtApi wEvtApi, Kernel32 kernel32, List<String> eventXmls) {
-        List<WinNT.HANDLE> eventHandles = new ArrayList<>();
-        for (String eventXml : eventXmls) {
-            WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
-            when(wEvtApi.EvtRender(isNull(), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
-                    anyInt(), any(Pointer.class), any(Pointer.class), any(Pointer.class))).thenAnswer(invocation -> {
-                Object[] arguments = invocation.getArguments();
-                Pointer bufferUsed = (Pointer) arguments[5];
-                byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
-                if (array.length > (int) arguments[3]) {
-                    when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
-                } else {
-                    ((Pointer) arguments[4]).write(0, array, 0, array.length);
-                }
-                bufferUsed.setInt(0, array.length);
-                return false;
-            });
-            eventHandles.add(eventHandle);
-        }
-        return eventHandles;
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
 
+        lenient().when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
 
-        when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
-
-        when(wEvtApi.EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+        lenient().when(wEvtApi.EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
                 isNull(), isNull(), isA(EventSubscribeXmlRenderingCallback.class),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
                 .thenReturn(subscriptionHandle);
@@ -115,8 +99,9 @@ public class ConsumeWindowsEventLogTest {
         testRunner = TestRunners.newTestRunner(evtSubscribe);
     }
 
-    @Test(timeout = 10 * 1000)
-    public void testProcessesBlockedEvents() throws UnsupportedEncodingException {
+    @Test
+    @Timeout(value = 10)
+    public void testProcessesBlockedEvents() {
         testRunner.setProperty(ConsumeWindowsEventLog.MAX_EVENT_QUEUE_SIZE, "1");
         testRunner.run(1, false, true);
         EventSubscribeXmlRenderingCallback renderingCallback = getRenderingCallback();
@@ -169,9 +154,8 @@ public class ConsumeWindowsEventLogTest {
     }
 
     @Test
-    public void testScheduleErrorThenTriggerSubscribe() throws InvocationTargetException, IllegalAccessException {
+    public void testScheduleErrorThenTriggerSubscribe() {
         evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
-
 
         when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
 
@@ -221,18 +205,20 @@ public class ConsumeWindowsEventLogTest {
         verify(wEvtApi).EvtClose(subscriptionHandle);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testScheduleQueueStopThrowsException() throws Throwable {
         ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, evtSubscribe, testRunner.getProcessContext());
 
         WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, Arrays.asList("test")).get(0);
         getRenderingCallback().onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
 
-        try {
-            ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, evtSubscribe, testRunner.getProcessContext());
-        } catch (InvocationTargetException e) {
-            throw e.getCause();
-        }
+        assertThrows(ProcessException.class, () -> {
+            try {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, evtSubscribe, testRunner.getProcessContext());
+            } catch (final InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
     }
 
     public EventSubscribeXmlRenderingCallback getRenderingCallback() {
@@ -255,6 +241,28 @@ public class ConsumeWindowsEventLogTest {
     @Test
     public void testGetRelationships() {
         assertEquals(ConsumeWindowsEventLog.RELATIONSHIPS, evtSubscribe.getRelationships());
+    }
+
+    public static List<WinNT.HANDLE> mockEventHandles(WEvtApi wEvtApi, Kernel32 kernel32, List<String> eventXmls) {
+        List<WinNT.HANDLE> eventHandles = new ArrayList<>();
+        for (String eventXml : eventXmls) {
+            WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
+            when(wEvtApi.EvtRender(isNull(), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
+                    anyInt(), any(Pointer.class), any(Pointer.class), any(Pointer.class))).thenAnswer(invocation -> {
+                Object[] arguments = invocation.getArguments();
+                Pointer bufferUsed = (Pointer) arguments[5];
+                byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
+                if (array.length > (int) arguments[3]) {
+                    when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
+                } else {
+                    ((Pointer) arguments[4]).write(0, array, 0, array.length);
+                }
+                bufferUsed.setInt(0, array.length);
+                return false;
+            });
+            eventHandles.add(eventHandle);
+        }
+        return eventHandles;
     }
 
     private static Set<MockProcessSession> getCreatedSessions(TestRunner testRunner) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
