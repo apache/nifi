@@ -193,19 +193,110 @@ public class TestDeduplicateRecord {
         runner.assertNotValid();
     }
 
-    public static final String FIRST_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
+    public static final String FIRST_KEY = String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
             "John", "Q", "Smith"
-    )));
-    public static final String SECOND_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
+    ));
+    public static final String SECOND_KEY = String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
             "Jack", "Z", "Brown"
-    )));
+    ));
+    public static final String FIRST_KEY_HASHED = DigestUtils.sha256Hex(FIRST_KEY);
+    public static final String SECOND_KEY_HASHED = DigestUtils.sha256Hex(SECOND_KEY);
 
     @Test
     public void testDeduplicateWithDMC() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService<>();
+        DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+
+        dmc.put(FIRST_KEY_HASHED, true, null, null);
+        dmc.put(SECOND_KEY_HASHED, true, null, null);
+
+        reader.addRecord("John", "Q", "Smith");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jane", "X", "Doe");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 1, 3);
+    }
+
+    @Test
+    public void testDeduplicateWithDMCAndOneRecordPath() throws Exception {
+        DistributedMapCacheClient dmc = new MockCacheService();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty("first_name", "/firstName");
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+
+        reader.addRecord("John", "Q", "Smith");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jane", "X", "Doe");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 3, 1);
+    }
+
+    @Test
+    public void testDeduplicateWithDMCAndMultipleRecordPaths() throws Exception {
+        DistributedMapCacheClient dmc = new MockCacheService();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty("first_name", "/firstName");
+        runner.setProperty("middle_name", "/middleName");
+        runner.setProperty("invalid_property", "/missingProperty");
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+
+        reader.addRecord("John", "Q", "Smith");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jane", "X", "Doe");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 3, 1);
+    }
+
+    @Test
+    public void testDeduplicateWithDMCAndNullField() throws Exception {
+        DistributedMapCacheClient dmc = new MockCacheService();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty("middle_name", "/middleName");
+        runner.setProperty("last_name", "/lastName");
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+
+        reader.addRecord("Jack", "Z", null);
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jack", "R", "Brown");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 3, 0);
+    }
+
+    @Test
+    public void testDeduplicateNoHashing() throws Exception  {
+        DistributedMapCacheClient dmc = new MockCacheService();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty(DeduplicateRecord.RECORD_HASHING_ALGORITHM, DeduplicateRecord.NONE_ALGORITHM_VALUE);
         runner.enableControllerService(dmc);
         runner.assertValid();
 
@@ -225,16 +316,16 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCAndCacheIdentifier() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService<>();
+        DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
-        runner.setProperty(DeduplicateRecord.CACHE_IDENTIFIER, "concat('${user.name}', '${record.hash.value}')");
+        runner.setProperty(DeduplicateRecord.CACHE_IDENTIFIER, "${user.name}-${" + DeduplicateRecord.RECORD_HASH_VALUE_ATTRIBUTE + "}");
         runner.enableControllerService(dmc);
         runner.assertValid();
 
-        dmc.put(String.format("john.smith-%s", FIRST_KEY), true, null, null);
-        dmc.put(String.format("john.smith-%s", SECOND_KEY), true, null, null);
+        dmc.put(String.format("john.smith-%s", FIRST_KEY_HASHED), true, null, null);
+        dmc.put(String.format("john.smith-%s", SECOND_KEY_HASHED), true, null, null);
 
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
@@ -242,7 +333,7 @@ public class TestDeduplicateRecord {
         reader.addRecord("Jane", "X", "Doe");
 
         Map<String, String> attrs = new HashMap<>();
-        attrs.put("user.name", "john.smith-");
+        attrs.put("user.name", "john.smith");
 
         runner.enqueue("", attrs);
         runner.run();
@@ -251,19 +342,19 @@ public class TestDeduplicateRecord {
     }
 
     void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
+        runner.assertTransferCount(DeduplicateRecord.REL_FAILURE, failure);
+        runner.assertTransferCount(DeduplicateRecord.REL_ORIGINAL, original);
         runner.assertTransferCount(DeduplicateRecord.REL_DUPLICATE, duplicates);
         runner.assertTransferCount(DeduplicateRecord.REL_NON_DUPLICATE, notDuplicates);
-        runner.assertTransferCount(DeduplicateRecord.REL_ORIGINAL, original);
-        runner.assertTransferCount(DeduplicateRecord.REL_FAILURE, failure);
 
         List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_DUPLICATE);
         if (duplicateFlowFile != null) {
-            assertEquals(String.valueOf(dupeCount), duplicateFlowFile.get(0).getAttribute("record.count"));
+            assertEquals(String.valueOf(dupeCount), duplicateFlowFile.get(0).getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }
 
         List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_NON_DUPLICATE);
         if (nonDuplicateFlowFile != null) {
-            assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.get(0).getAttribute("record.count"));
+            assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.get(0).getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }
     }
 
