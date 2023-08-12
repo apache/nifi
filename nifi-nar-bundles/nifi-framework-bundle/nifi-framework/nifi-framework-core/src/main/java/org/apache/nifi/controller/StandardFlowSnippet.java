@@ -30,6 +30,7 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
@@ -495,6 +496,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setPosition(toPosition(groupDTO.getPosition()));
             childGroup.setComments(groupDTO.getComments());
             childGroup.setName(groupDTO.getName());
+            childGroup.setExecutionEngine(ExecutionEngine.valueOf(groupDTO.getExecutionEngine()));
+            childGroup.setStatelessFlowTimeout(groupDTO.getStatelessFlowTimeout());
+            childGroup.setMaxConcurrentTasks(groupDTO.getMaxConcurrentTasks());
 
             final String flowfileConcurrentName = groupDTO.getFlowfileConcurrency();
             if (flowfileConcurrentName != null) {

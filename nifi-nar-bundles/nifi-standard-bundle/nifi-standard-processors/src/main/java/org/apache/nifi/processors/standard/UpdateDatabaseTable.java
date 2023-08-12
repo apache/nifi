@@ -515,6 +515,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                     }
                     tableSchema = new TableSchema(tableName, columns, translateFieldNames,translationStrategy, translationRegex, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
+                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
+
                     final String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
 
                     if (StringUtils.isNotEmpty(createTableSql)) {
@@ -531,7 +533,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             }
 
             final List<String> dbColumns = new ArrayList<>();
-
             for (final ColumnDescription columnDescription : tableSchema.getColumnsAsList()) {
                 dbColumns.add(normalizer.getColName(columnDescription.getColumnName()));
             }

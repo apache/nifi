@@ -149,6 +149,8 @@ public class StatusMerger {
             target.setVersionedFlowState(VersionedFlowState.SYNC_FAILURE.name());
         }
 
+        target.setStatelessActiveThreadCount(target.getStatelessActiveThreadCount() + toMerge.getStatelessActiveThreadCount());
+
         target.setBytesIn(target.getBytesIn() + toMerge.getBytesIn());
         target.setFlowFilesIn(target.getFlowFilesIn() + toMerge.getFlowFilesIn());
 
@@ -704,6 +706,13 @@ public class StatusMerger {
         merge(target.getProvenanceRepositoryStorageUsage(), toMerge.getProvenanceRepositoryStorageUsage());
         merge(target.getFlowFileRepositoryStorageUsage(), toMerge.getFlowFileRepositoryStorageUsage());
         mergeGarbageCollection(target.getGarbageCollection(), toMerge.getGarbageCollection());
+
+        if (target.getResourceClaimDetails() == null && toMerge.getResourceClaimDetails() != null) {
+            target.setResourceClaimDetails(new ArrayList<>());
+        }
+        if (toMerge.getResourceClaimDetails() != null) {
+            target.getResourceClaimDetails().addAll(toMerge.getResourceClaimDetails());
+        }
 
         updatePrettyPrintedFields(target);
     }

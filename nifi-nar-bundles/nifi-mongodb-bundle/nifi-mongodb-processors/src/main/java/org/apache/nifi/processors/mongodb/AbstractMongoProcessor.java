@@ -148,7 +148,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .displayName("Date Format")
         .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
                 "applied when the JSON output format is set to Standard JSON. Full documentation for format characters can be " +
-                "found here: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html")
+                "found here: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/text/SimpleDateFormat.html")
         .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .addValidator((subject, input, context) -> {
             ValidationResult.Builder result = new ValidationResult.Builder()

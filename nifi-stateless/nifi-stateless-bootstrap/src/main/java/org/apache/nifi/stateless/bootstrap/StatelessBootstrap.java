@@ -140,7 +140,7 @@ public class StatelessBootstrap {
      * Creates a ClassLoader that is to be used as the 'root'/parent for all NiFi Extensions' ClassLoaders. The ClassLoader will inherit from its parent
      * any classes that exist in JAR files that can be found in the given NAR Directory or within the Java home directory. However, it will not allow any other classes to be loaded from the parent.
      * This approach is important because we need to ensure that the ClassLoader that is provided to extensions when run from NiFi Stateless is the same as the ClassLoader
-     * that will be provided to it in traditional NiFi. Whereas in traditional NiFi, we have the ability to control the System ClassLoader, Stateless NiFi is designed to be
+     * that will be provided to it in a standard NiFi deployment. Whereas in a standard NiFi deployment, we have the ability to control the System ClassLoader, Stateless NiFi is designed to be
      * embedded, so we cannot control the System ClassLoader of the embedding application. This gives us a way to ensure that we control what is available to Extensions and
      * still provides us the ability to load the necessary classes from the System ClassLoader, which prevents ClassCastExceptions that might otherwise occur if we were to
      * load the same classes from another ClassLoader.

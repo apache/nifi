@@ -96,9 +96,11 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
+import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
@@ -157,10 +159,8 @@ import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
-import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -438,28 +438,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private AuthorizableLookup authorizableLookup;
 
     // Prometheus Metrics objects
-    private final NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
-    private final BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
-
-    private final Collection<AbstractMetricsRegistry> configuredRegistries = Arrays.asList(
-            nifiMetricsRegistry,
-            jvmMetricsRegistry,
-            connectionAnalyticsMetricsRegistry,
-            bulletinMetricsRegistry,
-            clusterMetricsRegistry
-    );
-
-    private final Collection<CollectorRegistry> metricsRegistries = Arrays.asList(
-            nifiMetricsRegistry.getRegistry(),
-            jvmMetricsRegistry.getRegistry(),
-            connectionAnalyticsMetricsRegistry.getRegistry(),
-            bulletinMetricsRegistry.getRegistry(),
-            clusterMetricsRegistry.getRegistry()
-    );
-
 
     // -----------------------------------------
     // Synchronization methods
@@ -1439,6 +1420,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RemoteProcessGroupEntity rpgEntity = createRemoteGroupEntity(remoteGroupPort.getRemoteProcessGroup(), NiFiUserUtils.getNiFiUser());
             final RemoteProcessGroupPortDTO remotePortDto = dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
             return dtoFactory.createAffectedComponentEntity(remotePortDto, AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT, rpgEntity);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(componentType)) {
+            final ProcessGroup statelessGroup = processGroupDAO.getProcessGroup(groupId);
+            final ProcessGroupEntity statelessGroupEntity = createProcessGroupEntity(statelessGroup);
+            return dtoFactory.createAffectedComponentEntity(statelessGroupEntity);
         }
 
         return affectedComponent;
@@ -1453,12 +1438,40 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return allAffectedComponents;
     }
 
+    private boolean isGroupAffectedByParameterContext(final ProcessGroup group, final String contextId) {
+        if (group == null) {
+            return false;
+        }
+
+        final ParameterContext context = group.getParameterContext();
+        if (context == null) {
+            return false;
+        }
+
+        if (context.getIdentifier().equals(contextId)) {
+            return true;
+        }
+
+        return context.inheritsFrom(contextId);
+    }
+
+    private ProcessGroup getStatelessParent(final ProcessGroup group) {
+        if (group == null) {
+            return null;
+        }
+
+        final ExecutionEngine engine = group.getExecutionEngine();
+        if (engine == ExecutionEngine.STATELESS) {
+            return group;
+        }
+
+        return getStatelessParent(group.getParent());
+    }
+
     private Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto, final boolean includeInactive) {
         final ProcessGroup rootGroup = processGroupDAO.getProcessGroup("root");
-        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final List<ProcessGroup> groupsReferencingParameterContext = rootGroup.findAllProcessGroups(
-            group -> group.getParameterContext() != null && (group.getParameterContext().getIdentifier().equals(parameterContextDto.getId())
-                    || group.getParameterContext().inheritsFrom(parameterContext.getIdentifier())));
+            group -> isGroupAffectedByParameterContext(group, parameterContextDto.getId()));
 
         setEffectiveParameterUpdates(parameterContextDto);
 
@@ -1470,7 +1483,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final Set<ComponentNode> affectedComponents = new HashSet<>();
+        final Set<ProcessGroup> affectedStatelessGroups = new HashSet<>();
+
         for (final ProcessGroup group : groupsReferencingParameterContext) {
+            final ProcessGroup statelessParent = getStatelessParent(group);
+            if (statelessParent != null) {
+                if (includeInactive || statelessParent.isStatelessActive()) {
+                    affectedStatelessGroups.add(statelessParent);
+                    continue;
+                }
+            }
+
             for (final ProcessorNode processor : group.getProcessors()) {
                 if (includeInactive || processor.isRunning()) {
                     final Set<String> referencedParams = processor.getReferencedParameterNames();
@@ -1515,7 +1538,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
 
-        return dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
+        // Create AffectedComponentEntity for each affected component
+        final Set<AffectedComponentEntity> affectedComponentEntities = new HashSet<>();
+
+        final Set<AffectedComponentEntity> individualComponents = dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
+        affectedComponentEntities.addAll(individualComponents);
+
+        for (final ProcessGroup group : affectedStatelessGroups) {
+            final ProcessGroupEntity groupEntity = createProcessGroupEntity(group);
+            final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(groupEntity);
+            affectedComponentEntities.add(affectedComponentEntity);
+        }
+
+        return affectedComponentEntities;
     }
 
     private void setEffectiveParameterUpdates(final ParameterContextDTO parameterContextDto) {
@@ -3940,6 +3975,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case REMOTE_PROCESS_GROUP:
                     authorizable = authorizableLookup.getRemoteProcessGroup(sourceId);
                     break;
+                case PROCESS_GROUP:
+                    authorizable = authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                    break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this bulletin.").build());
             }
@@ -3984,9 +4022,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public SystemDiagnosticsDTO getSystemDiagnostics() {
+    public SystemDiagnosticsDTO getSystemDiagnostics(final DiagnosticLevel diagnosticLevel) {
         final SystemDiagnostics sysDiagnostics = controllerFacade.getSystemDiagnostics();
-        return dtoFactory.createSystemDiagnosticsDto(sysDiagnostics);
+        return dtoFactory.createSystemDiagnosticsDto(sysDiagnostics, diagnosticLevel);
     }
 
     @Override
@@ -5388,36 +5426,62 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final VersionedComponent localComponent = difference.getComponentA();
 
                 final String state;
+                final ProcessGroup localGroup;
                 switch (localComponent.getComponentType()) {
                     case CONTROLLER_SERVICE:
-                        final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceIdentifier();
-                        state = controllerServiceDAO.getControllerService(serviceId).getState().name();
+                        final String serviceId = localComponent.getInstanceIdentifier();
+                        final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
+                        localGroup = serviceNode.getProcessGroup();
+                        state = serviceNode.getState().name();
                         break;
                     case PROCESSOR:
-                        final String processorId = ((InstantiatedVersionedProcessor) localComponent).getInstanceIdentifier();
-                        state = processorDAO.getProcessor(processorId).getPhysicalScheduledState().name();
+                        final String processorId = localComponent.getInstanceIdentifier();
+                        final ProcessorNode procNode = processorDAO.getProcessor(processorId);
+                        localGroup = procNode.getProcessGroup();
+                        state = procNode.getPhysicalScheduledState().name();
                         break;
                     case REMOTE_INPUT_PORT:
                         final InstantiatedVersionedRemoteGroupPort remoteInputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId()).getInputPort(remoteInputPort.getInstanceIdentifier()).getScheduledState().name();
+                        final RemoteProcessGroup inputPortRpg = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId());
+                        localGroup = inputPortRpg.getProcessGroup();
+                        state = inputPortRpg.getInputPort(remoteInputPort.getInstanceIdentifier()).getScheduledState().name();
                         break;
                     case REMOTE_OUTPUT_PORT:
                         final InstantiatedVersionedRemoteGroupPort remoteOutputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId()).getOutputPort(remoteOutputPort.getInstanceIdentifier()).getScheduledState().name();
+                        final RemoteProcessGroup outputPortRpg = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId());
+                        localGroup = outputPortRpg.getProcessGroup();
+                        state = outputPortRpg.getOutputPort(remoteOutputPort.getInstanceIdentifier()).getScheduledState().name();
                         break;
                     case INPUT_PORT:
                         final InstantiatedVersionedPort versionedInputPort = (InstantiatedVersionedPort) localComponent;
                         final Port inputPort = getInputPort(versionedInputPort);
-                        state = inputPort == null ? null : inputPort.getScheduledState().name();
+                        if (inputPort == null) {
+                            localGroup = null;
+                            state = null;
+                        } else {
+                            localGroup = inputPort.getProcessGroup();
+                            state = inputPort.getScheduledState().name();
+                        }
                         break;
                     case OUTPUT_PORT:
                         final InstantiatedVersionedPort versionedOutputPort = (InstantiatedVersionedPort) localComponent;
                         final Port outputPort = getOutputPort(versionedOutputPort);
-                        state = outputPort == null ? null : outputPort.getScheduledState().name();
+                        if (outputPort == null) {
+                            localGroup = null;
+                            state = null;
+                        } else {
+                            localGroup = outputPort.getProcessGroup();
+                            state = outputPort.getScheduledState().name();
+                        }
                         break;
                     default:
                         state = null;
+                        localGroup = null;
                         break;
+                }
+
+                if (localGroup != null && localGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+                    return createStatelessGroupAffectedComponentEntity(localGroup);
                 }
 
                 return createAffectedComponentEntity((InstantiatedVersionedComponent) localComponent, localComponent.getComponentType().name(), state);
@@ -5585,6 +5649,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(connectable.getIdentifier())));
         entity.setId(connectable.getIdentifier());
+        entity.setReferenceType(connectable.getConnectableType().name());
 
         final Authorizable authorizable = getAuthorizable(connectable);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5607,6 +5672,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier())));
         entity.setId(serviceNode.getIdentifier());
+        entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
 
         final Authorizable authorizable = authorizableLookup.getControllerService(serviceNode.getIdentifier()).getAuthorizable();
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5622,10 +5688,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entity;
     }
 
+    private AffectedComponentEntity createStatelessGroupAffectedComponentEntity(final ProcessGroup group) {
+        final AffectedComponentEntity entity = new AffectedComponentEntity();
+        entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier())));
+        entity.setId(group.getIdentifier());
+        entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+
+        final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(group);
+        entity.setPermissions(permissionsDto);
+
+        final AffectedComponentDTO dto = new AffectedComponentDTO();
+        dto.setId(group.getIdentifier());
+        dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+        dto.setProcessGroupId(group.getProcessGroupIdentifier());
+        dto.setState(group.getStatelessScheduledState().name());
+
+        entity.setComponent(dto);
+        return entity;
+
+    }
+
     private AffectedComponentEntity createAffectedComponentEntity(final InstantiatedVersionedComponent instance, final String componentTypeName, final String componentState) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(instance.getInstanceIdentifier())));
         entity.setId(instance.getInstanceIdentifier());
+        entity.setReferenceType(componentTypeName);
 
         final Authorizable authorizable = getAuthorizable(componentTypeName, instance);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -6038,12 +6125,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
-    @Override
-    public Collection<CollectorRegistry> generateFlowMetrics() {
+    protected Collection<AbstractMetricsRegistry> populateFlowMetrics() {
+        // Include registries which are fully refreshed upon each invocation
+        NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+        BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+
         final String instanceId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
-        nifiMetricsRegistry.clear();
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP,
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
 
@@ -6142,8 +6231,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean isClustered = clusterCoordinator != null;
         final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
         PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
+        Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
+                nifiMetricsRegistry,
+                jvmMetricsRegistry,
+                connectionAnalyticsMetricsRegistry,
+                bulletinMetricsRegistry,
+                clusterMetricsRegistry
+        );
 
         return metricsRegistries;
+    }
+
+    @Override
+    public Collection<CollectorRegistry> generateFlowMetrics() {
+
+        return populateFlowMetrics().stream().map(AbstractMetricsRegistry::getRegistry)
+                                             .collect(Collectors.toList());
     }
 
     @Override
@@ -6154,7 +6257,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(FlowMetricsRegistry::getRegistryClass)
                 .collect(Collectors.toSet());
 
-        generateFlowMetrics();
+        Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics();
+
         return configuredRegistries.stream()
                 .filter(configuredRegistry -> registryClasses.contains(configuredRegistry.getClass()))
                 .map(AbstractMetricsRegistry::getRegistry)

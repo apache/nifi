@@ -63,7 +63,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
         final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
         final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOWFILE, niFiProperties);
         this.encryptor = new AesGcmByteArrayRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOWFILE);
-        this.keyId = niFiProperties.getFlowFileRepoEncryptionKeyId();
+        this.keyId = niFiProperties.getRepositoryEncryptionKeyId();
     }
 
     @Override

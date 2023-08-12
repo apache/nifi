@@ -395,11 +395,14 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     // perform the appropriate action
                     switch (purposedScheduledState) {
                         case RUNNING:
+                        case RUN_ONCE:
+                            processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
                             processor.verifyCanStart();
                             break;
                         case STOPPED:
                             switch (processor.getScheduledState()) {
                                 case RUNNING:
+                                    processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
                                     processor.verifyCanStop();
                                     break;
                                 case DISABLED:

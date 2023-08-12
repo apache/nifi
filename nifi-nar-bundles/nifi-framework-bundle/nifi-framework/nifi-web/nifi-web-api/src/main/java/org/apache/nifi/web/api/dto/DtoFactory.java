@@ -113,6 +113,7 @@ import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
+import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
@@ -176,6 +177,7 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.ResourceClaimDetailsDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
@@ -1058,6 +1060,7 @@ public final class DtoFactory {
             snapshot.setVersionedFlowState(processGroupStatus.getVersionedFlowState().name());
         }
 
+        snapshot.setStatelessActiveThreadCount(processGroupStatus.getStatelessActiveThreadCount());
         snapshot.setFlowFilesQueued(processGroupStatus.getQueuedCount());
         snapshot.setBytesQueued(processGroupStatus.getQueuedContentSize());
         snapshot.setBytesRead(processGroupStatus.getBytesRead());
@@ -1437,6 +1440,7 @@ public final class DtoFactory {
         dto.setState(port.getScheduledState().toString());
         dto.setType(port.getConnectableType().name());
         dto.setVersionedComponentId(port.getVersionedComponentId().orElse(null));
+        dto.setPortFunction(port.getPortFunction().name());
 
         // if this port is remotely accessible, determine if its actually connected to another nifi
         if (port instanceof PublicPort) {
@@ -2223,7 +2227,7 @@ public final class DtoFactory {
 
         final ProcessorDTO processorDto = processorEntity.getComponent();
         final AffectedComponentDTO componentDto = new AffectedComponentDTO();
-        if (componentDto == null) {
+        if (processorDto == null) {
             componentDto.setId(processorEntity.getId());
             componentDto.setName(processorEntity.getId());
         } else {
@@ -2233,6 +2237,38 @@ public final class DtoFactory {
             componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
             componentDto.setState(processorDto.getState());
             componentDto.setValidationErrors(processorDto.getValidationErrors());
+        }
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final ProcessGroupEntity groupEntity) {
+        if (groupEntity == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setBulletins(groupEntity.getBulletins());
+        component.setId(groupEntity.getId());
+        component.setPermissions(groupEntity.getPermissions());
+        component.setPosition(groupEntity.getPosition());
+        component.setRevision(groupEntity.getRevision());
+        component.setUri(groupEntity.getUri());
+        component.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+
+        final ProcessGroupDTO groupDto = groupEntity.getComponent();
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        if (groupDto == null) {
+            componentDto.setId(groupEntity.getId());
+            componentDto.setName(groupEntity.getId());
+        } else {
+            componentDto.setId(groupDto.getId());
+            componentDto.setName(groupDto.getName());
+            componentDto.setProcessGroupId(groupDto.getParentGroupId());
+            componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+            componentDto.setState(groupDto.getStatelessGroupScheduledState());
+            componentDto.setValidationErrors(Collections.emptyList());
         }
         component.setComponent(componentDto);
 
@@ -2686,6 +2722,10 @@ public final class DtoFactory {
         dto.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
         dto.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
         dto.setLogFileSuffix(group.getLogFileSuffix());
+        dto.setStatelessGroupScheduledState(group.getStatelessScheduledState().name());
+        dto.setExecutionEngine(group.getExecutionEngine().name());
+        dto.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
+        dto.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -3658,7 +3698,7 @@ public final class DtoFactory {
      * @param sysDiagnostics diags
      * @return dto
      */
-    public SystemDiagnosticsDTO createSystemDiagnosticsDto(final SystemDiagnostics sysDiagnostics) {
+    public SystemDiagnosticsDTO createSystemDiagnosticsDto(final SystemDiagnostics sysDiagnostics, final DiagnosticLevel diagnosticLevel) {
 
         final SystemDiagnosticsDTO dto = new SystemDiagnosticsDTO();
         final SystemDiagnosticsSnapshotDTO snapshot = new SystemDiagnosticsSnapshotDTO();
@@ -3732,6 +3772,44 @@ public final class DtoFactory {
         // uptime
         snapshot.setUptime(FormatUtils.formatHoursMinutesSeconds(sysDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
 
+        if (diagnosticLevel == DiagnosticLevel.VERBOSE) {
+            final List<ResourceClaimDetailsDTO> resourceClaimDtos = new ArrayList<>();
+
+            final Map<ResourceClaim, Integer> claimantCounts = sysDiagnostics.getClaimantCounts();
+            Set<ResourceClaim> destructableClaims = sysDiagnostics.getDestructableClaims();
+            if (destructableClaims == null) {
+                destructableClaims = Collections.emptySet();
+            }
+
+            if (claimantCounts != null) {
+                for (final Map.Entry<ResourceClaim, Integer> entry : claimantCounts.entrySet()) {
+                    final ResourceClaim claim = entry.getKey();
+                    final Integer count = entry.getValue();
+
+                    final boolean destructable = destructableClaims.contains(claim);
+                    final ResourceClaimDetailsDTO resourceClaimDto = createResourceClaimDTO(claim, count, destructable);
+                    resourceClaimDtos.add(resourceClaimDto);
+                }
+            }
+
+            resourceClaimDtos.sort(Comparator.comparing(ResourceClaimDetailsDTO::getContainer)
+                    .thenComparing(ResourceClaimDetailsDTO::getClaimantCount).reversed());
+
+            snapshot.setResourceClaimDetails(resourceClaimDtos);
+        }
+
+        return dto;
+    }
+
+    private ResourceClaimDetailsDTO createResourceClaimDTO(final ResourceClaim claim, final Integer count, final boolean awaitingDestruction) {
+        final ResourceClaimDetailsDTO dto = new ResourceClaimDetailsDTO();
+        dto.setContainer(claim.getContainer());
+        dto.setSection(claim.getSection());
+        dto.setIdentifier(claim.getId());
+        dto.setInUse(claim.isInUse());
+        dto.setWritable(claim.isWritable());
+        dto.setClaimantCount(count);
+        dto.setAwaitingDestruction(awaitingDestruction);
         return dto;
     }
 
@@ -4543,6 +4621,7 @@ public final class DtoFactory {
         copy.setValidationErrors(copy(original.getValidationErrors()));
         copy.setVersionedComponentId(original.getVersionedComponentId());
         copy.setAllowRemoteAccess(original.getAllowRemoteAccess());
+        copy.setPortFunction(original.getPortFunction());
         return copy;
     }
 
@@ -4595,6 +4674,9 @@ public final class DtoFactory {
         copy.setDefaultBackPressureObjectThreshold(original.getDefaultBackPressureObjectThreshold());
         copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
         copy.setLogFileSuffix(original.getLogFileSuffix());
+        copy.setExecutionEngine(original.getExecutionEngine());
+        copy.setMaxConcurrentTasks(original.getMaxConcurrentTasks());
+        copy.setStatelessFlowTimeout(original.getStatelessFlowTimeout());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

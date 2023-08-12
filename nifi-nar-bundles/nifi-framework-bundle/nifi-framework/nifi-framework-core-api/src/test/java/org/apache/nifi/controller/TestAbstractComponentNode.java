@@ -33,6 +33,7 @@ import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -443,6 +444,11 @@ public class TestAbstractComponentNode {
         @Override
         public boolean isValidationNecessary() {
             return true;
+        }
+
+        @Override
+        public Optional<ProcessGroup> getParentProcessGroup() {
+            return Optional.empty();
         }
 
         @Override

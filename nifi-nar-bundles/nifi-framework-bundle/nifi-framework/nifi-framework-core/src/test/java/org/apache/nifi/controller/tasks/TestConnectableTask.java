@@ -59,7 +59,7 @@ public class TestConnectableTask {
         final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);
         Mockito.when(contextFactory.newProcessContext(Mockito.any(Connectable.class), Mockito.any(AtomicLong.class))).thenReturn(repoContext);
 
-        final LifecycleState scheduleState = new LifecycleState();
+        final LifecycleState scheduleState = new LifecycleState(connectable.getIdentifier());
 
         return new ConnectableTask(Mockito.mock(SchedulingAgent.class), connectable,
                 flowController, contextFactory, scheduleState);

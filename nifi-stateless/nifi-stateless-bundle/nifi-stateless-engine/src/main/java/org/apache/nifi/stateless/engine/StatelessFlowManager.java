@@ -36,7 +36,6 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardFunnel;
-import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.AbstractFlowManager;
@@ -188,7 +187,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
             LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
             if (registerLogObserver) {
-                logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
+                logRepository.addObserver(procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
             }
 
             logger.debug("Processor with id {} successfully created", id);
@@ -230,10 +229,11 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getExtensionManager(),
             statelessEngine.getStateManagerProvider(),
             this,
-                statelessEngine.getReloadComponent(),
+            statelessEngine.getReloadComponent(),
             mutableVariableRegistry,
             new StatelessNodeTypeProvider(),
-            null);
+            null,
+            group -> null);
     }
 
     @Override
@@ -311,7 +311,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             onReportingTaskAdded(taskNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ReportingTaskLogObserver(bulletinRepository, taskNode));
+            logRepository.addObserver(LogLevel.WARN, new ReportingTaskLogObserver(bulletinRepository, taskNode));
         }
 
         return taskNode;
@@ -348,7 +348,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
         if (registerLogObserver) {
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new FlowRegistryClientLogObserver(bulletinRepository, clientNode));
+            logRepository.addObserver(LogLevel.WARN, new FlowRegistryClientLogObserver(bulletinRepository, clientNode));
         }
 
         return clientNode;
@@ -408,7 +408,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
         LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
         if (registerLogObserver) {
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ControllerServiceLogObserver(bulletinRepository, serviceNode));
+            logRepository.addObserver(LogLevel.WARN, new ControllerServiceLogObserver(bulletinRepository, serviceNode));
         }
 
         statelessEngine.getControllerServiceProvider().onControllerServiceAdded(serviceNode);

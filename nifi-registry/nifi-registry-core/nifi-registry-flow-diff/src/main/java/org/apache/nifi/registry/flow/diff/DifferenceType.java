@@ -94,6 +94,11 @@ public enum DifferenceType {
     CONCURRENT_TASKS_CHANGED("Concurrent Tasks Changed"),
 
     /**
+     * The component has a different value for the timeout in each of the flows
+     */
+    TIMEOUT_CHANGED("Timeout Changed"),
+
+    /**
      * The component has a different run schedule in each of the flows
      */
     RUN_SCHEDULE_CHANGED("Run Schedule Changed"),
@@ -112,6 +117,11 @@ public enum DifferenceType {
      * The component has a different run duration in each of the flows
      */
     RUN_DURATION_CHANGED("Run Duration Changed"),
+
+    /**
+     * The component has a different Port Function in each of the flows
+     */
+    PORT_FUNCTION_CHANGED("Port Function Changed"),
 
     /**
      * The component has a different value in each of the flows for a specific property
@@ -373,8 +383,13 @@ public enum DifferenceType {
     /**
      * The Process Group's Log File Suffix value is different in each of the flows
      */
-    LOG_FILE_SUFFIX_CHANGED("Log File Suffix Changed")
-    ;
+    LOG_FILE_SUFFIX_CHANGED("Log File Suffix Changed"),
+
+    /**
+     * The Process Group's Execution Engine is different in each of the flows
+     */
+    EXECUTION_ENGINE_CHANGED("Execution Engine Changed");
+
 
     private final String description;
 

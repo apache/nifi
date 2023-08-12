@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -30,9 +31,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public abstract class AbstractComponentScheduler implements ComponentScheduler {
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentScheduler.class);
@@ -44,6 +48,7 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     private final Queue<Connectable> connectablesToStart = new LinkedBlockingQueue<>();
     private final Queue<ReportingTaskNode> reportingTasksToStart = new LinkedBlockingQueue<>();
     private final Queue<ControllerServiceNode> toEnable = new LinkedBlockingQueue<>();
+    private final Queue<ProcessGroup> statelessGroupsToStart = new LinkedBlockingQueue<>();
 
     public AbstractComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
         this.serviceProvider = controllerServiceProvider;
@@ -78,6 +83,12 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
         while ((taskNode = reportingTasksToStart.poll()) != null) {
             logger.debug("{} starting {}", this, taskNode);
             startNow(taskNode);
+        }
+
+        ProcessGroup processGroup;
+        while ((processGroup = statelessGroupsToStart.poll()) != null) {
+            logger.debug("{} starting {}", this, processGroup);
+            startNow(processGroup);
         }
     }
 
@@ -246,9 +257,50 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
         }
     }
 
+    @Override
+    public void startStatelessGroup(final ProcessGroup group) {
+        if (isPaused()) {
+            logger.debug("{} called to start {} but paused so will queue it for start later", this, group);
+            statelessGroupsToStart.offer(group);
+        } else {
+            logger.debug("{} starting {} now", this, group);
+            startNow(group);
+        }
+    }
+
+    @Override
+    public void stopStatelessGroup(final ProcessGroup group) {
+        group.stopProcessing();
+    }
+
     protected abstract void startNow(Connectable component);
 
-    protected abstract void enableNow(Collection<ControllerServiceNode> controllerServices);
-
     protected abstract void startNow(ReportingTaskNode reportingTask);
+
+    protected abstract void startNow(ProcessGroup statelessGroup);
+
+    protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
+        final Map<ExecutionEngine, List<ControllerServiceNode>> servicesByExecutionEngine = controllerServices.stream()
+            .collect(Collectors.groupingBy(this::getExecutionEngine));
+
+        final List<ControllerServiceNode> statelessServices = servicesByExecutionEngine.get(ExecutionEngine.STATELESS);
+        if (statelessServices != null && !statelessServices.isEmpty()) {
+            logger.debug("Will not enable {} Controller Services because their Execution Engine is Stateless: {}", statelessServices.size(), statelessServices);
+        }
+
+        final List<ControllerServiceNode> servicesToEnable = servicesByExecutionEngine.get(ExecutionEngine.STANDARD);
+        if (servicesToEnable != null && !servicesToEnable.isEmpty()) {
+            getControllerServiceProvider().enableControllerServices(servicesToEnable);
+        }
+    }
+
+    private ExecutionEngine getExecutionEngine(final ControllerServiceNode service) {
+        final ProcessGroup group = service.getProcessGroup();
+        if (group == null) {
+            return ExecutionEngine.STANDARD;
+        }
+
+        return group.resolveExecutionEngine();
+    }
+
 }

@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
@@ -149,7 +150,7 @@ public class TestStandardControllerServiceProvider {
 
     private StandardProcessScheduler createScheduler() {
         return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
-                stateManagerProvider, niFiProperties);
+                stateManagerProvider, niFiProperties, new StandardLifecycleStateManager());
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {

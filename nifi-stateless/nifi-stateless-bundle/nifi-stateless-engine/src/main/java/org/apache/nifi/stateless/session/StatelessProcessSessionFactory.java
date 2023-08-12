@@ -44,7 +44,8 @@ public class StatelessProcessSessionFactory implements ProcessSessionFactory {
 
     @Override
     public ProcessSession createSession() {
-        final ProcessSession session = new StatelessProcessSession(connectable, contextFactory, processContextFactory, executionProgress, requireSynchronousCommits, tracker);
+        final StatelessProcessSession session = new StatelessProcessSession(connectable, contextFactory, processContextFactory, executionProgress, requireSynchronousCommits, tracker);
+        executionProgress.registerCreatedSession(session);
         return session;
     }
 }

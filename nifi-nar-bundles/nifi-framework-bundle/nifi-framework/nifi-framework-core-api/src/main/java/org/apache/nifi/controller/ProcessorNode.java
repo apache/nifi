@@ -24,7 +24,6 @@ import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
@@ -129,18 +128,6 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract int getActiveThreadCount();
 
-    /**
-     * Verifies that this Processor can be started if the provided set of
-     * services are enabled. This is introduced because we need to verify that
-     * all components can be started before starting any of them. In order to do
-     * that, we need to know that this component can be started if the given
-     * services are enabled, as we will then enable the given services before
-     * starting this component.
-     *
-     * @param ignoredReferences to ignore
-     */
-    public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
-
     public void verifyCanPerformVerification() {
         if (isRunning()) {
             throw new IllegalStateException("Cannot perform verification because the Processor is not stopped");
@@ -170,6 +157,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
         }
         return sc;
     }
+
 
     /**
      * Returns the physical state of this processor which includes transition
@@ -207,9 +195,10 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
      *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
      *            will throw an {@link IllegalStateException}.
+     * @param triggerLifecycleMethods Whether or not the lifecycle methods (@OnScheduled, @OnUnscheduled, @OnStopped, etc.) should be called.
      */
     public abstract void start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
-                               SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
+                               SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping, boolean triggerLifecycleMethods);
 
     /**
      * Will run the {@link Processor} represented by this
@@ -251,9 +240,11 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param scheduleState
      *            the ScheduleState that can be used to ensure that the running state (STOPPED, RUNNING, etc.)
      *            as well as the active thread counts are kept in sync
+     * @param triggerLifecycleMethods
+     *            whether or not to trigger lifecycle methods such as @OnScheduled, @OnStopped, etc.
      */
     public abstract CompletableFuture<Void> stop(ProcessScheduler processScheduler, ScheduledExecutorService executor,
-        ProcessContext processContext, SchedulingAgent schedulingAgent, LifecycleState scheduleState);
+        ProcessContext processContext, SchedulingAgent schedulingAgent, LifecycleState scheduleState, boolean triggerLifecycleMethods);
 
     /**
      * Marks all active tasks as terminated and interrupts all active threads

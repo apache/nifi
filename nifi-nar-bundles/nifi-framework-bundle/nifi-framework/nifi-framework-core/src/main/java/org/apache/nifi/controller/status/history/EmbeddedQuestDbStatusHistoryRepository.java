@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepository {
@@ -85,6 +87,8 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
     private final BufferedWriterForStatusStorage<RemoteProcessGroupStatus> remoteProcessGroupStatusWriter;
     private final BufferedWriterForStatusStorage<NodeStatus> nodeStatusWriter;
     private final BufferedWriterForStatusStorage<GarbageCollectionStatus> garbageCollectionStatusWriter;
+
+    private final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
 
     /**
      * Default no args constructor for service loading only
@@ -141,7 +145,7 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
 
     @Override
     public void start() {
-        LOGGER.debug("Starting status history repository");
+        LOGGER.debug("Repository start initiated");
 
         final EmbeddedQuestDbRolloverHandler nodeRolloverHandler = new EmbeddedQuestDbRolloverHandler(QuestDbDatabaseManager.getNodeTableNames(), daysToKeepNodeData, dbContext);
         final EmbeddedQuestDbRolloverHandler componentRolloverHandler = new EmbeddedQuestDbRolloverHandler(QuestDbDatabaseManager.getComponentTableNames(), daysToKeepComponentData, dbContext);
@@ -154,19 +158,39 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
             remoteProcessGroupStatusWriter
         ));
 
-        scheduledExecutorService.scheduleWithFixedDelay(nodeRolloverHandler, 0, ROLL_FREQUENCY, TimeUnit.MILLISECONDS);
-        scheduledExecutorService.scheduleWithFixedDelay(componentRolloverHandler, 0, ROLL_FREQUENCY, TimeUnit.MILLISECONDS);
-        scheduledExecutorService.scheduleWithFixedDelay(writer, 0, persistFrequency, TimeUnit.MILLISECONDS);
+        final ScheduledFuture<?> nodeRollerFuture = scheduledExecutorService.scheduleWithFixedDelay(nodeRolloverHandler, ROLL_FREQUENCY, ROLL_FREQUENCY, TimeUnit.MILLISECONDS);
+        scheduledFutures.add(nodeRollerFuture);
 
-        LOGGER.debug("Status history repository is started");
+        final ScheduledFuture<?> componentRolloverFuture = scheduledExecutorService.scheduleWithFixedDelay(componentRolloverHandler, ROLL_FREQUENCY, ROLL_FREQUENCY, TimeUnit.MILLISECONDS);
+        scheduledFutures.add(componentRolloverFuture);
+
+        final ScheduledFuture<?> writerFuture = scheduledExecutorService.scheduleWithFixedDelay(writer, persistFrequency, persistFrequency, TimeUnit.MILLISECONDS);
+        scheduledFutures.add(writerFuture);
+
+        LOGGER.debug("Repository start completed");
     }
 
     @Override
     public void shutdown() {
-        LOGGER.debug("Status history repository started to shut down");
-        scheduledExecutorService.shutdown();
+        LOGGER.debug("Repository shutdown started");
+
+        int cancelCompleted = 0;
+        int cancelFailed = 0;
+        for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
+            final boolean cancelled = scheduledFuture.cancel(true);
+            if (cancelled) {
+                cancelCompleted++;
+            } else {
+                cancelFailed++;
+            }
+        }
+        LOGGER.debug("Repository shutdown task cancellation status: completed [{}] failed [{}]", cancelCompleted, cancelFailed);
+
+        final List<Runnable> tasks = scheduledExecutorService.shutdownNow();
+        LOGGER.debug("Repository Scheduled Task Service shutdown remaining tasks [{}]", tasks.size());
+
         dbContext.close();
-        LOGGER.debug("Status history repository has been shut down");
+        LOGGER.debug("Repository shutdown completed");
     }
 
     @Override

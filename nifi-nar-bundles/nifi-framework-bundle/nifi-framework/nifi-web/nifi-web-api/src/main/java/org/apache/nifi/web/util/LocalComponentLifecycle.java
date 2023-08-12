@@ -30,6 +30,8 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -117,7 +119,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         // wait for all of the Processors to reach the desired state. We don't have to wait for other components because
         // Local and Remote Ports as well as funnels start immediately.
-        waitForProcessorState(processGroupId, affectedComponents, ScheduledState.RUNNING, pause, invalidComponentAction);
+        waitForComponentState(processGroupId, affectedComponents, ScheduledState.RUNNING, pause, invalidComponentAction);
     }
 
     private void stopComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,
@@ -134,7 +136,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         // wait for all of the Processors to reach the desired state. We don't have to wait for other components because
         // Local and Remote Ports as well as funnels stop immediately.
-        waitForProcessorState(processGroupId, affectedComponents, ScheduledState.STOPPED, pause, invalidComponentAction);
+        waitForComponentState(processGroupId, affectedComponents, ScheduledState.STOPPED, pause, invalidComponentAction);
     }
 
 
@@ -160,7 +162,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
     }
 
     private boolean isProcessorValidationComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
-        updateAffectedProcessors(processorEntities, affectedComponents);
+        updateAffectedComponents(processorEntities, affectedComponents);
         for (final ProcessorEntity entity : processorEntities) {
             if (!affectedComponents.containsKey(entity.getId())) {
                 continue;
@@ -179,17 +181,21 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
      * @return <code>true</code> if all processors have reached the desired state, false if the given {@link Pause} indicates
      *         to give up before all of the processors have reached the desired state
      */
-    private boolean waitForProcessorState(final String groupId, final Map<String, AffectedComponentEntity> affectedComponents,
-        final ScheduledState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
+    private boolean waitForComponentState(final String groupId, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
+                                          final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
-        logger.debug("Waiting for {} processors to transition their states to {}", affectedComponents.size(), desiredState);
+        logger.debug("Waiting for {} components to transition their states to {}", affectedComponents.size(), desiredState);
 
         boolean continuePolling = true;
         while (continuePolling) {
             final Set<ProcessorEntity> processorEntities = serviceFacade.getProcessors(groupId, true);
+            final boolean processorsComplete = isProcessorActionComplete(processorEntities, affectedComponents, desiredState, invalidComponentAction);
 
-            if (isProcessorActionComplete(processorEntities, affectedComponents, desiredState, invalidComponentAction)) {
-                logger.debug("All {} processors of interest now have the desired state of {}", affectedComponents.size(), desiredState);
+            final Set<ProcessGroupEntity> groupEntities = serviceFacade.getProcessGroups(groupId, ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN);
+            final boolean statelessGroupsComplete = isStatelessGroupActionComplete(groupEntities, affectedComponents, desiredState);
+
+            if (processorsComplete && statelessGroupsComplete) {
+                logger.debug("All {} processors and stateless groups of interest now have the desired state of {}", affectedComponents.size(), desiredState);
                 return true;
             }
 
@@ -200,7 +206,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         return false;
     }
 
-    private void updateAffectedProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+    private void updateAffectedComponents(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
         // update the affected processors
         processorEntities.stream()
                 .filter(entity -> affectedComponents.containsKey(entity.getId()))
@@ -221,11 +227,28 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 });
     }
 
+    private void updateAffectedGroupComponents(final Set<ProcessGroupEntity> groupEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+        // update the affected processors
+        groupEntities.stream()
+            .filter(entity -> affectedComponents.containsKey(entity.getId()))
+            .forEach(entity -> {
+                final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getId());
+                affectedComponentEntity.setRevision(entity.getRevision());
+
+                // only consider updating this component if the user has permissions to it
+                if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
+                    final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
+                    affectedComponent.setState(entity.getComponent().getStatelessGroupScheduledState());
+                    affectedComponent.setActiveThreadCount(entity.getStatus().getAggregateSnapshot().getActiveThreadCount());
+                }
+            });
+    }
+
 
     private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
                                               final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
-        updateAffectedProcessors(processorEntities, affectedComponents);
+        updateAffectedComponents(processorEntities, affectedComponents);
 
         for (final ProcessorEntity entity : processorEntities) {
             if (!affectedComponents.containsKey(entity.getId())) {
@@ -266,6 +289,26 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         return true;
     }
 
+    private boolean isStatelessGroupActionComplete(final Set<ProcessGroupEntity> groupEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState) {
+
+        updateAffectedGroupComponents(groupEntities, affectedComponents);
+
+        for (final ProcessGroupEntity entity : groupEntities) {
+            if (!affectedComponents.containsKey(entity.getId())) {
+                continue;
+            }
+
+            final boolean desiredStateReached = isDesiredStatelessGroupStateReached(entity, desiredState);
+            if (desiredStateReached) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     private boolean isDesiredProcessorStateReached(final ProcessorEntity processorEntity, final ScheduledState desiredState) {
         final String runStatus = processorEntity.getStatus().getRunStatus();
         final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
@@ -281,6 +324,23 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         return true;
     }
+
+    private boolean isDesiredStatelessGroupStateReached(final ProcessGroupEntity groupEntity, final ScheduledState desiredState) {
+        final String runStatus = groupEntity.getComponent().getStatelessGroupScheduledState();
+        final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
+
+        if (!stateMatches) {
+            return false;
+        }
+
+        final Integer activeThreadCount = groupEntity.getStatus().getAggregateSnapshot().getActiveThreadCount();
+        if (desiredState == ScheduledState.STOPPED && activeThreadCount != 0) {
+            return false;
+        }
+
+        return true;
+    }
+
 
     private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
                                           final Map<String, AffectedComponentEntity> servicesRequiringDesiredState, final Pause pause,

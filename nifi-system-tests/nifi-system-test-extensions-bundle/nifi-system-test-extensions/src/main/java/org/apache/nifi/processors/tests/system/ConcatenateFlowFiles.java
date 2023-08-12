@@ -17,13 +17,15 @@
 
 package org.apache.nifi.processors.tests.system;
 
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -31,14 +33,14 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@TriggerWhenEmpty
-public class ConcatenateFlowFiles extends AbstractProcessor {
+public class ConcatenateFlowFiles extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor FLOWFILE_COUNT = new Builder()
         .name("FlowFile Count")
         .displayName("FlowFile Count")
@@ -54,6 +56,10 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
         .name("merged")
         .build();
 
+    private int flowFileCount;
+    private List<FlowFile> flowFiles;
+    private ProcessSession mergeSession;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.singletonList(FLOWFILE_COUNT);
@@ -64,30 +70,54 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
         return new HashSet<>(Arrays.asList(ORIGINAL, MERGED));
     }
 
+    @OnScheduled
+    public void setup(final ProcessContext context) {
+        flowFileCount = context.getProperty(FLOWFILE_COUNT).asInteger();
+        flowFiles = new ArrayList<>();
+    }
+
+    @OnStopped
+    public void reset() {
+        flowFiles.clear();
+        mergeSession.rollback();
+        mergeSession = null;
+    }
+
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int flowFileCount = context.getProperty(FLOWFILE_COUNT).asInteger();
-        final List<FlowFile> flowFiles = session.get(flowFileCount);
-        if (flowFiles.size() != flowFileCount) {
-            session.rollback();
-            context.yield();
-            getLogger().debug("Need {} FlowFiles but currently on {} are available. Will not merge.", flowFileCount, flowFiles.size());
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession pollSession = sessionFactory.createSession();
+        FlowFile flowFile = pollSession.get();
+        if (flowFile == null) {
             return;
         }
 
-        FlowFile merged = session.create(flowFiles);
-        try (final OutputStream out = session.write(merged)) {
-            for (final FlowFile input : flowFiles) {
-                try (final InputStream in = session.read(input)) {
-                    StreamUtils.copy(in, out);
-                }
-            }
-        } catch (final Exception e) {
-            throw new ProcessException("Failed to merge", e);
+        if (mergeSession == null) {
+            mergeSession = sessionFactory.createSession();
         }
 
-        session.transfer(merged, MERGED);
-        session.transfer(flowFiles, ORIGINAL);
+        pollSession.migrate(mergeSession, Collections.singleton(flowFile));
+        flowFiles.add(flowFile);
+
+        if (flowFiles.size() == flowFileCount) {
+            FlowFile merged = mergeSession.create(flowFiles);
+            try (final OutputStream out = mergeSession.write(merged)) {
+                for (final FlowFile input : flowFiles) {
+                    try (final InputStream in = mergeSession.read(input)) {
+                        StreamUtils.copy(in, out);
+                    }
+                }
+            } catch (final Exception e) {
+                mergeSession.rollback();
+                throw new ProcessException("Failed to merge", e);
+            }
+
+            mergeSession.transfer(merged, MERGED);
+            mergeSession.transfer(flowFiles, ORIGINAL);
+            flowFiles.clear();
+            mergeSession.commitAsync();
+        } else {
+            context.yield();
+        }
     }
 
 }

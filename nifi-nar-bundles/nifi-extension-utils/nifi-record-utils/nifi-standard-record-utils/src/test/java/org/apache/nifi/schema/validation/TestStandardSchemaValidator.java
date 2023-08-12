@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -392,6 +394,26 @@ public class TestStandardSchemaValidator {
         assertTrue(result.getValidationErrors().isEmpty());
     }
 
+    @Test
+    public void testEnumValidation() {
+        List<String> enums = List.of("X", "Y", "Z");
+        EnumDataType enumDataType = new EnumDataType(enums);
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("enum_field", enumDataType));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(strictValidationContext);
+
+        List<Record> records = enums.stream().map(e -> new MapRecord(schema, Map.of("enum_field", e)))
+                .collect(Collectors.toList());
+
+        records.forEach(record -> {
+            SchemaValidationResult result = validator.validate(record);
+            assertTrue(result.isValid());
+            assertNotNull(result.getValidationErrors());
+            assertTrue(result.getValidationErrors().isEmpty());
+        });
+    }
 
     @Test
     public void testInvalidArrayValue() {

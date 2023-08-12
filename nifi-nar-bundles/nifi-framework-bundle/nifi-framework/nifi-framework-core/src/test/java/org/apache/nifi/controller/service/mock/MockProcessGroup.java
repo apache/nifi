@@ -34,6 +34,7 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.BatchCounts;
 import org.apache.nifi.groups.DataValve;
@@ -45,6 +46,8 @@ import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.StatelessGroupNode;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
@@ -69,6 +72,8 @@ import java.util.function.Predicate;
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
+    private final Map<String, Port> inputPortMap = new HashMap<>();
+    private final Map<String, Port> outputPortMap = new HashMap<>();
     private final FlowManager flowManager;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
@@ -148,12 +153,44 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void startProcessing() {
-
     }
 
     @Override
-    public void stopProcessing() {
+    public void startComponents() {
+    }
 
+    @Override
+    public CompletableFuture<Void> stopProcessing() {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopComponents() {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public StatelessGroupScheduledState getStatelessScheduledState() {
+        return StatelessGroupScheduledState.STOPPED;
+    }
+
+    @Override
+    public StatelessGroupScheduledState getDesiredStatelessScheduledState() {
+        return StatelessGroupScheduledState.STOPPED;
+    }
+
+    @Override
+    public boolean isStatelessActive() {
+        return false;
+    }
+
+    @Override
+    public void setExecutionEngine(final ExecutionEngine executionEngine) {
+    }
+
+    @Override
+    public Optional<StatelessGroupNode> getStatelessGroupNode() {
+        return Optional.empty();
     }
 
     @Override
@@ -168,11 +205,6 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void enableOutputPort(final Port port) {
-
-    }
-
-    @Override
-    public void enableAllControllerServices() {
 
     }
 
@@ -243,42 +275,56 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void addInputPort(final Port port) {
-
+        port.setProcessGroup(this);
+        inputPortMap.put(port.getIdentifier(), port);
+        if (flowManager != null) {
+            flowManager.onInputPortAdded(port);
+        }
     }
 
     @Override
     public void removeInputPort(final Port port) {
-
+        inputPortMap.remove(port.getIdentifier());
+        if (flowManager != null) {
+            flowManager.onInputPortRemoved(port);
+        }
     }
 
     @Override
     public Set<Port> getInputPorts() {
-        return null;
+        return new HashSet<>(inputPortMap.values());
     }
 
     @Override
     public Port getInputPort(final String id) {
-        return null;
+        return inputPortMap.get(id);
     }
 
     @Override
     public void addOutputPort(final Port port) {
-
+        port.setProcessGroup(this);
+        outputPortMap.put(port.getIdentifier(), port);
+        if (flowManager != null) {
+            flowManager.onInputPortAdded(port);
+        }
     }
 
     @Override
     public void removeOutputPort(final Port port) {
-
+        outputPortMap.remove(port.getIdentifier());
+        if (flowManager != null) {
+            flowManager.onInputPortRemoved(port);
+        }
     }
 
     @Override
     public Port getOutputPort(final String id) {
-        return null;
+        return outputPortMap.get(id);
     }
 
     @Override
     public Set<Port> getOutputPorts() {
-        return null;
+        return new HashSet<>(outputPortMap.values());
     }
 
     @Override
@@ -615,6 +661,10 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanScheduleComponentsIndividually() {
+    }
+
+    @Override
     public void verifyCanStop() {
 
     }
@@ -863,6 +913,37 @@ public class MockProcessGroup implements ProcessGroup {
         return null;
     }
 
+    public ExecutionEngine getExecutionEngine() {
+        return ExecutionEngine.STANDARD;
+    }
+
+    @Override
+    public ExecutionEngine resolveExecutionEngine() {
+        return ExecutionEngine.STANDARD;
+    }
+
+    @Override
+    public void verifyCanSetExecutionEngine(final ExecutionEngine executionEngine) {
+    }
+
+    @Override
+    public void setMaxConcurrentTasks(final int maxConcurrentTasks) {
+    }
+
+    @Override
+    public int getMaxConcurrentTasks() {
+        return 0;
+    }
+
+    @Override
+    public void setStatelessFlowTimeout(final String timeout) {
+    }
+
+    @Override
+    public String getStatelessFlowTimeout() {
+        return null;
+    }
+
     @Override
     public void setLogFileSuffix(String logFileSuffix) {
 
@@ -871,4 +952,5 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void terminateProcessor(ProcessorNode processor) {
     }
+
 }

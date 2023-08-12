@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32InputStream;
 import org.apache.commons.codec.binary.Base32OutputStream;
@@ -50,11 +40,21 @@ import org.apache.nifi.processors.standard.util.ValidatingBase64InputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"encode", "decode", "base64", "hex"})
-@CapabilityDescription("Encode or decode contents using configurable encoding schemes")
+@Tags({"encode", "decode", "base64", "base32", "hex"})
+@CapabilityDescription("Encode or decode the contents of a FlowFile using Base64, Base32, or hex encoding schemes")
 public class EncodeContent extends AbstractProcessor {
 
     public static final String ENCODE_MODE = "Encode";

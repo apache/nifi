@@ -400,13 +400,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Future<Void> disableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+    public CompletableFuture<Void> disableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         processScheduler.submitFrameworkTask(() -> {
             try {
                 disableControllerServices(serviceNodes, future);
                 future.complete(null);
             } catch (final Exception e) {
+                logger.error("Failed to disable Controller Services {}", serviceNodes, e);
                 future.completeExceptionally(e);
             }
         });
@@ -462,7 +463,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private void disableControllerServiceAndReferencingServices(final ControllerServiceNode serviceNode, final BooleanSupplier cancelSupplier) throws ExecutionException, InterruptedException {
+        logger.debug("Disabling referencing services for {} before disabling service", serviceNode);
         disableReferencingServices(serviceNode);
+
+        logger.debug("Disabling service {}", serviceNode);
         final CompletableFuture<?> serviceFuture = disableControllerService(serviceNode);
 
         while (true) {
@@ -475,6 +479,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
         }
+
+        logger.debug("{} is now disabled", serviceNode);
     }
 
     @Override
@@ -701,7 +707,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         for (final ProcessorNode procNode : referencingProcessors) {
             if (procNode.getScheduledState() != ScheduledState.DISABLED) {
-                procNode.verifyCanStart(referencingServiceSet);
+                procNode.verifyCanStart();
             }
         }
     }

@@ -37,6 +37,10 @@ class ConnectionUrlValidatorTest {
 
     private static final String UNSUPPORTED_URL = "jdbc:h2:file";
 
+    private static final String UNSUPPORTED_URL_SPACED = String.format(" %s ", UNSUPPORTED_URL);
+
+    private static final String UNSUPPORTED_URL_EXPRESSION = String.format("${attribute}%s", UNSUPPORTED_URL);
+
     private static final String VENDOR_URL = "jdbc:vendor";
 
     private ValidationContext validationContext;
@@ -62,6 +66,22 @@ class ConnectionUrlValidatorTest {
     @Test
     void testValidateUnsupportedUrl() {
         final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL, validationContext);
+
+        assertNotNull(result);
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    void testValidateUnsupportedUrlExpressionLanguage() {
+        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL_EXPRESSION, validationContext);
+
+        assertNotNull(result);
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    void testValidateUnsupportedUrlSpaced() {
+        final ValidationResult result = validator.validate(SUBJECT, UNSUPPORTED_URL_SPACED, validationContext);
 
         assertNotNull(result);
         assertFalse(result.isValid());

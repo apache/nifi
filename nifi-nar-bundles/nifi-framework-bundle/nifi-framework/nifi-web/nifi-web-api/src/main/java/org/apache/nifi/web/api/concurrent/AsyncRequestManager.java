@@ -106,6 +106,8 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
             throw new IllegalArgumentException("A requests already exists with this ID and type");
         }
 
+        logger.debug("Submitted request {}", key);
+
         threadPool.submit(new Runnable() {
             @Override
             public void run() {

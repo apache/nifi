@@ -40,6 +40,9 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
     private String logFileSuffix;
+    private String executionEngine;
+    private Integer maxConcurrentTasks;
+    private String statelessFlowTimeout;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -59,6 +62,8 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private Integer publicInputPortCount;
     private Integer publicOutputPortCount;
+
+    private String statelessGroupScheduledState;
 
     private FlowSnippetDTO contents;
 
@@ -412,5 +417,43 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setLogFileSuffix(final String logFileSuffix) {
         this.logFileSuffix = logFileSuffix;
+    }
+
+    @ApiModelProperty(value = "The Execution Engine that should be used to run the flow represented by this Process Group.",
+        allowableValues = "STATELESS, STANDARD, INHERITED")
+    public String getExecutionEngine() {
+        return executionEngine;
+    }
+
+    public void setExecutionEngine(final String executionEngine) {
+        this.executionEngine = executionEngine;
+    }
+
+    @ApiModelProperty(value = "If the Process Group is configured to run in using the Stateless Engine, represents the current state. Otherwise, will be STOPPED.",
+            allowableValues = "STOPPED, RUNNING")
+    public String getStatelessGroupScheduledState() {
+        return statelessGroupScheduledState;
+    }
+
+    public void setStatelessGroupScheduledState(final String state) {
+        this.statelessGroupScheduledState = state;
+    }
+
+    @ApiModelProperty("The maximum number of concurrent tasks to use when running the flow using the Stateless Engine")
+    public Integer getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
+    public void setMaxConcurrentTasks(final Integer maxConcurrentTasks) {
+        this.maxConcurrentTasks = maxConcurrentTasks;
+    }
+
+    @ApiModelProperty("The maximum amount of time that the flow can be run using the Stateless Engine before the flow times out")
+    public String getStatelessFlowTimeout() {
+        return statelessFlowTimeout;
+    }
+
+    public void setStatelessFlowTimeout(final String timeout) {
+        this.statelessFlowTimeout = timeout;
     }
 }

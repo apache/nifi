@@ -29,11 +29,13 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
+import org.apache.nifi.controller.scheduling.StatelessProcessSchedulerInitializationContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
+import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -215,7 +217,16 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessEngineInitializationContext statelessEngineInitializationContext = new StatelessEngineInitializationContext(controllerServiceProvider, flowManager, processContextFactory,
                 repositoryContextFactory);
 
-            processScheduler.initialize(processContextFactory, dataflowDefinition);
+            final String flowName = dataflowDefinition.getFlowName();
+            final String threadNameSuffix = flowName == null ? "" : " for dataflow " + flowName;
+            final StatelessProcessSchedulerInitializationContext schedulerInitializationContext = new StatelessProcessSchedulerInitializationContext.Builder()
+                .componentLifeCycleThreadPool(new FlowEngine(8, "Component Lifecycle" + threadNameSuffix, true))
+                .componentMonitoringThreadPool(new FlowEngine(2, "Monitor Processor Lifecycle" + threadNameSuffix, true))
+                .frameworkTaskThreadPool(new FlowEngine(2, "Framework Task" + threadNameSuffix, true))
+                .processContextFactory(processContextFactory)
+                .manageThreadPools(true)
+                .build();
+            processScheduler.initialize(schedulerInitializationContext);
             statelessEngine.initialize(statelessEngineInitializationContext);
 
             // Initialize components. This is generally needed because of the interdependencies between the components.

@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.diagnostics;
 
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Diagnostics for the JVM.
@@ -49,6 +54,8 @@ public class SystemDiagnostics implements Cloneable {
     private Map<String, StorageUsage> contentRepositoryStorageUsage;
     private Map<String, StorageUsage> provenanceRepositoryStorageUsage;
     private Map<String, GarbageCollection> garbageCollection;
+    private Map<ResourceClaim, Integer> claimantCounts;
+    private Set<ResourceClaim> destructableClaims;
 
     private long creationTimestamp;
 
@@ -228,6 +235,22 @@ public class SystemDiagnostics implements Cloneable {
         this.openFileHandles = openFileHandles;
     }
 
+    public Map<ResourceClaim, Integer> getClaimantCounts() {
+        return claimantCounts;
+    }
+
+    public void setClaimantCounts(final Map<ResourceClaim, Integer> claimantCounts) {
+        this.claimantCounts = claimantCounts;
+    }
+
+    public Set<ResourceClaim> getDestructableClaims() {
+        return destructableClaims;
+    }
+
+    public void setDestructableClaims(final Set<ResourceClaim> destructableClaims) {
+        this.destructableClaims = destructableClaims;
+    }
+
     @Override
     public SystemDiagnostics clone() {
         final SystemDiagnostics clonedObj = new SystemDiagnostics();
@@ -270,6 +293,8 @@ public class SystemDiagnostics implements Cloneable {
         clonedObj.totalPhysicalMemory = totalPhysicalMemory;
         clonedObj.openFileHandles = openFileHandles;
         clonedObj.maxOpenFileHandles = maxOpenFileHandles;
+        clonedObj.claimantCounts = this.claimantCounts == null ? null : new HashMap<>(this.claimantCounts);
+        clonedObj.destructableClaims = this.destructableClaims == null ? null : new HashSet<>(this.destructableClaims);
 
         return clonedObj;
     }

@@ -16,16 +16,10 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -41,6 +35,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 
 @SupportsBatching
 @WritesAttributes({
@@ -52,8 +51,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket. " +
-        "If attempting to delete a file that does not exist, FlowFile is routed to success.")
+@CapabilityDescription("Deletes a file from an Amazon S3 Bucket. If attempting to delete a file that does not exist, FlowFile is routed to success.")
 public class DeleteS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()

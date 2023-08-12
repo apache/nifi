@@ -22,6 +22,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 
 public interface VersionedComponentStateLookup {
     ScheduledState getState(ProcessorNode processorNode);
@@ -31,6 +33,9 @@ public interface VersionedComponentStateLookup {
     ScheduledState getState(ReportingTaskNode taskNode);
 
     ScheduledState getState(ControllerServiceNode serviceNode);
+
+    ScheduledState getState(ProcessGroup processGroup);
+
 
     /**
      * Returns a Scheduled State of ENABLED or DISABLED for every component. No component will be mapped to RUNNING.
@@ -54,6 +59,11 @@ public interface VersionedComponentStateLookup {
         @Override
         public ScheduledState getState(final ControllerServiceNode serviceNode) {
             return ScheduledState.DISABLED;
+        }
+
+        @Override
+        public ScheduledState getState(final ProcessGroup group) {
+            return ScheduledState.ENABLED;
         }
     };
 
@@ -87,6 +97,15 @@ public interface VersionedComponentStateLookup {
                 default:
                     return ScheduledState.DISABLED;
             }
+        }
+
+        @Override
+        public ScheduledState getState(final ProcessGroup group) {
+            if (group.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
+                return ScheduledState.RUNNING;
+            }
+
+            return ScheduledState.ENABLED;
         }
 
         private ScheduledState map(final org.apache.nifi.controller.ScheduledState componentState) {

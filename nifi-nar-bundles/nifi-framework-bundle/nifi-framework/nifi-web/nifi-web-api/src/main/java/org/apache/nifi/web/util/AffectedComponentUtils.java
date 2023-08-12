@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
@@ -35,9 +36,14 @@ public class AffectedComponentUtils {
     public static AffectedComponentEntity updateEntity(final AffectedComponentEntity componentEntity, final NiFiServiceFacade serviceFacade, final DtoFactory dtoFactory) {
 
         switch (componentEntity.getComponent().getReferenceType()) {
-            case AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR:
+            case AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR: {
                 final ProcessorEntity procEntity = serviceFacade.getProcessor(componentEntity.getId());
                 return dtoFactory.createAffectedComponentEntity(procEntity);
+            }
+            case AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP: {
+                final ProcessGroupEntity groupEntity = serviceFacade.getProcessGroup(componentEntity.getId());
+                return dtoFactory.createAffectedComponentEntity(groupEntity);
+            }
             case AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT: {
                 final PortEntity portEntity = serviceFacade.getInputPort(componentEntity.getId());
                 return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT);
@@ -46,9 +52,10 @@ public class AffectedComponentUtils {
                 final PortEntity portEntity = serviceFacade.getOutputPort(componentEntity.getId());
                 return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
             }
-            case AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE:
+            case AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE: {
                 final ControllerServiceEntity serviceEntity = serviceFacade.getControllerService(componentEntity.getId(), false);
                 return dtoFactory.createAffectedComponentEntity(serviceEntity);
+            }
             case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT: {
                 final RemoteProcessGroupEntity remoteGroupEntity = serviceFacade.getRemoteProcessGroup(componentEntity.getComponent().getProcessGroupId());
                 final RemoteProcessGroupContentsDTO remoteGroupContents = remoteGroupEntity.getComponent().getContents();

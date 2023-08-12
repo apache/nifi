@@ -646,7 +646,7 @@ public class TestWriteAheadFlowFileRepository {
         final FlowFileRecord flowFileRecord = ffBuilder.build();
 
         final List<RepositoryRecord> records = new ArrayList<>();
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(flowFileRecord, false);
         record.setDestination(connection.getFlowFileQueue());
         records.add(record);

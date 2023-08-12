@@ -40,7 +40,6 @@ import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
-import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
@@ -52,11 +51,13 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
@@ -109,7 +110,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -451,15 +451,18 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private FlowComparison compareFlows(final DataFlow existingFlow, final DataFlow proposedFlow, final PropertyEncryptor encryptor) {
         final DifferenceDescriptor differenceDescriptor = new StaticDifferenceDescriptor();
 
-        final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow() : existingFlow.getVersionedDataflow();
+        final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
+        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
+            "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
+            toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
+
+        final VersionedProcessGroup proposedRootGroup = clusterVersionedFlow.getRootGroup();
+        final String proposedRootGroupId = proposedRootGroup == null ? null : proposedRootGroup.getInstanceIdentifier();
+
+        final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow(proposedRootGroupId) : existingFlow.getVersionedDataflow();
         final ComparableDataFlow localDataFlow = new StandardComparableDataFlow(
                 "Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()), toSet(existingVersionedFlow.getReportingTasks()),
                 toSet(existingVersionedFlow.getParameterContexts()),toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
-
-        final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
-        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
-                "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
-                toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
@@ -474,7 +477,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return new HashSet<>(values);
     }
 
-    private VersionedDataflow createEmptyVersionedDataflow() {
+    private VersionedDataflow createEmptyVersionedDataflow(final String rootGroupId) {
         final VersionedDataflow dataflow = new VersionedDataflow();
         dataflow.setControllerServices(Collections.emptyList());
         dataflow.setEncodingVersion(new VersionedFlowEncodingVersion(2, 0));
@@ -482,7 +485,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         dataflow.setParameterProviders(Collections.emptyList());
         dataflow.setRegistries(Collections.emptyList());
         dataflow.setReportingTasks(Collections.emptyList());
-        dataflow.setRootGroup(new VersionedProcessGroup());
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setInstanceIdentifier(rootGroupId);
+        dataflow.setRootGroup(rootGroup);
+
         return dataflow;
     }
 
@@ -1239,6 +1246,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         @Override
         public void startNow(final Connectable component) {
+            if (ExecutionEngine.STATELESS == component.getProcessGroup().resolveExecutionEngine()) {
+                logger.info("{} should be running but will not start it because its Process Group is configured to run Stateless", component);
+                return;
+            }
+
             switch (component.getConnectableType()) {
                 case PROCESSOR:
                     flowController.startProcessor(component.getProcessGroupIdentifier(), component.getIdentifier());
@@ -1259,13 +1271,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             flowController.stopConnectable(component);
         }
 
-        @Override
-        protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
-            flowController.getControllerServiceProvider().enableControllerServices(controllerServices);
-        }
-
         protected void startNow(final ReportingTaskNode reportingTask) {
             flowController.startReportingTask(reportingTask);
+        }
+
+        @Override
+        protected void startNow(final ProcessGroup statelessGroup) {
+            flowController.startProcessGroup(statelessGroup);
         }
     }
 }

@@ -46,6 +46,15 @@
                 <input type="text" id="port-concurrent-tasks" class="port-field"></divnput>
             </div>
         </div>
+        <div class="setting-field">
+            <div id="port-failure-container" class="port-setting">
+                <div id="failure-port" class="failure-port nf-checkbox checkbox-unchecked"></div>
+                <span class="nf-checkbox-label"> Failure Port</span>
+                <span class="fa fa-question-circle" alt="Info"
+                    title="When using the Stateless Engine, if any FlowFile is routed to a port marked as a Failure Port, all data in the transaction is rolled back, and the input FlowFile, if any, is routed to the Failure Port.">
+                </span>
+            </div>
+        </div>
         <div class="port-setting">
             <div class="setting-name">Comments</div>
             <div class="setting-field">

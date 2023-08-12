@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto.status;
 
 import io.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty.AccessMode;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
@@ -44,6 +45,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private Collection<PortStatusSnapshotEntity> outputPortStatusSnapshots;
 
     private String versionedFlowState;
+    private int statelessActiveThreadCount;
 
     private Integer flowFilesIn = 0;
     private Long bytesIn = 0L;
@@ -115,6 +117,16 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
     public void setVersionedFlowState(String versionedFlowState) {
         this.versionedFlowState = versionedFlowState;
+    }
+
+    @ApiModelProperty(accessMode = AccessMode.READ_ONLY,
+        value = "The current number of active threads for the Process Group, when running in Stateless mode.")
+    public int getStatelessActiveThreadCount() {
+        return statelessActiveThreadCount;
+    }
+
+    public void setStatelessActiveThreadCount(int statelessActiveThreadCount) {
+        this.statelessActiveThreadCount = statelessActiveThreadCount;
     }
 
     /**
@@ -513,6 +525,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         other.setId(getId());
         other.setName(getName());
         other.setVersionedFlowState(getVersionedFlowState());
+        other.setStatelessActiveThreadCount(getStatelessActiveThreadCount());
 
         other.setBytesIn(getBytesIn());
         other.setFlowFilesIn(getFlowFilesIn());

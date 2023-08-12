@@ -76,7 +76,7 @@ public class ExceptionalTriggerResult implements TriggerResult {
 
     @Override
     public void abort(final Throwable cause) {
-        if (cause != null) {
+        if (cause != null && failureCause != cause) {
             failureCause.addSuppressed(cause);
         }
     }

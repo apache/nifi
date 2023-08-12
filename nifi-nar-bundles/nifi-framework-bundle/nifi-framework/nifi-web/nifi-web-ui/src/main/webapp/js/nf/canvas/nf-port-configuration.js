@@ -98,6 +98,12 @@
                             port['state'] = 'STOPPED';
                         }
 
+                        if ($('#failure-port').hasClass('checkbox-checked')) {
+                            port['portFunction'] = 'FAILURE';
+                        } else {
+                            port['portFunction'] = 'STANDARD';
+                        }
+
                         // build the port entity
                         var portEntity = {
                             'revision': nfClient.getRevision(portData),
@@ -179,12 +185,25 @@
                     $('#port-concurrent-task-container').hide();
                 }
 
+                // configuring failure port is only applicable for output ports
+                if (nfCanvasUtils.isOutputPort(selection)) {
+                    $('#port-failure-container').show();
+                } else {
+                    $('#port-failure-container').hide();
+                }
+
                 // populate the port settings
                 $('#port-id').text(selectionData.id);
                 $('#port-name').val(selectionData.component.name);
                 $('#port-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(portEnableStyle);
                 $('#port-concurrent-tasks').val(selectionData.component.concurrentlySchedulableTaskCount);
                 $('#port-comments').val(selectionData.component.comments);
+
+                var portFunctionStyle = 'checkbox-unchecked'
+                if (selectionData.component.portFunction === 'FAILURE') {
+                    portFunctionStyle = 'checkbox-checked';
+                }
+                $('#failure-port').removeClass('checkbox-unchecked checkbox-checked').addClass(portFunctionStyle);
 
                 // show the details
                 $('#port-configuration').modal('show');

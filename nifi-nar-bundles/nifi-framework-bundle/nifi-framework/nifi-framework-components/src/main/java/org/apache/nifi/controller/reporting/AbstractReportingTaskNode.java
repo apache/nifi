@@ -42,6 +42,7 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -63,6 +64,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -419,4 +421,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         }
     }
 
+    public Optional<ProcessGroup> getParentProcessGroup() {
+        return Optional.empty();
+    }
 }

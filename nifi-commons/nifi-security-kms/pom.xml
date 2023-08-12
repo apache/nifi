@@ -21,10 +21,4 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-security-kms</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-        </dependency>
-    </dependencies>
 </project>

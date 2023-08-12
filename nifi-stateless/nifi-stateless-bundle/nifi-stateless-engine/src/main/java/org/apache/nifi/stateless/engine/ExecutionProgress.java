@@ -17,6 +17,11 @@
 
 package org.apache.nifi.stateless.engine;
 
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.stateless.session.StatelessProcessSession;
+
+import java.util.function.Consumer;
+
 /**
  * The ExecutionProgress functions as a bridge between the caller of the dataflow trigger
  * and the dataflow engine. It is used to allow the caller to cancel the dataflow, wait for its completion, and to convey
@@ -42,6 +47,14 @@ public interface ExecutionProgress {
     CompletionAction awaitCompletionAction() throws InterruptedException;
 
     /**
+     * Enqueues a TriggerResult so that the result can be acknowledged or canceled but does not block waiting for the acknowledgment or cancelation.
+     * Instead, provides callsbacks for the appropriate actions
+     * @param onAcknowledge the callback to perform when the result is acknowledged
+     * @param onFailure the callback to perform when failure occurs
+     */
+    void enqueueTriggerResult(Runnable onAcknowledge, Consumer<Throwable> onFailure);
+
+    /**
      * Notifies the ExecutionProgress that processing has been canceled
      */
     void notifyExecutionCanceled();
@@ -57,6 +70,10 @@ public interface ExecutionProgress {
      * @return <code>true</code> if the port is a failure port, <code>false</code> otherwise
      */
     boolean isFailurePort(String portName);
+
+    boolean isTerminalPort(Connectable connectable);
+
+    void registerCreatedSession(StatelessProcessSession session);
 
     enum CompletionAction {
         COMPLETE,

@@ -28,6 +28,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.FlowFileConcurrency;
@@ -48,6 +49,8 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import java.util.Collection;
@@ -61,6 +64,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
+    private static final Logger logger = LoggerFactory.getLogger(StandardProcessGroupDAO.class);
 
     private FlowController flowController;
 
@@ -93,6 +97,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setParameterContext(parameterContext);
         }
 
+        if (processGroup.getStatelessFlowTimeout() != null) {
+            group.setStatelessFlowTimeout(processGroup.getStatelessFlowTimeout());
+        }
+        if (processGroup.getMaxConcurrentTasks() != null) {
+            group.setMaxConcurrentTasks(processGroup.getMaxConcurrentTasks());
+        }
+        if (processGroup.getExecutionEngine() != null) {
+            group.setExecutionEngine(ExecutionEngine.valueOf(processGroup.getExecutionEngine()));
+        }
+
         // add the process group
         group.setParent(parentGroup);
         parentGroup.addProcessGroup(group);
@@ -115,6 +129,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final ParameterContext parameterContext = locateParameterContext(parameterContextReference.getId());
         final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
         group.verifyCanSetParameterContext(parameterContext);
+
+        final String executionEngine = processGroup.getExecutionEngine();
+        if (executionEngine != null) {
+            group.verifyCanSetExecutionEngine(ExecutionEngine.valueOf(executionEngine));
+        }
     }
 
     private ParameterContext locateParameterContext(final String id) {
@@ -147,8 +166,26 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void verifyScheduleComponents(final String groupId, final ScheduledState state,final Set<String> componentIds) {
+    public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final boolean includeDescendants) {
+        final ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
+        return new HashSet<>(group.findAllProcessGroups());
+    }
+
+    @Override
+    public void verifyScheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        final ExecutionEngine executionEngine = group.resolveExecutionEngine();
+        if (executionEngine == ExecutionEngine.STATELESS) {
+            final ProcessGroup parentGroup = group.getParent();
+            if (parentGroup != null && parentGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+                final String action = state == ScheduledState.STOPPED ? "stop" : "start";
+                throw new IllegalStateException("Cannot " + action + " Process Group with ID " + groupId + " directly because it is part of a Stateless Process Group");
+            }
+
+            group.verifyCanStart();
+            return;
+        }
 
         final Set<ProcessGroup> validGroups = new HashSet<>();
         validGroups.add(group);
@@ -156,11 +193,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         for (final String componentId : componentIds) {
             final Connectable connectable = findConnectable(componentId, groupId, validGroups);
-            if (connectable == null) {
-                throw new ResourceNotFoundException("Unable to find component with id " + componentId);
-            }
 
-            if (connectable  instanceof RemoteGroupPort) {
+            if (connectable instanceof RemoteGroupPort) {
                 final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
 
                 if (ScheduledState.RUNNING.equals(state)) {
@@ -242,6 +276,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         validGroups.add(group);
         validGroups.addAll(group.findAllProcessGroups());
 
+        if (group.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            if (ScheduledState.RUNNING.equals(state)) {
+                group.startProcessing();
+                return;
+            } else if (ScheduledState.STOPPED.equals(state)) {
+                group.stopProcessing();
+                return;
+            }
+        }
+
         for (final String componentId : componentIds) {
             final Connectable connectable = findConnectable(componentId, groupId, validGroups);
 
@@ -261,6 +305,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
                         remotePort.getRemoteProcessGroup().startTransmitting(remotePort);
                         break;
+                    case STATELESS_GROUP:
+                        connectable.getProcessGroup().startProcessing();
+                        break;
                 }
             } else if (ScheduledState.STOPPED.equals(state)) {
                 switch (connectable.getConnectableType()) {
@@ -277,6 +324,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                     case REMOTE_OUTPUT_PORT:
                         final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
                         remotePort.getRemoteProcessGroup().stopTransmitting(remotePort);
+                        break;
+                    case STATELESS_GROUP:
+                        connectable.getProcessGroup().stopProcessing();
                         break;
                 }
             }
@@ -328,6 +378,18 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final List<ControllerServiceNode> serviceNodes = serviceIds.stream()
             .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
+
+        final ProcessGroup group = flowManager.getGroup(groupId);
+        if (group == null) {
+            throw new IllegalArgumentException("Cannot activate Controller Services with IDs " + serviceIds + " because the associated Process Group (id=" + groupId + ") could not be found");
+        }
+
+        final ExecutionEngine executionEngine = group.resolveExecutionEngine();
+        if (executionEngine == ExecutionEngine.STATELESS) {
+            logger.info("Attempt was made to activate Controller Services for Process Group with ID {} and Controller Service State {} but group is configured to use the Stateless Engine so will " +
+                "not change state of Controller Services", groupId, state);
+            return;
+        }
 
         if (state == ControllerServiceState.ENABLED) {
             flowController.getControllerServiceProvider().enableControllerServicesAsync(serviceNodes);
@@ -397,6 +459,15 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
         if (defaultBackPressureDataSizeThreshold != null) {
             group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+        }
+        if (processGroupDTO.getExecutionEngine() != null) {
+            group.setExecutionEngine(ExecutionEngine.valueOf(processGroupDTO.getExecutionEngine()));
+        }
+        if (processGroupDTO.getMaxConcurrentTasks() != null) {
+            group.setMaxConcurrentTasks(processGroupDTO.getMaxConcurrentTasks());
+        }
+        if (processGroupDTO.getStatelessFlowTimeout() != null) {
+            group.setStatelessFlowTimeout(processGroupDTO.getStatelessFlowTimeout());
         }
 
         if (logFileSuffix != null) {

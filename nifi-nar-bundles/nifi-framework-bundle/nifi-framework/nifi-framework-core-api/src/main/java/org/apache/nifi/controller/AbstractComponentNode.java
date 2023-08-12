@@ -43,6 +43,8 @@ import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
@@ -912,7 +914,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             if (!controllerServiceNode.isActive()) {
-                validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+                // If the component belongs to a Process Group and the Process Group is configured to use the Stateless Engine,
+                // do not validate that the Controller Service is valid. We do this because we cannot start & stop Controller Services
+                // individually. But if using the standard NiFi engine, or if the component doesn't belong to a Process Group,
+                // we want to require that the referenced Controller Service is invalid.
+                // Additionally, if the Controller Service is in a higher level Process Group that is not using the Stateless Engine, it must be enabled.
+                final ProcessGroup processGroup = getParentProcessGroup().orElse(null);
+                final ProcessGroup csGroup = controllerServiceNode.getProcessGroup();
+                final boolean csGroupStateless = csGroup != null && csGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS;
+                if (processGroup == null || processGroup.resolveExecutionEngine() == ExecutionEngine.STANDARD || !csGroupStateless) {
+                    validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+                }
             } else if (ControllerServiceState.ENABLING == controllerServiceNode.getState()) {
                 validationResults.add(new EnablingServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
             }

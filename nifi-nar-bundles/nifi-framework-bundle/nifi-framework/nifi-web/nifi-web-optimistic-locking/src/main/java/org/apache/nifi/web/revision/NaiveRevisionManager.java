@@ -119,7 +119,8 @@ public class NaiveRevisionManager implements RevisionManager {
 
             if (!verified) {
                 // Throw an Exception indicating that we failed to obtain the locks
-                throw new InvalidRevisionException("Invalid Revision was given for component with ID '" + revision.getComponentId() + "'");
+                throw new InvalidRevisionException("Invalid Revision given for component with ID [" + revision.getComponentId() +
+                    "]. Current Revision: " + currentRevision + " Proposed Revision: " + revision);
             }
         }
 

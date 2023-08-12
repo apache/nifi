@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -36,6 +37,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +59,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static java.util.Objects.requireNonNull;
 
 public abstract class AbstractPort implements Port {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractPort.class);
 
     public static final Relationship PORT_RELATIONSHIP = new Relationship.Builder()
             .description("The relationship through which all Flow Files are transferred")
@@ -82,6 +86,7 @@ public abstract class AbstractPort implements Port {
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicLong schedulingNanos;
     private final AtomicLong yieldExpiration;
+    private final AtomicReference<PortFunction> portFunction = new AtomicReference<>(PortFunction.STANDARD);
     private final ProcessScheduler processScheduler;
 
     private final Set<Connection> outgoingConnections;
@@ -428,11 +433,13 @@ public abstract class AbstractPort implements Port {
     @Override
     public void shutdown() {
         scheduledState.set(ScheduledState.STOPPED);
+        logger.info("{} shutdown", this);
     }
 
     @Override
     public void onSchedulingStart() {
         scheduledState.set(ScheduledState.RUNNING);
+        logger.info("{} started", this);
     }
 
     @Override
@@ -441,6 +448,7 @@ public abstract class AbstractPort implements Port {
         if (!updated) {
             throw new IllegalStateException("Port cannot be disabled because it is not stopped");
         }
+        logger.info("{} disabled", this);
     }
 
     public void enable() {
@@ -448,6 +456,7 @@ public abstract class AbstractPort implements Port {
         if (!updated) {
             throw new IllegalStateException("Port cannot be enabled because it is not disabled");
         }
+        logger.info("{} enabled", this);
     }
 
     @Override
@@ -584,7 +593,9 @@ public abstract class AbstractPort implements Port {
 
             final Collection<ValidationResult> validationResults = getValidationErrors();
             if (!validationResults.isEmpty()) {
-                throw new IllegalStateException(this.getIdentifier() + " is not in a valid state: " + validationResults.iterator().next().getExplanation());
+                final String portType = getConnectableType() == ConnectableType.INPUT_PORT ? "Input Port" : "Output Port";
+                final String message = String.format("%s %s is not in a valid state: %s", portType, getIdentifier(), validationResults.iterator().next().getExplanation());
+                throw new IllegalStateException(message);
             }
         } finally {
             readLock.unlock();
@@ -717,5 +728,12 @@ public abstract class AbstractPort implements Port {
         return value;
     }
 
+    @Override
+    public PortFunction getPortFunction() {
+        return portFunction.get();
+    }
 
+    public void setPortFunction(final PortFunction portFunction) {
+        this.portFunction.set(requireNonNull(portFunction));
+    }
 }

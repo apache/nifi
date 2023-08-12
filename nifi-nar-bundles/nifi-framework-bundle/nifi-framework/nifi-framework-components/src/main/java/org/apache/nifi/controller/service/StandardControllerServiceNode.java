@@ -77,6 +77,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -95,7 +96,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
-    public static final String BULLETIN_OBSERVER_ID = "bulletin-observer";
 
     private final AtomicReference<ControllerServiceDetails> controllerServiceHolder = new AtomicReference<>(null);
     private final ControllerServiceProvider serviceProvider;
@@ -242,6 +242,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return processGroup;
     }
 
+    public Optional<ProcessGroup> getParentProcessGroup() {
+        return Optional.ofNullable(this.processGroup);
+    }
+
     @Override
     public void setProcessGroup(final ProcessGroup group) {
         this.processGroup = group;
@@ -264,12 +268,41 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public void addReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            referencingComponents.add(new Tuple<>(referencingComponent, propertyDescriptor));
+            final boolean added = referencingComponents.add(new Tuple<>(referencingComponent, propertyDescriptor));
+
+            if (added) {
+                LOG.debug("{} Added referencing component {} for property {}", this, referencingComponent, propertyDescriptor.getName());
+            } else {
+                LOG.debug("{} Will not add referencing component {} for property {} because there is already a reference", this, referencingComponent, propertyDescriptor.getName());
+            }
         } finally {
             writeLock.unlock();
         }
     }
 
+    @Override
+    public void updateReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
+        writeLock.lock();
+        try {
+            Tuple<ComponentNode, PropertyDescriptor> updatedTuple = new Tuple<>(referencingComponent, propertyDescriptor);
+
+            // Check to see if there is any reference for the given component and property descriptor. If there is, we want to use
+            // the existing component object instead of the newly provided one. This is done because when a Stateless Process Group is started,
+            // the instance that is "ethereal" in the stateless engine may call updateReference, and we do not want to change the reference to the
+            // component to this ethereal instance but instead want to hold onto the existing component.
+            for (final Tuple<ComponentNode, PropertyDescriptor> tuple : referencingComponents) {
+                if (Objects.equals(tuple.getKey(), referencingComponent)) {
+                    updatedTuple = new Tuple<>(tuple.getKey(), propertyDescriptor);
+                    LOG.debug("{} updating reference from component {} and property {}", this, referencingComponent, propertyDescriptor);
+                }
+            }
+
+            referencingComponents.remove(updatedTuple);
+            referencingComponents.add(updatedTuple);
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
     @Override
     protected ParameterContext getParameterContext() {
@@ -783,7 +816,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             level = LogLevel.WARN;
         }
 
-        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
+        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(level);
         this.bulletinLevel = level;
     }
 

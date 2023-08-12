@@ -39,18 +39,17 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryClientIT extends NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(RegistryClientIT.class);
 
     /**
      * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
@@ -345,20 +345,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertNotEquals(terminate.getComponent().getId(), importedProcessor.getId());
     }
 
-    private FlowRegistryClientEntity registerClient() throws NiFiClientException, IOException {
-        final File storageDir = new File("target/flowRegistryStorage/" + getTestName().replace("\\(.*?\\)", ""));
-        Files.createDirectories(storageDir.toPath());
-
-        return registerClient(storageDir);
-    }
-
-    private FlowRegistryClientEntity registerClient(final File storageDir) throws NiFiClientException, IOException {
-        final String clientName = String.format("FileRegistry-%s", UUID.randomUUID());
-        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient(clientName);
-        getClientUtil().updateRegistryClientProperties(clientEntity, Collections.singletonMap("Directory", storageDir.getAbsolutePath()));
-
-        return clientEntity;
-    }
 
     @Test
     public void testStartVersionControlThenModifyAndRevert() throws NiFiClientException, IOException, InterruptedException {
@@ -368,11 +354,11 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         getClientUtil().startVersionControl(group, clientEntity, "First Bucket", "First Flow");
 
-        String versionedFlowState = getVersionedFlowState(group.getId(), "root");
+        String versionedFlowState = getClientUtil().getVersionedFlowState(group.getId(), "root");
         assertEquals("UP_TO_DATE", versionedFlowState);
 
         getClientUtil().updateProcessorExecutionNode(terminate, ExecutionNode.PRIMARY);
-        versionedFlowState = getVersionedFlowState(group.getId(), "root");
+        versionedFlowState = getClientUtil().getVersionedFlowState(group.getId(), "root");
         assertEquals("LOCALLY_MODIFIED", versionedFlowState);
 
         final ProcessorEntity locallyModifiedTerminate = getNifiClient().getProcessorClient().getProcessor(terminate.getId());
@@ -383,20 +369,10 @@ public class RegistryClientIT extends NiFiSystemIT {
         final ProcessorEntity updatedTerminate = getNifiClient().getProcessorClient().getProcessor(terminate.getId());
         assertEquals(ExecutionNode.ALL.name(), updatedTerminate.getComponent().getConfig().getExecutionNode());
 
-        versionedFlowState = getVersionedFlowState(group.getId(), "root");
+        versionedFlowState = getClientUtil().getVersionedFlowState(group.getId(), "root");
         assertEquals("UP_TO_DATE", versionedFlowState);
     }
 
-    private String getVersionedFlowState(final String groupId, final String parentGroupId) throws NiFiClientException, IOException {
-        final ProcessGroupFlowDTO parentGroup = getNifiClient().getFlowClient().getProcessGroup(parentGroupId).getProcessGroupFlow();
-        final Set<ProcessGroupEntity> childGroups = parentGroup.getFlow().getProcessGroups();
-
-        return childGroups.stream()
-            .filter(childGroup -> groupId.equals(childGroup.getId()))
-            .map(ProcessGroupEntity::getVersionedFlowState)
-            .findAny()
-            .orElse(null);
-    }
 
     @Test
     public void testCopyPasteProcessGroupDoesNotDuplicateVersionedComponentId() throws NiFiClientException, IOException {
@@ -480,8 +456,8 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         // Wait for the Version Control Information to show a state of UP_TO_DATE. We have to wait for this because it initially is set to SYNC_FAILURE and a background task
         // is kicked off to determine the state.
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getVersionControlState(innerGroup.getId())) );
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getVersionControlState(pastedGroupId)) );
+        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(innerGroup.getId())) );
+        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(pastedGroupId)) );
 
         // The two processors should have the same Versioned Component ID
         assertEquals(terminate1.getComponent().getName(), terminate2.getComponent().getName());
@@ -490,13 +466,4 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(terminate1.getComponent().getVersionedComponentId(), terminate2.getComponent().getVersionedComponentId());
     }
 
-    private String getVersionControlState(final String groupId) {
-        try {
-            final VersionControlInformationDTO vci = getNifiClient().getProcessGroupClient().getProcessGroup(groupId).getComponent().getVersionControlInformation();
-            return vci.getState();
-        } catch (final Exception e) {
-            Assertions.fail("Could not obtain Version Control Information for Group with ID " + groupId, e);
-            return null;
-        }
-    }
 }

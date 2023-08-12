@@ -72,6 +72,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLTransientException;
 import java.sql.Statement;
@@ -496,10 +497,19 @@ public class PutDatabaseRecord extends AbstractProcessor {
             connectionHolder = Optional.of(connection);
 
             originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+            if (originalAutoCommit) {
+                try {
+                    connection.setAutoCommit(false);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    getLogger().debug("setAutoCommit(false) not supported by this driver");
+                }
+            }
 
             putToDatabase(context, session, flowFile, connection);
-            connection.commit();
+            // Only commit the connection if auto-commit is false
+            if (!originalAutoCommit) {
+                connection.commit();
+            }
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, getJdbcUrl(connection));
@@ -521,13 +531,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
             if (rollbackOnFailure) {
                 session.rollback();
             } else {
-                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown": e.getMessage()));
                 session.transfer(flowFile, relationship);
             }
 
             connectionHolder.ifPresent(connection -> {
                 try {
-                    connection.rollback();
+                    if (!connection.getAutoCommit()) {
+                        connection.rollback();
+                    }
                 } catch (final Exception rollbackException) {
                     getLogger().error("Failed to rollback JDBC transaction", rollbackException);
                 }

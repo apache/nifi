@@ -88,8 +88,10 @@ import java.util.zip.InflaterInputStream;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy-hadoop", "snappy framed", "lz4-framed", "deflate", "zstd", "brotli"})
 @CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type "
-    + "attribute as appropriate. This processor operates in a very memory efficient way so very large objects well beyond the heap size "
-    + "are generally fine to process")
+    + "attribute as appropriate. A common idiom is to precede CompressContent with IdentifyMimeType and configure Mode='decompress' AND Compression Format='use mime.type attribute'. "
+    + "When used in this manner, the MIME type is automatically detected and the data is decompressed, if necessary. "
+    + "If decompression is unnecessary, the data is passed through to the 'success' relationship."
+    + " This processor operates in a very memory efficient way so very large objects well beyond the heap size are generally fine to process.")
 @ReadsAttribute(attribute = "mime.type", description = "If the Compression Format is set to use mime.type attribute, this attribute is used to "
     + "determine the compression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
@@ -440,11 +442,11 @@ public class CompressContent extends AbstractProcessor {
             }
 
             logger.info("Successfully {}ed {} using {} compression format; size changed from {} to {} bytes",
-                new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression});
+                compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            logger.error("Unable to {} {} using {} compression format due to {}; routing to failure", new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, e});
+            logger.error("Unable to {} {} using {} compression format due to {}; routing to failure", compressionMode.toLowerCase(), flowFile, compressionFormat, e, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
@@ -61,8 +62,42 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
                 final ProcessGroupDTO dto = entry.getValue();
                 final ParameterContextReferenceEntity parameterContextReferenceEntity = dto.getParameterContext();
 
+                clientDto.setStatelessGroupScheduledState(mergeScheduledState(clientDto.getStatelessGroupScheduledState(), dto.getStatelessGroupScheduledState()));
+
                 PermissionsDtoMerger.mergePermissions(clientParameterContextEntity.getPermissions(), parameterContextReferenceEntity.getPermissions());
             }
+        }
+    }
+
+    private static String mergeScheduledState(final String stateAName, final String stateBName) {
+        final StatelessGroupScheduledState stateA = getScheduledState(stateAName);
+        final StatelessGroupScheduledState stateB = getScheduledState(stateBName);
+
+        if (stateA == null && stateB == null) {
+            return null;
+        }
+
+        if (stateA == null) {
+            return stateB.name();
+        }
+        if (stateB == null) {
+            return stateA.name();
+        }
+        if (stateA == StatelessGroupScheduledState.RUNNING || stateB == StatelessGroupScheduledState.RUNNING) {
+            return StatelessGroupScheduledState.RUNNING.name();
+        }
+        return StatelessGroupScheduledState.STOPPED.name();
+    }
+
+    private static StatelessGroupScheduledState getScheduledState(final String value) {
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            return StatelessGroupScheduledState.valueOf(value);
+        } catch (final Exception e) {
+            return null;
         }
     }
 

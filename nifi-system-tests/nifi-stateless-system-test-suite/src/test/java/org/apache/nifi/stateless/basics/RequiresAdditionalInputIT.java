@@ -278,12 +278,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         assertEquals(1, mergedFlowFiles.size());
 
         final String outputText = new String(result.readContentAsByteArray(mergedFlowFiles.get(0)));
-        final StringBuilder expectedTextBuilder = new StringBuilder();
-        for (int i=0; i < 36; i++) {
-            expectedTextBuilder.append("abc");
-        }
-
-        final String expectedText = expectedTextBuilder.toString();
+        final String expectedText = "abc".repeat(36);
         assertEquals(expectedText, outputText);
 
         result.acknowledge();

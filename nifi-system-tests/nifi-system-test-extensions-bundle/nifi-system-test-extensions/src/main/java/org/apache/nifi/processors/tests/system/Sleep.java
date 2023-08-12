@@ -125,6 +125,11 @@ public class Sleep extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         final long sleepMillis = context.getProperty(ON_TRIGGER_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         sleep(sleepMillis);
 
@@ -133,9 +138,6 @@ public class Sleep extends AbstractProcessor {
             service.sleep();
         }
 
-        FlowFile flowFile = session.get();
-        if (flowFile != null) {
-            session.transfer(flowFile, REL_SUCCESS);
-        }
+        session.transfer(flowFile, REL_SUCCESS);
     }
 }

@@ -18,12 +18,14 @@
 package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.components.PortFunction;
 
 public class VersionedPort extends VersionedComponent {
     private PortType type;
     private Integer concurrentlySchedulableTaskCount;
     private ScheduledState scheduledState;
     private Boolean allowRemoteAccess;
+    private PortFunction portFunction;
 
     @ApiModelProperty("The number of tasks that should be concurrently scheduled for the port.")
     public Integer getConcurrentlySchedulableTaskCount() {
@@ -63,6 +65,15 @@ public class VersionedPort extends VersionedComponent {
 
     public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
+    }
+
+    @ApiModelProperty("Specifies how the Port should function")
+    public PortFunction getPortFunction() {
+        return portFunction;
+    }
+
+    public void setPortFunction(final PortFunction portFunction) {
+        this.portFunction = portFunction;
     }
 
     @Override

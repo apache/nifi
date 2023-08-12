@@ -33,6 +33,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
@@ -41,7 +42,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessSchedulingAgent;
-import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +69,8 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     private FlowEngine componentLifeCycleThreadPool;
     private ScheduledExecutorService componentMonitoringThreadPool;
+    private FlowEngine frameworkTaskThreadPool;
+    private boolean manageThreadPools;
     private ProcessContextFactory processContextFactory;
 
     private final long processorStartTimeoutMillis;
@@ -81,12 +83,18 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     @Override
     public void shutdown() {
-        if (componentLifeCycleThreadPool != null) {
-            componentLifeCycleThreadPool.shutdown();
-        }
+        if (manageThreadPools) {
+            if (componentLifeCycleThreadPool != null) {
+                componentLifeCycleThreadPool.shutdown();
+            }
 
-        if (componentMonitoringThreadPool != null) {
-            componentMonitoringThreadPool.shutdown();
+            if (componentMonitoringThreadPool != null) {
+                componentMonitoringThreadPool.shutdown();
+            }
+
+            if (frameworkTaskThreadPool != null) {
+                frameworkTaskThreadPool.shutdown();
+            }
         }
     }
 
@@ -107,12 +115,12 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         }
     }
 
-    public void initialize(final ProcessContextFactory processContextFactory, final DataflowDefinition dataflowDefinition) {
-        this.processContextFactory = processContextFactory;
-
-        final String threadNameSuffix = dataflowDefinition.getFlowName() == null ? "" : " for dataflow " + dataflowDefinition.getFlowName();
-        componentLifeCycleThreadPool = new FlowEngine(8, "Component Lifecycle" + threadNameSuffix, true);
-        componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle" + threadNameSuffix, true);
+    public void initialize(final StatelessProcessSchedulerInitializationContext context) {
+        this.processContextFactory = context.getProcessContextFactory();
+        this.componentLifeCycleThreadPool = context.getComponentLifeCycleThreadPool();
+        this.componentMonitoringThreadPool = context.getComponentMonitoringThreadPool();
+        this.frameworkTaskThreadPool = context.getFrameworkTaskThreadPool();
+        this.manageThreadPools = context.isManageThreadPools();
     }
 
     @Override
@@ -138,7 +146,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Starting {}", procNode);
 
         final Supplier<ProcessContext> processContextSupplier = () -> processContextFactory.createProcessContext(procNode);
-        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping);
+        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping, true);
         return future;
 
     }
@@ -149,13 +157,13 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public Future<Void> stopProcessor(final ProcessorNode procNode) {
+    public CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
         logger.info("Stopping {}", procNode);
         final ProcessContext processContext = processContextFactory.createProcessContext(procNode);
-        final LifecycleState lifecycleState = new LifecycleState();
+        final LifecycleState lifecycleState = new LifecycleState(procNode.getIdentifier());
         final boolean scheduled = procNode.getScheduledState() == ScheduledState.RUNNING || procNode.getActiveThreadCount() > 0;
         lifecycleState.setScheduled(scheduled);
-        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState);
+        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState, true);
     }
 
     @Override
@@ -164,6 +172,16 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     @Override
     public void onProcessorRemoved(final ProcessorNode procNode) {
+    }
+
+    @Override
+    public Future<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompletableFuture<Void> stopStatelessGroup(final StatelessGroupNode groupNode) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -255,7 +273,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
             public void run() {
                 try {
                     attemptSchedule(taskNode);
-                    schedulingAgent.schedule(taskNode, new LifecycleState());
+                    schedulingAgent.schedule(taskNode, new LifecycleState(taskNode.getIdentifier()));
                     logger.info("Successfully scheduled {} to run every {}", taskNode, taskNode.getSchedulingPeriod());
                 } catch (final Exception e) {
                     logger.error("Could not schedule {} to run. Will try again in 30 seconds.", taskNode, e);
@@ -313,7 +331,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     @Override
     public Future<?> submitFrameworkTask(final Runnable task) {
-        return null;
+        return frameworkTaskThreadPool.submit(task);
     }
 
     @Override

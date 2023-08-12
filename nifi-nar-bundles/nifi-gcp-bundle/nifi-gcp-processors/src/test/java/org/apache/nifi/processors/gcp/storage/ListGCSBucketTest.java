@@ -316,6 +316,55 @@ public class ListGCSBucketTest extends AbstractGCSTest {
     }
 
     @Test
+    public void testNoTrackingListing() throws Exception {
+        reset(storage, mockBlobPage);
+        final ListGCSBucket processor = getProcessor();
+        final TestRunner runner = buildNewRunner(processor);
+        addRequiredPropertiesToRunner(runner);
+        runner.setProperty(ListGCSBucket.LISTING_STRATEGY, ListGCSBucket.NO_TRACKING);
+        runner.assertValid();
+
+        final Iterable<Blob> mockList = Arrays.asList(
+                buildMockBlob("blob-bucket-1", "blob-key-1", 2L),
+                buildMockBlob("blob-bucket-2", "blob-key-2", 3L)
+        );
+
+        when(mockBlobPage.getValues()).thenReturn(mockList);
+        when(mockBlobPage.getNextPage()).thenReturn(null);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
+
+        runner.run();
+
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
+
+        runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
+        runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
+        verifyConfigVerification(runner, processor, 2);
+
+        final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
+
+        MockFlowFile flowFile = successes.get(0);
+        assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
+
+        flowFile = successes.get(1);
+        assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-2",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("3", flowFile.getAttribute(UPDATE_TIME_ATTR));
+
+        runner.clearTransferState();
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
+        runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
+
+        assertEquals(0, processor.getStateTimestamp());
+        assertEquals(0, processor.getStateKeys().size());
+    }
+
+    @Test
     public void testOldValues() throws Exception {
         reset(storage, mockBlobPage);
         final ListGCSBucket processor = getProcessor();

@@ -20,15 +20,16 @@ package org.apache.nifi.groups;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
-
-import java.util.Collection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultComponentScheduler extends AbstractComponentScheduler {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultComponentScheduler.class);
 
     public DefaultComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
         super(controllerServiceProvider, stateLookup);
@@ -36,6 +37,11 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
 
     @Override
     protected void startNow(final Connectable component) {
+        if (ExecutionEngine.STATELESS == component.getProcessGroup().resolveExecutionEngine()) {
+            logger.info("{} should be running but will not start it because its Process Group is configured to run Stateless", component);
+            return;
+        }
+
         switch (component.getConnectableType()) {
             case PROCESSOR: {
                 final ProcessorNode processorNode = (ProcessorNode) component;
@@ -60,12 +66,11 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
         }
     }
 
-    @Override
-    protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
-        getControllerServiceProvider().enableControllerServices(controllerServices);
-    }
-
     protected void startNow(final ReportingTaskNode reportingTask) {
         reportingTask.start();
+    }
+
+    protected void startNow(final ProcessGroup statelessGroup) {
+        statelessGroup.startProcessing();
     }
 }

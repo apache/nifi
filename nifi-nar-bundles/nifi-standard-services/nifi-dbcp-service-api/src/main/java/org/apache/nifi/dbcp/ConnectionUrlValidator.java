@@ -37,11 +37,11 @@ public class ConnectionUrlValidator implements Validator {
             builder.valid(false);
             builder.explanation("Connection URL required");
         } else {
-            final String url = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+            final String url = context.newPropertyValue(input).evaluateAttributeExpressions().getValue().trim();
 
             if (isUrlUnsupported(url)) {
                 builder.valid(false);
-                builder.explanation(String.format("Connection URL starts with an unsupported scheme %s", UNSUPPORTED_SCHEMES));
+                builder.explanation(String.format("Connection URL contains an unsupported scheme %s", UNSUPPORTED_SCHEMES));
             } else {
                 builder.valid(true);
                 builder.explanation("Connection URL is valid");
@@ -55,7 +55,7 @@ public class ConnectionUrlValidator implements Validator {
         boolean unsupported = false;
 
         for (final String unsupportedScheme : UNSUPPORTED_SCHEMES) {
-            if (url.startsWith(unsupportedScheme)) {
+            if (url.contains(unsupportedScheme)) {
                 unsupported = true;
                 break;
             }

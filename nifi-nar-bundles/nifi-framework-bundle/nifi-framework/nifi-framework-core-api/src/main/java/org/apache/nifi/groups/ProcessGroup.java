@@ -35,6 +35,7 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
@@ -48,8 +49,10 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
@@ -156,15 +159,59 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Starts all Processors, Local Ports, and Funnels that are directly within
      * this group and any child ProcessGroups, except for those that are
-     * disabled.
+     * disabled. If the ProcessGroup is configured to use the Stateless Engine
+     * then the state is updated accordingly.
      */
     void startProcessing();
+
+    /**
+     * Starts all Processors, Local Ports, and Funnels that are directly within
+     * this group and any child ProcessGroups, except for those that are
+     * disabled.
+     */
+    void startComponents();
+
+    /**
+     * Stops all components and if configured to use the Stateless Engine updates state accordingly
+     */
+    CompletableFuture<Void> stopProcessing();
 
     /**
      * Stops all Processors, Local Ports, and Funnels that are directly within
      * this group and child ProcessGroups, except for those that are disabled.
      */
-    void stopProcessing();
+    CompletableFuture<Void> stopComponents();
+
+    /**
+     * @return the scheduled state for this ProcessGroup, or StatelessGroupScheduledState.STOPPED
+     * if the ProcessGroup is not configured to use the Stateless Engine
+     */
+    StatelessGroupScheduledState getStatelessScheduledState();
+
+    /**
+     * @return the desired state of the group. This is in contrast to the current scheduled state that is returned by
+     * {@link #getStatelessScheduledState()} when the group is starting or stopping
+     */
+    StatelessGroupScheduledState getDesiredStatelessScheduledState();
+
+    /**
+     * @return <code>true</code> if the ProcessGroup is configured to use the Stateless Engine and it is actively running,
+     * <code>false</code> if it is stopped and there are no active threads
+     */
+    boolean isStatelessActive();
+
+    /**
+     * Sets the Execution Engine to the given value
+     * @param executionEngine the execution engine that should be used for running the Process Group
+     */
+    void setExecutionEngine(ExecutionEngine executionEngine);
+
+    /**
+     * Returns the StatelessGroupNode that is used for running this Process Group via the Stateless Engine
+     *
+     * @return the StatelessGroupNode or an empty Optional if not running via the Stateless Engine
+     */
+    Optional<StatelessGroupNode> getStatelessGroupNode();
 
     /**
      * Enables the given Processor
@@ -189,11 +236,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      */
     void enableOutputPort(Port port);
 
-    /**
-     * Recursively enables all Controller Services for this Process Group and all child Process Groups
-     *
-     */
-    void enableAllControllerServices();
 
     /**
      * Starts the given Processor
@@ -244,7 +286,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param processor to stop
      */
-    Future<Void> stopProcessor(ProcessorNode processor);
+    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Terminates the given Processor
@@ -930,6 +972,8 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     void verifyCanStart();
 
+    void verifyCanScheduleComponentsIndividually();
+
     void verifyCanStop(Connectable connectable);
 
     void verifyCanStop();
@@ -1245,4 +1289,48 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param logFileSuffix new log file suffix
      */
     void setLogFileSuffix(String logFileSuffix);
+
+    /*
+     * @return the configured Execution Engine for this Process Group, or an Empty Optional if none is configured
+     */
+    ExecutionEngine getExecutionEngine();
+
+    /**
+     * Returns the Execution Engine that should be used for this Process Group. If the Process Group has an Execution Engine explicitly configured,
+     * it will be returned. Otherwise, the Execution Engine will be resolved by traversing up the Process Group hierarchy until an Execution Engine
+     * is found.
+     *
+     * @return the Execution Engine that should be used for this Process Group
+     */
+    ExecutionEngine resolveExecutionEngine();
+
+    /**
+     * Verifies that the Execution Engine can be set to the configured value.
+     * @param executionEngine the Execution Engine to set
+     * @throws IllegalStateException if the Execution Engine cannot be set to the given value
+     */
+    void verifyCanSetExecutionEngine(ExecutionEngine executionEngine);
+
+    /**
+     * Sets the maximum number on concurrent tasks that can be run in this Process Group if using the Stateless Execution Engine
+     * @param maxConcurrentTasks the maximum number of concurrent tasks
+     */
+    void setMaxConcurrentTasks(int maxConcurrentTasks);
+
+    /**
+     * @return the maximum number of concurrent tasks that can be run in this Process Group if using the Stateless Execution Engine
+     */
+    int getMaxConcurrentTasks();
+
+    /**
+     * Sets the maximum amount of time that a Stateless Flow can run before it times out and is considered a failure.
+     * @param timeout a string representation of the timeout
+     */
+    void setStatelessFlowTimeout(String timeout);
+
+    /**
+     * Returns the configured maximum amount of time that a Stateless Flow can run before it times out and is considered a failure
+     * @return the configured maximum amount of time that a Stateless Flow can run before it times out and is considered a failure
+     */
+    String getStatelessFlowTimeout();
 }

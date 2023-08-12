@@ -39,6 +39,7 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
@@ -58,6 +59,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -162,6 +164,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     @Override
     public boolean isValidationNecessary() {
         return getValidationStatus() != ValidationStatus.VALID;
+    }
+
+    @Override
+    public Optional<ProcessGroup> getParentProcessGroup() {
+        return Optional.empty();
     }
 
     @Override

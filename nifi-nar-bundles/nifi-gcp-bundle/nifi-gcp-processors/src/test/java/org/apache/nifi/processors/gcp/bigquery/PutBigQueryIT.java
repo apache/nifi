@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -29,6 +30,8 @@ import com.google.cloud.bigquery.TableResult;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+
+import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
@@ -227,6 +230,129 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordCount));
     }
 
+    @Test
+    public void testAvroDecimalType() throws InitializationException, IOException {
+        String tableName = UUID.randomUUID().toString();
+        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        Field avrodecimal = Field.newBuilder("avrodecimal", StandardSQLTypeName.BIGNUMERIC).setMode(Field.Mode.NULLABLE).build();
+
+        // Table schema definition
+        schema = Schema.of(avrodecimal);
+        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+
+        // create table
+        bigquery.create(tableInfo);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+        runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
+
+        AvroReader reader = new AvroReader();
+        runner.addControllerService("reader", reader);
+
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avrodecimal.avsc")));
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+
+        runner.enableControllerService(reader);
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/avrodecimal.avro"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+        FieldValueList firstElt = iterator.next();
+        assertEquals(firstElt.get(0).getNumericValue().intValue(), 0);
+
+        deleteTable(tableName);
+    }
+
+    @Test
+    public void testAvroFloatType() throws InitializationException, IOException {
+        String tableName = UUID.randomUUID().toString();
+        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        Field avrofloat = Field.newBuilder("avrofloat", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
+
+        // Table schema definition
+        schema = Schema.of(avrofloat);
+        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+
+        // create table
+        bigquery.create(tableInfo);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+        runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
+
+        AvroReader reader = new AvroReader();
+        runner.addControllerService("reader", reader);
+
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avrofloat.avsc")));
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+
+        runner.enableControllerService(reader);
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/avrofloat.avro"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+        FieldValueList firstElt = iterator.next();
+        assertEquals(firstElt.get(0).getDoubleValue(), 1.0);
+
+        deleteTable(tableName);
+    }
+
+    @Test
+    public void testAvroIntType() throws InitializationException, IOException {
+        String tableName = UUID.randomUUID().toString();
+        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        Field avrofloat = Field.newBuilder("avroint", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
+
+        // Table schema definition
+        schema = Schema.of(avrofloat);
+        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+
+        // create table
+        bigquery.create(tableInfo);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+        runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
+
+        AvroReader reader = new AvroReader();
+        runner.addControllerService("reader", reader);
+
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avroint.avsc")));
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+
+        runner.enableControllerService(reader);
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/avroint.avro"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+        FieldValueList firstElt = iterator.next();
+        assertEquals(firstElt.get(0).getDoubleValue(), 1.0);
+
+        deleteTable(tableName);
+    }
+
     private String prepareTable(AllowableValue transferType) {
         String tableName = UUID.randomUUID().toString();
 
@@ -284,8 +410,12 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Field.Mode.NULLABLE).build();
         Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full).setMode(Field.Mode.NULLABLE).build();
 
+        Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build();
+        Field floatc = Field.newBuilder("floatc", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
+        Field json = Field.newBuilder("json", StandardSQLTypeName.JSON).setMode(Field.Mode.NULLABLE).build();
+
         // Table schema definition
-        schema = Schema.of(id, name, alias, addresses, job, birth);
+        schema = Schema.of(id, name, alias, addresses, job, birth, numeric, floatc, json);
         TableDefinition tableDefinition = StandardTableDefinition.of(schema);
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 

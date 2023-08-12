@@ -69,7 +69,7 @@ public class ConnectableTask {
     private final SchedulingAgent schedulingAgent;
     private final Connectable connectable;
     private final RepositoryContext repositoryContext;
-    private final LifecycleState scheduleState;
+    private final LifecycleState lifecycleState;
     private final ProcessContext processContext;
     private final FlowController flowController;
     private final int numRelationships;
@@ -79,19 +79,19 @@ public class ConnectableTask {
     private final int perfTrackingNthIteration;
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
-                           final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState) {
+                           final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState lifecycleState) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
-        this.scheduleState = scheduleState;
+        this.lifecycleState = lifecycleState;
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
         this.threadMXBean = ManagementFactory.getThreadMXBean();
 
-        final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
+        final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), lifecycleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
             processContext = new StandardProcessContext(
-                    (ProcessorNode) connectable, flowController.getControllerServiceProvider(), stateManager, scheduleState::isTerminated, flowController);
+                    (ProcessorNode) connectable, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController);
         } else {
             processContext = new ConnectableProcessContext(connectable, stateManager);
         }
@@ -165,7 +165,7 @@ public class ConnectableTask {
     }
 
     public InvocationResult invoke() {
-        if (scheduleState.isTerminated()) {
+        if (lifecycleState.isTerminated()) {
             logger.debug("Will not trigger {} because task is terminated", connectable);
             return InvocationResult.DO_NOT_YIELD;
         }
@@ -218,17 +218,17 @@ public class ConnectableTask {
         final StandardProcessSession rawSession;
         final boolean batch;
         if (connectable.isSessionBatchingSupported() && batchNanos > 0L) {
-            rawSession = new StandardProcessSession(repositoryContext, scheduleState::isTerminated, performanceTracker);
+            rawSession = new StandardProcessSession(repositoryContext, lifecycleState::isTerminated, performanceTracker);
             sessionFactory = new BatchingSessionFactory(rawSession);
             batch = true;
         } else {
             rawSession = null;
-            sessionFactory = new StandardProcessSessionFactory(repositoryContext, scheduleState::isTerminated, performanceTracker);
+            sessionFactory = new StandardProcessSessionFactory(repositoryContext, lifecycleState::isTerminated, performanceTracker);
             batch = false;
         }
 
         final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
-        scheduleState.incrementActiveThreadCount(activeSessionFactory);
+        lifecycleState.incrementActiveThreadCount(activeSessionFactory);
 
         final long startNanos = System.nanoTime();
         final long finishIfBackpressureEngaged = startNanos + (batchNanos / 25L);
@@ -305,7 +305,7 @@ public class ConnectableTask {
                     logger.error("", e);
                 }
             } finally {
-                scheduleState.decrementActiveThreadCount();
+                lifecycleState.decrementActiveThreadCount();
                 Thread.currentThread().setName(originalThreadName);
             }
         }
