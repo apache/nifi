@@ -496,7 +496,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             // Determine whether the table exists
             TableSchema tableSchema = null;
             try {
-                tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames,translationStrategy,translationRegex, null, getLogger());
+                tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames,
+                        translationStrategy,translationRegex, null, getLogger());
             } catch (TableNotFoundException tnfe) {
                 // Do nothing, the value will be populated if necessary
             }
@@ -513,9 +514,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         columns.add(new ColumnDescription(recordFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()), required, null, recordField.isNullable()));
                         getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
-                    tableSchema = new TableSchema(tableName, columns, translateFieldNames,translationStrategy, translationRegex, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
+                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames,translationStrategy, translationRegex, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
-                    tableSchema = new TableSchema(catalogName, schemaName, tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
                     final String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
 

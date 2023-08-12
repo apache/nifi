@@ -38,13 +38,12 @@ public class TableSchema {
     private final String schemaName;
     private final String tableName;
 
-    public TableSchema(final String catalogName, final String schemaName, final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
+    public TableSchema(final String catalogName, final String schemaName, final String tableName,
+                       final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
+                       final TranslationStrategy translationStrategy, String translationRegex,
+                       final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.catalogName = catalogName;
         this.schemaName = schemaName;
-    public TableSchema(final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                       final TranslationStrategy translationStrategy,String translationRegex,
-                       final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.tableName = tableName;
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
@@ -92,7 +91,7 @@ public class TableSchema {
     }
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                   final boolean translateColumnNames,final TranslationStrategy translationStrategy,String translationRegex,
+                                   final boolean translateColumnNames, final TranslationStrategy translationStrategy, String translationRegex,
                                    final String updateKeys, ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 
@@ -145,8 +144,8 @@ public class TableSchema {
                 }
             }
 
-            return new TableSchema(tableName, cols, translateColumnNames,translationStrategy,translationRegex, primaryKeyColumns, dmd.getIdentifierQuoteString());
-            return new TableSchema(catalog, schema, tableName, cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
+            return new TableSchema(catalog, schema, tableName, cols, translateColumnNames, translationStrategy,
+                    translationRegex, primaryKeyColumns, dmd.getIdentifierQuoteString());
         }
     }
 
