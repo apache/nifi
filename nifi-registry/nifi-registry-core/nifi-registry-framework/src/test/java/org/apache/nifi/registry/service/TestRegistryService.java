@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -376,6 +377,67 @@ public class TestRegistryService {
         assertEquals(versionedFlow.getDescription(), createdFlow.getDescription());
     }
 
+
+    @Test
+    public void testCreateFlowWithCreatedTimestamp() {
+        final BucketEntity existingBucket = new BucketEntity();
+        existingBucket.setId("b1");
+        existingBucket.setName("My Bucket");
+        existingBucket.setDescription("This is my bucket");
+        existingBucket.setCreated(new Date());
+
+        when(metadataService.getBucketById(existingBucket.getId())).thenReturn(existingBucket);
+        final long timestamp  = System.currentTimeMillis()-1000; // 1 millisecond previous
+        final VersionedFlow versionedFlow = new VersionedFlow();
+        versionedFlow.setIdentifier("f1");
+        versionedFlow.setName("My Flow");
+        versionedFlow.setBucketIdentifier("b1");
+        versionedFlow.setCreatedTimestamp(timestamp);
+        versionedFlow.setModifiedTimestamp(timestamp);
+
+        doAnswer(createFlowAnswer()).when(metadataService).createFlow(any(FlowEntity.class));
+
+        final VersionedFlow createdFlow = registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow);
+        assertNotNull(createdFlow);
+        assertNotNull(createdFlow.getIdentifier());
+        assertTrue(createdFlow.getCreatedTimestamp() > 0);
+        assertTrue(createdFlow.getModifiedTimestamp() > 0);
+        assertEquals(timestamp,createdFlow.getCreatedTimestamp());
+        assertNotEquals(timestamp,createdFlow.getModifiedTimestamp());
+        assertEquals(versionedFlow.getIdentifier(), createdFlow.getIdentifier());
+        assertEquals(versionedFlow.getName(), createdFlow.getName());
+        assertEquals(versionedFlow.getBucketIdentifier(), createdFlow.getBucketIdentifier());
+        assertEquals(versionedFlow.getDescription(), createdFlow.getDescription());
+    }
+    @Test
+    public void testCreateFlowWithPreserveSourcePropertiesTrueAndInvalidTimestamps() {
+        final BucketEntity existingBucket = new BucketEntity();
+        existingBucket.setId("b1");
+        existingBucket.setName("My Bucket");
+        existingBucket.setDescription("This is my bucket");
+        existingBucket.setCreated(new Date());
+
+        when(metadataService.getBucketById(existingBucket.getId())).thenReturn(existingBucket);
+        final long timestamp  = -1;
+        final VersionedFlow versionedFlow = new VersionedFlow();
+        versionedFlow.setIdentifier("f1");
+        versionedFlow.setName("My Flow");
+        versionedFlow.setBucketIdentifier("b1");
+        versionedFlow.setCreatedTimestamp(timestamp);
+        versionedFlow.setModifiedTimestamp(timestamp);
+
+        doAnswer(createFlowAnswer()).when(metadataService).createFlow(any(FlowEntity.class));
+
+        final VersionedFlow createdFlow = registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow);
+        assertNotNull(createdFlow);
+        assertNotNull(createdFlow.getIdentifier());
+        assertTrue(createdFlow.getCreatedTimestamp() > 0);
+        assertTrue(createdFlow.getModifiedTimestamp() > 0);
+        assertEquals(versionedFlow.getIdentifier(), createdFlow.getIdentifier());
+        assertEquals(versionedFlow.getName(), createdFlow.getName());
+        assertEquals(versionedFlow.getBucketIdentifier(), createdFlow.getBucketIdentifier());
+        assertEquals(versionedFlow.getDescription(), createdFlow.getDescription());
+    }
     @Test
     public void testGetFlowDoesNotExist() {
         when(metadataService.getFlowById(any(String.class))).thenReturn(null);
@@ -385,7 +447,7 @@ public class TestRegistryService {
     @Test
     public void testGetFlowDirectDoesNotExist() {
         when(metadataService.getFlowById(any(String.class))).thenReturn(null);
-        assertThrows(ResourceNotFoundException.class , () -> registryService.getFlow("flow1"));
+        assertThrows(ResourceNotFoundException.class, () -> registryService.getFlow("flow1"));
     }
 
     @Test
