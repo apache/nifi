@@ -63,6 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -607,6 +608,7 @@ public class TestExecuteSQLRecord {
         when(dbcp.getConnection(any(Map.class))).thenReturn(conn);
         when(dbcp.getIdentifier()).thenReturn("mockdbcp");
         PreparedStatement statement = mock(PreparedStatement.class);
+        when(conn.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(statement);
         when(conn.prepareStatement(anyString())).thenReturn(statement);
         when(statement.execute()).thenReturn(true);
         ResultSet rs = mock(ResultSet.class);

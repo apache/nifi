@@ -57,6 +57,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -249,6 +250,45 @@ public class TestExecuteSQL {
     }
 
     @Test
+    public void testWithOutputBatchingWithoutMaxRowsPerFlowFile() throws SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        for (int i = 0; i < 1000; i++) {
+            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
+        }
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "0");
+        runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "5");
+        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
+
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1000");
+        firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_COUNT.key(), "1");
+        firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+    }
+
+    @Test
     public void testWithOutputBatching() throws SQLException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -282,7 +322,6 @@ public class TestExecuteSQL {
         MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
-        firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
@@ -290,6 +329,7 @@ public class TestExecuteSQL {
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_COUNT.key(), "200");
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
     }
 
@@ -386,13 +426,8 @@ public class TestExecuteSQL {
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
+        firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_COUNT.key(), "200");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
-
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
-
-        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
-        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
-        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
     }
 
     @Test
@@ -527,6 +562,7 @@ public class TestExecuteSQL {
         when(dbcp.getConnection(any(Map.class))).thenReturn(conn);
         when(dbcp.getIdentifier()).thenReturn("mockdbcp");
         PreparedStatement statement = mock(PreparedStatement.class);
+        when(conn.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(statement);
         when(conn.prepareStatement(anyString())).thenReturn(statement);
         when(statement.execute()).thenReturn(true);
         ResultSet rs = mock(ResultSet.class);

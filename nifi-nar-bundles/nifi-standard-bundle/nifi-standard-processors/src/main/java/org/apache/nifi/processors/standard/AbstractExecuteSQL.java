@@ -152,8 +152,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows "
                     + "have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles "
                     + "to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will "
-                    + "be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The fragment.count attribute will not be set on FlowFiles when this "
-                    + "property is set.")
+                    + "be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The fragment attributes are only set on the last FlowFile and only if the driver supports "
+                    + "calling isLast() on the ResultSet, and only a single ResultSet is returned.")
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -256,7 +256,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         int resultCount = 0;
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes())) {
             con.setAutoCommit(context.getProperty(AUTO_COMMIT).asBoolean());
-            try (final PreparedStatement st = con.prepareStatement(selectQuery)) {
+            PreparedStatement testPS;
+            // Try creating a scrollable statement to support isLast() for Output Batch Size support for fragment.count
+            try {
+                testPS = con.prepareStatement(selectQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            } catch (SQLException se) {
+                 testPS = con.prepareStatement(selectQuery);
+            }
+            try (final PreparedStatement st = testPS) {
                 if (fetchSize != null && fetchSize > 0) {
                     try {
                         st.setFetchSize(fetchSize);
@@ -327,7 +334,6 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     resultSetFF = session.putAllAttributes(resultSetFF, inputFileAttrMap);
                                 }
 
-
                                 try {
                                     resultSetFF = session.write(resultSetFF, out -> {
                                         try {
@@ -376,16 +382,39 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     resultSetFlowFiles.add(resultSetFF);
 
                                     // If we've reached the batch size, send out the flow files
-                                    if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
-                                        session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                                        // Need to remove the original input file if it exists
-                                        if (fileToProcess != null) {
-                                            session.remove(fileToProcess);
-                                            fileToProcess = null;
-                                        }
+                                    final int resultSetFlowFilesSize = resultSetFlowFiles.size();
+                                    if (outputBatchSize > 0) {
+                                        if (maxRowsPerFlowFile == 0 || nrOfRows.get() < maxRowsPerFlowFile) {
+                                            // All rows have been fetched for this result set, set the fragment attributes on the "last one" (there should only be one)
+                                            FlowFile lastFlowFileInBatch = resultSetFlowFiles.remove(resultSetFlowFilesSize - 1);
+                                            lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_ID, fragmentId);
+                                            lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+                                            lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_COUNT, Integer.toString(fragmentIndex + 1));
+                                            resultSetFlowFiles.add(lastFlowFileInBatch);
+                                        } else if (resultSetFlowFilesSize >= outputBatchSize) {
+                                            try {
 
-                                        session.commitAsync();
-                                        resultSetFlowFiles.clear();
+                                                if (resultSet.isLast()) {
+                                                    // If there are no more rows, write the fragment attributes
+                                                    FlowFile lastFlowFileInBatch = resultSetFlowFiles.remove(resultSetFlowFilesSize - 1);
+                                                    lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_ID, fragmentId);
+                                                    lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+                                                    lastFlowFileInBatch = session.putAttribute(lastFlowFileInBatch, FRAGMENT_COUNT, Integer.toString(fragmentIndex + 1));
+                                                    resultSetFlowFiles.add(lastFlowFileInBatch);
+                                                }
+                                            } catch (SQLException sqle) {
+                                                // The driver doesn't support isLast(), so the attributes can't be set as we don't know the total count
+                                            }
+                                            session.transfer(resultSetFlowFiles, REL_SUCCESS);
+                                            // Need to remove the original input file if it exists
+                                            if (fileToProcess != null) {
+                                                session.remove(fileToProcess);
+                                                fileToProcess = null;
+                                            }
+
+                                            session.commitAsync();
+                                            resultSetFlowFiles.clear();
+                                        }
                                     }
 
                                     fragmentIndex++;
