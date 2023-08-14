@@ -1195,9 +1195,6 @@
                     }
                 };
 
-                // used to access provenance data when outside of scope
-                var provenanceData;
-
                 // once the query is submitted wait until its finished
                 submitProvenance(query).done(function (response) {
                     // update the provenance
