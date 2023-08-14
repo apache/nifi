@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -48,6 +49,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestExecuteStreamCommand {
+
+    @Test
+    public void testDynamicPropertyArgumentsStrategyValid() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+
+        runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
+        runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        runner.setProperty("command.argument.1", "-version");
+
+        runner.assertValid();
+
+        final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
+        assertTrue(warnMessages.isEmpty(), "Warning Log Messages found");
+    }
+
+    @Test
+    public void testCommandArgumentsPropertyStrategyValid() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+
+        runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.COMMAND_ARGUMENTS_PROPERTY_STRATEGY.getValue());
+        runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        runner.setProperty("RUNTIME_VERSION", "version-1");
+
+        runner.assertValid();
+
+        final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
+        assertTrue(warnMessages.isEmpty(), "Warning Log Messages found");
+    }
 
     @Test
     public void testExecuteJar() throws Exception {

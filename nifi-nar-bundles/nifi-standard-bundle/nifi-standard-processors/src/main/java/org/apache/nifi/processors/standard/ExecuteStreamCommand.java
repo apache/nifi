@@ -37,7 +37,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
@@ -65,7 +64,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -192,13 +190,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET;
 
     private static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("command\\.argument\\.(?<commandIndex>[0-9]+)$");
-    public static final String executionArguments = "Command Arguments Property";
-    public static final String dynamicArguements = "Dynamic Property Arguments";
 
-    static final AllowableValue EXECUTION_ARGUMENTS_PROPERTY_STRATEGY = new AllowableValue(executionArguments, executionArguments,
+    static final AllowableValue COMMAND_ARGUMENTS_PROPERTY_STRATEGY = new AllowableValue("Command Arguments Property", "Command Arguments Property",
             "Arguments to be supplied to the executable are taken from the Command Arguments property");
 
-    static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue(dynamicArguements, dynamicArguements,
+    static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue("Dynamic Property Arguments", "Dynamic Property Arguments",
             "Arguments to be supplied to the executable are taken from dynamic properties with pattern of 'command.argument.<commandIndex>'");
 
    static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
@@ -224,14 +220,14 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .description("Strategy for configuring arguments to be supplied to the command.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
-            .allowableValues(EXECUTION_ARGUMENTS_PROPERTY_STRATEGY, DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY)
-            .defaultValue(EXECUTION_ARGUMENTS_PROPERTY_STRATEGY.getValue())
+            .allowableValues(COMMAND_ARGUMENTS_PROPERTY_STRATEGY, DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY)
+            .defaultValue(COMMAND_ARGUMENTS_PROPERTY_STRATEGY.getValue())
             .build();
 
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Command Arguments")
             .description("The arguments to supply to the executable delimited by the ';' character.")
-            .dependsOn(ARGUMENTS_STRATEGY, EXECUTION_ARGUMENTS_PROPERTY_STRATEGY)
+            .dependsOn(ARGUMENTS_STRATEGY, COMMAND_ARGUMENTS_PROPERTY_STRATEGY)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator((subject, input, context) -> {
                 ValidationResult result = new ValidationResult.Builder()
@@ -250,7 +246,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
    static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
             .name("Argument Delimiter")
             .description("Delimiter to use to separate arguments for a command [default: ;]. Must be a single character")
-            .dependsOn(ARGUMENTS_STRATEGY, EXECUTION_ARGUMENTS_PROPERTY_STRATEGY)
+            .dependsOn(ARGUMENTS_STRATEGY, COMMAND_ARGUMENTS_PROPERTY_STRATEGY)
             .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
             .required(true)
             .defaultValue(";")
@@ -356,29 +352,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .build();
         }
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
-
-        final String argumentStrategy = validationContext.getProperty(ARGUMENTS_STRATEGY).getValue();
-        if (DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue() != argumentStrategy) {
-            for (final PropertyDescriptor propertyDescriptor : validationContext.getProperties().keySet()) {
-                if (!propertyDescriptor.isDynamic()) {
-                    continue;
-                }
-
-                final String propertyName = propertyDescriptor.getName();
-                final Matcher matcher = COMMAND_ARGUMENT_PATTERN.matcher(propertyName);
-                if (matcher.matches()) {
-                    logger.warn("[{}] should be set to [{}] when command arguments are supplied as Dynamic Properties. The property [{}] will be ignored.",
-                                ARGUMENTS_STRATEGY.getDisplayName(), DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getDisplayName(), propertyName);
-                }
-            }
-        }
-
-        return validationResults;
     }
 
     @Override
