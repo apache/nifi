@@ -208,7 +208,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .dependsOn(SSL_CONTEXT)
         .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    private static final ProxySpec[] PROXY_SPECS = { ProxySpec.HTTP_AUTH };
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
