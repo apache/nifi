@@ -242,7 +242,7 @@ public class StandardServiceFacade implements ServiceFacade {
     // ---------------------- Flow methods ----------------------------------------------
 
     @Override
-    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow) {
+    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow,final boolean preserveSourceProperties) {
         authorizeBucketAccess(RequestAction.WRITE, bucketIdentifier);
         validateCreationOfRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE);
 
@@ -253,7 +253,7 @@ public class StandardServiceFacade implements ServiceFacade {
         }
 
         final VersionedFlow createdFlow = createRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE, currentUserIdentity(),
-                () -> registryService.createFlow(bucketIdentifier, versionedFlow));
+                () -> registryService.createFlow(bucketIdentifier, versionedFlow,preserveSourceProperties));
         permissionsService.populateItemPermissions(createdFlow);
         linkService.populateLinks(createdFlow);
         return createdFlow;
