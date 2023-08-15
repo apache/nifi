@@ -544,7 +544,7 @@ public class RegistryService {
         }
 
         // validation will ensure that the metadata and contents are not null
-        if (flowSnapshot.getSnapshotMetadata() != null) {
+        if (flowSnapshot.getSnapshotMetadata() != null && flowSnapshot.getSnapshotMetadata().getTimestamp() <= 0) {
             flowSnapshot.getSnapshotMetadata().setTimestamp(System.currentTimeMillis());
         }
 
