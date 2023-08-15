@@ -294,6 +294,9 @@ public class BucketFlowResource extends ApplicationResource {
             if (StringUtils.isBlank(snapshot.getSnapshotMetadata().getAuthor())) {
                 throw new BadRequestException("Author must not be blank");
             }
+            if (snapshot.getSnapshotMetadata().getTimestamp() <= 0) {
+                throw new BadRequestException("Invalid timestamp");
+            }
         } else {
             final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
             snapshot.getSnapshotMetadata().setAuthor(userIdentity);
