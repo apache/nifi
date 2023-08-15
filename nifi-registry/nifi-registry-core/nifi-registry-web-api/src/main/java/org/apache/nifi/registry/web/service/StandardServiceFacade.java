@@ -321,9 +321,12 @@ public class StandardServiceFacade implements ServiceFacade {
 
     @Override
     public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
+        return createFlowSnapshot(flowSnapshot,false);
+    }
+    public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot,final boolean  preserveSourceProperties) {
         authorizeBucketAccess(RequestAction.WRITE, flowSnapshot);
 
-        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(flowSnapshot);
+        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(flowSnapshot,preserveSourceProperties);
         populateLinksAndPermissions(createdSnapshot);
         return createdSnapshot;
     }

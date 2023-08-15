@@ -299,7 +299,7 @@ public class BucketFlowResource extends ApplicationResource {
             snapshot.getSnapshotMetadata().setAuthor(userIdentity);
         }
 
-        final VersionedFlowSnapshot createdSnapshot = serviceFacade.createFlowSnapshot(snapshot);
+        final VersionedFlowSnapshot createdSnapshot = serviceFacade.createFlowSnapshot(snapshot,preserveSourceProperties);
         publish(EventFactory.flowVersionCreated(createdSnapshot));
 
         return Response.status(Response.Status.OK).entity(createdSnapshot).build();

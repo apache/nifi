@@ -738,6 +738,42 @@ public class TestRegistryService {
     }
 
     @Test
+    public void testCreateSnapshotWhenPreserveSourcePropertiesTrue() {
+        final  long timestamp = System.currentTimeMillis();
+        final VersionedFlowSnapshot snapshot = createSnapshot();
+        snapshot.getSnapshotMetadata().setTimestamp(timestamp);
+        final BucketEntity existingBucket = new BucketEntity();
+        existingBucket.setId("b1");
+        existingBucket.setName("My Bucket");
+        existingBucket.setDescription("This is my bucket");
+        existingBucket.setCreated(new Date());
+
+        when(metadataService.getBucketById(existingBucket.getId())).thenReturn(existingBucket);
+
+        // return a flow with the existing snapshot when getFlowById is called
+        final FlowEntity existingFlow = new FlowEntity();
+        existingFlow.setId("flow1");
+        existingFlow.setName("My Flow");
+        existingFlow.setDescription("This is my flow.");
+        existingFlow.setCreated(new Date());
+        existingFlow.setModified(new Date());
+        existingFlow.setBucketId(existingBucket.getId());
+
+        when(metadataService.getFlowById(existingFlow.getId())).thenReturn(existingFlow);
+        when(metadataService.getFlowByIdWithSnapshotCounts(existingFlow.getId())).thenReturn(existingFlow);
+
+        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(snapshot,true);
+        assertNotNull(createdSnapshot);
+        assertNotNull(createdSnapshot.getSnapshotMetadata());
+        assertNotNull(createdSnapshot.getFlow());
+        assertNotNull(createdSnapshot.getBucket());
+        assertEquals(timestamp,createdSnapshot.getSnapshotMetadata().getTimestamp());
+        verify(flowContentSerializer, times(1)).serializeFlowContent(any(FlowContent.class), any(OutputStream.class));
+        verify(flowPersistenceProvider, times(1)).saveFlowContent(any(), any());
+        verify(metadataService, times(1)).createFlowSnapshot(any(FlowSnapshotEntity.class));
+
+    }
+    @Test
     public void testCreateSnapshotVersionNotNextVersion() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
