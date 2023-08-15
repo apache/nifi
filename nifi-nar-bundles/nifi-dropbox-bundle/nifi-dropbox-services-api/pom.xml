@@ -19,7 +19,7 @@
     <parent>
         <artifactId>nifi-dropbox-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.1-SNAPSHOT</version>
+        <version>1.23.1</version>
     </parent>
 
     <artifactId>nifi-dropbox-services-api</artifactId>
