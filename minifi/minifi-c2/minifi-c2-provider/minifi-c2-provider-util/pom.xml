@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-c2-provider</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.23.1</version>
+        <version>1.23.2-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-c2-provider-util</artifactId>
     <packaging>jar</packaging>

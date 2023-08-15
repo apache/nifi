@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-framework</artifactId>
-        <version>1.23.1</version>
+        <version>1.23.2-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-server</artifactId>
     <packaging>jar</packaging>
