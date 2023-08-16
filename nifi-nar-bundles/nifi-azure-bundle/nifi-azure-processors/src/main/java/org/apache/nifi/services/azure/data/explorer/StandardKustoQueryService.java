@@ -20,6 +20,7 @@ import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -99,6 +100,8 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         return PROPERTY_DESCRIPTORS;
     }
 
+    public static final Pair<String, String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException, URISyntaxException {
         if (this.kustoClient == null) {
@@ -162,7 +165,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         final String vendor = System.getProperty("java.vendor");
         final String version = System.getProperty("java.version");
 
-        builder.setConnectorDetails(vendor, version, null, null, false, null);
+        builder.setConnectorDetails("Kusto.Nifi", StandardKustoQueryService.class.getPackage().getImplementationVersion(), vendor, version, false, null, NIFI_SOURCE);
         return builder;
     }
 }
