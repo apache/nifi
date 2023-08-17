@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.c2.command;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
+import static java.util.function.Predicate.not;
 import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
 import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
 import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
@@ -30,9 +31,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,6 +45,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -52,8 +57,11 @@ import org.slf4j.LoggerFactory;
 public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultUpdateConfigurationStrategy.class);
+
     private static int VALIDATION_RETRY_PAUSE_DURATION_MS = 1000;
     private static int VALIDATION_MAX_RETRIES = 5;
+    private static int FLOW_DRAIN_RETRY_PAUSE_DURATION_MS = 1000;
+    private static int FLOW_DRAIN_MAX_RETRIES = 60;
 
     private final FlowController flowController;
     private final FlowService flowService;
@@ -111,12 +119,8 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     }
 
     private void reloadFlow() throws IOException {
-        ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        rootGroup.stopProcessing();
-        rootGroup.getRemoteProcessGroups().stream()
-            .map(RemoteProcessGroup::stopTransmitting)
-            .forEach(this::waitForStopOrLogTimeOut);
-        rootGroup.dropAllFlowFiles(randomUUID().toString(), randomUUID().toString());
+        LOGGER.info("Initiating flow reload");
+        stopFlowGracefully(flowController.getFlowManager().getRootGroup());
 
         flowService.load(null);
         flowController.onFlowInitialized(true);
@@ -128,6 +132,38 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         }
 
         flowController.getFlowManager().getRootGroup().startProcessing();
+        LOGGER.info("Flow has been reloaded successfully");
+    }
+
+    private void stopFlowGracefully(ProcessGroup rootGroup) {
+        LOGGER.info("Stopping flow gracefully");
+        Optional<ProcessGroup> drainResult = stopSourceProcessorsAndWaitFlowToDrain(rootGroup);
+
+        rootGroup.stopProcessing();
+        rootGroup.getRemoteProcessGroups().stream()
+            .map(RemoteProcessGroup::stopTransmitting)
+            .forEach(this::waitForStopOrLogTimeOut);
+        drainResult.ifPresentOrElse(
+            rootProcessGroup -> {
+                LOGGER.warn("Flow did not stop within graceful period. Force stopping flow and emptying queues");
+                rootProcessGroup.dropAllFlowFiles(randomUUID().toString(), randomUUID().toString());
+            },
+            () -> LOGGER.info("Flow has been stopped gracefully"));
+    }
+
+    private Optional<ProcessGroup> stopSourceProcessorsAndWaitFlowToDrain(ProcessGroup rootGroup) {
+        rootGroup.getProcessors().stream().filter(this::isSourceNode).forEach(rootGroup::stopProcessor);
+        return retry(() -> rootGroup, not(ProcessGroup::isDataQueued), FLOW_DRAIN_MAX_RETRIES, FLOW_DRAIN_RETRY_PAUSE_DURATION_MS);
+    }
+
+    private boolean isSourceNode(ProcessorNode processorNode) {
+        boolean hasNoIncomingConnection = !processorNode.hasIncomingConnection();
+
+        boolean allIncomingConnectionsAreLoopConnections = processorNode.getIncomingConnections()
+            .stream()
+            .allMatch(connection -> connection.getSource().equals(processorNode));
+
+        return hasNoIncomingConnection || allIncomingConnectionsAreLoopConnections;
     }
 
     private void waitForStopOrLogTimeOut(Future<?> future) {
@@ -141,22 +177,11 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     private List<ValidationResult> validate(FlowManager flowManager) {
         List<? extends ComponentNode> componentNodes = extractComponentNodes(flowManager);
 
-        int retries = 0;
-        while (true) {
-            List<ComponentNode> componentsUnderValidation = componentIsInValidatingState(componentNodes);
-            if (componentsUnderValidation.isEmpty()) {
-                break;
-            }
-            if (retries == VALIDATION_MAX_RETRIES) {
-                LOGGER.error("The following components are still in VALIDATING state: {}", componentsUnderValidation);
+        retry(() -> componentIsInValidatingState(componentNodes), List::isEmpty, VALIDATION_MAX_RETRIES, VALIDATION_RETRY_PAUSE_DURATION_MS)
+            .ifPresent(components -> {
+                LOGGER.error("The following components are still in VALIDATING state: {}", components);
                 throw new IllegalStateException("Maximum retry number exceeded while waiting for components to be validated");
-            }
-            retries++;
-            try {
-                Thread.sleep(VALIDATION_RETRY_PAUSE_DURATION_MS);
-            } catch (InterruptedException e) {
-            }
-        }
+            });
 
         return componentNodes.stream()
             .map(ComponentNode::getValidationErrors)
@@ -179,5 +204,23 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             .filter(pair -> pair.getRight() == ValidationStatus.VALIDATING)
             .map(Pair::getLeft)
             .toList();
+    }
+
+    private <T> Optional<T> retry(Supplier<T> input, Predicate<T> predicate, int maxRetries, int pauseDurationMillis) {
+        int retries = 0;
+        while (true) {
+            T t = input.get();
+            if (predicate.test(t)) {
+                return Optional.empty();
+            }
+            if (retries == maxRetries) {
+                return Optional.ofNullable(t);
+            }
+            retries++;
+            try {
+                Thread.sleep(pauseDurationMillis);
+            } catch (InterruptedException e) {
+            }
+        }
     }
 }
