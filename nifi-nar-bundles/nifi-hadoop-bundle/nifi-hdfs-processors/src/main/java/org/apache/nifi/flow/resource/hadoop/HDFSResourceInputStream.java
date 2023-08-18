@@ -25,81 +25,81 @@ import org.apache.nifi.processors.hadoop.HDFSResourceHelper;
 
 final class HDFSResourceInputStream extends InputStream {
     private final FileSystem fileSystem;
-    private final FSDataInputStream payload;
+    private final FSDataInputStream inputStream;
 
-    HDFSResourceInputStream(final FileSystem fileSystem, final FSDataInputStream payload) {
+    HDFSResourceInputStream(final FileSystem fileSystem, final FSDataInputStream inputStream) {
         this.fileSystem = fileSystem;
-        this.payload = payload;
+        this.inputStream = inputStream;
     }
 
     @Override
     public int read() throws IOException {
-        return payload.read();
+        return inputStream.read();
     }
 
     @Override
     public int read(final byte[] b) throws IOException {
-        return payload.read(b);
+        return inputStream.read(b);
     }
 
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
-        return payload.read(b, off, len);
+        return inputStream.read(b, off, len);
     }
 
     @Override
     public byte[] readAllBytes() throws IOException {
-        return payload.readAllBytes();
+        return inputStream.readAllBytes();
     }
 
     @Override
     public byte[] readNBytes(final int len) throws IOException {
-        return payload.readNBytes(len);
+        return inputStream.readNBytes(len);
     }
 
     @Override
     public int readNBytes(final byte[] b, final int off, final int len) throws IOException {
-        return payload.readNBytes(b, off, len);
+        return inputStream.readNBytes(b, off, len);
     }
 
     @Override
     public long skip(final long n) throws IOException {
-        return payload.skip(n);
+        return inputStream.skip(n);
     }
 
     @Override
     public void skipNBytes(final long n) throws IOException {
-        payload.skipNBytes(n);
+        inputStream.skipNBytes(n);
     }
 
     @Override
     public int available() throws IOException {
-        return payload.available();
+        return inputStream.available();
     }
 
     @Override
     public void close() throws IOException {
-        payload.close();
+        inputStream.close();
         HDFSResourceHelper.closeFileSystem(fileSystem);
     }
 
     @Override
     public synchronized void mark(final int readlimit) {
-        payload.mark(readlimit);
+        inputStream.mark(readlimit);
     }
 
     @Override
     public synchronized void reset() throws IOException {
-        payload.reset();
+        inputStream.reset();
     }
 
     @Override
     public boolean markSupported() {
-        return payload.markSupported();
+        return inputStream.markSupported();
     }
 
     @Override
     public long transferTo(final OutputStream out) throws IOException {
-        return payload.transferTo(out);
+        return inputStream.transferTo(out);
     }
 }

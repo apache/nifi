@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class HDFSResourceHelper {
-    private final static Logger LOGGER = LoggerFactory.getLogger(HDFSResourceHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HDFSResourceHelper.class);
 
     private HDFSResourceHelper() {
         // Not to be instantiated
