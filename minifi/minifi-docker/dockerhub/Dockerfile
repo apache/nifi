@@ -22,7 +22,7 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG MINIFI_VERSION=1.24.0
+ARG MINIFI_VERSION=1.23.2
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV MINIFI_BASE_DIR /opt/minifi
