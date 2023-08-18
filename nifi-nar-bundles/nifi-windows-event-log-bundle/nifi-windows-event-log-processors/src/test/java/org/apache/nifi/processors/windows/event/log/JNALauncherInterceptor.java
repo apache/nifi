@@ -33,8 +33,9 @@ import com.sun.jna.platform.win32.Kernel32Util;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
-import org.junit.Assert;
 import org.junit.platform.launcher.LauncherInterceptor;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class JNALauncherInterceptor implements LauncherInterceptor {
     public static final String NATIVE_CANONICAL_NAME = Native.class.getCanonicalName();
@@ -53,7 +54,7 @@ public class JNALauncherInterceptor implements LauncherInterceptor {
                     try {
                         url = uri.toURL();
                     } catch (MalformedURLException e) {
-                        Assert.fail(String.format("Unable to create URL for classpath entry '%s'", uri));
+                        fail(String.format("Unable to create URL for classpath entry '%s'", uri));
                     }
                     return url;
                 })
