@@ -52,7 +52,7 @@
             <dependency>
                 <groupId>com.github.pjfanning</groupId>
                 <artifactId>excel-streaming-reader</artifactId>
-                <version>4.1.0</version>
+                <version>4.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
