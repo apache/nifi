@@ -149,6 +149,11 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
                 }
                 closed = true;
 
+                if (scc.getLength() < 0) {
+                    // If claim was not written to, set length to 0
+                    scc.setLength(0L);
+                }
+
                 queue.offer(claim);
             }
         };
