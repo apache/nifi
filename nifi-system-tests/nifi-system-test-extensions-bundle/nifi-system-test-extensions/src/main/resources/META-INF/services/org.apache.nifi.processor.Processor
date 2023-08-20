@@ -40,13 +40,14 @@ org.apache.nifi.processors.tests.system.SensitiveDynamicPropertiesProcessor
 org.apache.nifi.processors.tests.system.SetAttribute
 org.apache.nifi.processors.tests.system.Sleep
 org.apache.nifi.processors.tests.system.SplitByLine
+org.apache.nifi.processors.tests.system.SplitTextByLine
 org.apache.nifi.processors.tests.system.TerminateFlowFile
 org.apache.nifi.processors.tests.system.TransferBatch
 org.apache.nifi.processors.tests.system.ThrowProcessException
 org.apache.nifi.processors.tests.system.UpdateContent
+org.apache.nifi.processors.tests.system.UnzipFlowFile
 org.apache.nifi.processors.tests.system.ValidateFileExists
 org.apache.nifi.processors.tests.system.VerifyContents
 org.apache.nifi.processors.tests.system.WriteFlowFileCountToFile
 org.apache.nifi.processors.tests.system.WriteLifecycleEvents
 org.apache.nifi.processors.tests.system.WriteToFile
-org.apache.nifi.processors.tests.system.SplitTextByLine
