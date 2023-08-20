@@ -20,9 +20,11 @@ package org.apache.nifi.tests.system.repositories;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,6 +42,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * same Content Claim) as well as writing to multiple FlowFiles in multiple sessions (which may result in writing to multiple Content Claims).
  */
 public class ContentAccessIT extends NiFiSystemIT {
+
+    @Test
+    public void testWriteZeroBytesToFlowFileThenWriteBytes() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity ingestFile = getClientUtil().createProcessor("IngestFile");
+        final ProcessorEntity unzipFile = getClientUtil().createProcessor("UnzipFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        getClientUtil().createConnection(ingestFile, unzipFile, "success");
+        final ConnectionEntity unzipped = getClientUtil().createConnection(unzipFile, terminate, "unzipped");
+
+        getClientUtil().setAutoTerminatedRelationships(unzipFile, "failure");
+
+        final Map<String, String> ingestProperties = new HashMap<>();
+        ingestProperties.put("Filename", new File("src/test/resources/empty-and-small-text-files.zip").getAbsolutePath());
+        ingestProperties.put("Delete File", "false");
+        getClientUtil().updateProcessorProperties(ingestFile, ingestProperties);
+        getClientUtil().updateProcessorSchedulingPeriod(ingestFile, "10 mins");
+        getClientUtil().waitForValidProcessor(ingestFile.getId());
+
+        getClientUtil().startProcessor(ingestFile);
+        getClientUtil().startProcessor(unzipFile);
+
+        waitForQueueCount(unzipped.getId(), 2);
+
+        final FlowFileEntity flowFileEntity1 = getClientUtil().getQueueFlowFile(unzipped.getId(), 0);
+        assertEquals("a.txt", flowFileEntity1.getFlowFile().getAttributes().get("filename"));
+        assertEquals(0, flowFileEntity1.getFlowFile().getSize());
+
+        final FlowFileEntity flowFileEntity2 = getClientUtil().getQueueFlowFile(unzipped.getId(), 1);
+        assertEquals("b.txt", flowFileEntity2.getFlowFile().getAttributes().get("filename"));
+
+        final String content2 = getClientUtil().getFlowFileContentAsUtf8(unzipped.getId(), 1);
+        assertEquals("Hello there! b.txt", content2);
+    }
 
     @Test
     public void testCorrectContentReadWhenMultipleFlowFilesInClaimWithBatchAndWrite() throws NiFiClientException, IOException, InterruptedException {
