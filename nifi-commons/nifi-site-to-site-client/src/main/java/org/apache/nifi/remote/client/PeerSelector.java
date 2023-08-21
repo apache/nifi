@@ -59,7 +59,7 @@ public class PeerSelector {
     private static final Logger logger = LoggerFactory.getLogger(PeerSelector.class);
 
     // The timeout for the peer status cache
-    private static final long PEER_CACHE_MILLIS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
+    static final long PEER_CACHE_MILLIS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
 
     // The service which saves the peer state to persistent storage
     private final PeerPersistence peerPersistence;
@@ -71,7 +71,7 @@ public class PeerSelector {
     private final ConcurrentMap<PeerDescription, Long> peerPenaltyExpirations = new ConcurrentHashMap<>();
 
     // The most recently fetched peer statuses
-    private volatile PeerStatusCache peerStatusCache;
+    volatile PeerStatusCache peerStatusCache;
 
     private EventReporter eventReporter;
 
@@ -144,7 +144,7 @@ public class PeerSelector {
      * @param peerCount          the number of peers in the remote instance
      * @return the normalized weight of this peer
      */
-    private static double calculateNormalizedWeight(TransferDirection direction, long totalFlowFileCount, int flowFileCount, int peerCount) {
+    static double calculateNormalizedWeight(TransferDirection direction, long totalFlowFileCount, int flowFileCount, int peerCount) {
         // If there is only a single remote, send/receive all data to/from it
         if (peerCount == 1) {
             return 100;
@@ -340,7 +340,7 @@ public class PeerSelector {
      * @return the map of weighted peers
      */
     @NotNull
-    private Map<PeerStatus, Double> createDestinationMap(Set<PeerStatus> peerStatuses, TransferDirection direction) {
+    Map<PeerStatus, Double> createDestinationMap(Set<PeerStatus> peerStatuses, TransferDirection direction) {
         final Map<PeerStatus, Double> peerWorkloads = new HashMap<>();
 
         // Calculate the total number of flowfiles in the peers
@@ -379,7 +379,7 @@ public class PeerSelector {
      * @return the complete set of statuses for each collection of peers
      * @throws IOException if there is a problem fetching peer statuses
      */
-    private Set<PeerStatus> fetchRemotePeerStatuses(Set<PeerDescription> peersToRequestClusterInfoFrom) throws IOException {
+    Set<PeerStatus> fetchRemotePeerStatuses(Set<PeerDescription> peersToRequestClusterInfoFrom) throws IOException {
         logger.debug("Fetching remote peer statuses from: {}", peersToRequestClusterInfoFrom);
         Exception lastFailure = null;
 
@@ -421,7 +421,7 @@ public class PeerSelector {
      * @param orderedPeerStatuses the map of peers to relative weights, sorted in descending order by weight
      * @return the peer to send/receive data
      */
-    private PeerStatus getAvailablePeerStatus(Map<PeerStatus, Double> orderedPeerStatuses) {
+    PeerStatus getAvailablePeerStatus(Map<PeerStatus, Double> orderedPeerStatuses) {
         if (orderedPeerStatuses == null || orderedPeerStatuses.isEmpty()) {
             logger.warn("Available peers collection is empty; no peer available");
             return null;
@@ -480,7 +480,7 @@ public class PeerSelector {
      * @return the most recent peer statuses (empty set if the cache is {@code null})
      */
     @NotNull
-    private Set<PeerStatus> getPeerStatuses() {
+    Set<PeerStatus> getPeerStatuses() {
         if (isPeerRefreshNeeded()) {
             refreshPeerStatusCache();
         }
@@ -494,7 +494,7 @@ public class PeerSelector {
      * @return the set of recently retrieved peers and the bootstrap peer
      * @throws IOException if there is a problem retrieving the list of peers to query
      */
-    private Set<PeerDescription> getPeersToQuery() throws IOException {
+    Set<PeerDescription> getPeersToQuery() throws IOException {
         final Set<PeerDescription> peersToRequestClusterInfoFrom = new HashSet<>();
 
         // Use the peers fetched last time
@@ -517,7 +517,7 @@ public class PeerSelector {
      * @param cache the peer status cache
      * @return true if the cache is expired
      */
-    private boolean isCacheExpired(PeerStatusCache cache) {
+    boolean isCacheExpired(PeerStatusCache cache) {
         return cache == null || cache.getTimestamp() + PEER_CACHE_MILLIS < System.currentTimeMillis();
     }
 
@@ -555,7 +555,7 @@ public class PeerSelector {
      * Refreshes the list of S2S peers that flowfiles can be sent to or received from. Uses the stateful
      * cache to reduce network overhead.
      */
-    private void refreshPeerStatusCache() {
+    void refreshPeerStatusCache() {
         try {
             // Splitting enumeration and querying into separate methods allows better testing and composition
             final Set<PeerDescription> peersToQuery = getPeersToQuery();
