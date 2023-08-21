@@ -18,7 +18,7 @@
     <parent>
         <artifactId>nifi-framework-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.2</version>
+        <version>1.23.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-framework-external-resource-utils</artifactId>

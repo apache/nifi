@@ -18,14 +18,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.23.2</version>
+        <version>1.23.3-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-property-protection-api</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>1.23.2</version>
+            <version>1.23.3-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

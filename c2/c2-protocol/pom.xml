@@ -21,7 +21,7 @@ limitations under the License.
     <parent>
         <artifactId>c2</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.2</version>
+        <version>1.23.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>c2-protocol</artifactId>
