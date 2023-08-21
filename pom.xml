@@ -151,6 +151,13 @@
         <zookeeper.version>3.8.2</zookeeper.version>
         <caffeine.version>2.9.3</caffeine.version>
     </properties>
+    <pluginRepositories>
+        <!-- Required for groovy-eclipse-compiler 3.9.0 -->
+        <pluginRepository>
+            <id>groovy-plugins-release</id>
+            <url>https://groovy.jfrog.io/artifactory/plugins-release</url>
+        </pluginRepository>
+    </pluginRepositories>
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
