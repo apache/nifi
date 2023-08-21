@@ -1970,7 +1970,7 @@ public class FileSystemRepository implements ContentRepository {
 
         @Override
         public synchronized ContentClaim newContentClaim() throws IOException {
-            scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + scc.getLength());
+            scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + Math.max(0, scc.getLength()));
             initialLength = 0;
             bytesWritten = 0L;
             incrementClaimaintCount(scc);
