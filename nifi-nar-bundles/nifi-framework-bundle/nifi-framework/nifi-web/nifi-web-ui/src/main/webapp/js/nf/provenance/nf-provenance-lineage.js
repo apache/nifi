@@ -741,6 +741,17 @@
                     }
                 }];
 
+                // conditionally support going to the component
+                if (top !== window) {
+                    menuItems.push({
+                        'class': 'lineage-go-to',
+                        'text': 'Go To',
+                        'click': function () {
+                            provenanceTableCtrl.goTo(d);
+                        }
+                    });
+                }
+
                 // if this is a spawn event show appropriate actions
                 if (d.eventType === 'SPAWN' || d.eventType === 'CLONE' || d.eventType === 'FORK' || d.eventType === 'JOIN' || d.eventType === 'REPLAY') {
                     // starts the lineage expansion process
