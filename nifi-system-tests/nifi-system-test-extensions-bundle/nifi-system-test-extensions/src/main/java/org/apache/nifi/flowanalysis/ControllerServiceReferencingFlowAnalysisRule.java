@@ -14,21 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.flowanalysis;
 
-import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
+import org.apache.nifi.controller.ControllerService;
 
-@SupportsSensitiveDynamicProperties
-public class SensitiveDynamicPropertiesFlowAnalysisRule extends AbstractFlowAnalysisRule {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class ControllerServiceReferencingFlowAnalysisRule extends AbstractFlowAnalysisRule {
+    public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
+            .name("controller-service")
+            .displayName("Controller Service")
+            .identifiesControllerService(ControllerService.class)
+            .build();
+
+    private final static List<PropertyDescriptor> propertyDescriptors;
+
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(CONTROLLER_SERVICE);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    }
+
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyName) {
-        return new PropertyDescriptor.Builder().name(propertyName)
-                .addValidator(Validator.VALID)
-                .dynamic(true)
-                .sensitive(true)
-                .build();
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
     }
 }

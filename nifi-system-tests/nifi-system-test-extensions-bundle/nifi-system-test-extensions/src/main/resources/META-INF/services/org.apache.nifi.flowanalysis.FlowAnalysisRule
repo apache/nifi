@@ -15,3 +15,4 @@
 
 org.apache.nifi.flowanalysis.EnsureFlowAnalysisRuleConfigurationCorrect
 org.apache.nifi.flowanalysis.SensitiveDynamicPropertiesFlowAnalysisRule
+org.apache.nifi.flowanalysis.ControllerServiceReferencingFlowAnalysisRule

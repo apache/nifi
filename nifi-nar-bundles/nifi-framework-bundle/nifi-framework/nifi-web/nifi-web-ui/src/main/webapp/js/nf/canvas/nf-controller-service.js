@@ -684,7 +684,7 @@
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
 
-                        $('#settings-tabs').find('li:nth-child(5)').click();
+                        $('#settings-tabs').find('li:nth-child(6)').click();
 
                         // adjust the table size
                         parameterProvidersGrid.resizeCanvas();
@@ -722,7 +722,7 @@
                         registryGrid.scrollRowIntoView(row);
 
                         // select the reporting task tab
-                        $('#settings-tabs').find('li:nth-child(4)').click();
+                        $('#settings-tabs').find('li:nth-child(5)').click();
 
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
