@@ -28,6 +28,7 @@ public class ControllerServiceReferencingFlowAnalysisRule extends AbstractFlowAn
             .name("controller-service")
             .displayName("Controller Service")
             .identifiesControllerService(ControllerService.class)
+            .required(true)
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;

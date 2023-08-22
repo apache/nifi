@@ -40,6 +40,7 @@ import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.flowanalysis.VerifiableFlowAnalysisRule;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.ExtensionManager;
@@ -62,6 +63,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -365,6 +367,10 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
         }
 
         return results;
+    }
+
+    public Optional<ProcessGroup> getParentProcessGroup() {
+        return Optional.empty();
     }
 
 }

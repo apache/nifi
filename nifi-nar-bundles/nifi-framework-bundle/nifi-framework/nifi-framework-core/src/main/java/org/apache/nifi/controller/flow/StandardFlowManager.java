@@ -585,9 +585,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         if (register) {
             onFlowAnalysisRuleAdded(flowAnalysisRuleNode);
 
-            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                new FlowAnalysisRuleLogObserver(bulletinRepository, flowAnalysisRuleNode));
+            // Register log observer to provide bulletins when flow analysis rule logs anything at WARN level or above
+            logRepository.addObserver(LogLevel.WARN, new FlowAnalysisRuleLogObserver(bulletinRepository, flowAnalysisRuleNode));
         }
 
         return flowAnalysisRuleNode;
