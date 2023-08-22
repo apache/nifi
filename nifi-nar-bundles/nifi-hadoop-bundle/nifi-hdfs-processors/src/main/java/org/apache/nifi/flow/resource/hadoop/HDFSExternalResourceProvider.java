@@ -155,7 +155,9 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
 
                         return hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT);
                     });
-            // The acquired InputStream is used by the client and cannot be closed here. The decorator is responsible for that.
+            // The acquired InputStream is used by the client and for this reason the FileSystem cannot be closed here.
+            // The closing of the file system is delegated to the decorator (HDFSResourceInputStream) which will close
+            // it when the decorated input stream is closed.
             return new HDFSResourceInputStream(hdfsResources.getFileSystem(), fsDataInputStream);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();

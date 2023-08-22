@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.flow.resource.hadoop;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.processors.hadoop.HDFSResourceHelper;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 final class HDFSResourceInputStream extends InputStream {
     private final FileSystem fileSystem;
