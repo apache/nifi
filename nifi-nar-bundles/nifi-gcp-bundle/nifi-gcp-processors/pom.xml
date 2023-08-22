@@ -209,6 +209,7 @@
                         <exclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data-with-date.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json</exclude>
+                        <exclude>src/test/resources/pubsub/records.avro</exclude>
                     </excludes>
                 </configuration>
             </plugin>
