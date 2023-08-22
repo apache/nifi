@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-commons</artifactId>
-        <version>1.23.2-SNAPSHOT</version>
+        <version>1.23.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>minifi-commons-api</artifactId>
