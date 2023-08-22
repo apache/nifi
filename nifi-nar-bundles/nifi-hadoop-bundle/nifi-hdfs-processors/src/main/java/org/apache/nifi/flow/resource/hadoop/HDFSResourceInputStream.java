@@ -49,28 +49,8 @@ final class HDFSResourceInputStream extends InputStream {
     }
 
     @Override
-    public byte[] readAllBytes() throws IOException {
-        return inputStream.readAllBytes();
-    }
-
-    @Override
-    public byte[] readNBytes(final int len) throws IOException {
-        return inputStream.readNBytes(len);
-    }
-
-    @Override
-    public int readNBytes(final byte[] b, final int off, final int len) throws IOException {
-        return inputStream.readNBytes(b, off, len);
-    }
-
-    @Override
     public long skip(final long n) throws IOException {
         return inputStream.skip(n);
-    }
-
-    @Override
-    public void skipNBytes(final long n) throws IOException {
-        inputStream.skipNBytes(n);
     }
 
     @Override
@@ -97,10 +77,5 @@ final class HDFSResourceInputStream extends InputStream {
     @Override
     public boolean markSupported() {
         return inputStream.markSupported();
-    }
-
-    @Override
-    public long transferTo(final OutputStream out) throws IOException {
-        return inputStream.transferTo(out);
     }
 }
