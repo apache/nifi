@@ -107,9 +107,9 @@
         <com.amazonaws.version>1.12.506</com.amazonaws.version>
         <software.amazon.awssdk.version>2.20.103</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
-        <kotlin.version>1.8.20</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
         <okhttp.version>4.11.0</okhttp.version>
-        <okio.version>3.4.0</okio.version>
+        <okio.version>3.5.0</okio.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
