@@ -131,7 +131,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
         + " When the HTTP Method is PUT, POST or PATCH, the FlowFile contents are included as the body of the request and FlowFile attributes are converted"
-        + " to HTTP headers (optionally, if configured to be sent via the 'Attributes to Send' property)")
+        + " to HTTP headers, optionally, based on configuration properties.")
 @WritesAttributes({
         @WritesAttribute(attribute = InvokeHTTP.STATUS_CODE, description = "The status code that is returned"),
         @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
@@ -391,7 +391,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor REQUEST_HEADER_ATTRIBUTES_PATTERN = new PropertyDescriptor.Builder()
             .name("Attributes to Send")
             .displayName("Request Header Attributes Pattern")
-            .description("Regular expression that defines which FlowFile attribute(s) to send as HTTP headers in the request. "
+            .description("Regular expression that defines which FlowFile attributes to send as HTTP headers in the request. "
                     + "If not defined, no attributes are sent as headers. Dynamic properties will be always be sent as headers. "
                     + "The dynamic property name will be the header key and the dynamic property value, interpreted as Expression "
                     + "Language, will be the header value. Attributes and their values are limited to ASCII characters due to "
