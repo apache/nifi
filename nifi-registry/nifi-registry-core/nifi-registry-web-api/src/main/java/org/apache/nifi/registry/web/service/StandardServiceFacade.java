@@ -253,7 +253,7 @@ public class StandardServiceFacade implements ServiceFacade {
         }
 
         final VersionedFlow createdFlow = createRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE, currentUserIdentity(),
-                () -> registryService.createFlow(bucketIdentifier, versionedFlow,preserveSourceProperties));
+                () -> registryService.createFlow(bucketIdentifier, versionedFlow, preserveSourceProperties));
         permissionsService.populateItemPermissions(createdFlow);
         linkService.populateLinks(createdFlow);
         return createdFlow;
