@@ -242,7 +242,7 @@ public class StandardServiceFacade implements ServiceFacade {
     // ---------------------- Flow methods ----------------------------------------------
 
     @Override
-    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow,final boolean preserveSourceProperties) {
+    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow, final boolean preserveSourceProperties) {
         authorizeBucketAccess(RequestAction.WRITE, bucketIdentifier);
         validateCreationOfRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE);
 
