@@ -101,7 +101,7 @@ public class BucketFlowResource extends ApplicationResource {
             @ApiParam(value = "The details of the flow to create.", required = true)
                 final VersionedFlow flow,
             @ApiParam(
-                    value = "Whether source properties like identifier,name createdTimestamp and modifiedTimestamp should be kept")
+                    value = "Whether source properties like identifier, name, and created should be retained")
             @QueryParam("preserveSourceProperties")
             final boolean preserveSourceProperties) {
 
