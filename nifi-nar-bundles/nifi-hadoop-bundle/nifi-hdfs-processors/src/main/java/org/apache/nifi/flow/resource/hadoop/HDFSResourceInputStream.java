@@ -22,7 +22,6 @@ import org.apache.nifi.processors.hadoop.HDFSResourceHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 final class HDFSResourceInputStream extends InputStream {
     private final FileSystem fileSystem;
