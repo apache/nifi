@@ -80,7 +80,7 @@ public interface ServiceFacade {
 
     // ---------------------- Flow methods ----------------------------------------------
 
-    VersionedFlow createFlow(String bucketIdentifier, VersionedFlow versionedFlow,boolean preserveSourceProperties);
+    VersionedFlow createFlow(String bucketIdentifier, VersionedFlow versionedFlow);
 
     VersionedFlow getFlow(String bucketIdentifier, String flowIdentifier);
 

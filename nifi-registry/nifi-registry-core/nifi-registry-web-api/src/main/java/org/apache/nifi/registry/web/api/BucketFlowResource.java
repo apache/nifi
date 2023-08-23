@@ -107,7 +107,7 @@ public class BucketFlowResource extends ApplicationResource {
 
         verifyPathParamsMatchBody(bucketId, flow);
 
-        final VersionedFlow createdFlow = serviceFacade.createFlow(bucketId, flow, preserveSourceProperties);
+        final VersionedFlow createdFlow = serviceFacade.createFlow(bucketId, flow);
         publish(EventFactory.flowCreated(createdFlow));
         return Response.status(Response.Status.OK).entity(createdFlow).build();
     }

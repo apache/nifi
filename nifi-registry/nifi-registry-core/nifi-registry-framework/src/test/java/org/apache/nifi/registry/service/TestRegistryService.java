@@ -387,7 +387,7 @@ public class TestRegistryService {
         existingBucket.setCreated(new Date());
 
         when(metadataService.getBucketById(existingBucket.getId())).thenReturn(existingBucket);
-        final long timestamp  = System.currentTimeMillis();
+        final long timestamp  = System.currentTimeMillis()-1000; // 1 millisecond previous
         final VersionedFlow versionedFlow = new VersionedFlow();
         versionedFlow.setIdentifier("f1");
         versionedFlow.setName("My Flow");
