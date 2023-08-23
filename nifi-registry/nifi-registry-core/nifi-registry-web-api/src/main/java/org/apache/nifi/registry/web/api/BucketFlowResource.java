@@ -99,11 +99,7 @@ public class BucketFlowResource extends ApplicationResource {
             @ApiParam("The bucket identifier")
                 final String bucketId,
             @ApiParam(value = "The details of the flow to create.", required = true)
-                final VersionedFlow flow,
-            @ApiParam(
-                    value = "Whether source properties like identifier, name, and created should be retained")
-            @QueryParam("preserveSourceProperties")
-            final boolean preserveSourceProperties) {
+                final VersionedFlow flow) {
 
         verifyPathParamsMatchBody(bucketId, flow);
 
