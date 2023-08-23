@@ -199,7 +199,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                         .map(FileResource::getInputStream)
                         .orElseGet(() -> session.read(sourceFlowFile))
                 ) {
-                    final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(sourceInputStream));
+                    final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(sourceInputStream, BlobClient.BLOB_DEFAULT_UPLOAD_BLOCK_SIZE));
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
                     Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
                     BlockBlobItem blob = response.getValue();
