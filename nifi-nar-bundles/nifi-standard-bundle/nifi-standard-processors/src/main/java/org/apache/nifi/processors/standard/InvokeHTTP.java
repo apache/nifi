@@ -130,7 +130,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-        + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
+        + " When the HTTP Method is PUT, POST or PATCH, the FlowFile contents are included as the body of the request and FlowFile attributes are converted"
+        + " to HTTP headers, optionally, based on configuration properties.")
 @WritesAttributes({
         @WritesAttribute(attribute = InvokeHTTP.STATUS_CODE, description = "The status code that is returned"),
         @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
@@ -185,7 +186,6 @@ public class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_CLASS,
             EXCEPTION_MESSAGE,
             CoreAttributes.UUID.key(),
-            CoreAttributes.FILENAME.key(),
             CoreAttributes.PATH.key()
     )));
 
@@ -391,10 +391,11 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor REQUEST_HEADER_ATTRIBUTES_PATTERN = new PropertyDescriptor.Builder()
             .name("Attributes to Send")
             .displayName("Request Header Attributes Pattern")
-            .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
-                    + "If not defined, no attributes are sent as headers. Dynamic properties will be sent as headers. "
-                    + "The dynamic property name will be the header key and the dynamic property value will be interpreted as expression "
-                    + "language will be the header value.")
+            .description("Regular expression that defines which FlowFile attributes to send as HTTP headers in the request. "
+                    + "If not defined, no attributes are sent as headers. Dynamic properties will be always be sent as headers. "
+                    + "The dynamic property name will be the header key and the dynamic property value, interpreted as Expression "
+                    + "Language, will be the header value. Attributes and their values are limited to ASCII characters due to "
+                    + "the requirement of the HTTP protocol.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
