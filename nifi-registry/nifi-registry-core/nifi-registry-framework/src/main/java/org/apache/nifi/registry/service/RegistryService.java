@@ -339,7 +339,7 @@ public class RegistryService {
         if (versionedFlow.getBucketIdentifier() == null) {
             versionedFlow.setBucketIdentifier(bucketIdentifier);
         }
-        if (!preserveSourceProperties || (versionedFlow.getCreatedTimestamp() <= 0) || (versionedFlow.getModifiedTimestamp() <= 0)) {
+        if (versionedFlow.getCreatedTimestamp()) {
             final long timestamp = System.currentTimeMillis();
             versionedFlow.setCreatedTimestamp(timestamp);
             versionedFlow.setModifiedTimestamp(timestamp);
