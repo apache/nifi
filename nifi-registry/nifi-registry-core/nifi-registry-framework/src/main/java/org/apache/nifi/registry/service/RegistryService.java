@@ -323,7 +323,7 @@ public class RegistryService {
 
     // ---------------------- VersionedFlow methods ---------------------------------------------
 
-    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow, final boolean preserveSourceProperties) {
+    public VersionedFlow createFlow(final String bucketIdentifier, final VersionedFlow versionedFlow) {
         if (StringUtils.isBlank(bucketIdentifier)) {
             throw new IllegalArgumentException("Bucket identifier cannot be null or blank");
         }
@@ -339,13 +339,11 @@ public class RegistryService {
         if (versionedFlow.getBucketIdentifier() == null) {
             versionedFlow.setBucketIdentifier(bucketIdentifier);
         }
-        if (versionedFlow.getCreatedTimestamp()) {
-            final long timestamp = System.currentTimeMillis();
+        final long timestamp = System.currentTimeMillis();
+        if (versionedFlow.getCreatedTimestamp()<=0) {
             versionedFlow.setCreatedTimestamp(timestamp);
-            versionedFlow.setModifiedTimestamp(timestamp);
         }
-
-
+        versionedFlow.setModifiedTimestamp(timestamp);
         validate(versionedFlow, "Cannot create versioned flow");
 
         // ensure the bucket exists
