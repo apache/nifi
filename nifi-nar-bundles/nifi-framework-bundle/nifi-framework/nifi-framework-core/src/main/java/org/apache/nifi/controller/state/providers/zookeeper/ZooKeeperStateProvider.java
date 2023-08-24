@@ -40,6 +40,7 @@ import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
@@ -376,26 +377,21 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 keeper.setData(path, data, -1);
             } catch (final NoNodeException nne) {
                 try {
-                    createNode(path, data, acl, false);
+                    createNode(path, data, acl);
                 } catch (NodeExistsException nee) {
                     setState(stateValues, componentId);
                 }
             }
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", e);
-        } catch (final KeeperException ke) {
-            if (Code.SESSIONEXPIRED == ke.code()) {
-                invalidateClient();
-                setState(stateValues, componentId);
-                return;
-            }
-
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", ie);
+        } catch (final SessionExpiredException see) {
+            invalidateClient();
+            setState(stateValues, componentId);
         } catch (final StateTooLargeException stle) {
             throw stle;
-        } catch (final IOException ioe) {
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ioe);
+        } catch (final Exception e) {
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, e);
         }
     }
 
@@ -429,73 +425,38 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 }
             } else {
                 try {
-                    createNode(path, data, acl, true);
+                    createNode(path, data, acl);
                 } catch (final NodeExistsException e) {
                     return false;
                 }
             }
             return true;
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", e);
-        } catch (final KeeperException ke) {
-            if (Code.SESSIONEXPIRED == ke.code()) {
-                invalidateClient();
-                return replace(oldState, stateValues, componentId);
-            }
-
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", ie);
+        } catch (final SessionExpiredException see) {
+            invalidateClient();
+            return replace(oldState, stateValues, componentId);
         } catch (final StateTooLargeException stle) {
             throw stle;
-        } catch (final IOException ioe) {
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ioe);
+        } catch (final Exception e) {
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, e);
         }
     }
 
-    private void createNode(final String path, final byte[] data, final List<ACL> acls, final boolean failIfExists) throws IOException, KeeperException {
+    private void createNode(final String path, final byte[] data, final List<ACL> acls) throws IOException, KeeperException, InterruptedException {
         try {
             final ZooKeeper zooKeeper = getZooKeeper();
             zooKeeper.create(path, data, acls, CreateMode.PERSISTENT);
-        } catch (final InterruptedException ie) {
-            throw new IOException("Failed to update cluster-wide state due to interruption", ie);
-        } catch (final KeeperException ke) {
-            final Code exceptionCode = ke.code();
-            if (Code.NONODE == exceptionCode) {
-                final String parentPath = StringUtils.substringBeforeLast(path, "/");
-                createNode(parentPath, null, Ids.OPEN_ACL_UNSAFE, failIfExists);
-                createNode(path, data, acls, failIfExists);
-                return;
+        } catch (final NoNodeException nne) {
+            final String parentPath = StringUtils.substringBeforeLast(path, "/");
+            createNode(parentPath, null, Ids.OPEN_ACL_UNSAFE);
+            createNode(path, data, acls);
+        } catch (final NodeExistsException nee) {
+            // Fail only if it is the data/leaf node (not a parent node)
+            if (data != null) {
+                throw nee;
             }
-            if (Code.SESSIONEXPIRED == exceptionCode) {
-                invalidateClient();
-                createNode(path, data, acls, failIfExists);
-                return;
-            }
-
-            // Node already exists. Node must have been created by "someone else".
-            if (Code.NODEEXISTS == exceptionCode) {
-                if (data == null) {
-                    // It is a parent node. Simply return.
-                    return;
-                }
-
-                if (!failIfExists) {
-                    // Just set the data if "fail if exists" was not requested.
-                    try {
-                        getZooKeeper().setData(path, data, -1);
-                        return;
-                    } catch (final KeeperException ke1) {
-                        // Node no longer exists -- it was removed by someone else. Go recreate the node.
-                        if (ke1.code() == Code.NONODE) {
-                            createNode(path, data, acls, failIfExists);
-                            return;
-                        }
-                    } catch (final InterruptedException ie) {
-                        throw new IOException("Failed to update cluster-wide state due to interruption", ie);
-                    }
-                }
-            }
-            throw ke;
         }
     }
 
