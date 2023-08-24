@@ -272,7 +272,12 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                 .map(descriptor -> {
                     final PropertyValue propertyValue = context.getProperty(descriptor);
                     if (descriptor.isSensitive()) {
-                        final String propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                        final String propertyName;
+                        if (StringUtils.startsWith(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX)) {
+                            propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                        } else {
+                            propertyName = descriptor.getName();
+                        }
                         return new AbstractMap.SimpleEntry<>(propertyName, propertyValue.getValue());
                     } else {
                         return new AbstractMap.SimpleEntry<>(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
