@@ -17,8 +17,21 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Long.parseLong;
+import static java.nio.ByteBuffer.wrap;
+import static java.util.Optional.ofNullable;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
 import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
+import static org.eclipse.jetty.http.HttpScheme.HTTP;
+import static org.eclipse.jetty.http.HttpScheme.HTTPS;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,48 +39,34 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import javax.net.ssl.SSLContext;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
-import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
-import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
-
-    private static final int NOT_MODIFIED_STATUS_CODE = 304;
-    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP;
-
-    static {
-        HashMap<String, Supplier<Differentiator<ByteBuffer>>> tempMap = new HashMap<>();
-        tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator);
-
-        DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
-    }
-
-    private static final String DEFAULT_CONNECT_TIMEOUT_MS = "5000";
-    private static final String DEFAULT_READ_TIMEOUT_MS = "15000";
 
     public static final String PULL_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".pull.http";
     public static final String PULL_HTTP_POLLING_PERIOD_KEY = PULL_HTTP_BASE_KEY + ".period.ms";
@@ -90,261 +89,233 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     public static final String DIFFERENTIATOR_KEY = PULL_HTTP_BASE_KEY + ".differentiator";
     public static final String USE_ETAG_KEY = PULL_HTTP_BASE_KEY + ".use.etag";
     public static final String OVERRIDE_SECURITY = PULL_HTTP_BASE_KEY + ".override.security";
+    public static final String HTTP_HEADERS = PULL_HTTP_BASE_KEY + ".headers";
+
+    private static final Logger logger = LoggerFactory.getLogger(PullHttpChangeIngestor.class);
+
+    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP = Map.of(
+        WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator
+    );
+    private static final int NOT_MODIFIED_STATUS_CODE = 304;
+    private static final String DEFAULT_CONNECT_TIMEOUT_MS = "5000";
+    private static final String DEFAULT_READ_TIMEOUT_MS = "15000";
+    private static final String DOUBLE_QUOTES = "\"";
+    private static final String ETAG_HEADER = "ETag";
+    private static final String PROXY_AUTHORIZATION_HEADER = "Proxy-Authorization";
+    private static final String DEFAULT_PATH = "/";
+    private static final int BAD_REQUEST_STATUS_CODE = 400;
+    private static final String IF_NONE_MATCH_HEADER_KEY = "If-None-Match";
+    private static final String HTTP_HEADERS_SEPARATOR = ",";
+    private static final String HTTP_HEADER_KEY_VALUE_SEPARATOR = ":";
 
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();
     private final AtomicReference<Integer> portReference = new AtomicReference<>();
     private final AtomicReference<String> hostReference = new AtomicReference<>();
     private final AtomicReference<String> pathReference = new AtomicReference<>();
     private final AtomicReference<String> queryReference = new AtomicReference<>();
+    private final AtomicReference<Map<String, String>> httpHeadersReference = new AtomicReference<>();
+
     private volatile Differentiator<ByteBuffer> differentiator;
     private volatile String connectionScheme;
     private volatile String lastEtag = "";
     private volatile boolean useEtag = false;
 
-    public PullHttpChangeIngestor() {
-        logger = LoggerFactory.getLogger(PullHttpChangeIngestor.class);
-    }
-
     @Override
     public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         super.initialize(properties, configurationFileHolder, configurationChangeNotifier);
 
-        pollingPeriodMS.set(Integer.parseInt(properties.getProperty(PULL_HTTP_POLLING_PERIOD_KEY, DEFAULT_POLLING_PERIOD)));
+        pollingPeriodMS.set(Integer.parseInt(properties.getProperty(PULL_HTTP_POLLING_PERIOD_KEY, DEFAULT_POLLING_PERIOD_MILLISECONDS)));
         if (pollingPeriodMS.get() < 1) {
-            throw new IllegalArgumentException("Property, " + PULL_HTTP_POLLING_PERIOD_KEY + ", for the polling period ms must be set with a positive integer.");
+            throw new IllegalArgumentException("Property, " + PULL_HTTP_POLLING_PERIOD_KEY + ", for the polling period ms must be set with a positive integer");
         }
 
-        final String host = properties.getProperty(HOST_KEY);
-        if (host == null || host.isEmpty()) {
-            throw new IllegalArgumentException("Property, " + HOST_KEY + ", for the hostname to pull configurations from must be specified.");
-        }
+        String host = ofNullable(properties.getProperty(HOST_KEY))
+            .filter(StringUtils::isNotBlank)
+            .orElseThrow(() -> new IllegalArgumentException("Property, " + HOST_KEY + ", for the hostname to pull configurations from must be specified"));
+        String path = properties.getProperty(PATH_KEY, DEFAULT_PATH);
+        String query = properties.getProperty(QUERY_KEY, EMPTY);
+        Map<String, String> httpHeaders = ofNullable(properties.getProperty(HTTP_HEADERS))
+            .filter(StringUtils::isNotBlank)
+            .map(headers -> headers.split(HTTP_HEADERS_SEPARATOR))
+            .stream()
+            .flatMap(Arrays::stream)
+            .map(String::trim)
+            .map(header -> header.split(HTTP_HEADER_KEY_VALUE_SEPARATOR))
+            .filter(split -> split.length == 2)
+            .collect(toMap(split -> ofNullable(split[0]).map(String::trim).orElse(EMPTY), split -> ofNullable(split[1]).map(String::trim).orElse(EMPTY)));
+        logger.debug("Configured HTTP headers: {}", httpHeaders);
 
-        final String path = properties.getProperty(PATH_KEY, "/");
-        final String query = properties.getProperty(QUERY_KEY, "");
-
-        final String portString = (String) properties.get(PORT_KEY);
-        final Integer port;
-        if (portString == null) {
-            throw new IllegalArgumentException("Property, " + PORT_KEY + ", for the hostname to pull configurations from must be specified.");
-        } else {
-            port = Integer.parseInt(portString);
-        }
-
-        portReference.set(port);
+        ofNullable(properties.get(PORT_KEY))
+            .map(String.class::cast)
+            .map(Integer::parseInt)
+            .ifPresentOrElse(
+                portReference::set,
+                () -> {
+                    throw new IllegalArgumentException("Property, " + PORT_KEY + ", for the hostname to pull configurations from must be specified");
+                });
         hostReference.set(host);
         pathReference.set(path);
         queryReference.set(query);
-
-        final String useEtagString = (String) properties.getOrDefault(USE_ETAG_KEY, "false");
-        if ("true".equalsIgnoreCase(useEtagString) || "false".equalsIgnoreCase(useEtagString)) {
-            useEtag = Boolean.parseBoolean(useEtagString);
-        } else {
-            throw new IllegalArgumentException("Property, " + USE_ETAG_KEY + ", to specify whether to use the ETag header, must either be a value boolean value (\"true\" or \"false\") or left to " +
-                    "the default value of \"false\". It is set to \"" + useEtagString + "\".");
-        }
+        httpHeadersReference.set(httpHeaders);
+        useEtag = parseBoolean((String) properties.getOrDefault(USE_ETAG_KEY, FALSE.toString()));
 
         httpClientReference.set(null);
 
-        final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
+            .connectTimeout(parseLong(properties.getProperty(CONNECT_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT_MS)), MILLISECONDS)
+            .readTimeout(parseLong(properties.getProperty(READ_TIMEOUT_KEY, DEFAULT_READ_TIMEOUT_MS)), MILLISECONDS)
+            .followRedirects(true);
 
-        // Set timeouts
-        okHttpClientBuilder.connectTimeout(Long.parseLong(properties.getProperty(CONNECT_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT_MS)), TimeUnit.MILLISECONDS);
-        okHttpClientBuilder.readTimeout(Long.parseLong(properties.getProperty(READ_TIMEOUT_KEY, DEFAULT_READ_TIMEOUT_MS)), TimeUnit.MILLISECONDS);
+        String proxyHost = properties.getProperty(PROXY_HOST_KEY);
+        if (isNotBlank(proxyHost)) {
+            ofNullable(properties.getProperty(PROXY_PORT_KEY))
+                .filter(StringUtils::isNotBlank)
+                .map(Integer::parseInt)
+                .map(port -> new InetSocketAddress(proxyHost, port))
+                .map(inetSocketAddress -> new Proxy(Proxy.Type.HTTP, inetSocketAddress))
+                .ifPresentOrElse(
+                    okHttpClientBuilder::proxy,
+                    () -> {
+                        throw new IllegalArgumentException("Proxy port required if proxy specified");
+                    });
 
-        // Set whether to follow redirects
-        okHttpClientBuilder.followRedirects(true);
-
-        String proxyHost = properties.getProperty(PROXY_HOST_KEY, "");
-        if (!proxyHost.isEmpty()) {
-            String proxyPort = properties.getProperty(PROXY_PORT_KEY);
-            if (proxyPort == null || proxyPort.isEmpty()) {
-                throw new IllegalArgumentException("Proxy port required if proxy specified.");
-            }
-            okHttpClientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort))));
-            String proxyUsername = properties.getProperty(PROXY_USERNAME);
-            if (proxyUsername != null) {
-                String proxyPassword = properties.getProperty(PROXY_PASSWORD);
-                if (proxyPassword == null) {
-                    throw new IllegalArgumentException("Must specify proxy password with proxy username.");
-                }
-                okHttpClientBuilder.proxyAuthenticator((route, response) -> response.request().newBuilder().addHeader("Proxy-Authorization", Credentials.basic(proxyUsername, proxyPassword)).build());
-            }
+            ofNullable(properties.getProperty(PROXY_USERNAME))
+                .filter(StringUtils::isNotBlank)
+                .ifPresent(proxyUserName ->
+                    ofNullable(properties.getProperty(PROXY_PASSWORD))
+                        .map(proxyPassword -> Credentials.basic(proxyUserName, proxyPassword))
+                        .map(credentials -> (Authenticator) (route, response) -> response.request().newBuilder().addHeader(PROXY_AUTHORIZATION_HEADER, credentials).build())
+                        .ifPresentOrElse(
+                            okHttpClientBuilder::proxyAuthenticator,
+                            () -> {
+                                throw new IllegalArgumentException("Must specify proxy password with proxy username");
+                            }));
         }
 
-        // check if the ssl path is set and add the factory if so
         if (properties.containsKey(KEYSTORE_LOCATION_KEY)) {
-            try {
-                setSslSocketFactory(okHttpClientBuilder, properties);
-                connectionScheme = "https";
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
+            connectionScheme = HTTPS.toString();
+            setSslSocketFactory(okHttpClientBuilder, properties);
         } else {
-            connectionScheme = "http";
+            connectionScheme = HTTP.toString();
         }
 
         httpClientReference.set(okHttpClientBuilder.build());
-        final String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
-
-        if (differentiatorName != null && !differentiatorName.isEmpty()) {
-            Supplier<Differentiator<ByteBuffer>> differentiatorSupplier = DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiatorName);
-            if (differentiatorSupplier == null) {
-                throw new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiatorName + " which does not " +
-                        "correspond to any in the PullHttpChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
-            }
-            differentiator = differentiatorSupplier.get();
-        } else {
-            differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
-        }
+        differentiator = ofNullable(properties.getProperty(DIFFERENTIATOR_KEY))
+            .filter(not(String::isBlank))
+            .map(differentiator -> ofNullable(DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiator))
+                .map(Supplier::get)
+                .orElseThrow(unableToFindDifferentiatorExceptionSupplier(differentiator)))
+            .orElseGet(WholeConfigDifferentiator::getByteBufferDifferentiator);
         differentiator.initialize(configurationFileHolder);
     }
-
 
     @Override
     public void run() {
         logger.debug("Attempting to pull new config");
         HttpUrl.Builder builder = new HttpUrl.Builder()
-                .host(hostReference.get())
-                .port(portReference.get())
-                .encodedPath(pathReference.get());
-        final String query = queryReference.get();
-        if (!StringUtil.isNullOrEmpty(query)) {
-            builder = builder.encodedQuery(query);
-        }
-        final HttpUrl url = builder
-                .scheme(connectionScheme)
-                .build();
+            .host(hostReference.get())
+            .port(portReference.get())
+            .encodedPath(pathReference.get());
+        ofNullable(queryReference.get())
+            .filter(StringUtils::isNotBlank)
+            .ifPresent(builder::encodedQuery);
+        HttpUrl url = builder.scheme(connectionScheme).build();
 
-        final Request.Builder requestBuilder = new Request.Builder()
-            .get()
-            .url(url);
-
+        Request.Builder requestBuilder = new Request.Builder().get().url(url);
         if (useEtag) {
-            requestBuilder.addHeader("If-None-Match", lastEtag);
+            requestBuilder.addHeader(IF_NONE_MATCH_HEADER_KEY, lastEtag);
         }
+        httpHeadersReference.get().forEach(requestBuilder::addHeader);
 
-        final Request request = requestBuilder.build();
+        Request request = requestBuilder.build();
+        logger.debug("Sending request: {}", request);
 
-        ResponseBody body = null;
         try (Response response = httpClientReference.get().newCall(request).execute()) {
-            logger.debug("Response received: {}", response.toString());
-
+            logger.debug("Response received: {}", response);
             int code = response.code();
-
             if (code == NOT_MODIFIED_STATUS_CODE) {
                 return;
             }
-
-            if (code >= 400) {
+            if (code >= BAD_REQUEST_STATUS_CODE) {
                 throw new IOException("Got response code " + code + " while trying to pull configuration: " + response.body().string());
             }
 
-            body = response.body();
-
+            ResponseBody body = response.body();
             if (body == null) {
                 logger.warn("No body returned when pulling a new configuration");
                 return;
             }
 
-            // checking if some parts of the configuration must be preserved
-            ByteBuffer readOnlyNewConfig =
-                ConfigTransformer.overrideNonFlowSectionsFromOriginalSchema(body.bytes(), configurationFileHolder.getConfigFileReference().get().duplicate(), properties.get());
-
-            if (differentiator.isNew(readOnlyNewConfig)) {
+            ByteBuffer newFlowConfig = wrap(body.bytes()).duplicate();
+            if (differentiator.isNew(newFlowConfig)) {
                 logger.debug("New change received, notifying listener");
-                configurationChangeNotifier.notifyListeners(readOnlyNewConfig);
+                configurationChangeNotifier.notifyListeners(newFlowConfig);
                 logger.debug("Listeners notified");
             } else {
-                logger.debug("Pulled config same as currently running.");
+                logger.debug("Pulled config same as currently running");
             }
 
             if (useEtag) {
-                lastEtag = (new StringBuilder("\""))
-                        .append(response.header("ETag").trim())
-                        .append("\"").toString();
+                lastEtag = Stream.of(DOUBLE_QUOTES, response.header(ETAG_HEADER).trim(), DOUBLE_QUOTES).collect(joining());
             }
         } catch (Exception e) {
             logger.warn("Hit an exception while trying to pull", e);
         }
     }
 
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, Properties properties) throws Exception {
-        final String keystoreLocation = properties.getProperty(KEYSTORE_LOCATION_KEY);
-        final String keystorePass = properties.getProperty(KEYSTORE_PASSWORD_KEY);
-        final String keystoreType = properties.getProperty(KEYSTORE_TYPE_KEY);
-        assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
+    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, Properties properties) {
+        String keystorePass = properties.getProperty(KEYSTORE_PASSWORD_KEY);
+        KeyStore keyStore = buildKeyStore(properties, KEYSTORE_LOCATION_KEY, KEYSTORE_PASSWORD_KEY, KEYSTORE_TYPE_KEY);
+        KeyStore truststore = buildKeyStore(properties, TRUSTSTORE_LOCATION_KEY, TRUSTSTORE_PASSWORD_KEY, TRUSTSTORE_TYPE_KEY);
 
-        final KeyStore keyStore;
-        try (final FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore = new StandardKeyStoreBuilder()
-                    .type(keystoreType)
-                    .inputStream(keyStoreStream)
-                    .password(keystorePass.toCharArray())
-                    .build();
-        }
-
-        final String truststoreLocation = properties.getProperty(TRUSTSTORE_LOCATION_KEY);
-        final String truststorePass = properties.getProperty(TRUSTSTORE_PASSWORD_KEY);
-        final String truststoreType = properties.getProperty(TRUSTSTORE_TYPE_KEY);
-        assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
-
-        final KeyStore truststore;
-        try (final FileInputStream trustStoreStream = new FileInputStream(truststoreLocation)) {
-            truststore = new StandardKeyStoreBuilder()
-                    .type(truststoreType)
-                    .inputStream(trustStoreStream)
-                    .password(truststorePass.toCharArray())
-                    .build();
-        }
-
-        final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
-        final SSLContext sslContext = new StandardSslContextBuilder()
-                .keyStore(keyStore)
-                .keyPassword(keystorePass.toCharArray())
-                .trustStore(truststore)
-                .build();
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        SSLSocketFactory sslSocketFactory = new StandardSslContextBuilder()
+            .keyStore(keyStore)
+            .keyPassword(keystorePass.toCharArray())
+            .trustStore(truststore)
+            .build()
+            .getSocketFactory();
+        X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
 
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
     }
 
-    private void assertKeystorePropertiesSet(String location, String password, String type) {
-        if (location == null || location.isEmpty()) {
-            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is null or is empty");
-        }
+    private KeyStore buildKeyStore(Properties properties, String locationKey, String passKey, String typeKey) {
+        String keystoreLocation = ofNullable(properties.getProperty(locationKey))
+            .filter(StringUtils::isNotBlank)
+            .orElseThrow(() -> new IllegalArgumentException(locationKey + " is null or empty"));
+        String keystorePass = ofNullable(properties.getProperty(passKey))
+            .filter(StringUtils::isNotBlank)
+            .orElseThrow(() -> new IllegalArgumentException(passKey + " is null or empty"));
+        String keystoreType = ofNullable(properties.getProperty(typeKey))
+            .filter(StringUtils::isNotBlank)
+            .orElseThrow(() -> new IllegalArgumentException(typeKey + " is null or empty"));
 
-        if (password == null || password.isEmpty()) {
-            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is set but " + KEYSTORE_PASSWORD_KEY + " is not (or is empty). If the location is set, the password must also be.");
-        }
-
-        if (type == null || type.isEmpty()) {
-            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is set but " + KEYSTORE_TYPE_KEY + " is not (or is empty). If the location is set, the type must also be.");
-        }
-    }
-
-    private void assertTruststorePropertiesSet(String location, String password, String type) {
-        if (location == null || location.isEmpty()) {
-            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is not set or is empty");
-        }
-
-        if (password == null || password.isEmpty()) {
-            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is set but " + TRUSTSTORE_PASSWORD_KEY + " is not (or is empty). If the location is set, the password must also be.");
-        }
-
-        if (type == null || type.isEmpty()) {
-            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is set but " + TRUSTSTORE_TYPE_KEY + " is not (or is empty). If the location is set, the type must also be.");
+        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+            return new StandardKeyStoreBuilder()
+                .type(keystoreType)
+                .inputStream(keyStoreStream)
+                .password(keystorePass.toCharArray())
+                .build();
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to create keyStore", e);
         }
     }
 
-    protected void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
+    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(String differentiator) {
+        return () -> new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiator
+            + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
+    }
+
+    // Methods exposed only for enable testing
+    void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
         this.differentiator = differentiator;
     }
 
-    public void setLastEtag(String lastEtag) {
+    void setLastEtag(String lastEtag) {
         this.lastEtag = lastEtag;
     }
 
-    public void setUseEtag(boolean useEtag) {
+    void setUseEtag(boolean useEtag) {
         this.useEtag = useEtag;
     }
 }

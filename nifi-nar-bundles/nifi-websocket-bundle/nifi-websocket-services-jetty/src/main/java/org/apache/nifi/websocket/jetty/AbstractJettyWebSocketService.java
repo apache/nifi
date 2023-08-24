@@ -17,13 +17,8 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.AbstractWebSocketService;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,42 +59,4 @@ public abstract class AbstractJettyWebSocketService extends AbstractWebSocketSer
         descriptors.add(MAX_BINARY_MESSAGE_SIZE);
         return descriptors;
     }
-
-
-    protected SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth, final String endpointIdentificationAlgorithm) {
-        final SslContextFactory sslFactory = new SslContextFactory.Server();
-
-        sslFactory.setNeedClientAuth(needClientAuth);
-        sslFactory.setWantClientAuth(wantClientAuth);
-
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm.
-        // For clients, hostname verification should be enabled.
-        // For servers, hostname verification should be disabled.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
-        sslFactory.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
-
-        if (sslService.isKeyStoreConfigured()) {
-            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
-            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
-            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
-        }
-
-        if (sslService.isTrustStoreConfigured()) {
-            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
-            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
-            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
-        }
-
-        return sslFactory;
-    }
-
-    protected void configurePolicy(final ConfigurationContext context, final WebSocketPolicy policy) {
-        final int inputBufferSize = context.getProperty(INPUT_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final int maxTextMessageSize = context.getProperty(MAX_TEXT_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
-        final int maxBinaryMessageSize = context.getProperty(MAX_BINARY_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
-        policy.setInputBufferSize(inputBufferSize);
-        policy.setMaxTextMessageSize(maxTextMessageSize);
-        policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
-    }
-
 }

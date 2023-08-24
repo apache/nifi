@@ -19,13 +19,10 @@ package org.apache.nifi.minifi.bootstrap.service;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.asByteArrayInputStream;
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.generateConfigFiles;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Optional;
 import java.util.Properties;
@@ -38,11 +35,13 @@ public class UpdatePropertiesService {
     private final RunMiNiFi runner;
     private final Logger logger;
     private final BootstrapFileProvider bootstrapFileProvider;
+    private final MiNiFiPropertiesGenerator miNiFiPropertiesGenerator;
 
     public UpdatePropertiesService(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider) {
         this.runner = runner;
         this.logger = logger;
         this.bootstrapFileProvider = bootstrapFileProvider;
+        this.miNiFiPropertiesGenerator = new MiNiFiPropertiesGenerator();
     }
 
     public Optional<MiNiFiCommandState> handleUpdate() {
@@ -72,9 +71,7 @@ public class UpdatePropertiesService {
         throws IOException, ConfigurationChangeException {
         Optional<MiNiFiCommandState> commandState = Optional.empty();
         try {
-            ByteBuffer byteBuffer = generateConfigFiles(asByteArrayInputStream(runner.getConfigFileReference().get().duplicate()),
-                bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
-            runner.getConfigFileReference().set(byteBuffer.asReadOnlyBuffer());
+            miNiFiPropertiesGenerator.generateMinifiProperties(bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
             restartInstance();
         } catch (Exception e) {
             commandState = Optional.of(MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART);
@@ -84,10 +81,7 @@ public class UpdatePropertiesService {
             }
             // read reverted properties
             bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
-
-            ByteBuffer byteBuffer = generateConfigFiles(
-                asByteArrayInputStream(runner.getConfigFileReference().get().duplicate()), bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
-            runner.getConfigFileReference().set(byteBuffer.asReadOnlyBuffer());
+            miNiFiPropertiesGenerator.generateMinifiProperties(bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
 
             logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
             if (!bootstrapSwapConfigFile.delete()) {

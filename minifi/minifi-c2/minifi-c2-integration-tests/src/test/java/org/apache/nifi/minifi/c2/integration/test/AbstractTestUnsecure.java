@@ -17,20 +17,21 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import org.apache.nifi.minifi.commons.schema.ConfigSchema;
-import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
-import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractTestUnsecure {
     protected String c2Url;
@@ -49,31 +50,28 @@ public abstract class AbstractTestUnsecure {
     }
 
     @Test
-    public void testCurrentVersion() throws IOException, SchemaLoaderException {
-        ConfigSchema configSchema = getConfigSchema(c2Url + "?class=raspi3");
-        assertEquals(3, configSchema.getVersion());
-        assertEquals("raspi3.v2", configSchema.getFlowControllerProperties().getName());
+    public void testCurrentVersion() throws IOException {
+        VersionedDataflow versionedDataflow = getFlowDefinition(c2Url + "?class=raspi3");
+        assertEquals("raspi3.v2", versionedDataflow.getRootGroup().getName());
     }
 
     @Test
-    public void testVersion1() throws IOException, SchemaLoaderException {
-        ConfigSchema configSchema = getConfigSchema(c2Url + "?class=raspi3&version=1");
-        assertEquals(3, configSchema.getVersion());
-        assertEquals("raspi3.v1", configSchema.getFlowControllerProperties().getName());
+    public void testVersion1() throws IOException {
+        VersionedDataflow versionedDataflow = getFlowDefinition(c2Url + "?class=raspi3&version=1");
+        assertEquals("raspi3.v1", versionedDataflow.getRootGroup().getName());
     }
 
     @Test
-    public void testVersion2() throws IOException, SchemaLoaderException {
-        ConfigSchema configSchema = getConfigSchema(c2Url + "?class=raspi3&version=2");
-        assertEquals(3, configSchema.getVersion());
-        assertEquals("raspi3.v2", configSchema.getFlowControllerProperties().getName());
+    public void testVersion2() throws IOException {
+        VersionedDataflow versionedDataflow = getFlowDefinition(c2Url + "?class=raspi3&version=2");
+        assertEquals("raspi3.v2", versionedDataflow.getRootGroup().getName());
     }
 
     @Test
     public void testUnacceptable() throws IOException {
         HttpURLConnection urlConnection = openSuperUserUrlConnection(c2Url + "?class=raspi3");
         try {
-            urlConnection.setRequestProperty("Accept", "text/xml");
+            urlConnection.setRequestProperty("Accept", "text/invalid");
             assertEquals(406, urlConnection.getResponseCode());
         } finally {
             urlConnection.disconnect();
@@ -90,18 +88,24 @@ public abstract class AbstractTestUnsecure {
         }
     }
 
-    public ConfigSchema getConfigSchema(String urlString) throws IOException, SchemaLoaderException {
+    public VersionedDataflow getFlowDefinition(String urlString) throws IOException {
         HttpURLConnection urlConnection = openSuperUserUrlConnection(urlString);
-        ConfigSchema configSchema;
+        urlConnection.setRequestProperty("Accept", "application/json");
         try (InputStream inputStream = urlConnection.getInputStream()) {
-            configSchema = SchemaLoader.loadConfigSchemaFromYaml(inputStream);
+            return toVersionedDataFlow(inputStream);
         } finally {
             urlConnection.disconnect();
         }
-        return configSchema;
     }
 
     protected HttpURLConnection openSuperUserUrlConnection(String url) throws IOException {
         return (HttpURLConnection) new URL(url).openConnection();
+    }
+
+    protected VersionedDataflow toVersionedDataFlow(InputStream inputStream) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return objectMapper.readValue(IOUtils.toByteArray(inputStream), VersionedDataflow.class);
     }
 }

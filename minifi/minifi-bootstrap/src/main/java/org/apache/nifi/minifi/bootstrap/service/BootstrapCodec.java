@@ -17,6 +17,8 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
+import static org.apache.commons.lang3.StringUtils.SPACE;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -40,12 +42,10 @@ public class BootstrapCodec {
     private final RunMiNiFi runner;
     private final Logger logger = LoggerFactory.getLogger(BootstrapCodec.class);
     private final UpdatePropertiesService updatePropertiesService;
-    private final UpdateConfigurationService updateConfigurationService;
 
     public BootstrapCodec(RunMiNiFi runner, BootstrapFileProvider bootstrapFileProvider, ConfigurationChangeListener configurationChangeListener) {
         this.runner = runner;
         this.updatePropertiesService = new UpdatePropertiesService(runner, logger, bootstrapFileProvider);
-        this.updateConfigurationService = new UpdateConfigurationService(runner, configurationChangeListener, bootstrapFileProvider);
     }
 
     public void communicate(InputStream in, OutputStream out) throws IOException {
@@ -53,18 +53,13 @@ public class BootstrapCodec {
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
 
         String line = reader.readLine();
-        String[] splits = Optional.ofNullable(line).map(l -> l.split(" ")).orElse(new String[0]);
-        if (splits.length == 0) {
-            throw new IOException("Received invalid command from MiNiFi: " + line);
-        }
+        String[] splits = Optional.ofNullable(line)
+            .map(l -> l.split(SPACE))
+            .filter(items -> items.length > 0)
+            .orElseThrow(() -> new IOException("Received invalid command from MiNiFi: " + line));
 
         BootstrapCommand cmd = BootstrapCommand.safeValueOf(splits[0]);
-        String[] args;
-        if (splits.length == 1) {
-            args = new String[0];
-        } else {
-            args = Arrays.copyOfRange(splits, 1, splits.length);
-        }
+        String[] args = splits.length == 1 ? new String[0] : Arrays.copyOfRange(splits, 1, splits.length);
 
         try {
             processRequest(cmd, args, writer);
@@ -90,19 +85,9 @@ public class BootstrapCodec {
             case UPDATE_PROPERTIES:
                 handlePropertiesUpdateCommand(writer);
                 break;
-            case UPDATE_CONFIGURATION:
-                handleUpdateConfigurationCommand(writer);
-                break;
             default:
                 throw new InvalidCommandException("Unknown command: " + cmd);
         }
-    }
-
-    private void handleUpdateConfigurationCommand(BufferedWriter writer) throws IOException {
-        logger.debug("Received 'UPDATE_CONFIGURATION' command from MINIFI");
-        writeOk(writer);
-        runner.setCommandInProgress(true);
-        updateConfigurationService.handleUpdate().ifPresent(runner::sendAcknowledgeToMiNiFi);
     }
 
     private void handlePropertiesUpdateCommand(BufferedWriter writer) throws IOException {
@@ -170,7 +155,7 @@ public class BootstrapCodec {
     }
 
     private enum BootstrapCommand {
-        PORT, STARTED, SHUTDOWN, RELOAD, UPDATE_PROPERTIES, UPDATE_CONFIGURATION, UNKNOWN;
+        PORT, STARTED, SHUTDOWN, RELOAD, UPDATE_PROPERTIES, UNKNOWN;
 
         public static BootstrapCommand safeValueOf(String value) {
             try {

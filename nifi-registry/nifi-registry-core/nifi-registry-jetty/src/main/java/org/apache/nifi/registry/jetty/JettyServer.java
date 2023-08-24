@@ -21,14 +21,11 @@ import org.apache.nifi.jetty.configuration.connector.ServerConnectorFactory;
 import org.apache.nifi.registry.jetty.connector.ApplicationServerConnectorFactory;
 import org.apache.nifi.registry.jetty.handler.HandlerProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,10 +71,6 @@ public class JettyServer {
 
         this.properties = properties;
         this.server = new Server(threadPool);
-
-        // enable the annotation based configuration to ensure the jsp container is initialized properly
-        final Configuration.ClassList classlist = Configuration.ClassList.setServerDefault(server);
-        classlist.addBefore(JettyWebXmlConfiguration.class.getName(), AnnotationConfiguration.class.getName());
 
         try {
             configureConnectors();

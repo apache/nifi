@@ -154,7 +154,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     props,
                     null, // revision manager
                     authorizer,
-                    FlowSerializationStrategy.WRITE_XML_ONLY);
+                    getFlowSerializationStrategy());
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);
@@ -253,12 +253,20 @@ public class HeadlessNiFiServer implements NiFiServer {
         return flowController;
     }
 
+    protected FlowService getFlowService() {
+        return flowService;
+    }
+
     protected NiFiProperties getNiFiProperties() {
         return props;
     }
 
     protected List<Bundle> getBundles(final String bundleClass) {
         return ExtensionManagerHolder.getExtensionManager().getBundles(bundleClass);
+    }
+
+    protected FlowSerializationStrategy getFlowSerializationStrategy() {
+        return FlowSerializationStrategy.WRITE_XML_ONLY;
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {

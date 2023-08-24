@@ -376,20 +376,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         if (resources != null) {
             // Attempt to close the FileSystem
             final FileSystem fileSystem = resources.getFileSystem();
-            try {
-                interruptStatisticsThread(fileSystem);
-            } catch (Exception e) {
-                getLogger().warn("Error stopping FileSystem statistics thread: " + e.getMessage());
-                getLogger().debug("", e);
-            } finally {
-                if (fileSystem != null) {
-                    try {
-                        fileSystem.close();
-                    } catch (IOException e) {
-                        getLogger().warn("Error close FileSystem: " + e.getMessage(), e);
-                    }
-                }
-            }
+            HDFSResourceHelper.closeFileSystem(fileSystem);
         }
 
         // Clear out the reference to the resources

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiPropertiesGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -25,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.PROPERTIES_FILE_APACHE_2_0_LICENSE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -41,7 +41,7 @@ public class OrderedPropertiesTest {
         orderedProperties.setProperty("prop3", "newVal3");
         orderedProperties.setProperty("prop1", "newVal1");
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        orderedProperties.store(byteArrayOutputStream, PROPERTIES_FILE_APACHE_2_0_LICENSE);
+        orderedProperties.store(byteArrayOutputStream, MiNiFiPropertiesGenerator.PROPERTIES_FILE_APACHE_2_0_LICENSE);
 
         try (BufferedReader actualReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray())));
              BufferedReader expectedReader = new BufferedReader(new InputStreamReader(OrderedPropertiesTest.class.getClassLoader().getResourceAsStream("orderedPropertiesExpected.properties")))) {

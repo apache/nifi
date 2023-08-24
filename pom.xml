@@ -96,7 +96,7 @@
         <!-- Disable maven-site-plugin from parent POM -->
         <maven.site.skip>true</maven.site.skip>
         <node.version>v16.13.2</node.version>
-        <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>1.13.4</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.5.1</nifi.nar.maven.plugin.version>
         <project.build.outputTimestamp>1675980972</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -106,9 +106,9 @@
         <software.amazon.awssdk.version>2.20.103</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
         <io.fabric8.kubernetes.client.version>6.5.1</io.fabric8.kubernetes.client.version>
-        <kotlin.version>1.8.20</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
         <okhttp.version>4.11.0</okhttp.version>
-        <okio.version>3.4.0</okio.version>
+        <okio.version>3.5.0</okio.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
@@ -122,7 +122,7 @@
         <org.slf4j.version>2.0.7</org.slf4j.version>
         <derby.version>10.16.1.1</derby.version>
         <ranger.version>2.4.0</ranger.version>
-        <jetty.version>9.4.51.v20230217</jetty.version>
+        <jetty.version>10.0.15</jetty.version>
         <jackson.bom.version>2.15.2</jackson.bom.version>
         <avro.version>1.11.2</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
@@ -132,7 +132,7 @@
         <nifi.groovy.version>3.0.18</nifi.groovy.version>
         <groovy.eclipse.compiler.version>3.9.0</groovy.eclipse.compiler.version>
         <groovy.eclipse.batch.version>3.0.9-03</groovy.eclipse.batch.version>
-        <surefire.version>3.0.0</surefire.version>
+        <surefire.version>3.1.2</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
@@ -142,7 +142,7 @@
         <logback.version>1.3.8</logback.version>
         <mockito.version>4.11.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
-        <snakeyaml.version>2.0</snakeyaml.version>
+        <snakeyaml.version>2.1</snakeyaml.version>
         <netty.4.version>4.1.96.Final</netty.4.version>
         <spring.version>5.3.29</spring.version>
         <spring.security.version>5.8.5</spring.security.version>
@@ -454,7 +454,6 @@
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
-
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-alpn-client</artifactId>
@@ -463,11 +462,6 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-alpn-java-client</artifactId>
-                <version>${jetty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-continuation</artifactId>
                 <version>${jetty.version}</version>
             </dependency>
             <dependency>
@@ -648,7 +642,7 @@
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
-                <version>1.1.10.2</version>
+                <version>1.1.10.3</version>
             </dependency>
             <!-- Override Log4j 2 libraries for transitive dependencies -->
             <dependency>
@@ -822,7 +816,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.6.0</version>
                     <configuration>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
@@ -863,7 +857,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.0.1</version>
                     <configuration>
                         <useReleaseProfile>true</useReleaseProfile>
                         <releaseProfiles>apache-release</releaseProfiles>
@@ -889,7 +883,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.42.0</version>
+                    <version>0.43.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -921,7 +915,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.rat</groupId>
@@ -995,7 +989,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>enforce-maven-version</id>

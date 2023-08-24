@@ -18,50 +18,44 @@
 package org.apache.nifi.minifi.c2;
 
 import static java.util.Optional.ofNullable;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_AGENT_CLASS;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_AGENT_HEARTBEAT_PERIOD;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_AGENT_IDENTIFIER;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_ASSET_DIRECTORY;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_CONFIG_DIRECTORY;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_FULL_HEARTBEAT;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_MAX_IDLE_CONNECTIONS;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REQUEST_COMPRESSION;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_BASE;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CALL_TIMEOUT;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CONNECTION_TIMEOUT;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_ACKNOWLEDGE;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_HEARTBEAT;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_READ_TIMEOUT;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_URL;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_URL_ACK;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_RUNTIME_MANIFEST_IDENTIFIER;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_RUNTIME_TYPE;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_KEYSTORE_LOCATION;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_KEYSTORE_PASSWORD;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_KEYSTORE_TYPE;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_LOCATION;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_PASSWORD;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
-import static org.apache.nifi.minifi.MiNiFiProperties.CONF_DIR;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.CONFIG_UPDATED_FILE_NAME;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_CLASS;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_HEARTBEAT_PERIOD;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_IDENTIFIER;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ASSET_DIRECTORY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_CONFIG_DIRECTORY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_FULL_HEARTBEAT;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_MAX_IDLE_CONNECTIONS;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REQUEST_COMPRESSION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_CALL_TIMEOUT;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_CONNECTION_TIMEOUT;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_HTTP_HEADERS;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_PATH_ACKNOWLEDGE;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_PATH_BASE;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_PATH_HEARTBEAT;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_READ_TIMEOUT;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_URL;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_REST_URL_ACK;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_RUNTIME_MANIFEST_IDENTIFIER;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_RUNTIME_TYPE;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_KEYSTORE_LOCATION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_KEYSTORE_PASSWORD;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_KEYSTORE_TYPE;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_LOCATION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_PASSWORD;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
+import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_JSON_FILE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.bootstrap.BootstrapCommunicator;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
@@ -80,6 +74,7 @@ import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateAssetOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
+import org.apache.nifi.c2.client.service.operation.UpdateConfigurationStrategy;
 import org.apache.nifi.c2.client.service.operation.UpdatePropertiesOperationHandler;
 import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
@@ -91,20 +86,20 @@ import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.status.ConnectionStatus;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
+import org.apache.nifi.minifi.c2.command.DefaultUpdateConfigurationStrategy;
 import org.apache.nifi.minifi.c2.command.PropertiesPersister;
 import org.apache.nifi.minifi.c2.command.TransferDebugCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdateAssetCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdatePropertiesPropertyProvider;
 import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
+import org.apache.nifi.minifi.commons.service.FlowEnrichService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -113,40 +108,40 @@ import org.slf4j.LoggerFactory;
 public class C2NifiClientService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(C2NifiClientService.class);
-    private static final String TARGET_CONFIG_FILE = "/" + CONFIG_UPDATED_FILE_NAME;
     private static final String ROOT_GROUP_ID = "root";
     private static final Long INITIAL_DELAY = 10000L;
     private static final Integer TERMINATION_WAIT = 5000;
     private static final int MINIFI_RESTART_TIMEOUT_SECONDS = 60;
     private static final String ACKNOWLEDGE_OPERATION = "ACKNOWLEDGE_OPERATION";
     private static final int IS_ACK_RECEIVED_POLL_INTERVAL = 1000;
-    private static final Map<MiNiFiCommandState, OperationState> OPERATION_STATE_MAP = getOperationStateMap();
     private static final int MAX_WAIT_FOR_BOOTSTRAP_ACK_MS = 20000;
 
+    private static final Map<MiNiFiCommandState, OperationState> OPERATION_STATE_MAP = Map.of(
+        MiNiFiCommandState.FULLY_APPLIED, OperationState.FULLY_APPLIED,
+        MiNiFiCommandState.NO_OPERATION, OperationState.NO_OPERATION,
+        MiNiFiCommandState.NOT_APPLIED_WITH_RESTART, OperationState.NOT_APPLIED,
+        MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART, OperationState.NOT_APPLIED);
+
     private final C2ClientService c2ClientService;
-
     private final FlowController flowController;
-    private final String propertiesDir;
-    private final ScheduledThreadPoolExecutor heartbeatExecutorService = new ScheduledThreadPoolExecutor(1);
-    private final ScheduledThreadPoolExecutor bootstrapAcknowledgeExecutorService = new ScheduledThreadPoolExecutor(1);
-    private final ExtensionManifestParser extensionManifestParser = new JAXBExtensionManifestParser();
-
+    private final ScheduledThreadPoolExecutor heartbeatExecutorService;
+    private final ScheduledThreadPoolExecutor bootstrapAcknowledgeExecutorService;
+    private final ExtensionManifestParser extensionManifestParser;
     private final RuntimeManifestService runtimeManifestService;
-
     private final SupportedOperationsProvider supportedOperationsProvider;
     private final RequestedOperationDAO requestedOperationDAO;
     private final BootstrapCommunicator bootstrapCommunicator;
-    private volatile boolean ackReceived = false;
-    private final UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider;
-    private final PropertiesPersister propertiesPersister;
-    private final ObjectMapper objectMapper;
-
     private final long heartbeatPeriod;
 
-    public C2NifiClientService(NiFiProperties niFiProperties, FlowController flowController, BootstrapCommunicator bootstrapCommunicator) {
+    private volatile boolean ackReceived = false;
+
+    public C2NifiClientService(NiFiProperties niFiProperties, FlowController flowController, BootstrapCommunicator bootstrapCommunicator, FlowService flowService) {
+        this.heartbeatExecutorService = new ScheduledThreadPoolExecutor(1);
+        this.bootstrapAcknowledgeExecutorService = new ScheduledThreadPoolExecutor(1);
+        this.extensionManifestParser = new JAXBExtensionManifestParser();
+
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
-        FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
-        this.propertiesDir = niFiProperties.getProperty(NiFiProperties.PROPERTIES_FILE_PATH, null);
+
         this.runtimeManifestService = new StandardRuntimeManifestService(
             ExtensionManagerHolder.getExtensionManager(),
             extensionManifestParser,
@@ -157,29 +152,20 @@ public class C2NifiClientService {
         this.flowController = flowController;
 
         C2HttpClient client = C2HttpClient.create(clientConfig, new C2JacksonSerializer());
+        FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
         C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider());
-        OperandPropertiesProvider emptyOperandPropertiesProvider = new EmptyOperandPropertiesProvider();
-        TransferDebugCommandHelper transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
-        UpdateAssetCommandHelper updateAssetCommandHelper = new UpdateAssetCommandHelper(clientConfig.getC2AssetDirectory());
-        objectMapper = new ObjectMapper();
-        updateAssetCommandHelper.createAssetDirectory();
-        this.bootstrapCommunicator = bootstrapCommunicator;
-        requestedOperationDAO = new FileBasedRequestedOperationDAO(niFiProperties.getProperty("org.apache.nifi.minifi.bootstrap.config.pid.dir", "bin"), objectMapper);
+
+        this.requestedOperationDAO = new FileBasedRequestedOperationDAO(niFiProperties.getProperty("org.apache.nifi.minifi.bootstrap.config.pid.dir", "bin"), new ObjectMapper());
         String bootstrapConfigFileLocation = niFiProperties.getProperty("nifi.minifi.bootstrap.file");
-        updatePropertiesPropertyProvider = new UpdatePropertiesPropertyProvider(bootstrapConfigFileLocation);
-        propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
-        C2OperationHandlerProvider c2OperationHandlerProvider = new C2OperationHandlerProvider(Arrays.asList(
-            new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent, emptyOperandPropertiesProvider),
-            new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo, emptyOperandPropertiesProvider),
-            TransferDebugOperationHandler.create(client, emptyOperandPropertiesProvider,
-                transferDebugCommandHelper.debugBundleFiles(), transferDebugCommandHelper::excludeSensitiveText),
-            UpdateAssetOperationHandler.create(client, emptyOperandPropertiesProvider,
-                updateAssetCommandHelper::assetUpdatePrecondition, updateAssetCommandHelper::assetPersistFunction),
-            new UpdatePropertiesOperationHandler(updatePropertiesPropertyProvider, propertiesPersister::persistProperties)
-        ));
+
+        C2OperationHandlerProvider c2OperationHandlerProvider = c2OperationHandlerProvider(niFiProperties, flowController, flowService, flowIdHolder,
+            client, heartbeatFactory, bootstrapConfigFileLocation, clientConfig.getC2AssetDirectory());
+
         this.c2ClientService = new C2ClientService(client, heartbeatFactory, c2OperationHandlerProvider, requestedOperationDAO, this::registerOperation);
         this.supportedOperationsProvider = new SupportedOperationsProvider(c2OperationHandlerProvider.getHandlers());
-        bootstrapCommunicator.registerMessageHandler(ACKNOWLEDGE_OPERATION, (params, output) -> acknowledgeHandler(params));
+
+        this.bootstrapCommunicator = bootstrapCommunicator;
+        this.bootstrapCommunicator.registerMessageHandler(ACKNOWLEDGE_OPERATION, (params, output) -> acknowledgeHandler(params));
     }
 
     private C2ClientConfig generateClientConfig(NiFiProperties properties) {
@@ -198,6 +184,7 @@ public class C2NifiClientService {
             .maxIdleConnections(Integer.parseInt(properties.getProperty(C2_MAX_IDLE_CONNECTIONS.getKey(), C2_MAX_IDLE_CONNECTIONS.getDefaultValue())))
             .keepAliveDuration((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_KEEP_ALIVE_DURATION.getKey(),
                 C2_KEEP_ALIVE_DURATION.getDefaultValue()), TimeUnit.MILLISECONDS))
+            .httpHeaders(properties.getProperty(C2_REST_HTTP_HEADERS.getKey(), C2_REST_HTTP_HEADERS.getDefaultValue()))
             .c2RequestCompression(properties.getProperty(C2_REQUEST_COMPRESSION.getKey(), C2_REQUEST_COMPRESSION.getDefaultValue()))
             .c2AssetDirectory(properties.getProperty(C2_ASSET_DIRECTORY.getKey(), C2_ASSET_DIRECTORY.getDefaultValue()))
             .confDirectory(properties.getProperty(C2_CONFIG_DIRECTORY.getKey(), C2_CONFIG_DIRECTORY.getDefaultValue()))
@@ -215,6 +202,31 @@ public class C2NifiClientService {
             .c2RestPathHeartbeat(properties.getProperty(C2_REST_PATH_HEARTBEAT.getKey(), C2_REST_PATH_HEARTBEAT.getDefaultValue()))
             .c2RestPathAcknowledge(properties.getProperty(C2_REST_PATH_ACKNOWLEDGE.getKey(), C2_REST_PATH_ACKNOWLEDGE.getDefaultValue()))
             .build();
+    }
+
+    private C2OperationHandlerProvider c2OperationHandlerProvider(NiFiProperties niFiProperties, FlowController flowController, FlowService flowService,
+                                                                  FlowIdHolder flowIdHolder, C2HttpClient client, C2HeartbeatFactory heartbeatFactory,
+                                                                  String bootstrapConfigFileLocation, String c2AssetDirectory) {
+        OperandPropertiesProvider emptyOperandPropertiesProvider = new EmptyOperandPropertiesProvider();
+        TransferDebugCommandHelper transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
+        UpdateAssetCommandHelper updateAssetCommandHelper = new UpdateAssetCommandHelper(c2AssetDirectory);
+        updateAssetCommandHelper.createAssetDirectory();
+        UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider = new UpdatePropertiesPropertyProvider(bootstrapConfigFileLocation);
+        PropertiesPersister propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
+
+        FlowEnrichService flowEnrichService = new FlowEnrichService(niFiProperties);
+        UpdateConfigurationStrategy updateConfigurationStrategy =
+            new DefaultUpdateConfigurationStrategy(flowController, flowService, flowEnrichService, niFiProperties.getProperty(FLOW_CONFIGURATION_JSON_FILE));
+
+        return new C2OperationHandlerProvider(List.of(
+            new UpdateConfigurationOperationHandler(client, flowIdHolder, updateConfigurationStrategy, emptyOperandPropertiesProvider),
+            new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo, emptyOperandPropertiesProvider),
+            TransferDebugOperationHandler.create(client, emptyOperandPropertiesProvider,
+                transferDebugCommandHelper.debugBundleFiles(), transferDebugCommandHelper::excludeSensitiveText),
+            UpdateAssetOperationHandler.create(client, emptyOperandPropertiesProvider,
+                updateAssetCommandHelper::assetUpdatePrecondition, updateAssetCommandHelper::assetPersistFunction),
+            new UpdatePropertiesOperationHandler(updatePropertiesPropertyProvider, propertiesPersister::persistProperties)
+        ));
     }
 
     public void start() {
@@ -242,7 +254,7 @@ public class C2NifiClientService {
     private void waitForAcknowledgeFromBootstrap() {
         LOGGER.info("Waiting for ACK signal from Bootstrap");
         int currentWaitTime = 0;
-        while(!ackReceived) {
+        while (!ackReceived) {
             try {
                 Thread.sleep(IS_ACK_RECEIVED_POLL_INTERVAL);
             } catch (InterruptedException e) {
@@ -260,7 +272,7 @@ public class C2NifiClientService {
         try {
             ackReceived = false;
             registerAcknowledgeTimeoutTask(c2Operation);
-            String command = Optional.ofNullable(c2Operation.getOperand())
+            String command = ofNullable(c2Operation.getOperand())
                 .map(operand -> c2Operation.getOperation().name() + "_" + operand.name())
                 .orElse(c2Operation.getOperation().name());
             bootstrapCommunicator.sendCommand(command);
@@ -329,78 +341,47 @@ public class C2NifiClientService {
     }
 
     private AgentRepositories getAgentRepositories() {
-        final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
+        SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
 
-        final AgentRepositories repos = new AgentRepositories();
-        final AgentRepositoryStatus flowFileRepoStatus = new AgentRepositoryStatus();
-        final StorageUsage ffRepoStorageUsage = systemDiagnostics.getFlowFileRepositoryStorageUsage();
-        flowFileRepoStatus.setDataSize(ffRepoStorageUsage.getUsedSpace());
-        flowFileRepoStatus.setDataSizeMax(ffRepoStorageUsage.getTotalSpace());
-        repos.setFlowFile(flowFileRepoStatus);
+        AgentRepositoryStatus agentFlowRepositoryStatus = ofNullable(systemDiagnostics.getFlowFileRepositoryStorageUsage())
+            .map(flowFileRepositoryStorageUsage -> {
+                AgentRepositoryStatus flowRepositoryStatus = new AgentRepositoryStatus();
+                flowRepositoryStatus.setDataSize(flowFileRepositoryStorageUsage.getUsedSpace());
+                flowRepositoryStatus.setDataSizeMax(flowFileRepositoryStorageUsage.getTotalSpace());
+                return flowRepositoryStatus;
+            })
+            .orElseGet(AgentRepositoryStatus::new);
 
-        final AgentRepositoryStatus provRepoStatus = new AgentRepositoryStatus();
-        final Iterator<Map.Entry<String, StorageUsage>> provRepoStorageUsages = systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator();
-        if (provRepoStorageUsages.hasNext()) {
-            final StorageUsage provRepoStorageUsage = provRepoStorageUsages.next().getValue();
-            provRepoStatus.setDataSize(provRepoStorageUsage.getUsedSpace());
-            provRepoStatus.setDataSizeMax(provRepoStorageUsage.getTotalSpace());
-        }
+        AgentRepositoryStatus agentProvenanceRepositoryStatus = systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().stream()
+            .findFirst()
+            .map(Map.Entry::getValue)
+            .map(provRepoStorageUsage -> {
+                AgentRepositoryStatus provenanceRepositoryStatus = new AgentRepositoryStatus();
+                provenanceRepositoryStatus.setDataSize(provRepoStorageUsage.getUsedSpace());
+                provenanceRepositoryStatus.setDataSizeMax(provRepoStorageUsage.getTotalSpace());
+                return provenanceRepositoryStatus;
+            })
+            .orElseGet(AgentRepositoryStatus::new);
 
-        repos.setProvenance(provRepoStatus);
-
-        return repos;
+        AgentRepositories agentRepositories = new AgentRepositories();
+        agentRepositories.setFlowFile(agentFlowRepositoryStatus);
+        agentRepositories.setProvenance(agentProvenanceRepositoryStatus);
+        return agentRepositories;
     }
 
     private Map<String, FlowQueueStatus> getQueueStatus() {
-        ProcessGroupStatus rootProcessGroupStatus = flowController.getEventAccess().getGroupStatus(ROOT_GROUP_ID);
-
-        final Collection<ConnectionStatus> connectionStatuses = rootProcessGroupStatus.getConnectionStatus();
-
-        final Map<String, FlowQueueStatus> processGroupStatus = new HashMap<>();
-        for (ConnectionStatus connectionStatus : connectionStatuses) {
-            final FlowQueueStatus flowQueueStatus = new FlowQueueStatus();
-
-            flowQueueStatus.setSize((long) connectionStatus.getQueuedCount());
-            flowQueueStatus.setSizeMax(connectionStatus.getBackPressureObjectThreshold());
-
-            flowQueueStatus.setDataSize(connectionStatus.getQueuedBytes());
-            flowQueueStatus.setDataSizeMax(connectionStatus.getBackPressureBytesThreshold());
-
-            processGroupStatus.put(connectionStatus.getId(), flowQueueStatus);
-        }
-
-        return processGroupStatus;
-    }
-
-    private boolean updateFlowContent(byte[] updateContent) {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Update content: \n{}", new String(updateContent, StandardCharsets.UTF_8));
-        }
-        Path path = getTargetConfigFile().toPath();
-        try {
-            Files.write(getTargetConfigFile().toPath(), updateContent);
-            LOGGER.info("Updated configuration was written to: {}", path);
-            return true;
-        } catch (IOException e) {
-            LOGGER.error("Configuration update failed. File creation was not successful targeting: {}", path, e);
-            return false;
-        }
-    }
-
-    private File getTargetConfigFile() {
-        return ofNullable(propertiesDir)
-            .map(File::new)
-            .map(File::getParent)
-            .map(parentDir -> new File(parentDir + TARGET_CONFIG_FILE))
-            .orElse(new File(CONF_DIR.getDefaultValue() + TARGET_CONFIG_FILE));
-    }
-
-    private static Map<MiNiFiCommandState, OperationState> getOperationStateMap() {
-        Map<MiNiFiCommandState, OperationState> operationStateMapping = new HashMap<>();
-        operationStateMapping.put(MiNiFiCommandState.FULLY_APPLIED, OperationState.FULLY_APPLIED);
-        operationStateMapping.put(MiNiFiCommandState.NO_OPERATION, OperationState.NO_OPERATION);
-        operationStateMapping.put(MiNiFiCommandState.NOT_APPLIED_WITH_RESTART, OperationState.NOT_APPLIED);
-        operationStateMapping.put(MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART, OperationState.NOT_APPLIED);
-        return Collections.unmodifiableMap(operationStateMapping);
+        return flowController.getEventAccess()
+            .getGroupStatus(ROOT_GROUP_ID)
+            .getConnectionStatus()
+            .stream()
+            .map(connectionStatus -> {
+                FlowQueueStatus flowQueueStatus = new FlowQueueStatus();
+                flowQueueStatus.setSize((long) connectionStatus.getQueuedCount());
+                flowQueueStatus.setSizeMax(connectionStatus.getBackPressureObjectThreshold());
+                flowQueueStatus.setDataSize(connectionStatus.getQueuedBytes());
+                flowQueueStatus.setDataSizeMax(connectionStatus.getBackPressureBytesThreshold());
+                return Pair.of(connectionStatus.getId(), flowQueueStatus);
+            })
+            .collect(toMap(Pair::getKey, Pair::getValue));
     }
 }

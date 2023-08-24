@@ -14,28 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.windows.event.log.jna;
 
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinError;
-import org.apache.nifi.processors.windows.event.log.JNAJUnitRunner;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-@RunWith(JNAJUnitRunner.class)
+/**
+ * Running tests may require {@code junit.platform.launcher.interceptors.enabled}
+ * property to be set to {@code true} to resolve class loading issues.
+ */
+@ExtendWith(MockitoExtension.class)
 public class ErrorLookupTest {
     @Mock
     Kernel32 kernel32;
 
     private ErrorLookup errorLookup;
 
-    @Before
+    @BeforeEach
     public void setup() {
         errorLookup = new ErrorLookup(kernel32);
     }

@@ -56,6 +56,13 @@ public class IngestFile extends AbstractProcessor {
         .allowableValues(COMMIT_ASYNC, COMMIT_SYNCHRONOUS)
         .defaultValue(COMMIT_ASYNC)
         .build();
+    static final PropertyDescriptor DELETE_FILE = new PropertyDescriptor.Builder()
+        .name("Delete File")
+        .description("Whether or not the file should be deleted after successfully ingesting")
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -63,7 +70,7 @@ public class IngestFile extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(FILENAME, COMMIT_MODE);
+        return Arrays.asList(FILENAME, COMMIT_MODE, DELETE_FILE);
     }
 
     @Override
@@ -81,12 +88,21 @@ public class IngestFile extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
         session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
 
+        final boolean deleteFile = context.getProperty(DELETE_FILE).asBoolean();
+
         final String commitMode = context.getProperty(COMMIT_MODE).getValue();
         if (COMMIT_SYNCHRONOUS.equalsIgnoreCase(commitMode)) {
             session.commit();
-            cleanup(file);
+
+            if (deleteFile) {
+                cleanup(file);
+            }
         } else {
-            session.commitAsync(() -> cleanup(file));
+            session.commitAsync(() -> {
+                if (deleteFile) {
+                    cleanup(file);
+                }
+            });
         }
     }
 

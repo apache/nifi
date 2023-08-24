@@ -124,7 +124,7 @@ public class C2HttpClientTest {
         mockWebServer.enqueue(new MockResponse().setBody("updateContent").setResponseCode(HTTP_STATUS_BAD_REQUEST));
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
-        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
+        Optional<byte[]> response = c2HttpClient.retrieveUpdateConfigurationContent(baseUrl + UPDATE_PATH);
 
         assertFalse(response.isPresent());
 
@@ -138,7 +138,7 @@ public class C2HttpClientTest {
         mockWebServer.enqueue(new MockResponse().setBody(content).setResponseCode(HTTP_STATUS_OK));
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
-        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
+        Optional<byte[]> response = c2HttpClient.retrieveUpdateConfigurationContent(baseUrl + UPDATE_PATH);
 
         assertTrue(response.isPresent());
         assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), response.get());

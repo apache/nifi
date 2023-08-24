@@ -26,25 +26,22 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.slf4j.Logger;
 
 public abstract class AbstractPullChangeIngestor implements Runnable, ChangeIngestor {
 
-    // 5 minute default pulling period
-    protected static final String DEFAULT_POLLING_PERIOD = "300000";
-    protected static Logger logger;
+    protected static final String DEFAULT_POLLING_PERIOD_MILLISECONDS = "300000";
 
     protected final AtomicInteger pollingPeriodMS = new AtomicInteger();
-    private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-    protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
-    protected volatile ConfigurationFileHolder configurationFileHolder;
     protected final AtomicReference<Properties> properties = new AtomicReference<>();
+
+    private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+
+    protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
 
     @Override
     public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
         this.properties.set(properties);
-        this.configurationFileHolder = configurationFileHolder;
     }
 
     @Override

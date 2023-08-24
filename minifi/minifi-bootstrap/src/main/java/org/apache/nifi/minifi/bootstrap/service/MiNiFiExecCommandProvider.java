@@ -17,15 +17,19 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
+import static java.lang.String.join;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
+import static org.apache.nifi.util.NiFiProperties.PROPERTIES_FILE_PATH;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 public class MiNiFiExecCommandProvider {
 
@@ -40,17 +44,43 @@ public class MiNiFiExecCommandProvider {
     public static final String DEFAULT_BOOTSTRAP_LOG_FILE_NAME = "minifi-bootstrap";
     public static final String DEFAULT_LOG_FILE_EXTENSION = "log";
 
+    private static final String PROPERTIES_FILE_KEY = "props.file";
+    private static final String LIB_DIR_KEY = "lib.dir";
+    private static final String JAVA_COMMAND_KEY = "java";
+    private static final String JAVA_ARG_KEY_PREFIX = "java.arg";
 
     private static final String DEFAULT_JAVA_CMD = "java";
     private static final String DEFAULT_LIB_DIR = "./lib";
     private static final String DEFAULT_CONF_DIR = "./conf";
-    private static final String DEFAULT_CONFIG_FILE = DEFAULT_CONF_DIR + "/bootstrap.conf";
+    private static final String DEFAULT_MINIFI_PROPERTIES_FILE = "minifi.properties";
+
     private static final String WINDOWS_FILE_EXTENSION = ".exe";
+    private static final String LINUX_FILE_EXTENSION = "";
+    private static final String JAR_FILE_EXTENSION = ".jar";
+
+    private static final String JAVA_HOME_ENVIRONMENT_VARIABLE = "JAVA_HOME";
+    private static final String MINIFI_CLASS_NAME = "MiNiFi";
+    private static final String MINIFI_FULLY_QUALIFIED_CLASS_NAME = "org.apache.nifi.minifi." + MINIFI_CLASS_NAME;
+    private static final String SYSTEM_PROPERTY_TEMPLATE = "-D%s=%s";
+    private static final String NIFI_BOOTSTRAP_LISTEN_PORT = "nifi.bootstrap.listen.port";
+    private static final String APP = "app";
+    private static final String CLASSPATH = "-classpath";
+    private static final String BIN_DIRECTORY = "bin";
 
     private final BootstrapFileProvider bootstrapFileProvider;
 
     public MiNiFiExecCommandProvider(BootstrapFileProvider bootstrapFileProvider) {
         this.bootstrapFileProvider = bootstrapFileProvider;
+    }
+
+    public static String getMiNiFiPropertiesPath(Properties props, File confDir) {
+        return ofNullable(props.getProperty(PROPERTIES_FILE_KEY))
+            .orElseGet(() -> ofNullable(confDir)
+                .filter(File::exists)
+                .map(File::getAbsolutePath)
+                .map(parent -> Path.of(parent, DEFAULT_MINIFI_PROPERTIES_FILE).toAbsolutePath().toString())
+                .orElseGet(() -> Path.of(DEFAULT_CONF_DIR, DEFAULT_MINIFI_PROPERTIES_FILE).toAbsolutePath().toString()))
+            .trim();
     }
 
     /**
@@ -62,116 +92,82 @@ public class MiNiFiExecCommandProvider {
      * @throws IOException throws IOException if any of the configuration file read fails
      */
     public List<String> getMiNiFiExecCommand(int listenPort, File workingDir) throws IOException {
-        Properties props = bootstrapFileProvider.getBootstrapProperties();
-        File confDir = getFile(props.getProperty(CONF_DIR_KEY, DEFAULT_CONF_DIR).trim(), workingDir);
-        File libDir = getFile(props.getProperty("lib.dir", DEFAULT_LIB_DIR).trim(), workingDir);
+        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+
+        File confDir = getFile(bootstrapProperties.getProperty(CONF_DIR_KEY, DEFAULT_CONF_DIR).trim(), workingDir);
+        File libDir = getFile(bootstrapProperties.getProperty(LIB_DIR_KEY, DEFAULT_LIB_DIR).trim(), workingDir);
+
         String minifiLogDir = System.getProperty(LOG_DIR, DEFAULT_LOG_DIR).trim();
         String minifiAppLogFileName = System.getProperty(APP_LOG_FILE_NAME, DEFAULT_APP_LOG_FILE_NAME).trim();
         String minifiAppLogFileExtension = System.getProperty(APP_LOG_FILE_EXTENSION, DEFAULT_LOG_FILE_EXTENSION).trim();
         String minifiBootstrapLogFileName = System.getProperty(BOOTSTRAP_LOG_FILE_NAME, DEFAULT_BOOTSTRAP_LOG_FILE_NAME).trim();
         String minifiBootstrapLogFileExtension = System.getProperty(BOOTSTRAP_LOG_FILE_EXTENSION, DEFAULT_LOG_FILE_EXTENSION).trim();
 
-        List<String> cmd = new ArrayList<>();
-        cmd.add(getJavaCommand(props));
-        cmd.add("-classpath");
-        cmd.add(buildClassPath(props, confDir, libDir));
-        cmd.addAll(getJavaAdditionalArgs(props));
-        cmd.add("-Dnifi.properties.file.path=" + getMiNiFiPropsFileName(props, confDir));
-        cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
-        cmd.add("-Dapp=MiNiFi");
-        cmd.add("-D" + LOG_DIR + "=" + minifiLogDir);
-        cmd.add("-D" + APP_LOG_FILE_NAME + "=" + minifiAppLogFileName);
-        cmd.add("-D" + APP_LOG_FILE_EXTENSION + "=" + minifiAppLogFileExtension);
-        cmd.add("-D" + BOOTSTRAP_LOG_FILE_NAME + "=" + minifiBootstrapLogFileName);
-        cmd.add("-D" + BOOTSTRAP_LOG_FILE_EXTENSION + "=" + minifiBootstrapLogFileExtension);
-        cmd.add("org.apache.nifi.minifi.MiNiFi");
+        List<String> javaCommand = List.of(getJavaCommand(bootstrapProperties), CLASSPATH, buildClassPath(confDir, libDir));
+        List<String> javaAdditionalArgs = getJavaAdditionalArgs(bootstrapProperties);
+        List<String> systemProperties = List.of(
+            systemProperty(PROPERTIES_FILE_PATH, getMiNiFiPropertiesPath(bootstrapProperties, confDir)),
+            systemProperty(NIFI_BOOTSTRAP_LISTEN_PORT, listenPort),
+            systemProperty(APP, MINIFI_CLASS_NAME),
+            systemProperty(LOG_DIR, minifiLogDir),
+            systemProperty(APP_LOG_FILE_NAME, minifiAppLogFileName),
+            systemProperty(APP_LOG_FILE_EXTENSION, minifiAppLogFileExtension),
+            systemProperty(BOOTSTRAP_LOG_FILE_NAME, minifiBootstrapLogFileName),
+            systemProperty(BOOTSTRAP_LOG_FILE_EXTENSION, minifiBootstrapLogFileExtension)
+        );
 
-        return cmd;
-    }
-
-    private String getJavaCommand(Properties props) {
-        String javaCmd = props.getProperty("java");
-        if (javaCmd == null) {
-            javaCmd = DEFAULT_JAVA_CMD;
-        }
-        if (javaCmd.equals(DEFAULT_JAVA_CMD)) {
-            Optional.ofNullable(System.getenv("JAVA_HOME"))
-                .map(javaHome -> getJavaCommandBasedOnExtension(javaHome, WINDOWS_FILE_EXTENSION)
-                    .orElseGet(() -> getJavaCommandBasedOnExtension(javaHome, "").orElse(DEFAULT_JAVA_CMD)));
-        }
-        return javaCmd;
-    }
-
-    private Optional<String> getJavaCommandBasedOnExtension(String javaHome, String extension) {
-        String javaCmd = null;
-        File javaFile = new File(javaHome + File.separatorChar + "bin" + File.separatorChar + "java" + extension);
-        if (javaFile.exists() && javaFile.canExecute()) {
-            javaCmd = javaFile.getAbsolutePath();
-        }
-        return Optional.ofNullable(javaCmd);
-    }
-
-    private String buildClassPath(Properties props, File confDir, File libDir) {
-
-        File[] libFiles = libDir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar"));
-        if (libFiles == null || libFiles.length == 0) {
-            throw new RuntimeException("Could not find lib directory at " + libDir.getAbsolutePath());
-        }
-
-        File[] confFiles = confDir.listFiles();
-        if (confFiles == null || confFiles.length == 0) {
-            throw new RuntimeException("Could not find conf directory at " + confDir.getAbsolutePath());
-        }
-
-        List<String> cpFiles = new ArrayList<>(confFiles.length + libFiles.length);
-        cpFiles.add(confDir.getAbsolutePath());
-        for (File file : libFiles) {
-            cpFiles.add(file.getAbsolutePath());
-        }
-
-        StringBuilder classPathBuilder = new StringBuilder();
-        for (int i = 0; i < cpFiles.size(); i++) {
-            String filename = cpFiles.get(i);
-            classPathBuilder.append(filename);
-            if (i < cpFiles.size() - 1) {
-                classPathBuilder.append(File.pathSeparatorChar);
-            }
-        }
-
-        return classPathBuilder.toString();
-    }
-
-    private List<String> getJavaAdditionalArgs(Properties props) {
-        List<String> javaAdditionalArgs = new ArrayList<>();
-        for (Entry<Object, Object> entry : props.entrySet()) {
-            String key = (String) entry.getKey();
-            String value = (String) entry.getValue();
-
-            if (key.startsWith("java.arg")) {
-                javaAdditionalArgs.add(value);
-            }
-        }
-        return javaAdditionalArgs;
-    }
-
-    private String getMiNiFiPropsFileName(Properties props, File confDir) {
-        String minifiPropsFilename = props.getProperty("props.file");
-        if (minifiPropsFilename == null) {
-            if (confDir.exists()) {
-                minifiPropsFilename = new File(confDir, "nifi.properties").getAbsolutePath();
-            } else {
-                minifiPropsFilename = DEFAULT_CONFIG_FILE;
-            }
-        }
-
-        return minifiPropsFilename.trim();
+        return List.of(javaCommand, javaAdditionalArgs, systemProperties, List.of(MINIFI_FULLY_QUALIFIED_CLASS_NAME))
+            .stream()
+            .flatMap(List::stream)
+            .toList();
     }
 
     private File getFile(String filename, File workingDir) {
         File file = new File(filename);
-        if (!file.isAbsolute()) {
-            file = new File(workingDir, filename);
-        }
-        return file;
+        return file.isAbsolute() ? file : new File(workingDir, filename).getAbsoluteFile();
+    }
+
+    private String getJavaCommand(Properties bootstrapProperties) {
+        String javaCommand = bootstrapProperties.getProperty(JAVA_COMMAND_KEY, DEFAULT_JAVA_CMD);
+        return javaCommand.equals(DEFAULT_JAVA_CMD)
+            ? ofNullable(System.getenv(JAVA_HOME_ENVIRONMENT_VARIABLE))
+            .flatMap(javaHome ->
+                getJavaCommandBasedOnExtension(javaHome, javaCommand, WINDOWS_FILE_EXTENSION)
+                    .or(() -> getJavaCommandBasedOnExtension(javaHome, javaCommand, LINUX_FILE_EXTENSION)))
+            .orElse(DEFAULT_JAVA_CMD)
+            : javaCommand;
+    }
+
+    private Optional<String> getJavaCommandBasedOnExtension(String javaHome, String javaCommand, String extension) {
+        return Optional.of(new File(join(File.separator, javaHome, BIN_DIRECTORY, javaCommand + extension)))
+            .filter(File::exists)
+            .filter(File::canExecute)
+            .map(File::getAbsolutePath);
+    }
+
+    private String buildClassPath(File confDir, File libDir) {
+        File[] libFiles = ofNullable(libDir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(JAR_FILE_EXTENSION)))
+            .filter(files -> files.length > 0)
+            .orElseThrow(() -> new RuntimeException("Could not find lib directory at " + libDir.getAbsolutePath()));
+
+        ofNullable(confDir.listFiles())
+            .filter(files -> files.length > 0)
+            .orElseThrow(() -> new RuntimeException("Could not find conf directory at " + confDir.getAbsolutePath()));
+
+        return Stream.concat(Stream.of(confDir), Stream.of(libFiles))
+            .map(File::getAbsolutePath)
+            .collect(joining(File.pathSeparator));
+    }
+
+    private List<String> getJavaAdditionalArgs(Properties props) {
+        return props.entrySet()
+            .stream()
+            .filter(entry -> ((String) entry.getKey()).startsWith(JAVA_ARG_KEY_PREFIX))
+            .map(entry -> (String) entry.getValue())
+            .toList();
+    }
+
+    private String systemProperty(String key, Object value) {
+        return String.format(SYSTEM_PROPERTY_TEMPLATE, key, value);
     }
 }

@@ -36,7 +36,10 @@ import org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache;
 import org.junit.jupiter.api.Test;
 
 public class FileSystemConfigurationCacheTest {
+
   private static final String PATH_ROOT = "src/test/resources/files";
+  private static final String FLOW_CONTENT_TYPE = "test/json";
+  public static final String NOT_REGISTERED_CONTENT_TYPE = "test/contenttype";
 
   @Test
   public void getConfigurationTest() throws IOException, ConfigurationProviderException {
@@ -46,11 +49,11 @@ public class FileSystemConfigurationCacheTest {
 
     Map<String, List<String>> parameters = new HashMap<>();
 
-    ConfigurationCacheFileInfo info = cache.getCacheFileInfo("text/yaml", parameters);
+    ConfigurationCacheFileInfo info = cache.getCacheFileInfo(FLOW_CONTENT_TYPE, parameters);
 
     WriteableConfiguration configuration = info.getConfiguration(1);
 
-    assertEquals("config.text.yaml.v1", configuration.getName());
+    assertEquals("config.test.json.v1", configuration.getName());
     assertEquals("1", configuration.getVersion());
     assertTrue(configuration.exists());
   }
@@ -63,7 +66,7 @@ public class FileSystemConfigurationCacheTest {
 
     Map<String, List<String>> parameters = new HashMap<>();
 
-    ConfigurationCacheFileInfo info = cache.getCacheFileInfo("test/contenttype", parameters);
+    ConfigurationCacheFileInfo info = cache.getCacheFileInfo(NOT_REGISTERED_CONTENT_TYPE, parameters);
 
     WriteableConfiguration configuration = info.getConfiguration(1);
 
@@ -80,7 +83,7 @@ public class FileSystemConfigurationCacheTest {
 
     Map<String, List<String>> parameters = new HashMap<>();
 
-    ConfigurationCacheFileInfo info = cache.getCacheFileInfo("text/yaml", parameters);
+    ConfigurationCacheFileInfo info = cache.getCacheFileInfo(FLOW_CONTENT_TYPE, parameters);
 
     Stream<WriteableConfiguration> configs = info.getCachedConfigurations();
 
@@ -96,6 +99,6 @@ public class FileSystemConfigurationCacheTest {
 
     Map<String, List<String>> parameters = new HashMap<>();
 
-    assertThrows(InvalidParameterException.class, () -> cache.getCacheFileInfo("test/contenttype", parameters));
+    assertThrows(InvalidParameterException.class, () -> cache.getCacheFileInfo(NOT_REGISTERED_CONTENT_TYPE, parameters));
   }
 }

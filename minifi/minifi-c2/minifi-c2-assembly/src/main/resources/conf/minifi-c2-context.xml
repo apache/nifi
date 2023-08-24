@@ -26,7 +26,7 @@
                 <bean class="org.apache.nifi.minifi.c2.provider.cache.CacheConfigurationProvider">
                     <constructor-arg>
                         <list>
-                            <value>text/yml</value>
+                            <value>application/json</value>
                         </list>
                     </constructor-arg>
                     <constructor-arg>
@@ -62,24 +62,6 @@
                         </bean>
                     </constructor-arg>-->
                 </bean>
-                <!--<bean class="org.apache.nifi.minifi.c2.provider.nifi.rest.NiFiRestConfigurationProvider">
-                    <constructor-arg>
-                        <bean class="org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache">
-                            <constructor-arg>
-                                <value>./cache</value>
-                            </constructor-arg>
-                            <constructor-arg>
-                                <value>\${class}/\${class}</value>
-                            </constructor-arg>
-                        </bean>
-                    </constructor-arg>
-                    <constructor-arg>
-                        <value>${minifi.c2.server.provider.nifi.rest.api.url}</value>
-                    </constructor-arg>
-                    <constructor-arg>
-                        <value>\${class}.v\${version}</value>
-                    </constructor-arg>
-                </bean>-->
             </list>
         </constructor-arg>
         <constructor-arg>

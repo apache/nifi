@@ -121,6 +121,12 @@
             <version>1.3.9-1</version>
         </dependency>
         <!-- hadoop-client is needed for auditing to HDFS -->
+        <!-- Add Jetty 10 websocket for Hadoop YarnClientImpl.shellToContainer -->
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-jetty-client</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
@@ -137,6 +143,11 @@
                 <exclusion>
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <!-- Exclude Jetty 9.4 -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty.websocket</groupId>
+                    <artifactId>websocket-client</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
