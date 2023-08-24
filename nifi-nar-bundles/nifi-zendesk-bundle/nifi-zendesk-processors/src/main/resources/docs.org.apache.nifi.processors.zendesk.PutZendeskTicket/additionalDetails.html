@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+    <head>
+        <meta charset="utf-8"/>
+        <title>GetZendesk</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+        <style>
+            h2 {margin-top: 4em}
+            h3 {margin-top: 3em}
+            td {text-align: left}
+        </style>
+    </head>
+
+    <body>
+        <h1>PutZendeskTicket</h1>
+
+        <h3>Description</h3>
+
+        <p>
+            The processor uses the Zendesk API to ingest tickets into Zendesk. The processor is capable to send requests directly from the flowFile content or construct the request objects from the incoming records using RecordReader.
+        </p>
+
+        <h3>Authentication</h3>
+
+        <p>
+            Zendesk API uses basic authentication. Either a password or an authentication token have to be provided.
+            Authentication token can be created in Zendesk API Settings, so the users don't have to expose their passwords,
+            and also auth tokens can be revoked quickly if necessary.
+        </p>
+
+        <h3>Property values</h3>
+
+        <p>
+            There are multiple ways of providing property values to the request object:
+            <dl>
+            <dt>Record Path:</dt>
+                <dd>
+                    The property value is going to be evaluated as a record path if the value is provided inside brackets starting with a '%'. <br>
+                    e.g.: if the incoming record is <code>{"foo":{"bar":"example value"}}</code> then the <code>%{/foo/bar}</code> will get the value of "example value" from the record.
+                </dd>
+            <dt>Constant:</dt>
+                <dd>
+                    The property value is going to be treated as a constant if the provided value doesn't match with the record path format. <br>
+                    e.g.: if the property value is <code>"constant value"</code> then the property value in the request object will be "constant value"
+                </dd>
+            </dl>
+        </p>
+
+        <h3>Additional properties</h3>
+
+        <p>
+            The processor provides some commonly used Zendesk ticket attribute in its property list but any number of additional property can be added with dynamic properties.
+            The dynamic property key is treated as a record path, and it represents the path in the request object. The dynamic property value is the same as the predefined property attributes.
+            The possible Zendesk request attributes can be found in the <a target="blank" href="https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/">Zendesk API documentation</a>
+        </p>
+    </body>
+</html>

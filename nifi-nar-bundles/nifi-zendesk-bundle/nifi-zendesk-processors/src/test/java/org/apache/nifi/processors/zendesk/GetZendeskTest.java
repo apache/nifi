@@ -17,32 +17,6 @@
 
 package org.apache.nifi.processors.zendesk;
 
-import static java.lang.String.format;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonMap;
-import static org.apache.nifi.components.state.Scope.CLUSTER;
-import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUESTS;
-import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.REL_SUCCESS_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.WEB_CLIENT_SERVICE_PROVIDER_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_AUTHENTICATION_TYPE_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_USER_NAME;
-import static org.apache.nifi.processors.zendesk.ZendeskExportMethod.CURSOR;
-import static org.apache.nifi.processors.zendesk.ZendeskResource.TICKETS;
-import static org.apache.nifi.util.TestRunners.newTestRunner;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -60,6 +34,33 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opentest4j.AssertionFailedError;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.REL_SUCCESS_NAME;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
+import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.components.state.Scope.CLUSTER;
+import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUESTS;
+import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE_NAME;
+import static org.apache.nifi.processors.zendesk.ZendeskExportMethod.CURSOR;
+import static org.apache.nifi.processors.zendesk.ZendeskResource.TICKETS;
+import static org.apache.nifi.util.TestRunners.newTestRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class GetZendeskTest {
 
