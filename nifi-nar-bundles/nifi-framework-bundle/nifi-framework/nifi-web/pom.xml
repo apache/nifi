@@ -33,6 +33,7 @@
         <module>nifi-jetty</module>
         <module>nifi-web-content-access</module>
         <module>nifi-ui-extension</module>
+        <module>nifi-web-frontend</module>
     </modules>
     <dependencyManagement>
         <dependencies>
