@@ -203,7 +203,7 @@ public class TestDeduplicateRecord {
     public static final String SECOND_KEY_HASHED = DigestUtils.sha256Hex(SECOND_KEY);
 
     @Test
-    public void testDeduplicateWithDMC() throws Exception {
+    public void testDeduplicateWithDMCNoPutIdentifier() throws Exception {
         DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
@@ -212,7 +212,6 @@ public class TestDeduplicateRecord {
         runner.assertValid();
 
         dmc.put(FIRST_KEY_HASHED, true, null, null);
-        dmc.put(SECOND_KEY_HASHED, true, null, null);
 
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
@@ -222,7 +221,30 @@ public class TestDeduplicateRecord {
         runner.enqueue("");
         runner.run();
 
-        doCountTests(0, 1, 1, 1, 1, 3);
+        doCountTests(0, 1, 1, 1, 3, 1);
+    }
+
+    @Test
+    public void testDeduplicateWithDMCPutIdentifier() throws Exception {
+        DistributedMapCacheClient dmc = new MockCacheService();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+
+        dmc.put(FIRST_KEY_HASHED, true, null, null);
+
+        reader.addRecord("John", "Q", "Smith");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jane", "X", "Doe");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 2, 2);
     }
 
     @Test
@@ -230,6 +252,7 @@ public class TestDeduplicateRecord {
         DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.setProperty("first_name", "/firstName");
         runner.enableControllerService(dmc);
@@ -251,6 +274,7 @@ public class TestDeduplicateRecord {
         DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.setProperty("first_name", "/firstName");
         runner.setProperty("middle_name", "/middleName");
@@ -274,6 +298,7 @@ public class TestDeduplicateRecord {
         DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.setProperty("middle_name", "/middleName");
         runner.setProperty("last_name", "/lastName");
@@ -321,6 +346,7 @@ public class TestDeduplicateRecord {
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.setProperty(DeduplicateRecord.CACHE_IDENTIFIER, "${user.name}-${" + DeduplicateRecord.RECORD_HASH_VALUE_ATTRIBUTE + "}");
+        runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
         runner.enableControllerService(dmc);
         runner.assertValid();
 
