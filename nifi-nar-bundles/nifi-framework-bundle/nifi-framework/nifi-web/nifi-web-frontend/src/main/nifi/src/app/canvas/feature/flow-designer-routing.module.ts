@@ -15,18 +15,13 @@
  * limitations under the License.
  */
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
-    },
-    extend: {},
-  },
-  plugins: [],
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule
+  ]
+})
+export class FlowDesignerRoutingModule { }

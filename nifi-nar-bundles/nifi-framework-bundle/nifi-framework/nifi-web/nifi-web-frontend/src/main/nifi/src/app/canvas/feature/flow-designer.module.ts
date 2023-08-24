@@ -15,18 +15,26 @@
  * limitations under the License.
  */
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
-    },
-    extend: {},
-  },
-  plugins: [],
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FlowDesignerComponent } from "./flow-designer.component";
+import { FlowDesignerRoutingModule } from "./flow-designer-routing.module";
+import { HeaderModule } from "../ui/header/header.module";
+import { FooterModule } from "../ui/footer/footer.module";
+import { CanvasModule } from "../ui/canvas/canvas.module";
 
+@NgModule({
+  declarations: [FlowDesignerComponent],
+  exports: [
+    FlowDesignerComponent
+  ],
+  imports: [
+    CommonModule,
+    HeaderModule,
+    CanvasModule,
+    FooterModule,
+    FlowDesignerRoutingModule
+  ]
+})
+export class FlowDesignerModule {
+}

@@ -15,18 +15,10 @@
  * limitations under the License.
  */
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
-    },
-    extend: {},
-  },
-  plugins: [],
+.canvas-background {
+  background-color: #f9fafb;
+  background-size: 14px 14px;
+  background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px), linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
+  z-index: 1;
+  overflow: hidden;
 }
-

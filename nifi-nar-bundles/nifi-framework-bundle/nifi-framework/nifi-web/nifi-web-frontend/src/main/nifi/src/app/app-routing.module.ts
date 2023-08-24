@@ -18,7 +18,13 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-const routes: Routes = [];
+const routes: Routes = [
+  {
+    path: '',
+    loadChildren: () =>
+      import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule),
+  },
+];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],

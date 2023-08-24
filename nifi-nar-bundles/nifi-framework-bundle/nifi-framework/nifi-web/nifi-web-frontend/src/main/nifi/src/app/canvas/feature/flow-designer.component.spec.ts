@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
-    },
-    extend: {},
-  },
-  plugins: [],
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { FlowDesignerComponent } from './flow-designer.component';
+
+describe('CanvasComponent', () => {
+  let component: FlowDesignerComponent;
+  let fixture: ComponentFixture<FlowDesignerComponent>;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      declarations: [FlowDesignerComponent]
+    });
+    fixture = TestBed.createComponent(FlowDesignerComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});

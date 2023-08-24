@@ -15,18 +15,13 @@
  * limitations under the License.
  */
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
-    },
-    extend: {},
-  },
-  plugins: [],
-}
+import { Component } from '@angular/core';
 
+@Component({
+  selector: 'fd-header',
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.scss']
+})
+export class HeaderComponent {
+
+}
