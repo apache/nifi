@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "nifi-web-frontend": {
+    "nifi": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/nifi-web-frontend",
+            "outputPath": "dist/nifi",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
@@ -65,10 +65,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "nifi-web-frontend:build:production"
+              "browserTarget": "nifi:build:production"
             },
             "development": {
-              "browserTarget": "nifi-web-frontend:build:development"
+              "browserTarget": "nifi:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -76,7 +76,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "nifi-web-frontend:build"
+            "browserTarget": "nifi:build"
           }
         },
         "test": {
