@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.File;
 import java.io.IOException;
@@ -160,6 +161,16 @@ public class DBCPServiceTest {
     @Test
     public void testGetConnectionDynamicPropertySensitivePrefixSupported() throws SQLException {
         assertConnectionNotNullDynamicProperty("SENSITIVE.create", "true");
+    }
+
+    @Test
+    public void testGetConnectionSensitiveDynamicPropertyWithoutPrefixAndWithPrefixShouldThrowException() throws SQLException {
+        runner.setProperty(service, "SENSITIVE.create", "true");
+        runner.setProperty(service, "create", "true");
+
+        final AssertionFailedError e =
+                assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
+        assertTrue(e.getMessage().contains("IllegalStateException"));
     }
 
     @Test
