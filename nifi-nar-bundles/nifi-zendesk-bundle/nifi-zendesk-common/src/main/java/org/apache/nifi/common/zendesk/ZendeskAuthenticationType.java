@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.zendesk;
+package org.apache.nifi.common.zendesk;
 
-import static java.lang.String.format;
+import org.apache.nifi.components.DescribedValue;
 
 import java.util.stream.Stream;
-import org.apache.nifi.components.DescribedValue;
+
+import static java.lang.String.format;
 
 public enum ZendeskAuthenticationType implements DescribedValue {
     PASSWORD("password", "Password",

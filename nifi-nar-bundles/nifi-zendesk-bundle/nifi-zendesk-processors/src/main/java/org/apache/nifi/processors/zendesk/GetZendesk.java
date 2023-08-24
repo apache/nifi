@@ -17,42 +17,12 @@
 
 package org.apache.nifi.processors.zendesk;
 
-import static com.fasterxml.jackson.core.JsonEncoding.UTF8;
-import static com.fasterxml.jackson.core.JsonToken.FIELD_NAME;
-import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
-import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Base64.getEncoder;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_FORBIDDEN;
-import static org.apache.nifi.components.state.Scope.CLUSTER;
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_LONG_VALIDATOR;
-import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
-import static org.apache.nifi.web.client.api.HttpResponseStatus.OK;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -63,12 +33,10 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -77,7 +45,36 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import static com.fasterxml.jackson.core.JsonEncoding.UTF8;
+import static com.fasterxml.jackson.core.JsonToken.FIELD_NAME;
+import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_FORBIDDEN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
+import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
+import static org.apache.nifi.components.state.Scope.CLUSTER;
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_LONG_VALIDATOR;
+import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
+import static org.apache.nifi.web.client.api.HttpResponseStatus.OK;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -89,80 +86,19 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 @WritesAttributes({
     @WritesAttribute(attribute = RECORD_COUNT_ATTRIBUTE_NAME, description = "The number of records fetched by the processor.")})
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-public class GetZendesk extends AbstractProcessor {
+public class GetZendesk extends AbstractZendesk {
 
     static final int HTTP_TOO_MANY_REQUESTS = 429;
-    static final String RECORD_COUNT_ATTRIBUTE_NAME = "record.count";
 
-    static final String REL_SUCCESS_NAME = "success";
-    static final String WEB_CLIENT_SERVICE_PROVIDER_NAME = "web-client-service-provider";
-    static final String ZENDESK_SUBDOMAIN_NAME = "zendesk-subdomain";
-    static final String ZENDESK_USER_NAME = "zendesk-user";
-    static final String ZENDESK_AUTHENTICATION_TYPE_NAME = "zendesk-authentication-type-name";
-    static final String ZENDESK_AUTHENTICATION_CREDENTIAL_NAME = "zendesk-authentication-value-name";
     static final String ZENDESK_EXPORT_METHOD_NAME = "zendesk-export-method";
     static final String ZENDESK_RESOURCE_NAME = "zendesk-resource";
     static final String ZENDESK_QUERY_START_TIMESTAMP_NAME = "zendesk-query-start-timestamp";
 
-    private static final String HTTPS = "https";
-    private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
-    private static final String BASIC_AUTH_PREFIX = "Basic ";
-    private static final String ZENDESK_HOST_TEMPLATE = "%s.zendesk.com";
-
-    private static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name(REL_SUCCESS_NAME)
-        .description("For FlowFiles created as a result of a successful HTTP request.")
-        .build();
-
     private static final Set<Relationship> RELATIONSHIPS = singleton(REL_SUCCESS);
-
-    private static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-        .name(WEB_CLIENT_SERVICE_PROVIDER_NAME)
-        .displayName("Web Client Service Provider")
-        .description("Controller service for HTTP client operations.")
-        .identifiesControllerService(WebClientServiceProvider.class)
-        .required(true)
-        .build();
-
-    private static final PropertyDescriptor ZENDESK_SUBDOMAIN = new PropertyDescriptor.Builder()
-        .name(ZENDESK_SUBDOMAIN_NAME)
-        .displayName("Zendesk Subdomain Name")
-        .description("Name of the Zendesk subdomain.")
-        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .required(true)
-        .addValidator(NON_BLANK_VALIDATOR)
-        .build();
-
-    private static final PropertyDescriptor ZENDESK_USER = new PropertyDescriptor.Builder()
-        .name(ZENDESK_USER_NAME)
-        .displayName("Zendesk User Name")
-        .description("Login user to Zendesk subdomain.")
-        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .required(true)
-        .addValidator(NON_BLANK_VALIDATOR)
-        .build();
-
-    private static final PropertyDescriptor ZENDESK_AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
-        .name(ZENDESK_AUTHENTICATION_TYPE_NAME)
-        .displayName("Zendesk Authentication Type")
-        .description("Type of authentication to Zendesk API.")
-        .required(true)
-        .allowableValues(ZendeskAuthenticationType.class)
-        .build();
-
-    private static final PropertyDescriptor ZENDESK_AUTHENTICATION_CREDENTIAL = new PropertyDescriptor.Builder()
-        .name(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME)
-        .displayName("Zendesk Authentication Credential")
-        .description("Password or authentication token for Zendesk login user.")
-        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .sensitive(true)
-        .required(true)
-        .addValidator(NON_EMPTY_VALIDATOR)
-        .build();
 
     private static final PropertyDescriptor ZENDESK_EXPORT_METHOD = new PropertyDescriptor.Builder()
         .name(ZENDESK_EXPORT_METHOD_NAME)
-        .displayName("Zendesk Export Method")
+        .displayName("Export Method")
         .description("Method for incremental export.")
         .required(true)
         .allowableValues(ZendeskExportMethod.class)
@@ -170,7 +106,7 @@ public class GetZendesk extends AbstractProcessor {
 
     private static final PropertyDescriptor ZENDESK_RESOURCE = new PropertyDescriptor.Builder()
         .name(ZENDESK_RESOURCE_NAME)
-        .displayName("Zendesk Resource")
+        .displayName("Resource")
         .description("The particular Zendesk resource which is meant to be exported.")
         .required(true)
         .allowableValues(ZendeskResource.class)
@@ -178,7 +114,7 @@ public class GetZendesk extends AbstractProcessor {
 
     private static final PropertyDescriptor ZENDESK_QUERY_START_TIMESTAMP = new PropertyDescriptor.Builder()
         .name(ZENDESK_QUERY_START_TIMESTAMP_NAME)
-        .displayName("Zendesk Query Start Timestamp")
+        .displayName("Query Start Timestamp")
         .description("Initial timestamp to query Zendesk API from in Unix timestamp seconds format.")
         .addValidator(POSITIVE_LONG_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -198,8 +134,6 @@ public class GetZendesk extends AbstractProcessor {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
-
-    private volatile WebClientServiceProvider webClientServiceProvider;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -228,18 +162,13 @@ public class GetZendesk extends AbstractProcessor {
         return results;
     }
 
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
-    }
-
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) {
         ZendeskResource zendeskResource = ZendeskResource.forName(context.getProperty(ZENDESK_RESOURCE).getValue());
         ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(context.getProperty(ZENDESK_EXPORT_METHOD).getValue());
 
         URI uri = createUri(context, zendeskResource, exportMethod);
-        HttpResponseEntity response = performQuery(context, uri);
+        HttpResponseEntity response = zendeskClient.performGetRequest(uri);
 
         if (response.statusCode() == OK.getCode()) {
             AtomicInteger resultCount = new AtomicInteger(0);
@@ -258,15 +187,14 @@ public class GetZendesk extends AbstractProcessor {
             getLogger().error("Rate limit exceeded for uri={}, yielding before retrying request.", uri);
             context.yield();
         } else {
-            getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, responseBodyToString(context, response));
+            getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, getResponseBody(response));
             context.yield();
         }
     }
 
     private URI createUri(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
-        String subDomain = context.getProperty(ZENDESK_SUBDOMAIN).evaluateAttributeExpressions().getValue();
         String resourcePath = zendeskResource.apiPath(exportMethod);
-        HttpUriBuilder uriBuilder = uriBuilder(subDomain, resourcePath);
+        HttpUriBuilder uriBuilder = uriBuilder(resourcePath);
 
         String cursor = getCursorState(context, zendeskResource, exportMethod);
         if (cursor == null) {
@@ -278,36 +206,12 @@ public class GetZendesk extends AbstractProcessor {
         return uriBuilder.build();
     }
 
-    HttpUriBuilder uriBuilder(String subDomain, String resourcePath) {
-        return webClientServiceProvider.getHttpUriBuilder()
-            .scheme(HTTPS)
-            .host(format(ZENDESK_HOST_TEMPLATE, subDomain))
-            .encodedPath(resourcePath);
-    }
-
     private String getCursorState(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
         try {
             return context.getStateManager().getState(CLUSTER).get(zendeskResource.getValue() + exportMethod.getValue());
         } catch (IOException e) {
             throw new ProcessException("Failed to retrieve cursor state", e);
         }
-    }
-
-    private HttpResponseEntity performQuery(ProcessContext context, URI uri) {
-        String userName = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
-        ZendeskAuthenticationType authenticationType = ZendeskAuthenticationType.forName(context.getProperty(ZENDESK_AUTHENTICATION_TYPE).getValue());
-        String authenticationCredential = context.getProperty(ZENDESK_AUTHENTICATION_CREDENTIAL).evaluateAttributeExpressions().getValue();
-
-        return webClientServiceProvider.getWebClientService()
-            .get()
-            .uri(uri)
-            .header(AUTHORIZATION_HEADER_NAME, basicAuthHeaderValue(authenticationType.enrichUserName(userName), authenticationCredential))
-            .retrieve();
-    }
-
-    private String basicAuthHeaderValue(String user, String credential) {
-        String userWithPassword = user + ":" + credential;
-        return BASIC_AUTH_PREFIX + getEncoder().encodeToString(userWithPassword.getBytes());
     }
 
     private OutputStreamCallback httpResponseParser(ProcessContext context, HttpResponseEntity response,
@@ -350,15 +254,6 @@ public class GetZendesk extends AbstractProcessor {
             context.getStateManager().setState(singletonMap(zendeskResource.getValue() + exportMethod.getValue(), cursor), CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Failed to update cursor state", e);
-        }
-    }
-
-    private String responseBodyToString(ProcessContext context, HttpResponseEntity response) {
-        try {
-            return IOUtils.toString(response.body(), UTF_8);
-        } catch (IOException e) {
-            context.yield();
-            throw new UncheckedIOException("Reading response body has failed", e);
         }
     }
 }
