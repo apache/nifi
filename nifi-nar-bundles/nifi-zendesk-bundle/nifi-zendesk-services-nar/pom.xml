@@ -13,24 +13,31 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-zendesk-bundle</artifactId>
         <version>1.25.0-SNAPSHOT</version>
-        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
-    <artifactId>nifi-zendesk-bundle</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>nifi-zendesk-services-nar</artifactId>
+    <packaging>nar</packaging>
 
-    <modules>
-        <module>nifi-zendesk-processors</module>
-        <module>nifi-zendesk-nar</module>
-        <module>nifi-zendesk-common</module>
-        <module>nifi-zendesk-services</module>
-        <module>nifi-zendesk-services-nar</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-zendesk-services</artifactId>
+            <version>1.25.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+    </dependencies>
+
 </project>

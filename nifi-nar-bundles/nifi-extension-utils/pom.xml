@@ -45,5 +45,6 @@
         <module>nifi-service-utils</module>
         <module>nifi-syslog-utils</module>
         <module>nifi-conflict-resolution</module>
+        <module>nifi-record-path-property</module>
     </modules>
 </project>
