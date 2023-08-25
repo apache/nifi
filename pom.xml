@@ -144,7 +144,7 @@
         <snakeyaml.version>2.1</snakeyaml.version>
         <netty.4.version>4.1.96.Final</netty.4.version>
         <spring.version>5.3.29</spring.version>
-        <spring.security.version>5.8.5</spring.security.version>
+        <spring.security.version>5.8.6</spring.security.version>
         <swagger.annotations.version>1.6.11</swagger.annotations.version>
         <h2.version>2.2.220</h2.version>
         <zookeeper.version>3.8.2</zookeeper.version>
