@@ -15,28 +15,19 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
-import { Observable } from "rxjs";
-import { CanvasState } from "../../state";
-import { select, Store } from "@ngrx/store";
-import { selectFlow } from "../../state/flow/flow.selectors";
-import { loadFlow } from "../../state/flow/flow.actions";
+// This file can be replaced during build by using the `fileReplacements` array.
+// `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
+// The list of file replacements can be found in `angular.json`.
 
-@Component({
-  selector: 'fd-canvas',
-  templateUrl: './canvas.component.html',
-  styleUrls: ['./canvas.component.scss']
-})
-export class CanvasComponent implements OnInit {
-  flow$: Observable<any>;
+export const environment = {
+  production: false
+};
 
-  constructor(
-    private store: Store<CanvasState>
-  ) {
-    this.flow$ = this.store.pipe(select(selectFlow));
-  }
-
-  ngOnInit(): void {
-    this.store.dispatch(loadFlow());
-  }
-}
+/*
+ * For easier debugging in development mode, you can import the following file
+ * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
+ *
+ * This import should be commented out in production mode because it will have a negative impact
+ * on performance if an error is thrown.
+ */
+// import 'zone.js/dist/zone-error';  // Included with Angular CLI.

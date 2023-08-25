@@ -15,28 +15,28 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
-import { Observable } from "rxjs";
-import { CanvasState } from "../../state";
-import { select, Store } from "@ngrx/store";
-import { selectFlow } from "../../state/flow/flow.selectors";
-import { loadFlow } from "../../state/flow/flow.actions";
+import { createReducer, on } from "@ngrx/store";
+import { loadFlow, loadFlowFailure, loadFlowSuccess } from "./flow.actions";
+import { FlowState } from "../index";
 
-@Component({
-  selector: 'fd-canvas',
-  templateUrl: './canvas.component.html',
-  styleUrls: ['./canvas.component.scss']
-})
-export class CanvasComponent implements OnInit {
-  flow$: Observable<any>;
-
-  constructor(
-    private store: Store<CanvasState>
-  ) {
-    this.flow$ = this.store.pipe(select(selectFlow));
-  }
-
-  ngOnInit(): void {
-    this.store.dispatch(loadFlow());
-  }
+export const initialState: FlowState = {
+  flow: {},
+  error: null,
+  status: 'pending'
 }
+
+export const flowReducer = createReducer(
+  initialState,
+  on(loadFlow, (state) => ({ ...state, status: 'loading' as const })),
+  on(loadFlowSuccess, (state, { flow }) => ({
+    ...state,
+    flow: flow,
+    error: null,
+    status: 'success' as const
+  })),
+  on(loadFlowFailure, (state, { error }) => ({
+    ...state,
+    error: error,
+    status: 'error' as const
+  }))
+);

@@ -22,6 +22,10 @@ import { FlowDesignerRoutingModule } from "./flow-designer-routing.module";
 import { HeaderModule } from "../ui/header/header.module";
 import { FooterModule } from "../ui/footer/footer.module";
 import { CanvasModule } from "../ui/canvas/canvas.module";
+import { flowReducer } from "../state/flow/flow.reducer";
+import { StoreModule } from "@ngrx/store";
+import { EffectsModule } from "@ngrx/effects";
+import { FlowEffects } from "../state/flow/flow.effects";
 
 @NgModule({
   declarations: [FlowDesignerComponent],
@@ -33,7 +37,9 @@ import { CanvasModule } from "../ui/canvas/canvas.module";
     HeaderModule,
     CanvasModule,
     FooterModule,
-    FlowDesignerRoutingModule
+    FlowDesignerRoutingModule,
+    StoreModule.forFeature('flowState', flowReducer),
+    EffectsModule.forFeature([FlowEffects]),
   ]
 })
 export class FlowDesignerModule {

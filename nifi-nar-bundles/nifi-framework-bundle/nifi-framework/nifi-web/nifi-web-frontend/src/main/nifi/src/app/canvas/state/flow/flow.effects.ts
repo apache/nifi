@@ -15,28 +15,29 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
-import { Observable } from "rxjs";
-import { CanvasState } from "../../state";
-import { select, Store } from "@ngrx/store";
-import { selectFlow } from "../../state/flow/flow.selectors";
-import { loadFlow } from "../../state/flow/flow.actions";
+import { Injectable } from "@angular/core";
+import { FlowService } from "../../service/flow.service";
+import { Actions, createEffect, ofType } from "@ngrx/effects";
+import * as FlowActions from "./flow.actions";
+import { catchError, from, map, of, switchMap } from "rxjs";
 
-@Component({
-  selector: 'fd-canvas',
-  templateUrl: './canvas.component.html',
-  styleUrls: ['./canvas.component.scss']
-})
-export class CanvasComponent implements OnInit {
-  flow$: Observable<any>;
+@Injectable()
+export class FlowEffects {
 
   constructor(
-    private store: Store<CanvasState>
-  ) {
-    this.flow$ = this.store.pipe(select(selectFlow));
-  }
+    private actions$: Actions,
+    private flowService: FlowService
+  ) {}
 
-  ngOnInit(): void {
-    this.store.dispatch(loadFlow());
-  }
+  loadFlow$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FlowActions.loadFlow),
+      switchMap(() =>
+        from(this.flowService.getFlow()).pipe(
+          map((flow) => FlowActions.loadFlowSuccess({ flow: flow })),
+          catchError((error) => of(FlowActions.loadFlowFailure({ error })))
+        )
+      )
+    )
+  );
 }
