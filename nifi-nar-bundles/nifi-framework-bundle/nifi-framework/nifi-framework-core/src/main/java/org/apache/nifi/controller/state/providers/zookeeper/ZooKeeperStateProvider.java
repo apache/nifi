@@ -365,14 +365,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
      */
     @Override
     public void setState(final Map<String, String> stateValues, final String componentId) throws IOException {
-        verifyEnabled();
-
-        try {
-            final String path = getComponentPath(componentId);
-            final byte[] data = serialize(stateValues);
-            final ZooKeeper keeper = getZooKeeper();
-            validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
-
+        final StateModifier stateModifier = (keeper, path, data) -> {
             try {
                 keeper.setData(path, data, -1);
             } catch (final NoNodeException nne) {
@@ -382,17 +375,10 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                     setState(stateValues, componentId);
                 }
             }
-        } catch (final InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", ie);
-        } catch (final SessionExpiredException see) {
-            invalidateClient();
-            setState(stateValues, componentId);
-        } catch (final StateTooLargeException stle) {
-            throw stle;
-        } catch (final Exception e) {
-            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, e);
-        }
+            return true;
+        };
+
+        modifyState(stateValues, componentId, stateModifier);
     }
 
     /**
@@ -408,18 +394,12 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
      */
     @Override
     public boolean replace(final StateMap oldState, final Map<String, String> stateValues, final String componentId) throws IOException {
-        verifyEnabled();
+        final Optional<Integer> version = oldState.getStateVersion().map(Integer::parseInt);
 
-        try {
-            final String path = getComponentPath(componentId);
-            final byte[] data = serialize(stateValues);
-            final ZooKeeper keeper = getZooKeeper();
-            validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
-
-            if (oldState.getStateVersion().isPresent()) {
-                final int version = oldState.getStateVersion().map(Integer::parseInt).get();
+        final StateModifier stateModifier = (keeper, path, data) -> {
+            if (version.isPresent()) {
                 try {
-                    keeper.setData(path, data, version);
+                    keeper.setData(path, data, version.get());
                 } catch (final BadVersionException | NoNodeException e) {
                     return false;
                 }
@@ -431,12 +411,27 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 }
             }
             return true;
+        };
+
+        return modifyState(stateValues, componentId, stateModifier);
+    }
+
+    private boolean modifyState(final Map<String, String> stateValues, final String componentId, final StateModifier stateModifier) throws IOException {
+        verifyEnabled();
+
+        try {
+            final ZooKeeper keeper = getZooKeeper();
+            final String path = getComponentPath(componentId);
+            final byte[] data = serialize(stateValues);
+            validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
+
+            return stateModifier.apply(keeper, path, data);
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", ie);
         } catch (final SessionExpiredException see) {
             invalidateClient();
-            return replace(oldState, stateValues, componentId);
+            return modifyState(stateValues, componentId, stateModifier);
         } catch (final StateTooLargeException stle) {
             throw stle;
         } catch (final Exception e) {
@@ -536,5 +531,9 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         public void process(final WatchedEvent watchedEvent) {
 
         }
+    }
+
+    private interface StateModifier {
+        boolean apply(ZooKeeper keeper, String path, byte[] data) throws InterruptedException, KeeperException, IOException;
     }
 }
