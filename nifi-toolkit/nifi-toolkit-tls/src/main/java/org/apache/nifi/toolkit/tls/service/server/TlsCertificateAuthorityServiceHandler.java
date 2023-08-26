@@ -19,10 +19,16 @@ package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.input.BoundedReader;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
@@ -30,6 +36,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -38,6 +45,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Jetty service handler that validates the hmac of a CSR and issues a certificate if it checks out
@@ -64,7 +74,7 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
     }
 
     @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws ServletException {
         try {
             TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = objectMapper.readValue(new BoundedReader(request.getReader(), 1024 * 1024), TlsCertificateAuthorityRequest.class);
 
@@ -86,14 +96,18 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
                 if (logger.isInfoEnabled()) {
                     logger.info("Received CSR with DN " + dn);
                 }
-                X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, jcaPKCS10CertificationRequest.getPublicKey(),
-                        CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationRequest), caCert, keyPair, signingAlgorithm, days);
+
+                final List<String> dnsNames = getDnsNames(jcaPKCS10CertificationRequest);
+                X509Certificate x509Certificate = new StandardCertificateBuilder(keyPair, caCert.getSubjectX500Principal(), Duration.ofDays(days))
+                        .setSubject(new X500Principal(dn))
+                        .setSubjectPublicKey(jcaPKCS10CertificationRequest.getPublicKey())
+                        .setDnsSubjectAlternativeNames(dnsNames)
+                        .build();
+
                 writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(TlsHelper.calculateHMac(token, caCert.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);
-                return;
             } else {
                 writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(FORBIDDEN), Response.SC_FORBIDDEN);
-                return;
             }
         } catch (Exception e) {
             throw new ServletException("Server error");
@@ -117,5 +131,19 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             objectMapper.writeValue(response.getWriter(), tlsCertificateAuthorityResponse);
         }
+    }
+
+    private List<String> getDnsNames(final JcaPKCS10CertificationRequest request) {
+        final Extensions extensions = request.getRequestedExtensions();
+        final GeneralNames generalNames = GeneralNames.fromExtensions(extensions, Extension.subjectAlternativeName);
+
+        final List<String> dnsNames = new ArrayList<>();
+        for (final GeneralName generalName : generalNames.getNames()) {
+            final ASN1Encodable nameEncoded = generalName.getName();
+            final String name = IETFUtils.valueToString(nameEncoded);
+            dnsNames.add(name);
+        }
+
+        return dnsNames;
     }
 }

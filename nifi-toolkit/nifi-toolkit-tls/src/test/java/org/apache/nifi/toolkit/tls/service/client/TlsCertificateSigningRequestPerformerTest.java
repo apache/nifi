@@ -25,7 +25,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
@@ -40,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -47,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -133,10 +135,12 @@ public class TlsCertificateSigningRequestPerformerTest {
             return closeableHttpResponse;
         });
         KeyPair caKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
-        caCertificate = CertificateUtils.generateSelfSignedX509Certificate(caKeyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
+        caCertificate = new StandardCertificateBuilder(caKeyPair, new X500Principal("CN=fakeCa"), Duration.ofDays(TlsConfig.DEFAULT_DAYS)).build();
         testHmac = TlsHelper.calculateHMac(testToken, caCertificate.getPublicKey());
-        signedCsr = CertificateUtils.generateIssuedCertificate(jcaPKCS10CertificationRequest.getSubject().toString(), jcaPKCS10CertificationRequest.getPublicKey(),
-                caCertificate, caKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
+        signedCsr = new StandardCertificateBuilder(caKeyPair, caCertificate.getIssuerX500Principal(), Duration.ofDays(TlsConfig.DEFAULT_DAYS))
+                .setSubject(new X500Principal(jcaPKCS10CertificationRequest.getSubject().toString()))
+                .setSubjectPublicKey(jcaPKCS10CertificationRequest.getPublicKey())
+                .build();
         testSignedCsr = TlsHelper.pemEncodeJcaObject(signedCsr);
 
         tlsCertificateSigningRequestPerformer = new TlsCertificateSigningRequestPerformer(httpClientBuilderSupplier, tlsClientConfig);

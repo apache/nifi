@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.configuration.KeyStoreConfiguration;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,7 +34,10 @@ import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -178,13 +183,11 @@ public class TemporaryKeyStoreBuilder {
     }
 
     private X509Certificate generateCertificate(final String hostname, final KeyPair keyPair) {
-        final String distinguishedName = String.format(DISTINGUISHED_NAME_FORMAT, hostname);
-        final String[] dnsNames = new String[] {hostname};
-        try {
-            return CertificateUtils.generateSelfSignedX509Certificate(keyPair, distinguishedName, SIGNING_ALGORITHM, CERTIFICATE_VALID_DAYS, dnsNames);
-        } catch (final CertificateException e) {
-            throw new RuntimeException("Certificate Generated Failed", e);
-        }
+        final X500Principal distinguishedName = new X500Principal(String.format(DISTINGUISHED_NAME_FORMAT, hostname));
+        final List<String> dnsNames = Collections.singletonList(hostname);
+        return new StandardCertificateBuilder(keyPair, distinguishedName, Duration.ofDays(CERTIFICATE_VALID_DAYS))
+                .setDnsSubjectAlternativeNames(dnsNames)
+                .build();
     }
 
     private KeyPair generateKeyPair() {

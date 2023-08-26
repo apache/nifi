@@ -37,7 +37,6 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
@@ -78,7 +77,7 @@ public class TlsCertificateSigningRequestPerformer {
                                                   String dn, List<String> domainAlternativeNames, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
-        this.dn = CertificateUtils.reorderDn(dn);
+        this.dn = dn;
         this.domainAlternativeNames = domainAlternativeNames;
         this.token = token;
         this.port = port;

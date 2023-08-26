@@ -17,7 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
@@ -30,12 +30,12 @@ import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -55,6 +55,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -111,7 +112,6 @@ public class TlsToolkitStandalone {
             throw new IOException("Expected directory to output to");
         }
 
-        String signingAlgorithm = standaloneConfig.getSigningAlgorithm();
         int days = standaloneConfig.getDays();
         String keyPairAlgorithm = standaloneConfig.getKeyPairAlgorithm();
         int keySize = standaloneConfig.getKeySize();
@@ -256,9 +256,18 @@ public class TlsToolkitStandalone {
             tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
-            Extensions sanDnsExtensions = TlsHelper.createDomainAlternativeNamesExtensions(tlsClientConfig.getDomainAlternativeNames(), tlsClientConfig.calcDefaultDn(hostname));
-            tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(tlsClientConfig.calcDefaultDn(hostname),
-                    keyPair.getPublic(), sanDnsExtensions, certificate, caKeyPair, signingAlgorithm, days), certificate);
+
+            final List<String> dnsNames = new ArrayList<>(tlsClientConfig.getDomainAlternativeNames());
+            final String defaultDn = tlsClientConfig.calcDefaultDn(hostname);
+            dnsNames.add(hostname);
+
+            final X509Certificate clientCertificate = new StandardCertificateBuilder(caKeyPair, certificate.getSubjectX500Principal(), Duration.ofDays(days))
+                    .setSubject(new X500Principal(defaultDn))
+                    .setSubjectPublicKey(keyPair.getPublic())
+                    .setDnsSubjectAlternativeNames(dnsNames)
+                    .build();
+
+            tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, clientCertificate, certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, new File(hostDir, "nifi.properties"),
                     hostname, instanceDefinition.getNumber()));
@@ -276,8 +285,8 @@ public class TlsToolkitStandalone {
 
         List<String> clientPasswords = standaloneConfig.getClientPasswords();
         for (int i = 0; i < clientDns.size(); i++) {
-            String reorderedDn = CertificateUtils.reorderDn(clientDns.get(i));
-            String clientDnFile = TlsHelper.escapeFilename(reorderedDn);
+            String clientDn = clientDns.get(i);
+            String clientDnFile = TlsHelper.escapeFilename(clientDn);
             File clientCertFile = new File(baseDir, clientDnFile + ".p12");
 
             if (clientCertFile.exists()) {
@@ -292,7 +301,10 @@ public class TlsToolkitStandalone {
                 logger.info("Generating new client certificate " + clientCertFile);
             }
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
-            X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(reorderedDn, keyPair.getPublic(), null, certificate, caKeyPair, signingAlgorithm, days);
+            X509Certificate clientCert = new StandardCertificateBuilder(caKeyPair, certificate.getIssuerX500Principal(), Duration.ofDays(days))
+                    .setSubject(new X500Principal(clientDn))
+                    .setSubjectPublicKey(keyPair.getPublic())
+                    .build();
             final String keyStorePassword = clientPasswords.get(i);
             final KeyStore keyStore = setClientKeyStore(keyStorePassword, keyPair.getPrivate(), clientCert, certificate);
             String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, keyStorePassword, standaloneConfig.isClientPasswordsGenerated());

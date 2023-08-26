@@ -43,7 +43,6 @@ public class TlsClientConfig extends TlsConfig {
         setSigningAlgorithm(tlsConfig.getSigningAlgorithm());
         setDnPrefix(tlsConfig.getDnPrefix());
         setDnSuffix(tlsConfig.getDnSuffix());
-        setReorderDn(tlsConfig.getReorderDn());
         setDomainAlternativeNames(tlsConfig.getDomainAlternativeNames());
     }
 
