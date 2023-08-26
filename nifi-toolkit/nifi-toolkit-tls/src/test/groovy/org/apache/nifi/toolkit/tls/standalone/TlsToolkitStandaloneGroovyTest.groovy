@@ -17,33 +17,26 @@
 
 package org.apache.nifi.toolkit.tls.standalone
 
-import org.apache.nifi.security.util.CertificateUtils
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator
 import org.bouncycastle.util.io.pem.PemWriter
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
+import javax.security.auth.x500.X500Principal
 import java.nio.file.Files
 import java.security.KeyPair
 import java.security.KeyPairGenerator
-import java.security.Security
 import java.security.SignatureException
 import java.security.cert.X509Certificate
+import java.time.Duration
 
 import static org.junit.jupiter.api.Assertions.assertThrows
 
 class TlsToolkitStandaloneGroovyTest {
     private final String TEST_SRC_DIR = "src/test/resources/"
     private final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA"
-    private final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA"
-
-    @BeforeAll
-    static void setProvider() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-    }
 
     @Test
     void testShouldVerifyCertificateSignatureWhenSelfSigned(@TempDir File tempDir) {
@@ -109,7 +102,10 @@ class TlsToolkitStandaloneGroovyTest {
         File rootCertFile = writeCertificateToPEMFile(rootCert, "${baseDir.path}/root.pem")
 
         KeyPair intermediateKeyPair = generateKeyPair()
-        X509Certificate intermediateCert = CertificateUtils.generateIssuedCertificate("CN=Intermediate CA", intermediateKeyPair.getPublic(), rootCert, rootKeyPair, DEFAULT_SIGNING_ALGORITHM, 1)
+        X509Certificate intermediateCert = new StandardCertificateBuilder(rootKeyPair, rootCert.getIssuerX500Principal(), Duration.ofDays(1))
+                .setSubject(new X500Principal("CN=Intermediate CA"))
+                .setSubjectPublicKey(intermediateKeyPair.getPublic())
+                .build()
 
         File intermediateCertFile = writeCertificateToPEMFile(intermediateCert, "${baseDir.path}/nifi-cert.pem")
 
@@ -139,7 +135,10 @@ class TlsToolkitStandaloneGroovyTest {
         X509Certificate rootCert = generateX509Certificate("CN=Root CA", rootKeyPair)
 
         KeyPair intermediateKeyPair = generateKeyPair()
-        X509Certificate intermediateCert = CertificateUtils.generateIssuedCertificate("CN=Intermediate CA", intermediateKeyPair.getPublic(), rootCert, rootKeyPair, DEFAULT_SIGNING_ALGORITHM, 1)
+        X509Certificate intermediateCert = new StandardCertificateBuilder(rootKeyPair, rootCert.getIssuerX500Principal(), Duration.ofDays(1))
+                .setSubject(new X500Principal("CN=Intermediate CA"))
+                .setSubjectPublicKey(intermediateKeyPair.getPublic())
+                .build()
 
         File intermediateCertFile = writeCertificateToPEMFile(intermediateCert, "${baseDir.path}/nifi-cert.pem")
 
@@ -188,7 +187,7 @@ class TlsToolkitStandaloneGroovyTest {
      * @return the X509Certificate
      */
     private X509Certificate generateX509Certificate(String dn = "CN=Test Certificate", KeyPair keyPair = generateKeyPair()) {
-        CertificateUtils.generateSelfSignedX509Certificate(keyPair, CertificateUtils.reorderDn(dn), DEFAULT_SIGNING_ALGORITHM, 1)
+        new StandardCertificateBuilder(keyPair, new X500Principal(dn), Duration.ofDays(1)).build()
     }
 
     private KeyPair generateKeyPair() {

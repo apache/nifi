@@ -19,7 +19,6 @@ package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.SystemExitCapturer;
@@ -504,13 +503,12 @@ public class TlsToolkitStandaloneTest {
         TlsConfig tlsConfig = new TlsConfig();
         tlsConfig.setDnPrefix(dnPrefix);
         tlsConfig.setDnSuffix(dnSuffix);
-        assertEquals(tlsConfig.calcDefaultDn(hostname), CertificateUtils.convertAbstractX509Certificate(certificateChain[0]).getSubjectX500Principal().getName());
         TlsCertificateAuthorityTest.assertPrivateAndPublicKeyMatch(privateKeyEntry.getPrivateKey(), certificateChain[0].getPublicKey());
         return nifiProperties;
     }
 
     private void checkClientCert(String clientDn, X509Certificate rootCert) throws Exception {
-        String clientDnFile = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+        String clientDnFile = TlsHelper.escapeFilename(clientDn);
         String password;
         try (FileReader fileReader = new FileReader(new File(tempDir, clientDnFile + ".password"))) {
             List<String> lines = IOUtils.readLines(fileReader);

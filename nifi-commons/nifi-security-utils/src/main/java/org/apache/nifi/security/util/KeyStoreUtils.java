@@ -39,17 +39,20 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.TrustManagerFactory;
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,10 +67,8 @@ public class KeyStoreUtils {
     private static final String BCFKS_EXT = ".bcfks";
     private static final String KEY_ALIAS = "nifi-key";
     private static final String CERT_ALIAS = "nifi-cert";
-    private static final String CERT_DN = "CN=localhost";
+    private static final X500Principal CERT_DN = new X500Principal("CN=localhost");
     private static final String KEY_ALGORITHM = "RSA";
-    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
-    private static final int CERT_DURATION_DAYS = 365;
     private static final int PASSWORD_LENGTH = 16;
     private static final String TEST_KEYSTORE_PREFIX = "test-keystore-";
     private static final String TEST_TRUSTSTORE_PREFIX = "test-truststore-";
@@ -495,22 +496,6 @@ public class KeyStoreUtils {
         return SECRET_KEY_STORE_PROVIDERS.containsKey(keystoreType);
     }
 
-    public static String sslContextToString(SSLContext sslContext) {
-        return new ToStringBuilder(sslContext)
-                .append("protocol", sslContext.getProtocol())
-                .append("provider", sslContext.getProvider().toString())
-                .toString();
-    }
-
-    public static String sslServerSocketToString(SSLServerSocket sslServerSocket) {
-        return new ToStringBuilder(sslServerSocket)
-                .append("enabledProtocols", sslServerSocket.getEnabledProtocols())
-                .append("needClientAuth", sslServerSocket.getNeedClientAuth())
-                .append("wantClientAuth", sslServerSocket.getWantClientAuth())
-                .append("useClientMode", sslServerSocket.getUseClientMode())
-                .toString();
-    }
-
     /**
      * Loads the Keystore and returns a X509 Certificate with the given values.
      *
@@ -528,13 +513,13 @@ public class KeyStoreUtils {
             final KeystoreType keyStoreType, int certDurationDays, String[] dnsSubjectAlternativeNames)
             throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
+        final KeyPair keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
+        final List<String> dnsNames = dnsSubjectAlternativeNames == null ? Collections.emptyList() : Arrays.asList(dnsSubjectAlternativeNames);
+        final X509Certificate selfSignedCert = new StandardCertificateBuilder(keyPair, CERT_DN, Duration.ofDays(certDurationDays))
+                .setDnsSubjectAlternativeNames(dnsNames)
+                .build();
+
         try (final FileOutputStream outputStream = new FileOutputStream(keyStorePath)) {
-            final KeyPair keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
-
-            final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
-                    keyPair, CERT_DN, SIGNING_ALGORITHM, certDurationDays, dnsSubjectAlternativeNames
-            );
-
             final KeyStore keyStore = loadEmptyKeyStore(keyStoreType);
             keyStore.setKeyEntry(alias, keyPair.getPrivate(), keyPassword.toCharArray(), new Certificate[]{selfSignedCert});
             keyStore.store(outputStream, keyStorePassword.toCharArray());
