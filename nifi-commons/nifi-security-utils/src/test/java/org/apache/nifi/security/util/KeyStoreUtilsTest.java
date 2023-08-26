@@ -18,11 +18,13 @@
 package org.apache.nifi.security.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.x500.X500Principal;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,8 +36,8 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -44,7 +46,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KeyStoreUtilsTest {
-    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
     private static final int DURATION_DAYS = 365;
     private static final char[] KEY_PASSWORD = UUID.randomUUID().toString().toCharArray();
     private static final char[] STORE_PASSWORD = UUID.randomUUID().toString().toCharArray();
@@ -61,9 +62,9 @@ public class KeyStoreUtilsTest {
     private static SecretKey secretKey;
 
     @BeforeAll
-    public static void generateKeysAndCertificates() throws NoSuchAlgorithmException, CertificateException {
+    public static void generateKeysAndCertificates() throws NoSuchAlgorithmException {
         keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
-        certificate = CertificateUtils.generateSelfSignedX509Certificate(keyPair, SUBJECT_DN, SIGNING_ALGORITHM, DURATION_DAYS);
+        certificate = new StandardCertificateBuilder(keyPair, new X500Principal(SUBJECT_DN), Duration.ofDays(DURATION_DAYS)).build();
         final byte[] encodedKey = StringUtils.remove(UUID.randomUUID().toString(), HYPHEN_SEPARATOR).getBytes(StandardCharsets.UTF_8);
         secretKey = new SecretKeySpec(encodedKey, SECRET_KEY_ALGORITHM);
     }

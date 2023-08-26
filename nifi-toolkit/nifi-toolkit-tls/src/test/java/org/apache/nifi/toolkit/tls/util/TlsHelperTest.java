@@ -17,7 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.util.file.FileUtils;
 import org.bouncycastle.asn1.pkcs.Attribute;
@@ -43,30 +43,28 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Security;
-import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -99,8 +97,6 @@ public class TlsHelperTest {
 
     @Mock(lenient = true)
     OutputStreamFactory outputStreamFactory;
-
-    private ByteArrayOutputStream tmpFileOutputStream;
 
     private File file;
 
@@ -137,13 +133,13 @@ public class TlsHelperTest {
         days = 360;
         keySize = 2048;
         keyPairAlgorithm = "RSA";
-        signingAlgorithm = "SHA256WITHRSA";
+        signingAlgorithm = "SHA256withRSA";
         keyPairGenerator = KeyPairGenerator.getInstance(keyPairAlgorithm);
         keyPairGenerator.initialize(keySize);
 
         file = File.createTempFile("keystore", "file");
         file.deleteOnExit();
-        tmpFileOutputStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream tmpFileOutputStream = new ByteArrayOutputStream();
         when(outputStreamFactory.create(file)).thenReturn(tmpFileOutputStream);
     }
 
@@ -162,7 +158,7 @@ public class TlsHelperTest {
         goodTokens.add("0123456789abcdef");
 
         String dn = "CN=testDN,O=testOrg";
-        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
+        X509Certificate x509Certificate = new StandardCertificateBuilder(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), new X500Principal(dn), Duration.ofDays(days)).build();
         PublicKey pubKey = x509Certificate.getPublicKey();
 
         for (String token : badTokens) {
@@ -186,7 +182,7 @@ public class TlsHelperTest {
     public void testGenerateSelfSignedCert() throws GeneralSecurityException {
         String dn = "CN=testDN,O=testOrg";
 
-        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
+        X509Certificate x509Certificate = new StandardCertificateBuilder(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), new X500Principal(dn), Duration.ofDays(days)).build();
 
         Date notAfter = x509Certificate.getNotAfter();
         assertTrue(notAfter.after(inFuture(days - 1)));
@@ -201,33 +197,6 @@ public class TlsHelperTest {
         assertEquals(keyPairAlgorithm, x509Certificate.getPublicKey().getAlgorithm());
 
         x509Certificate.checkValidity();
-    }
-
-    @Test
-    public void testIssueCert() throws IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException {
-        X509Certificate issuer = loadCertificate(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.crt")));
-        KeyPair issuerKeyPair = loadKeyPair(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.key")));
-
-        String dn = "CN=testIssued, O=testOrg";
-
-        KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
-        X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair, signingAlgorithm, days);
-        assertEquals(dn, x509Certificate.getSubjectX500Principal().toString());
-        assertEquals(issuer.getSubjectX500Principal().toString(), x509Certificate.getIssuerX500Principal().toString());
-        assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
-
-        Date notAfter = x509Certificate.getNotAfter();
-        assertTrue(notAfter.after(inFuture(days - 1)));
-        assertTrue(notAfter.before(inFuture(days + 1)));
-
-        Date notBefore = x509Certificate.getNotBefore();
-        assertTrue(notBefore.after(inFuture(-1)));
-        assertTrue(notBefore.before(inFuture(1)));
-
-        assertEquals(signingAlgorithm, x509Certificate.getSigAlgName());
-        assertEquals(keyPairAlgorithm, x509Certificate.getPublicKey().getAlgorithm());
-
-        x509Certificate.verify(issuerKeyPair.getPublic());
     }
 
     @Test
@@ -339,16 +308,16 @@ public class TlsHelperTest {
 
     @Test
     public void testClientDnFilenameSlashes() {
-        String clientDn = "OU=NiFi/Organisation,CN=testuser";
-        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+        String clientDn = "CN=testuser,OU=NiFi/Organisation";
+        String escapedClientDn = TlsHelper.escapeFilename(clientDn);
 
         assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
     }
 
     @Test
     public void testClientDnFilenameSpecialChars() {
-        String clientDn = "OU=NiFi#!Organisation,CN=testuser";
-        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+        String clientDn = "CN=testuser,OU=NiFi#!Organisation";
+        String escapedClientDn = TlsHelper.escapeFilename(clientDn);
 
         assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
     }

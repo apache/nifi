@@ -38,12 +38,15 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.nifi.security.util.CertificateUtils;
+
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
@@ -121,7 +124,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             response = new StringWriter();
             return new PrintWriter(response);
         });
-        caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
+        caCert = new StandardCertificateBuilder(keyPair, new X500Principal("CN=fakeCa"), Duration.ofDays(TlsConfig.DEFAULT_DAYS)).build();
         requestedDn = new TlsConfig().calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
         certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, null, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
@@ -193,7 +196,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
 
         JcaPKCS10CertificationRequest jcaPKCS10CertificationDecoded = TlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
 
-        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationDecoded);
+        Extensions extensions = jcaPKCS10CertificationDecoded.getRequestedExtensions();
         // Satisfy @After requirement
         baseRequest.setHandled(true);
 

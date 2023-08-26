@@ -37,8 +37,8 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,7 +181,7 @@ public class ConnectionLoadBalanceServer {
                     /* The exceptions can fill the log very quickly and make it difficult to use. SSLPeerUnverifiedExceptions
                     especially repeat and have a long stacktrace, and are not likely to be resolved instantaneously. Suppressing
                     them for a period of time is helpful */
-                    if (CertificateUtils.isTlsError(e)) {
+                    if (SocketUtils.isTlsError(e)) {
                         handleTlsError(channelDescription, e);
                     } else {
                         logger.error("Failed to communicate over Channel {}", channelDescription, e);
@@ -220,7 +220,7 @@ public class ConnectionLoadBalanceServer {
 
 
         /**
-         * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+         * Returns {@code true} if any related exception (determined by TLS error status) has occurred within the last
          * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
          * simply checks the last time the timestamp was updated.
          *

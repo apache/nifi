@@ -29,7 +29,6 @@ import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.security.Principal;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -111,7 +110,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -428,14 +426,8 @@ public class PostHTTP extends AbstractProcessor {
                         throw new SSLPeerUnverifiedException("No certificates found");
                     }
 
-                    try {
-                        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
-                        httpContext.setAttribute(REMOTE_DN, cert.getSubjectDN().getName().trim());
-                    } catch (CertificateException e) {
-                        final String msg = "Could not extract subject DN from SSL session peer certificate";
-                        getLogger().warn(msg);
-                        throw new SSLPeerUnverifiedException(msg);
-                    }
+                    final X509Certificate cert = (X509Certificate) certChain[0];
+                    httpContext.setAttribute(REMOTE_DN, cert.getSubjectDN().getName().trim());
                 }
             }
         });

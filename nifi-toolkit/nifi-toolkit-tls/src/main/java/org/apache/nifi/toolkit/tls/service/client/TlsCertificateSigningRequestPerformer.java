@@ -23,7 +23,6 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +37,6 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
@@ -65,12 +63,12 @@ public class TlsCertificateSigningRequestPerformer {
     private final ObjectMapper objectMapper;
     private final String signingAlgorithm;
 
-    public TlsCertificateSigningRequestPerformer(TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
+    public TlsCertificateSigningRequestPerformer(TlsClientConfig tlsClientConfig) {
         this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomainAlternativeNames(),
                 tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
-    protected TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
+    protected TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, TlsClientConfig tlsClientConfig) {
         this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomainAlternativeNames(),
                 tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
@@ -79,7 +77,7 @@ public class TlsCertificateSigningRequestPerformer {
                                                   String dn, List<String> domainAlternativeNames, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
-        this.dn = CertificateUtils.reorderDn(dn);
+        this.dn = dn;
         this.domainAlternativeNames = domainAlternativeNames;
         this.token = token;
         this.port = port;

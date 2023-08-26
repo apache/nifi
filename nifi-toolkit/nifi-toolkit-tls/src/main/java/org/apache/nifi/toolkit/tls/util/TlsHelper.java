@@ -36,7 +36,6 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMException;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -226,7 +225,7 @@ public class TlsHelper {
             throw new GeneralSecurityException("Token does not meet minimum size of 16 bytes.");
         }
         SecretKeySpec keySpec = new SecretKeySpec(tokenBytes, "RAW");
-        Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
+        Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
     }
@@ -254,7 +253,7 @@ public class TlsHelper {
     }
 
     public static X509Certificate parseCertificate(Reader pemEncodedCertificate) throws IOException, CertificateException {
-        return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(parsePem(X509CertificateHolder.class, pemEncodedCertificate));
+        return new JcaX509CertificateConverter().getCertificate(parsePem(X509CertificateHolder.class, pemEncodedCertificate));
     }
 
     /**
@@ -295,7 +294,7 @@ public class TlsHelper {
      * @throws PEMException if there is an error converting the key pair
      */
     private static KeyPair getKeyPair(PEMKeyPair keyPair) throws PEMException {
-        return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(keyPair);
+        return new JcaPEMKeyConverter().getKeyPair(keyPair);
     }
 
     /**
