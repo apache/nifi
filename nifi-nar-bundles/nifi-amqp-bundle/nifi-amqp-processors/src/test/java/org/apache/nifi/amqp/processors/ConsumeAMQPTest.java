@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
@@ -61,12 +63,12 @@ public class ConsumeAMQPTest {
 
             runner.run();
 
-            runner.assertTransferCount(PublishAMQP.REL_SUCCESS, 2);
+            runner.assertTransferCount(ConsumeAMQP.REL_SUCCESS, 2);
 
-            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             helloFF.assertContentEquals("hello");
 
-            final MockFlowFile worldFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(1);
+            final MockFlowFile worldFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(1);
             worldFF.assertContentEquals("world");
 
             // A single cumulative ack should be used
@@ -92,12 +94,12 @@ public class ConsumeAMQPTest {
 
             runner.run(2);
 
-            runner.assertTransferCount(PublishAMQP.REL_SUCCESS, 2);
+            runner.assertTransferCount(ConsumeAMQP.REL_SUCCESS, 2);
 
-            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             helloFF.assertContentEquals("hello");
 
-            final MockFlowFile worldFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(1);
+            final MockFlowFile worldFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(1);
             worldFF.assertContentEquals("world");
 
             // A single cumulative ack should be used
@@ -125,9 +127,9 @@ public class ConsumeAMQPTest {
             runner.run();
             proc.close();
 
-            runner.assertTransferCount(PublishAMQP.REL_SUCCESS, 1);
+            runner.assertTransferCount(ConsumeAMQP.REL_SUCCESS, 1);
 
-            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile helloFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             helloFF.assertContentEquals("hello");
 
 
@@ -156,13 +158,83 @@ public class ConsumeAMQPTest {
             TestRunner runner = initTestRunner(proc);
 
             runner.run();
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
         }
     }
 
+    @Test
+    public void validateHeaderWithJsonStringForHeaderFormatParameterConsumeAndTransferToSuccess() throws Exception {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+        final Map<String, Object> headersMap = new HashMap<>();
+        headersMap.put("foo1", "bar,bar");
+        headersMap.put("foo2", "bar,bar");
+        headersMap.put("foo3", "null");
+        headersMap.put("foo4", null);
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode EXPECTED_JSON = objectMapper.valueToTree(headersMap);
+
+        AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
+        builderBasicProperties.headers(headersMap);
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
+
+            ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            TestRunner runner = initTestRunner(proc);
+            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_JSON_STRING);
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
+            assertNotNull(successFF);
+            successFF.assertAttributeEquals("amqp$routingKey", "key1");
+            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
+            String headers = successFF.getAttribute("amqp$headers");
+            JsonNode jsonNode = objectMapper.readTree(headers);
+            assertEquals(EXPECTED_JSON, jsonNode);
+        }
+    }
+
+    @Test
+    public void validateHeaderWithFlowFileAttributeForHeaderFormatParameterConsumeAndTransferToSuccess() throws Exception {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+        final Map<String,Object> expectedHeadersMap = new HashMap<>();
+        expectedHeadersMap.put("foo1", "bar,bar");
+        expectedHeadersMap.put("foo2", "bar,bar");
+        expectedHeadersMap.put("foo3", "null");
+        final Map<String, Object> headersMap = new HashMap<>(expectedHeadersMap);
+        headersMap.put("foo4", null);
+
+        final String HEADER_PREFIX = "test.header";
+
+        AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
+        builderBasicProperties.headers(headersMap);
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
+
+            ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            TestRunner runner = initTestRunner(proc);
+            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_ATTRIBUTES);
+            runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX,HEADER_PREFIX);
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
+            assertNotNull(successFF);
+            successFF.assertAttributeEquals("amqp$routingKey", "key1");
+            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
+            successFF.assertAttributeNotExists("amqp$headers");
+            expectedHeadersMap.forEach((key, value) ->{
+                successFF.assertAttributeEquals(HEADER_PREFIX+"."+key,value.toString());
+            } );
+        }
+    }
     @Test
     public void validateHeaderWithValueSeparatorForHeaderParameterConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
@@ -186,7 +258,7 @@ public class ConsumeAMQPTest {
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR, "|");
             runner.run();
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
@@ -223,7 +295,7 @@ public class ConsumeAMQPTest {
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES,"True");
             runner.run();
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
@@ -255,7 +327,7 @@ public class ConsumeAMQPTest {
             runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR,"|");
 
             runner.run();
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
@@ -288,7 +360,7 @@ public class ConsumeAMQPTest {
             TestRunner runner = initTestRunner(proc);
 
             runner.run();
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
@@ -321,7 +393,7 @@ public class ConsumeAMQPTest {
                     throw new IllegalStateException("Consumer already created");
                 }
 
-                consumer = new AMQPConsumer(connection, context.getProperty(QUEUE).getValue(), context.getProperty(AUTO_ACKNOWLEDGE).asBoolean(), getLogger());
+                consumer = new AMQPConsumer(connection, context.getProperty(ConsumeAMQP.QUEUE).getValue(), context.getProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE).asBoolean(), getLogger());
                 return consumer;
             } catch (IOException e) {
                 throw new ProcessException(e);
