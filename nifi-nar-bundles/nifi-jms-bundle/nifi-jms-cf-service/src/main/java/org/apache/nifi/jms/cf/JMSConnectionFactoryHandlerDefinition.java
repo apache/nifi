@@ -16,23 +16,8 @@
  */
 package org.apache.nifi.jms.cf;
 
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.controller.ConfigurationContext;
-
-import java.util.Map;
-
 /**
- * Sub-class of {@link JMSConnectionFactoryProvider} only for testing purpose
+ * Base interface of handler implementations of IJMSConnectionFactoryProvider.
  */
-public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryProvider {
-
-    @OnEnabled
-    @Override
-    public void onEnabled(ConfigurationContext context) {
-        delegate = new JMSConnectionFactoryHandlerForTest(context, getLogger());
-    }
-
-    public Map<String, Object> getConfiguredProperties() {
-        return ((JMSConnectionFactoryHandlerForTest) delegate).getConfiguredProperties();
-    }
+public interface JMSConnectionFactoryHandlerDefinition extends IJMSConnectionFactoryProvider {
 }
