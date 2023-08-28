@@ -24,6 +24,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
     private String pitId = null;
     private String pageExpirationTimestamp = null;
     private String keepAlive;
+    private String trackingRangeValue;
 
     public int getPageCount() {
         return pageCount;
@@ -75,5 +76,13 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
 
     public void setKeepAlive(final String keepAlive) {
         this.keepAlive = keepAlive;
+    }
+
+    public String getTrackingRangeValue() {
+        return trackingRangeValue;
+    }
+
+    public void setTrackingRangeValue(String trackingRangeValue) {
+        this.trackingRangeValue = trackingRangeValue;
     }
 }

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -30,6 +31,7 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -107,8 +109,6 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(getBaseRelationships());
 
     static final String BULK_HEADER_PREFIX = "BULK:";
-
-    static final ObjectMapper MAPPER = new ObjectMapper();
 
     boolean logErrors;
     boolean outputErrorResponses;
@@ -199,6 +199,12 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         validationResults.add(indexOpValidationResult.build());
 
         return validationResults;
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
+                                                            final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+        return Collections.emptyList();
     }
 
     Map<String, String> getRequestURLParameters(final Map<String, String> dynamicProperties) {

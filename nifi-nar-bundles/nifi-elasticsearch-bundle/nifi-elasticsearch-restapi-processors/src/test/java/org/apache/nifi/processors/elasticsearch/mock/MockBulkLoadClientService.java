@@ -29,7 +29,7 @@ public class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
     private Consumer<Map<String, String>> evalParametersConsumer;
 
     @Override
-    public IndexOperationResponse bulk(List<IndexOperationRequest> items, Map<String, String> requestParameters) {
+    public IndexOperationResponse bulk(final List<IndexOperationRequest> items, final Map<String, String> requestParameters) {
         if (getThrowRetriableError()) {
             throw new MockElasticsearchException(true, false);
         } else if (getThrowFatalError()) {
@@ -47,15 +47,15 @@ public class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
         return response;
     }
 
-    public void setResponse(IndexOperationResponse response) {
+    public void setResponse(final IndexOperationResponse response) {
         this.response = response;
     }
 
-    public void setEvalConsumer(Consumer<List<IndexOperationRequest>> evalConsumer) {
+    public void setEvalConsumer(final Consumer<List<IndexOperationRequest>> evalConsumer) {
         this.evalConsumer = evalConsumer;
     }
 
-    public void setEvalParametersConsumer(Consumer<Map<String, String>> evalParametersConsumer) {
+    public void setEvalParametersConsumer(final Consumer<Map<String, String>> evalParametersConsumer) {
         this.evalParametersConsumer = evalParametersConsumer;
     }
 }

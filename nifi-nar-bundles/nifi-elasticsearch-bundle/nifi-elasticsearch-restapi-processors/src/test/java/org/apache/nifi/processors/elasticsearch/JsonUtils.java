@@ -38,42 +38,42 @@ public class JsonUtils {
         }
     }
 
-    static String toJson(Object object) {
+    static String toJson(final Object object) {
         try {
             return MAPPER.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static String prettyPrint(Object object) {
+    static String prettyPrint(final Object object) {
         try {
             return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    static Map<String, Object> readMap(String json) {
+    static Map<String, Object> readMap(final String json) {
         try {
             return MAPPER.readValue(json, Map.class);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static List<String> readListOfMapsAsIndividualJson(String json) {
+    static List<String> readListOfMapsAsIndividualJson(final String json) {
             return readListOfMaps(json).stream()
                     .map(JsonUtils::prettyPrint)
                     .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
-    static List<Map<String, Object>> readListOfMaps(String json) {
+    static List<Map<String, Object>> readListOfMaps(final String json) {
         try {
             return MAPPER.readValue(json, List.class);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }

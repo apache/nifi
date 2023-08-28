@@ -103,7 +103,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         clientService.setResponse(new IndexOperationResponse(1500));
         registry = new MockSchemaRegistry();
         registry.addSchema("simple", simpleSchema);
-        RecordReaderFactory reader = new JsonTreeReader();
+        final RecordReaderFactory reader = new JsonTreeReader();
         runner = TestRunners.newTestRunner(getTestProcessor());
         runner.addControllerService("registry", registry);
         runner.addControllerService("reader", reader);
@@ -124,16 +124,16 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertValid();
     }
 
-    public void basicTest(int failure, int retry, int success) {
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
-            long timestampDefaultCount = items.stream().filter(item -> "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
-            long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
-            long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
-            long opCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long emptyScriptCount = items.stream().filter(item -> item.getScript().isEmpty()).count();
-            long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
-            long emptyDynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().isEmpty()).count();
-            long emptyHeaderFields = items.stream().filter(item -> item.getHeaderFields().isEmpty()).count();
+    public void basicTest(final int failure, final int retry, final int success) {
+        final Consumer<List<IndexOperationRequest>> consumer = (final List<IndexOperationRequest> items) -> {
+            final long timestampDefaultCount = items.stream().filter(item -> "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
+            final long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
+            final long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
+            final long opCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long emptyScriptCount = items.stream().filter(item -> item.getScript().isEmpty()).count();
+            final long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
+            final long emptyDynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().isEmpty()).count();
+            final long emptyHeaderFields = items.stream().filter(item -> item.getHeaderFields().isEmpty()).count();
             assertEquals(2, timestampDefaultCount);
             assertEquals(2, indexCount);
             assertEquals(2, typeCount);
@@ -147,11 +147,11 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         basicTest(failure, retry, success, consumer);
     }
 
-    public void basicTest(int failure, int retry, int success, Consumer<List<IndexOperationRequest>> consumer) {
+    public void basicTest(final int failure, final int retry, final int success, final Consumer<List<IndexOperationRequest>> consumer) {
         basicTest(failure, retry, success, consumer, null);
     }
 
-    public void basicTest(int failure, int retry, int success, Consumer<List<IndexOperationRequest>> consumer, Map<String, String> attributes) {
+    public void basicTest(final int failure, final int retry, final int success, final Consumer<List<IndexOperationRequest>> consumer, final Map<String, String> attributes) {
         clientService.setEvalConsumer(consumer);
         runner.enqueue(flowFileContentMaps, attributes != null && !attributes.isEmpty() ? attributes : Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, "simple"));
         runner.run();
@@ -183,7 +183,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void simpleTestCoercedDefaultTimestamp() {
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) ->
+        final Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) ->
                 assertEquals(2L, items.stream().filter(item -> Long.valueOf(100).equals(item.getFields().get("@timestamp"))).count());
 
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100");
@@ -200,7 +200,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void simpleTestWithRequestParametersAndBulkHeadersFlowFileEL() {
-        Map<String, String> attributes = new LinkedHashMap<>();
+        final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(SCHEMA_NAME_ATTRIBUTE, "simple");
         attributes.put("version", "/version");
         attributes.put("slices", "auto");
@@ -210,7 +210,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void simpleTestWithMockReader() throws Exception{
-        MockRecordParser mockReader = new MockRecordParser();
+        final MockRecordParser mockReader = new MockRecordParser();
         mockReader.addSchemaField("msg", RecordFieldType.STRING);
         mockReader.addSchemaField("from", RecordFieldType.STRING);
         mockReader.addRecord("foo", "bar");
@@ -237,29 +237,29 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testRecordPathFeatures() throws Exception {
-        Map<String, Object> script =
+        final Map<String, Object> script =
                 JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_DIR, "script.json")));
-        Map<String, Object> dynamicTemplates =
+        final Map<String, Object> dynamicTemplates =
                 JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "dynamicTemplates.json")));
         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long a = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
-            long b = items.stream().filter(item ->  "bulk_b".equals(item.getIndex())).count();
-            long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
-            long msg = items.stream().filter(item -> "Hello".equals(item.getFields().get("msg"))).count();
-            long empties = items.stream().filter(item -> ("".equals(item.getFields().get("msg")))).count();
-            long nulls = items.stream().filter(item -> null == item.getFields().get("msg")).count();
-            long timestamp = items.stream().filter(item ->
+            final long a = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
+            final long b = items.stream().filter(item ->  "bulk_b".equals(item.getIndex())).count();
+            final long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
+            final long msg = items.stream().filter(item -> "Hello".equals(item.getFields().get("msg"))).count();
+            final long empties = items.stream().filter(item -> ("".equals(item.getFields().get("msg")))).count();
+            final long nulls = items.stream().filter(item -> null == item.getFields().get("msg")).count();
+            final long timestamp = items.stream().filter(item ->
                     LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat())).equals(item.getFields().get("@timestamp"))).count();
-            long timestampDefault = items.stream().filter(item ->  "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
-            long ts = items.stream().filter(item ->  item.getFields().get("ts") != null).count();
-            long id = items.stream().filter(item ->  item.getFields().get("id") != null).count();
-            long emptyScript = items.stream().filter(item ->  item.getScript().isEmpty()).count();
-            long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
-            long trueScriptedUpsertCount = items.stream().filter(IndexOperationRequest::isScriptedUpsert).count();
-            long s = items.stream().filter(item ->  script.equals(item.getScript())).count();
-            long emptyDynamicTemplates = items.stream().filter(item ->  item.getDynamicTemplates().isEmpty()).count();
-            long dt = items.stream().filter(item ->  dynamicTemplates.equals(item.getDynamicTemplates())).count();
+            final long timestampDefault = items.stream().filter(item ->  "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
+            final long ts = items.stream().filter(item ->  item.getFields().get("ts") != null).count();
+            final long id = items.stream().filter(item ->  item.getFields().get("id") != null).count();
+            final long emptyScript = items.stream().filter(item ->  item.getScript().isEmpty()).count();
+            final long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
+            final long trueScriptedUpsertCount = items.stream().filter(IndexOperationRequest::isScriptedUpsert).count();
+            final long s = items.stream().filter(item ->  script.equals(item.getScript())).count();
+            final long emptyDynamicTemplates = items.stream().filter(item ->  item.getDynamicTemplates().isEmpty()).count();
+            final long dt = items.stream().filter(item ->  dynamicTemplates.equals(item.getDynamicTemplates())).count();
             items.forEach(item -> {
                 assertNotNull(item.getId());
                 assertTrue(item.getId().startsWith("rec-"));
@@ -310,22 +310,22 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testTimestampDateFormatAndScriptRecordPath() throws Exception {
-        Map<String, Object> script =
+        final Map<String, Object> script =
                 JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_DIR, "script.json")));
         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long testTypeCount = items.stream().filter(item ->  "test_type".equals(item.getType())).count();
-            long messageTypeCount = items.stream().filter(item ->  "message".equals(item.getType())).count();
-            long testIndexCount = items.stream().filter(item ->  "test_index".equals(item.getIndex())).count();
-            long bulkIndexCount = items.stream().filter(item ->  item.getIndex().startsWith("bulk_")).count();
-            long indexOperationCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long updateOperationCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
-            long timestampCount = items.stream().filter(item ->
+            final long testTypeCount = items.stream().filter(item ->  "test_type".equals(item.getType())).count();
+            final long messageTypeCount = items.stream().filter(item ->  "message".equals(item.getType())).count();
+            final long testIndexCount = items.stream().filter(item ->  "test_index".equals(item.getIndex())).count();
+            final long bulkIndexCount = items.stream().filter(item ->  item.getIndex().startsWith("bulk_")).count();
+            final long indexOperationCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long updateOperationCount = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
+            final long timestampCount = items.stream().filter(item ->
                     LOCAL_DATE.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")).equals(item.getFields().get("@timestamp"))).count();
-            long dateCount = items.stream().filter(item ->  item.getFields().get("date") != null).count();
-            long idCount = items.stream().filter(item ->  item.getFields().get("id") != null).count();
-            long defaultCoercedTimestampCount = items.stream().filter(item -> Long.valueOf(100).equals(item.getFields().get("@timestamp"))).count();
-            long emptyScriptCount = items.stream().filter(item ->  item.getScript().isEmpty()).count();
-            long scriptCount = items.stream().filter(item ->  script.equals(item.getScript())).count();
+            final long dateCount = items.stream().filter(item ->  item.getFields().get("date") != null).count();
+            final long idCount = items.stream().filter(item ->  item.getFields().get("id") != null).count();
+            final long defaultCoercedTimestampCount = items.stream().filter(item -> Long.valueOf(100).equals(item.getFields().get("@timestamp"))).count();
+            final long emptyScriptCount = items.stream().filter(item ->  item.getScript().isEmpty()).count();
+            final long scriptCount = items.stream().filter(item ->  script.equals(item.getScript())).count();
             assertEquals(5, testTypeCount, getUnexpectedCountMsg("test type"));
             assertEquals(1, messageTypeCount, getUnexpectedCountMsg("message type"));
             assertEquals(5, testIndexCount, getUnexpectedCountMsg("test index"));
@@ -351,7 +351,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
         runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index");
         runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script_record");
-        Map<String, String> attributes = new LinkedHashMap<>();
+        final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(SCHEMA_NAME_ATTRIBUTE, RECORD_PATH_TEST_SCHEMA);
         attributes.put("operation", "index");
         String flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "2_flowFileContents.json"));
@@ -368,12 +368,12 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testNullRecordPaths() throws Exception {
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullTypeCount = items.stream().filter(item -> item.getType() == null).count();
-            long messageTypeCount = items.stream().filter(item -> "message".equals(item.getType())).count();
-            long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
-            long recIdCount = items.stream().filter(item -> StringUtils.startsWith(item.getId(), "rec-")).count();
-            long timestampCount = items.stream().filter(item ->
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long nullTypeCount = items.stream().filter(item -> item.getType() == null).count();
+            final long messageTypeCount = items.stream().filter(item -> "message".equals(item.getType())).count();
+            final long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
+            final long recIdCount = items.stream().filter(item -> StringUtils.startsWith(item.getId(), "rec-")).count();
+            final long timestampCount = items.stream().filter(item ->
                     LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat())).equals(item.getFields().get("@timestamp"))).count();
             assertEquals(5, nullTypeCount, getUnexpectedCountMsg("null type"));
             assertEquals(1, messageTypeCount, getUnexpectedCountMsg("message type"));
@@ -403,14 +403,14 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testIndexOperationRecordPath() throws Exception {
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
-            long update = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
-            long upsert = items.stream().filter(item ->  IndexOperationRequest.Operation.Upsert.equals(item.getOperation())).count();
-            long delete = items.stream().filter(item ->  IndexOperationRequest.Operation.Delete.equals(item.getOperation())).count();
-            long timestampCount = items.stream().filter(item -> Long.valueOf(101).equals(item.getFields().get("@timestamp"))).count();
-            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp") ).count();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
+            final long update = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
+            final long upsert = items.stream().filter(item ->  IndexOperationRequest.Operation.Upsert.equals(item.getOperation())).count();
+            final long delete = items.stream().filter(item ->  IndexOperationRequest.Operation.Delete.equals(item.getOperation())).count();
+            final long timestampCount = items.stream().filter(item -> Long.valueOf(101).equals(item.getFields().get("@timestamp"))).count();
+            final long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp") ).count();
             assertEquals(1, index, getUnexpectedCountMsg("index"));
             assertEquals(2, create, getUnexpectedCountMsg("create"));
             assertEquals(1, update, getUnexpectedCountMsg("update"));
@@ -436,8 +436,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testIncompatibleTimestampRecordPath() throws Exception {
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long timestampCount = items.stream().filter(item ->  "Hello".equals(item.getFields().get("@timestamp"))).count();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long timestampCount = items.stream().filter(item ->  "Hello".equals(item.getFields().get("@timestamp"))).count();
             assertEquals(1, timestampCount);
         });
 
@@ -461,7 +461,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testEmptyELRecordPaths() throws Exception {
-        Map<String, String> attributes = new LinkedHashMap<>();
+        final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(SCHEMA_NAME_ATTRIBUTE, RECORD_PATH_TEST_SCHEMA);
         attributes.put("will_be_empty", "/empty");
         testInvalidELRecordPaths("${will_be_empty}", "${will_be_empty}",
@@ -481,20 +481,20 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-        MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).get(0);
+        final MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).get(0);
         failure.assertAttributeEquals("elasticsearch.put.error", String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object", "/dynamic_templates"));
     }
 
     @Test
     public void testRecordPathFieldDefaults() throws Exception {
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long idNotNull = items.stream().filter(item ->  item.getId() != null).count();
-            long opIndex = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long opCreate = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
-            long indexA = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
-            long indexC = items.stream().filter(item ->  "bulk_c".equals(item.getIndex())).count();
-            long typeMessage = items.stream().filter(item ->  "message".equals(item.getType())).count();
-            long typeBlah = items.stream().filter(item -> "blah".equals(item.getType())).count();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long idNotNull = items.stream().filter(item ->  item.getId() != null).count();
+            final long opIndex = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long opCreate = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
+            final long indexA = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
+            final long indexC = items.stream().filter(item ->  "bulk_c".equals(item.getIndex())).count();
+            final long typeMessage = items.stream().filter(item ->  "message".equals(item.getType())).count();
+            final long typeBlah = items.stream().filter(item -> "blah".equals(item.getType())).count();
             assertEquals(4, idNotNull, getUnexpectedCountMsg("id not null"));
             assertEquals(3, opIndex, getUnexpectedCountMsg("op index"));
             assertEquals(3, opCreate, getUnexpectedCountMsg("op create"));
@@ -527,22 +527,22 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @Test
     public void testDefaultDateTimeFormatting() throws Exception{
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long msg = items.stream().filter(item ->  (item.getFields().get("msg") != null)).count();
-            long timestamp = items.stream().filter(item ->
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long msg = items.stream().filter(item ->  (item.getFields().get("msg") != null)).count();
+            final long timestamp = items.stream().filter(item ->
                     LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat())).equals(item.getFields().get("ts"))).count(); // "yyyy-MM-dd HH:mm:ss"
-            long date = items.stream().filter(item ->
+            final long date = items.stream().filter(item ->
                     LOCAL_DATE.format(DateTimeFormatter.ofPattern(RecordFieldType.DATE.getDefaultFormat())).equals(item.getFields().get("date"))).count(); // "yyyy-MM-dd"
-            long time = items.stream().filter(item ->
+            final long time = items.stream().filter(item ->
                     LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat())).equals(item.getFields().get("time"))).count(); // "HH:mm:ss"
-            long choiceTs = items.stream().filter(item ->
+            final long choiceTs = items.stream().filter(item ->
                     LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat())).equals(item.getFields().get("choice_ts"))).count();
-            long choiceNotTs = items.stream().filter(item ->  "not-timestamp".equals(item.getFields().get("choice_ts"))).count();
-            long atTimestampDefault = items.stream().filter(item ->  "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
-            long tsNull = items.stream().filter(item -> item.getFields().get("ts") == null).count();
-            long dateNull = items.stream().filter(item ->  item.getFields().get("date") == null).count();
-            long timeNull = items.stream().filter(item ->  item.getFields().get("time") == null).count();
-            long choiceTsNull = items.stream().filter(item ->  item.getFields().get("choice_ts") == null).count();
+            final long choiceNotTs = items.stream().filter(item ->  "not-timestamp".equals(item.getFields().get("choice_ts"))).count();
+            final long atTimestampDefault = items.stream().filter(item ->  "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
+            final long tsNull = items.stream().filter(item -> item.getFields().get("ts") == null).count();
+            final long dateNull = items.stream().filter(item ->  item.getFields().get("date") == null).count();
+            final long timeNull = items.stream().filter(item ->  item.getFields().get("time") == null).count();
+            final long choiceTsNull = items.stream().filter(item ->  item.getFields().get("choice_ts") == null).count();
             assertEquals(5, msg, getUnexpectedCountMsg("msg"));
             assertEquals(2, timestamp, getUnexpectedCountMsg("timestamp"));
             assertEquals(2, date, getUnexpectedCountMsg("date"));
@@ -573,23 +573,23 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         final String timestampFormat = "yy MMM d H";
         final String dateFormat = "dd/MM/yyyy";
         final String timeFormat = "HHmmss";
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            String timestampOutput = LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(timestampFormat));
-            long msg = items.stream().filter(item -> (item.getFields().get("msg") != null)).count();
-            long timestamp = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("ts"))).count();
-            long date = items.stream().filter(item ->
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final String timestampOutput = LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(timestampFormat));
+            final long msg = items.stream().filter(item -> (item.getFields().get("msg") != null)).count();
+            final long timestamp = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("ts"))).count();
+            final long date = items.stream().filter(item ->
                     LOCAL_DATE.format(DateTimeFormatter.ofPattern(dateFormat)).equals(item.getFields().get("date"))).count();
-            long time = items.stream().filter(item ->
+            final long time = items.stream().filter(item ->
                     // converted to a Long because the output is completely numerical
                     Long.valueOf(LOCAL_TIME.format(DateTimeFormatter.ofPattern(timeFormat))).equals(item.getFields().get("time"))).count();
-            long choiceTs = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("choice_ts"))).count();
-            long choiceNotTs = items.stream().filter(item -> "not-timestamp".equals(item.getFields().get("choice_ts"))).count();
-            long atTimestampDefault = items.stream().filter(item -> "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
-            long atTimestamp = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("@timestamp"))).count();
-            long tsNull = items.stream().filter(item -> item.getFields().get("ts") == null).count();
-            long dateNull = items.stream().filter(item -> item.getFields().get("date") == null).count();
-            long timeNull = items.stream().filter(item -> item.getFields().get("time") == null).count();
-            long choiceTsNull = items.stream().filter(item -> item.getFields().get("choice_ts") == null).count();
+            final long choiceTs = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("choice_ts"))).count();
+            final long choiceNotTs = items.stream().filter(item -> "not-timestamp".equals(item.getFields().get("choice_ts"))).count();
+            final long atTimestampDefault = items.stream().filter(item -> "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
+            final long atTimestamp = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("@timestamp"))).count();
+            final long tsNull = items.stream().filter(item -> item.getFields().get("ts") == null).count();
+            final long dateNull = items.stream().filter(item -> item.getFields().get("date") == null).count();
+            final long timeNull = items.stream().filter(item -> item.getFields().get("time") == null).count();
+            final long choiceTsNull = items.stream().filter(item -> item.getFields().get("choice_ts") == null).count();
             assertEquals(5, msg, getUnexpectedCountMsg("msg"));
             assertEquals(2, timestamp, getUnexpectedCountMsg("timestamp"));
             assertEquals(2, date, getUnexpectedCountMsg("date"));
@@ -657,8 +657,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     public void testFailedRecordsOutput() throws Exception {
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true");
         runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true");
-        int errorCount = 3;
-        int successCount = 4;
+        final int errorCount = 3;
+        final int successCount = 4;
         testErrorRelationship(errorCount, successCount, true);
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1);
@@ -674,7 +674,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true");
         runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true");
         runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true");
-        int successCount = 4;
+        final int successCount = 4;
         testErrorRelationship(3, successCount, true);
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 2);
@@ -697,8 +697,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     public void testNotFoundResponsesTreatedAsFailedRecords() throws Exception {
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false");
-        int errorCount = 4;
-        int successCount = 3;
+        final int errorCount = 4;
+        final int successCount = 3;
         testErrorRelationship(errorCount, successCount, true);
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1);
@@ -715,8 +715,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     public void testNotFoundFailedRecordsGroupedAsErrorType() throws Exception {
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true");
-        int errorCount = 4;
-        int successCount = 3;
+        final int errorCount = 4;
+        final int successCount = 3;
         testErrorRelationship(errorCount, successCount, true);
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 3);
@@ -744,8 +744,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchRecord.OUTPUT_ERROR_RESPONSES, "true");
         runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false");
-        int errorCount = 4;
-        int successCount = 3;
+        final int errorCount = 4;
+        final int successCount = 3;
         testErrorRelationship(errorCount, successCount, false);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
@@ -764,11 +764,11 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertNotValid();
     }
 
-    private static RecordSchema getRecordSchema(Path schema) throws IOException {
+    private static RecordSchema getRecordSchema(final Path schema) throws IOException {
         return AvroTypeUtil.createSchema(new Schema.Parser().parse(JsonUtils.readString(schema)));
     }
 
-    private void testErrorRelationship(final int errorCount, final int successCount, boolean recordWriter) throws Exception {
+    private void testErrorRelationship(final int errorCount, final int successCount, final boolean recordWriter) throws Exception {
         final String schemaName = "errorTest";
         final JsonRecordSetWriter writer = new JsonRecordSetWriter();
         runner.addControllerService("writer", writer);
@@ -778,7 +778,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
         registry.addSchema(schemaName, errorTestSchema);
 
-        if(recordWriter) {
+        if (recordWriter) {
             runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer");
         }
 
@@ -796,10 +796,10 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
                         && String.format("1 Elasticsearch _bulk operation batch(es) [%s error(s), %s success(es)]", errorCount, successCount).equals(e.getDetails())).count());
     }
 
-    private void testInvalidELRecordPaths(String idRecordPath, String atTimestampRecordPath, Path path, Map<String, String> attributes) throws IOException {
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
-            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
+    private void testInvalidELRecordPaths(final String idRecordPath, final String atTimestampRecordPath, final Path path, final Map<String, String> attributes) throws IOException {
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
+            final long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
             assertEquals(1, nullIdCount, getUnexpectedCountMsg("null id"));
             assertEquals(1, noTimestampCount, getUnexpectedCountMsg("noTimestamp"));
         });
@@ -818,7 +818,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
     }
 
-    private void testWithRequestParametersAndBulkHeaders(Map<String, String> attributes) {
+    private void testWithRequestParametersAndBulkHeaders(final Map<String, String> attributes) {
         runner.setProperty("refresh", "true");
         runner.setProperty("slices", "${slices}");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "/routing");
@@ -827,16 +827,16 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setVariable("blank", " ");
         runner.assertValid();
 
-        clientService.setEvalParametersConsumer( (Map<String, String> params) -> {
+        clientService.setEvalParametersConsumer( (final Map<String, String> params) -> {
             assertEquals(2, params.size());
             assertEquals("true", params.get("refresh"));
             assertEquals("auto", params.get("slices"));
         });
 
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
-            long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
-            long routingCount = items.stream().filter(item -> "1".equals(item.getHeaderFields().get("routing"))).count();
-            long versionCount = items.stream().filter(item -> "external".equals(item.getHeaderFields().get("version"))).count();
+        final Consumer<List<IndexOperationRequest>> consumer = (final List<IndexOperationRequest> items) -> {
+            final long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
+            final long routingCount = items.stream().filter(item -> "1".equals(item.getHeaderFields().get("routing"))).count();
+            final long versionCount = items.stream().filter(item -> "external".equals(item.getHeaderFields().get("version"))).count();
             assertEquals(2, headerFieldsCount);
             assertEquals(1, routingCount);
             assertEquals(1, versionCount);
@@ -846,8 +846,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     private String getDateTimeFormattingJson() throws Exception {
-        String json = JsonUtils.readString(Paths.get(TEST_DIR, "10_flowFileContents.json"));
-        List<Map<String, Object>> parsedJson = JsonUtils.readListOfMaps(json);
+        final String json = JsonUtils.readString(Paths.get(TEST_DIR, "10_flowFileContents.json"));
+        final List<Map<String, Object>> parsedJson = JsonUtils.readListOfMaps(json);
         parsedJson.forEach(msg -> {
             msg.computeIfPresent("ts", (key, val) -> Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli());
             msg.computeIfPresent("date", (key, val) -> Date.valueOf(LOCAL_DATE).getTime());

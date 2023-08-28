@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.elasticsearch.integration;
 
 import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
 import org.apache.nifi.processors.elasticsearch.GetElasticsearch;
@@ -31,8 +30,8 @@ import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GetElasticsearch_IT extends AbstractElasticsearch_IT {
-    Class<? extends Processor> getTestProcessorClass() {
-        return GetElasticsearch.class;
+    ElasticsearchRestProcessor getProcessor() {
+        return new GetElasticsearch();
     }
 
     @BeforeEach
