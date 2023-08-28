@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.elasticsearch.integration;
 
-import org.apache.nifi.processors.elasticsearch.AbstractPutElasticsearch;
-import org.apache.nifi.processors.elasticsearch.PutElasticsearchJson;
+import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
+import org.apache.nifi.processors.elasticsearch.UpdateByQueryElasticsearch;
 
-class PutElasticsearchJson_IT extends AbstractElasticsearch_IT<AbstractPutElasticsearch> {
-    AbstractPutElasticsearch getProcessor() {
-        return new PutElasticsearchJson();
+public class UpdateByQueryElasticsearch_IT extends AbstractByQueryElasticsearch_IT {
+    ElasticsearchRestProcessor getProcessor() {
+        return new UpdateByQueryElasticsearch();
     }
 }

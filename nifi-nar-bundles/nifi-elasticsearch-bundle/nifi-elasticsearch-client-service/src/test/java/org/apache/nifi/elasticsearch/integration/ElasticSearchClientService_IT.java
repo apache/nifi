@@ -145,7 +145,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testVerifyFailedURL() {
         runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "invalid");
+        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "blah://invalid");
 
         final List<ConfigVerificationResult> results = service.verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),

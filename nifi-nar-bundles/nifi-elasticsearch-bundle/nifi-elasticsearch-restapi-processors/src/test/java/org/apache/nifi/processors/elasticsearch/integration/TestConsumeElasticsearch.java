@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.elasticsearch.integration;
 
-import org.apache.nifi.processors.elasticsearch.AbstractPutElasticsearch;
-import org.apache.nifi.processors.elasticsearch.PutElasticsearchJson;
+import org.apache.nifi.processors.elasticsearch.ConsumeElasticsearch;
 
-class PutElasticsearchJson_IT extends AbstractElasticsearch_IT<AbstractPutElasticsearch> {
-    AbstractPutElasticsearch getProcessor() {
-        return new PutElasticsearchJson();
+public class TestConsumeElasticsearch extends ConsumeElasticsearch {
+    void setTrackingRangeField(final String trackingRangeField) {
+        super.trackingRangeField = trackingRangeField;
+    }
+
+    void setTrackingSortOrder(final String trackingSortOrder) {
+        super.trackingSortOrder = trackingSortOrder;
     }
 }

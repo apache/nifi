@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.SearchResponse;
@@ -32,15 +33,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "application/json"),
     @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
     @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "page.number", description = "The number of the page (request) in which the results were returned that are in the output flowfile"),
+    @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
     @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
     @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
@@ -49,6 +48,7 @@ import java.util.List;
 @CapabilityDescription("A processor that allows the user to run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "It will use the flowfile's content for the query unless the QUERY attribute is populated. " +
         "Search After/Point in Time queries must include a valid \"sort\" field.")
+@SeeAlso({JsonQueryElasticsearch.class, ConsumeElasticsearch.class, SearchElasticsearch.class})
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
         value = "The value of the URL query parameter",
@@ -60,19 +60,9 @@ import java.util.List;
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
 public class PaginatedJsonQueryElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
-    private static final List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(QUERY);
-        descriptors.addAll(paginatedPropertyDescriptors);
-
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
-
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return paginatedPropertyDescriptors;
     }
 
     @Override

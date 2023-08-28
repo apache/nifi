@@ -62,10 +62,10 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        sampleErrorResponse = Files.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
-        flowFileContents = Files.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
-        script = Files.readString(Paths.get(TEST_DIR,"script.json"));
-        dynamicTemplates = Files.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
+        sampleErrorResponse = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
+        flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
+        script = JsonUtils.readString(Paths.get(TEST_DIR,"script.json"));
+        dynamicTemplates = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
         expectedScript = new LinkedHashMap<>();
         expectedScript.put("_source", "some script");
         expectedScript.put("language", "painless");
@@ -99,16 +99,16 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertValid();
     }
 
-    public void basicTest(int failure, int retry, int success) {
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
-            long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
-            long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
-            long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
-            long opCount = items.stream().filter(item -> IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long emptyScriptCount = items.stream().filter(item -> item.getScript().isEmpty()).count();
-            long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
-            long emptyDynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().isEmpty()).count();
-            long emptyHeaderFields = items.stream().filter(item -> item.getHeaderFields().isEmpty()).count();
+    public void basicTest(final int failure, final int retry, final int success) {
+        final Consumer<List<IndexOperationRequest>> consumer = (final List<IndexOperationRequest> items) -> {
+            final long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
+            final long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
+            final long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
+            final long opCount = items.stream().filter(item -> IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long emptyScriptCount = items.stream().filter(item -> item.getScript().isEmpty()).count();
+            final long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
+            final long emptyDynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().isEmpty()).count();
+            final long emptyHeaderFields = items.stream().filter(item -> item.getHeaderFields().isEmpty()).count();
 
             assertEquals(1L, nullIdCount);
             assertEquals(1L, indexCount);
@@ -123,12 +123,12 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         basicTest(failure, retry, success, consumer, null);
     }
 
-    public void basicTest(int failure, int retry, int success, Consumer<List<IndexOperationRequest>> consumer, Map<String, String> attr) {
+    public void basicTest(final int failure, final int retry, final int success, final Consumer<List<IndexOperationRequest>> consumer, final Map<String, String> attr) {
         clientService.setEvalConsumer(consumer);
         basicTest(failure, retry, success, attr);
     }
 
-    public void basicTest(int failure, int retry, int success, Map<String, String> attr) {
+    public void basicTest(final int failure, final int retry, final int success, final Map<String, String> attr) {
         if (attr != null) {
             runner.enqueue(flowFileContents, attr);
         } else {
@@ -168,25 +168,25 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setEnvironmentVariableValue("version", "external");
         runner.assertValid();
 
-        clientService.setEvalParametersConsumer((Map<String, String> params) -> {
+        clientService.setEvalParametersConsumer((final Map<String, String> params) -> {
             assertEquals(2, params.size());
             assertEquals("true", params.get("refresh"));
             assertEquals("auto", params.get("slices"));
         });
 
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long idCount = items.stream().filter(item -> "123".equals(item.getId())).count();
-            long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
-            long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
-            long opCount = items.stream().filter(item -> IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long idCount = items.stream().filter(item -> "123".equals(item.getId())).count();
+            final long indexCount = items.stream().filter(item -> "test_index".equals(item.getIndex())).count();
+            final long typeCount = items.stream().filter(item -> "test_type".equals(item.getType())).count();
+            final long opCount = items.stream().filter(item -> IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            final long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
             assertEquals(1L, idCount);
             assertEquals(1L, indexCount);
             assertEquals(1L, typeCount);
             assertEquals(1L, opCount);
             assertEquals(1L, headerFieldsCount);
 
-            Map<String, String> headerFields = items.get(0).getHeaderFields();
+            final Map<String, String> headerFields = items.get(0).getHeaderFields();
             assertEquals(2, headerFields.size());
             assertEquals("1", headerFields.get("routing"));
             assertEquals("external", headerFields.get("version"));
@@ -205,25 +205,25 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", "${empty}");
         runner.assertValid();
 
-        clientService.setEvalParametersConsumer((Map<String, String> params) -> {
+        clientService.setEvalParametersConsumer((final Map<String, String> params) -> {
             assertEquals(2, params.size());
             assertEquals("true", params.get("refresh"));
             assertEquals("auto", params.get("slices"));
         });
 
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
-            long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> {
+            final long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
+            final long headerFieldsCount = items.stream().filter(item -> !item.getHeaderFields().isEmpty()).count();
             assertEquals(1L, nullIdCount);
             assertEquals(1L, headerFieldsCount);
 
-            Map<String, String> headerFields = items.get(0).getHeaderFields();
+            final Map<String, String> headerFields = items.get(0).getHeaderFields();
             assertEquals(2, headerFields.size());
             assertEquals("1", headerFields.get("routing"));
             assertEquals("external", headerFields.get("version"));
         });
 
-        Map<String, String> attributes = new LinkedHashMap<>();
+        final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("slices", "auto");
         attributes.put("version", "external");
         attributes.put("blank", " ");
@@ -235,10 +235,10 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
     public void simpleTestWithScriptAndDynamicTemplates() {
         runner.setProperty(PutElasticsearchJson.SCRIPT, script);
         runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, dynamicTemplates);
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
-            long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
-            long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
-            long dynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().equals(expectedDynamicTemplate)).count();
+        final Consumer<List<IndexOperationRequest>> consumer = (final List<IndexOperationRequest> items) -> {
+            final long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
+            final long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
+            final long dynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().equals(expectedDynamicTemplate)).count();
             assertEquals(1L, scriptCount);
             assertEquals(1L, falseScriptedUpsertCount);
             assertEquals(1L, dynamicTemplatesCount);
@@ -252,10 +252,10 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, dynamicTemplates);
         runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Upsert.getValue().toLowerCase());
         runner.setProperty(PutElasticsearchJson.SCRIPTED_UPSERT, "true");
-        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
-            long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
-            long trueScriptedUpsertCount = items.stream().filter(IndexOperationRequest::isScriptedUpsert).count();
-            long dynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().equals(expectedDynamicTemplate)).count();
+        final Consumer<List<IndexOperationRequest>> consumer = (final List<IndexOperationRequest> items) -> {
+            final long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
+            final long trueScriptedUpsertCount = items.stream().filter(IndexOperationRequest::isScriptedUpsert).count();
+            final long dynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().equals(expectedDynamicTemplate)).count();
 
             assertEquals(1L, scriptCount);
             assertEquals(1L, trueScriptedUpsertCount);
@@ -324,7 +324,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "100");
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
+        final List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
         values.forEach(val -> runner.enqueue(val));
         runner.assertValid();
         runner.run();
@@ -365,7 +365,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "true");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
+        final List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
         values.forEach(val -> runner.enqueue(val));
         runner.assertValid();
         runner.run();
@@ -416,7 +416,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "false");
         runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "100");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        for (final String val : JsonUtils.readListOfMapsAsIndividualJson(Files.readString(Paths.get(TEST_DIR, "batchWithoutError.json")))) {
+        for (final String val : JsonUtils.readListOfMapsAsIndividualJson(JsonUtils.readString(Paths.get(TEST_DIR, "batchWithoutError.json")))) {
             runner.enqueue(val);
         }
 
