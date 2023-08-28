@@ -27,7 +27,7 @@
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-        <ant.version>1.10.13</ant.version>
+        <ant.version>1.10.14</ant.version>
     </properties>
 
     <dependencies>
