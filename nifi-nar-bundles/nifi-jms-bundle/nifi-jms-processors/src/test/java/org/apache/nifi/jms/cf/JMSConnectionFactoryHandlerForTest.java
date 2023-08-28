@@ -19,6 +19,7 @@ package org.apache.nifi.jms.cf;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 
+import javax.jms.ConnectionFactory;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,14 +28,15 @@ import java.util.Map;
  */
 public class JMSConnectionFactoryHandlerForTest extends JMSConnectionFactoryHandler {
 
-    private Map<String, Object> configuredProperties = new HashMap<>();
+    private final Map<String, Object> configuredProperties = new HashMap<>();
 
     public JMSConnectionFactoryHandlerForTest(ConfigurationContext context, ComponentLog logger) {
         super(context, logger);
+        setConnectionFactoryProperties(null);
     }
 
     @Override
-    void setProperty(String propertyName, Object propertyValue) {
+    void setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue) {
         configuredProperties.put(propertyName, propertyValue);
     }
 
