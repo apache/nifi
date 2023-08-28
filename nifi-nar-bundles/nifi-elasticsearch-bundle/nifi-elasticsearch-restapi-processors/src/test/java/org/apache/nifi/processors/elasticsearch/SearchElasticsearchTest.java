@@ -134,30 +134,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
     }
 
     @Override
-    public void testPagination(final PaginationType paginationType) throws Exception {
-        final TestRunner runner = createRunner(false);
-        final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
-        service.setMaxPages(2);
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
-
-        // Tests flowfile per page, hits splitting and hits combined
-        for(ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
-            runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
-
-            for(int iteration = 1; iteration < 4; iteration++) {
-                runOnce(runner);
-                validatePagination(runner, resultOutputStrategy, paginationType, iteration);
-                runner.clearTransferState();
-                if(ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
-                    break;
-                }
-            }
-            reset(runner);
-        }
-    }
-
-    private static void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws IOException {
+    void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws IOException {
         boolean perResponseResultOutputStrategy = ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy);
         boolean perHitResultOutputStrategy = ResultOutputStrategy.PER_HIT.equals(resultOutputStrategy);
         final int expectedHitCount = 10 * iteration;
@@ -187,7 +164,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         }
     }
 
-    private static void assertState(final MockStateManager stateManager, final PaginationType paginationType, final int hitCount, final int pageCount) throws IOException {
+    private void assertState(final MockStateManager stateManager, final PaginationType paginationType, final int hitCount, final int pageCount) throws IOException {
         stateManager.assertStateEquals(SearchElasticsearch.STATE_HIT_COUNT, Integer.toString(hitCount), Scope.LOCAL);
         stateManager.assertStateEquals(SearchElasticsearch.STATE_PAGE_COUNT, Integer.toString(pageCount), Scope.LOCAL);
 

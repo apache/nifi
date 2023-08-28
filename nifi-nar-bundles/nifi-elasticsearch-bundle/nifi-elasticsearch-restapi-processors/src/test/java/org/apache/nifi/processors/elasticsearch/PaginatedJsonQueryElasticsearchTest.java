@@ -45,30 +45,7 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
     }
 
     @Override
-    public void testPagination(final PaginationType paginationType) {
-        final TestRunner runner = createRunner(false);
-        final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
-        service.setMaxPages(2);
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
-
-        for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
-            runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
-            // Check that OUTPUT_NO_HITS true doesn't have any adverse effects on pagination
-            runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "true");
-            runOnce(runner);
-            validatePagination(runner, resultOutputStrategy);
-            runner.getStateManager().assertStateNotSet();
-            // Unset OUTPUT_NO_HITS
-            runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "false");
-            reset(runner);
-            if(ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
-                break;
-            }
-        }
-    }
-
-    private static void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy) {
+    void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) {
         runner.getStateManager().assertStateNotSet();
         switch (resultOutputStrategy) {
             case PER_RESPONSE:

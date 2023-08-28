@@ -74,7 +74,6 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     private static final String TEST_COMMON_DIR = "src/test/resources/common";
     private static final String RECORD_PATH_TEST_SCHEMA = "recordPathTest";
     private static final String DATE_TIME_FORMATTING_TEST_SCHEMA = "dateTimeFormattingTest";
-    private static final String ERROR_TEST_SCHEMA = "errorTest";
     private static final String SCHEMA_NAME_ATTRIBUTE = "schema.name";
     private static final Path VALUES = Paths.get(TEST_DIR, "values.json");
     private static String flowFileContentMaps;
@@ -625,7 +624,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     @Test
-    public void testInvalidIndexOperation() throws Exception{
+    public void testInvalidIndexOperation() {
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "not-valid");
         runner.assertNotValid();
         final AssertionError ae = assertThrows(AssertionError.class, runner::run);
@@ -656,64 +655,108 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
     }
 
-    private void testErrors(final int failedRecordCount, final int successfulRecordCount, final int errorResponseCount) throws Exception {
-        final JsonRecordSetWriter writer = new JsonRecordSetWriter();
-        runner.addControllerService("writer", writer);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
-        runner.enableControllerService(writer);
-        clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
-        registry.addSchema(ERROR_TEST_SCHEMA, errorTestSchema);
-        runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer");
+    @Test
+    public void testFailedRecordsOutput() throws Exception {
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true");
+        runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true");
+        int errorCount = 3;
+        int successCount = 4;
+        testErrorRelationship(errorCount, successCount, true);
 
-        runner.assertValid();
-
-        runner.enqueue(VALUES, Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, ERROR_TEST_SCHEMA));
-        runner.run();
-
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, failedRecordCount > 0 ? 1 : 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, successfulRecordCount > 0 ? 1 : 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, errorResponseCount > 0 ? 1 : 0);
-
-        if (failedRecordCount > 0) {
-            runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(failedRecordCount));
-        }
-        if (successfulRecordCount > 0) {
-            runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT,
-                    String.valueOf(successfulRecordCount));
-        }
-        if (errorResponseCount > 0) {
-            final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).get(0).getContent();
-            assertTrue(errorResponses.contains("not_found"));
-            assertTrue(errorResponses.contains("For input string: 20abc"));
-        }
-
-        assertEquals(1,
-                runner.getProvenanceEvents().stream().filter(e -> ProvenanceEventType.SEND.equals(e.getEventType())
-                        && "1 Elasticsearch _bulk operation batch(es) [%d error(s), %d success(es)]".formatted(failedRecordCount, successfulRecordCount).equals(e.getDetails())).count());
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(errorCount));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT,
+                String.valueOf(successCount));
     }
 
     @Test
-    public void testErrorRelationship() throws Exception {
+    public void testFailedRecordsOutputGroupedByErrorType() throws Exception {
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true");
         runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true");
-        testErrors(1, 4, 0);
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true");
+        int successCount = 4;
+        testErrorRelationship(3, successCount, true);
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 2);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2");
+        assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+                .getAttribute("elasticsearch.bulk.error").contains("mapper_parsing_exception"));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(1)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1");
+        assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(1)
+                .getAttribute("elasticsearch.bulk.error").contains("some_other_exception"));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
+    }
+
+    @Test
+    public void testNotFoundResponsesTreatedAsFailedRecords() throws Exception {
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false");
+        int errorCount = 4;
+        int successCount = 3;
+        testErrorRelationship(errorCount, successCount, true);
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(errorCount));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
+    }
+
+    @Test
+    public void testNotFoundFailedRecordsGroupedAsErrorType() throws Exception {
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true");
+        int errorCount = 4;
+        int successCount = 3;
+        testErrorRelationship(errorCount, successCount, true);
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 3);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2");
+        assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+                .getAttribute("elasticsearch.bulk.error").contains("mapper_parsing_exception"));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(1)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1");
+        assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(1)
+                .getAttribute("elasticsearch.bulk.error").contains("some_other_exception"));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(2)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1");
+        assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(2)
+                .getAttribute("elasticsearch.bulk.error").contains("not_found"));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
     }
 
     @Test
     public void testErrorsLoggedWithoutErrorRelationship() throws Exception {
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
-        testErrors(2, 3, 0);
-    }
-
-    @Test
-    public void testDocumentNotFoundErrorHandling() throws Exception {
-        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchRecord.OUTPUT_ERROR_RESPONSES, "true");
-        testErrors(2, 3, 1);
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false");
+        int errorCount = 4;
+        int successCount = 3;
+        testErrorRelationship(errorCount, successCount, false);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1);
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).get(0).getContent();
+        assertTrue(errorResponses.contains("not_found"));
+        assertTrue(errorResponses.contains("For input string: 20abc"));
+        assertTrue(errorResponses.contains("For input string: 213,456.9"));
+        assertTrue(errorResponses.contains("For input string: unit test"));
     }
 
     @Test
@@ -725,6 +768,34 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     private static RecordSchema getRecordSchema(Path schema) throws IOException {
         return AvroTypeUtil.createSchema(new Schema.Parser().parse(Files.readString(schema)));
+    }
+
+    private void testErrorRelationship(final int errorCount, final int successCount, boolean recordWriter) throws Exception {
+        final String schemaName = "errorTest";
+        final JsonRecordSetWriter writer = new JsonRecordSetWriter();
+        runner.addControllerService("writer", writer);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
+        runner.enableControllerService(writer);
+        clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
+        registry.addSchema(schemaName, errorTestSchema);
+
+        if(recordWriter) {
+            runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer");
+        }
+
+        runner.assertValid();
+
+        runner.enqueue(VALUES, Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, schemaName));
+        runner.run();
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+
+        assertEquals(1,
+                runner.getProvenanceEvents().stream().filter(e -> ProvenanceEventType.SEND.equals(e.getEventType())
+                        && "1 Elasticsearch _bulk operation batch(es) [%s error(s), %s success(es)]".formatted(errorCount, successCount).equals(e.getDetails())).count());
     }
 
     private void testInvalidELRecordPaths(String idRecordPath, String atTimestampRecordPath, Path path, Map<String, String> attributes) throws IOException {

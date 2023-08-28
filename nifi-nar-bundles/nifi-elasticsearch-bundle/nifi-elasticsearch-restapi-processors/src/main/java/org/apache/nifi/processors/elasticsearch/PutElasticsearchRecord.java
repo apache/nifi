@@ -819,7 +819,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         public FlowFile getFlowFile() {
             return flowFile;
         }
-
         public void write(final Record record, final Map<String, Object> error) throws IOException {
             numRecords++;
             this.writer.write(record);

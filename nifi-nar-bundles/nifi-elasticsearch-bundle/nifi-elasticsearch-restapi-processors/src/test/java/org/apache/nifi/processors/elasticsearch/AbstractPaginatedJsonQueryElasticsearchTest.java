@@ -298,7 +298,34 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         testPagination(PaginationType.SEARCH_AFTER);
     }
 
-    public abstract void testPagination(final PaginationType paginationType) throws Exception;
+    private void testPagination(final PaginationType paginationType) throws Exception {
+            final TestRunner runner = createRunner(false);
+            final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
+            service.setMaxPages(2);
+            runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
+            runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
+            // Tests flowfile per page, hits splitting and hits combined
+            for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
+                runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
+                for (int iteration = 1; iteration < 4; iteration++) {
+                    // Check that changing OUTPUT_NO_HITS doesn't have any adverse effects on pagination
+                    runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, String.valueOf(iteration % 2 > 0).toLowerCase());
+                    runOnce(runner);
+                    validatePagination(runner, resultOutputStrategy, paginationType, iteration);
+                    if (ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
+                        break;
+                    }
+                    runner.clearTransferState();
+                    if (!isStateUsed()) {
+                        // reset PaginatedJsonQueryElasticsearch to re-run the query with different OUTPUT_NO_HITS setting
+                        reset(runner);
+                    }
+                }
+                reset(runner);
+            }
+    }
+
+    abstract void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws Exception;
 
     private void runMultiple(final TestRunner runner) {
         if (isInput()) {
