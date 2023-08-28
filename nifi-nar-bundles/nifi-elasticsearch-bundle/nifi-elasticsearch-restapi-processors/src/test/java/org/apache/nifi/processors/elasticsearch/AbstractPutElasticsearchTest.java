@@ -39,7 +39,7 @@ public abstract class AbstractPutElasticsearchTest<P extends AbstractPutElastics
         assertFalse(runner.getProcessor().getRelationships().contains(AbstractPutElasticsearch.REL_ERROR_RESPONSES));
     }
 
-    protected String getUnexpectedCountMsg(String countName) {
+    protected String getUnexpectedCountMsg(final String countName) {
         return "Did not get expected " + countName + " count";
     }
 }

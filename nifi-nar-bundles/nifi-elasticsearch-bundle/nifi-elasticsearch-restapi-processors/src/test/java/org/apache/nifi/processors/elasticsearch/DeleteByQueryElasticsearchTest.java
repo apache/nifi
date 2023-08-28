@@ -33,8 +33,8 @@ public class DeleteByQueryElasticsearchTest extends AbstractByQueryElasticsearch
     }
 
     @Override
-    public Class<? extends AbstractByQueryElasticsearch> getTestProcessor() {
-        return DeleteByQueryElasticsearch.class;
+    public AbstractByQueryElasticsearch getTestProcessor() {
+        return new DeleteByQueryElasticsearch();
     }
 
     @Override

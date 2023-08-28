@@ -29,7 +29,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.elasticsearch.mock.MockElasticsearchException;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,9 +42,9 @@ public class TestElasticsearchClientService extends AbstractControllerService im
 
     static {
         try {
-            AGGS_RESULT = Files.readString(Paths.get("src/test/resources/TestElasticsearchClientService/aggsResult.json"));
-            HITS_RESULT = Files.readString(Paths.get("src/test/resources/TestElasticsearchClientService/hitsResult.json"));
-        } catch (IOException e) {
+            AGGS_RESULT = JsonUtils.readString(Paths.get("src/test/resources/TestElasticsearchClientService/aggsResult.json"));
+            HITS_RESULT = JsonUtils.readString(Paths.get("src/test/resources/TestElasticsearchClientService/hitsResult.json"));
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -61,11 +60,14 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     private int maxPages = 1;
     private Map<String, String> requestParameters;
 
-    public TestElasticsearchClientService(boolean returnAggs) {
+    private boolean scrolling = false;
+    private String query;
+
+    public TestElasticsearchClientService(final boolean returnAggs) {
         this.returnAggs = returnAggs;
     }
 
-    private void common(boolean throwError, Map<String, String> requestParameters) throws IOException {
+    private void common(final boolean throwError, final Map<String, String> requestParameters) throws IOException {
         if (throwError) {
             if (throwNotFoundInGet) {
                 throw new MockElasticsearchException(false, true);
@@ -78,62 +80,65 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         return null;
     }
 
     @Override
-    public IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
+    public IndexOperationResponse add(final IndexOperationRequest operation, final Map<String, String> requestParameters) {
         return bulk(Collections.singletonList(operation), requestParameters);
     }
 
     @Override
-    public IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters) {
+    public IndexOperationResponse bulk(final List<IndexOperationRequest> operations, final Map<String, String> requestParameters) {
         try {
             common(false, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
         return new IndexOperationResponse(100L);
     }
 
     @Override
-    public Long count(String query, String index, String type, Map<String, String> requestParameters) {
+    public Long count(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         try {
             common(false, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
+        this.query = query;
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteById(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         return deleteById(index, type, Collections.singletonList(id), requestParameters);
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteById(final String index, final String type, final List<String> ids, final Map<String, String> requestParameters) {
         try {
             common(throwErrorInDelete, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
         return new DeleteOperationResponse(100L);
     }
 
     @Override
-    public DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
+        this.query = query;
         return deleteById(index, type, Collections.singletonList("1"), requestParameters);
     }
 
     @Override
-    public UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+    public UpdateOperationResponse updateByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         try {
             common(throwErrorInUpdate, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
+        this.query = query;
         return new UpdateOperationResponse(100L);
     }
 
@@ -147,34 +152,37 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
+    public boolean documentExists(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         return true;
     }
 
     @Override
-    public Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
+    public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         try {
             common(throwErrorInGet || throwNotFoundInGet, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
-        Map<String, Object> map = new LinkedHashMap<>(1);
+        final Map<String, Object> map = new LinkedHashMap<>(1);
         map.put("msg", "one");
         return map;
     }
 
     @Override
-    public SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
+    public SearchResponse search(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         try {
             common(throwErrorInSearch, requestParameters);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
 
+        if (!scrolling) {
+            this.query = query;
+        }
         final SearchResponse response;
         if (pageCount++ < maxPages) {
-            List<Map<String, Object>> hits = JsonUtils.readListOfMaps(HITS_RESULT);
-            Map<String, Object> aggs = returnAggs && pageCount == 1 ? JsonUtils.readMap(AGGS_RESULT) : null;
+            final List<Map<String, Object>> hits = JsonUtils.readListOfMaps(HITS_RESULT);
+            final Map<String, Object> aggs = returnAggs && pageCount == 1 ? JsonUtils.readMap(AGGS_RESULT) : null;
             response = new SearchResponse(hits, aggs, "pitId-" + pageCount, "scrollId-" + pageCount, "[\"searchAfter-" + pageCount + "\"]", 15, 5, false, null);
         } else {
             response = new SearchResponse(new ArrayList<>(), new LinkedHashMap<>(), "pitId-" + pageCount, "scrollId-" + pageCount, "[\"searchAfter-" + pageCount + "\"]", 0, 1, false, null);
@@ -184,17 +192,19 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public SearchResponse scroll(String scroll) {
+    public SearchResponse scroll(final String scroll) {
         if (throwErrorInSearch) {
             throw new RuntimeException(new IOException("Simulated IOException - scroll"));
         }
 
-
-        return search(null, null, null, requestParameters);
+        scrolling = true;
+        final SearchResponse response = search(null, null, null, requestParameters);
+        scrolling = false;
+        return response;
     }
 
     @Override
-    public String initialisePointInTime(String index, String keepAlive) {
+    public String initialisePointInTime(final String index, final String keepAlive) {
         if (throwErrorInPit) {
             throw new RuntimeException(new IOException("Simulated IOException - initialisePointInTime"));
         }
@@ -205,7 +215,7 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public DeleteOperationResponse deletePointInTime(String pitId) {
+    public DeleteOperationResponse deletePointInTime(final String pitId) {
         if (throwErrorInDelete) {
             throw new RuntimeException(new IOException("Simulated IOException - deletePointInTime"));
         }
@@ -214,7 +224,7 @@ public class TestElasticsearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public DeleteOperationResponse deleteScroll(String scrollId) {
+    public DeleteOperationResponse deleteScroll(final String scrollId) {
         if (throwErrorInDelete) {
             throw new RuntimeException(new IOException("Simulated IOException - deleteScroll"));
         }
@@ -227,27 +237,27 @@ public class TestElasticsearchClientService extends AbstractControllerService im
         return "http://localhost:9400/" + index + "/" + type;
     }
 
-    public void setThrowNotFoundInGet(boolean throwNotFoundInGet) {
+    public void setThrowNotFoundInGet(final boolean throwNotFoundInGet) {
         this.throwNotFoundInGet = throwNotFoundInGet;
     }
 
-    public void setThrowErrorInGet(boolean throwErrorInGet) {
+    public void setThrowErrorInGet(final boolean throwErrorInGet) {
         this.throwErrorInGet = throwErrorInGet;
     }
 
-    public void setThrowErrorInSearch(boolean throwErrorInSearch) {
+    public void setThrowErrorInSearch(final boolean throwErrorInSearch) {
         this.throwErrorInSearch = throwErrorInSearch;
     }
 
-    public void setThrowErrorInDelete(boolean throwErrorInDelete) {
+    public void setThrowErrorInDelete(final boolean throwErrorInDelete) {
         this.throwErrorInDelete = throwErrorInDelete;
     }
 
-    public void setThrowErrorInPit(boolean throwErrorInPit) {
+    public void setThrowErrorInPit(final boolean throwErrorInPit) {
         this.throwErrorInPit = throwErrorInPit;
     }
 
-    public void setThrowErrorInUpdate(boolean throwErrorInUpdate) {
+    public void setThrowErrorInUpdate(final boolean throwErrorInUpdate) {
         this.throwErrorInUpdate = throwErrorInUpdate;
     }
 
@@ -255,11 +265,15 @@ public class TestElasticsearchClientService extends AbstractControllerService im
         this.pageCount = 0;
     }
 
-    public void setMaxPages(int maxPages) {
+    public void setMaxPages(final int maxPages) {
         this.maxPages = maxPages;
     }
 
     public Map<String, String> getRequestParameters() {
         return this.requestParameters;
+    }
+
+    public String getQuery() {
+        return query;
     }
 }

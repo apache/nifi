@@ -33,8 +33,8 @@ public class UpdateByQueryElasticsearchTest extends AbstractByQueryElasticsearch
     }
 
     @Override
-    public Class<? extends AbstractByQueryElasticsearch> getTestProcessor() {
-        return UpdateByQueryElasticsearch.class;
+    public AbstractByQueryElasticsearch getTestProcessor() {
+        return new UpdateByQueryElasticsearch();
     }
 
     @Override

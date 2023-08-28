@@ -16,19 +16,22 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-public class JsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractJsonQueryElasticsearch> {
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.processors.elasticsearch.api.JsonQueryParameters;
+
+public class JsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractJsonQueryElasticsearch<JsonQueryParameters>> {
     @Override
-    public AbstractJsonQueryElasticsearch getProcessor() {
+    AbstractJsonQueryElasticsearch<JsonQueryParameters> getProcessor() {
         return new JsonQueryElasticsearch();
     }
 
     @Override
-    public boolean isStateUsed() {
-        return false;
+    Scope getStateScope() {
+        return null;
     }
 
     @Override
-    public boolean isInput() {
+    boolean isInput() {
         return true;
     }
 }

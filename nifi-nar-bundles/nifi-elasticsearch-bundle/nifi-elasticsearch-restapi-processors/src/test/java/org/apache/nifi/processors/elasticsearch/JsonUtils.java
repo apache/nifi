@@ -19,6 +19,9 @@ package org.apache.nifi.processors.elasticsearch;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,40 +30,44 @@ public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private JsonUtils() {}
 
-    static String toJson(Object object) {
+    static String readString(final Path path) throws IOException {
+        return Files.readString(path);
+    }
+
+    static String toJson(final Object object) {
         try {
             return MAPPER.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static String prettyPrint(Object object) {
+    static String prettyPrint(final Object object) {
         try {
             return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static Map<String, Object> readMap(String json) {
+    static Map<String, Object> readMap(final String json) {
         try {
             return MAPPER.readValue(json, Map.class);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static List<String> readListOfMapsAsIndividualJson(String json) {
+    static List<String> readListOfMapsAsIndividualJson(final String json) {
             return readListOfMaps(json).stream()
                     .map(JsonUtils::prettyPrint)
                     .collect(Collectors.toList());
     }
 
-    static List<Map<String, Object>> readListOfMaps(String json) {
+    static List<Map<String, Object>> readListOfMaps(final String json) {
         try {
             return MAPPER.readValue(json, List.class);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }

@@ -17,32 +17,43 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
+import org.apache.nifi.elasticsearch.ElasticsearchException;
+import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.elasticsearch.api.QueryDefinitionType;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public interface ElasticsearchRestProcessor extends VerifiableProcessor {
+public interface ElasticsearchRestProcessor extends Processor, VerifiableProcessor {
     String ATTR_RECORD_COUNT = "record.count";
     String VERIFICATION_STEP_INDEX_EXISTS = "Elasticsearch Index Exists";
+    String VERIFICATION_STEP_QUERY_JSON_VALID = "Elasticsearch Query JSON Valid";
+    String VERIFICATION_STEP_QUERY_VALID = "Elasticsearch Query Valid";
 
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
@@ -62,11 +73,101 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    PropertyDescriptor QUERY_DEFINITION_STYLE = new PropertyDescriptor.Builder()
+            .name("el-rest-query-definition-style")
+            .displayName("Query Definition Style")
+            .description("How the JSON Query will be defined for use by the processor.")
+            .required(true)
+            .allowableValues(QueryDefinitionType.class)
+            .defaultValue(QueryDefinitionType.FULL_QUERY.getValue())
+            .build();
+
     PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("el-rest-query")
             .displayName("Query")
             .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
-                    "If this parameter is not set, the query will be read from the flowfile content.")
+                    "If this parameter is not set, the query will be read from the flowfile content. " +
+                    "If the query (property and flowfile content) is empty, a default empty JSON Object will be used, " +
+                    "which will result in a \"match_all\" query in Elasticsearch.")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor QUERY_CLAUSE = new PropertyDescriptor.Builder()
+            .name("el-rest-query-clause")
+            .displayName("Query Clause")
+            .description("A \"query\" clause in JSON syntax, not Lucene syntax. Ex: {\"match\":{\"somefield\":\"somevalue\"}}. " +
+                    "If the query is empty, a default JSON Object will be used, which will result in a \"match_all\" query in Elasticsearch.")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor SCRIPT = new PropertyDescriptor.Builder()
+            .name("el-rest-script")
+            .displayName("Script")
+            .description("A \"script\" to execute during the operation, in JSON syntax. " +
+                    "Ex: {\"source\": \"ctx._source.count++\", \"lang\": \"painless\"}")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
+            .name("es-rest-size")
+            .displayName("Size")
+            .description("The maximum number of documents to retrieve in the query. If the query is paginated, " +
+                    "this \"size\" applies to each page of the query, not the \"size\" of the entire result set.")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    PropertyDescriptor AGGREGATIONS = new PropertyDescriptor.Builder()
+            .name("es-rest-query-aggs")
+            .displayName("Aggregations")
+            .description("One or more query aggregations (or \"aggs\"), in JSON syntax. " +
+                    "Ex: {\"items\": {\"terms\": {\"field\": \"product\", \"size\": 10}}}")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor SORT = new PropertyDescriptor.Builder()
+            .name("es-rest-query-sort")
+            .displayName("Sort")
+            .description("Sort results by one or more fields, in JSON syntax. " +
+                    "Ex: [{\"price\" : {\"order\" : \"asc\", \"mode\" : \"avg\"}}, {\"post_date\" : {\"format\": \"strict_date_optional_time_nanos\"}}]")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
+            .name("es-rest-query-fields")
+            .displayName("Fields")
+            .description("Fields of indexed documents to be retrieved, in JSON syntax. " +
+                    "Ex: [\"user.id\", \"http.response.*\", {\"field\": \"@timestamp\", \"format\": \"epoch_millis\"}]")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
+            .build();
+
+    PropertyDescriptor SCRIPT_FIELDS = new PropertyDescriptor.Builder()
+            .name("es-rest-query-script-fields")
+            .displayName("Script Fields")
+            .description("Fields to created using script evaluation at query runtime, in JSON syntax. " +
+                    "Ex: {\"test1\": {\"script\": {\"lang\": \"painless\", \"source\": \"doc['price'].value * 2\"}}, " +
+                    "\"test2\": {\"script\": {\"lang\": \"painless\", \"source\": \"doc['price'].value * params.factor\", \"params\": {\"factor\": 2.0}}}}")
+            .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(JsonValidator.INSTANCE)
@@ -109,19 +210,92 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
             .description("All flowfiles that fail due to server/cluster availability go to this relationship.")
             .build();
 
-    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
-        String retVal = null;
-        if (context.getProperty(QUERY).isSet()) {
-            retVal = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
-        } else if (input != null) {
-            final ByteArrayOutputStream out = new ByteArrayOutputStream();
-            session.exportTo(input, out);
-            out.close();
+    String DEFAULT_QUERY_JSON = "{}";
 
-            retVal = out.toString();
+    ObjectMapper mapper = new ObjectMapper();
+
+    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
+        String retVal = getQuery(input != null ? input.getAttributes() : Collections.emptyMap(), context);
+        if (DEFAULT_QUERY_JSON.equals(retVal) && input != null
+            && QueryDefinitionType.FULL_QUERY.getValue().equals(context.getProperty(QUERY_DEFINITION_STYLE).getValue())
+            && !context.getProperty(QUERY).isSet()) {
+            try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                session.exportTo(input, out);
+                retVal = out.toString();
+            }
         }
 
-        return retVal;
+        return StringUtils.isNotBlank(retVal) ? retVal : DEFAULT_QUERY_JSON;
+    }
+
+    default String getQuery(final Map<String, String> attributes, final ProcessContext context) throws IOException {
+        final String retVal;
+        if (QueryDefinitionType.FULL_QUERY.getValue().equals(context.getProperty(QUERY_DEFINITION_STYLE).getValue())) {
+            if (context.getProperty(QUERY).isSet()) {
+                retVal = context.getProperty(QUERY).evaluateAttributeExpressions(attributes).getValue();
+            } else {
+                retVal = null;
+            }
+        } else {
+            final Map<String, Object> query = new HashMap<>(7, 1);
+            addQueryClause(query, attributes, context);
+            if (context.getProperty(SIZE).isSet()) {
+                query.put("size", context.getProperty(SIZE).evaluateAttributeExpressions(attributes).asInteger());
+            }
+            addSortClause(query, attributes, context);
+            if (context.getProperty(AGGREGATIONS).isSet()) {
+                query.put("aggs", mapper.readTree(context.getProperty(AGGREGATIONS).evaluateAttributeExpressions(attributes).getValue()));
+            }
+            if (context.getProperty(SCRIPT).isSet()) {
+                query.put("script", mapper.readTree(context.getProperty(SCRIPT).evaluateAttributeExpressions(attributes).getValue()));
+            }
+            if (context.getProperty(FIELDS).isSet()) {
+                query.put("fields", mapper.readTree(context.getProperty(FIELDS).evaluateAttributeExpressions(attributes).getValue()));
+            }
+            if (context.getProperty(SCRIPT_FIELDS).isSet()) {
+                query.put("script_fields", mapper.readTree(context.getProperty(SCRIPT_FIELDS).evaluateAttributeExpressions(attributes).getValue()));
+            }
+            retVal = mapper.writeValueAsString(query);
+        }
+
+        // allow for no query to be specified, which will run a "match_all" query in Elasticsearch by default
+        return StringUtils.isNotBlank(retVal) ? retVal : DEFAULT_QUERY_JSON;
+    }
+
+    /**
+     * Add "query" clause to the Elasticsearch query object.
+     * Overridable method for processors that build a query clause from separate components, e.g. ConsumeElasticsearch
+     *
+     * @param query      the Query object being constructed
+     * @param attributes (optional) input FlowFile attributes
+     * @param context    ProcessContext of the running processor
+     */
+    default void addQueryClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
+        if (context.getProperty(QUERY_CLAUSE).isSet()) {
+            query.put("query", mapper.readTree(context.getProperty(QUERY_CLAUSE).evaluateAttributeExpressions(attributes).getValue()));
+        }
+    }
+
+    /**
+     * Add "sort" clause to the Elasticsearch query object.
+     * Overridable method for processors that build a sort clause from separate components, e.g. ConsumeElasticsearch
+     *
+     * @param query   the Query object being constructed
+     * @param attributes (optional) input FlowFile attributes
+     * @param context ProcessContext of the running processor
+     */
+    default void addSortClause(final Map<String, Object> query, final Map<String, String> attributes, final ProcessContext context) throws IOException {
+        if (context.getProperty(SORT).isSet()) {
+            // ensure sort is specified as a List for easier manipulation if needed later
+            final List<Map<String, Object>> sortList;
+            final JsonNode sort = mapper.readTree(context.getProperty(SORT).evaluateAttributeExpressions(attributes).getValue());
+            if (sort.isArray()) {
+                sortList = mapper.convertValue(sort, new TypeReference<List<Map<String, Object>>>() {});
+            } else {
+                sortList = Collections.singletonList(mapper.convertValue(sort, new TypeReference<Map<String, Object>>() {}));
+            }
+            query.put("sort", new ArrayList<>(sortList));
+        }
     }
 
     default Map<String, String> getDynamicProperties(final ProcessContext context, final FlowFile flowFile) {
@@ -189,9 +363,51 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
 
     boolean isIndexNotExistSuccessful();
 
-    @SuppressWarnings("unused")
     default List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
                                                             final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
-        return Collections.emptyList();
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final ConfigVerificationResult.Builder queryJsonValidResult = new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFICATION_STEP_QUERY_JSON_VALID);
+        final ConfigVerificationResult.Builder queryValidResult = new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFICATION_STEP_QUERY_VALID);
+
+        if (indexExists) {
+            try {
+                final String query = getQuery(attributes, context);
+                verificationLogger.debug("Query JSON: {}", query);
+                final ObjectNode queryJson = mapper.readValue(query, ObjectNode.class);
+                queryJsonValidResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL).explanation("Query JSON successfully parsed");
+
+                if (queryJson.has("script")) {
+                    verificationLogger.debug("Removing \"script\" field from verification Query, not valid for _search");
+                    queryJson.remove("script");
+                }
+                final String type = context.getProperty(TYPE).evaluateAttributeExpressions(attributes).getValue();
+                final Map<String, String> requestParameters = new HashMap<>(getDynamicProperties(context, attributes));
+                requestParameters.putIfAbsent("_source", "false");
+
+                final SearchResponse response = verifyClientService.search(mapper.writeValueAsString(queryJson), index, type, requestParameters);
+                queryValidResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                        .explanation(String.format("Query found %d hits and %d aggregations in %d milliseconds, timed out: %s",
+                                response.getNumberOfHits(), response.getAggregations() == null ? 0 : response.getAggregations().size(), response.getTook(), response.isTimedOut()));
+            } catch (final IOException ioe) {
+                verificationLogger.warn("Unable to parse Query as JSON", ioe);
+                queryJsonValidResult.outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("Query cannot be parsed as valid JSON: %s", ioe.getMessage()));
+                queryValidResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation("Query JSON could not be parsed");
+            } catch (final ElasticsearchException ee) {
+                verificationLogger.warn("Query failed in Elasticsearch", ee);
+                queryValidResult.outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("Query failed in Elasticsearch: %s", ee.getMessage()));
+            }
+        } else {
+            final String skippedReason = String.format("Index %s does not exist", index);
+            queryJsonValidResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation(skippedReason);
+            queryValidResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation(skippedReason);
+        }
+        results.add(queryJsonValidResult.build());
+        results.add(queryValidResult.build());
+
+        return results;
     }
 }

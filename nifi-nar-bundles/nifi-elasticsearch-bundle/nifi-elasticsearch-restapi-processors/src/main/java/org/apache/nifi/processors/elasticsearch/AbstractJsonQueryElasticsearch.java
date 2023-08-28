@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -112,15 +111,13 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .build();
 
     private static final Set<Relationship> relationships;
-    private static final List<PropertyDescriptor> propertyDescriptors;
+    static final List<PropertyDescriptor> queryPropertyDescriptors;
 
     ResultOutputStrategy hitStrategy;
     private SearchResultsFormat hitFormat;
     private ResultOutputStrategy aggregationStrategy;
     private AggregationResultsFormat aggregationFormat;
     private boolean outputNoHits;
-
-    final ObjectMapper mapper = new ObjectMapper();
 
     final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
@@ -133,7 +130,14 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         relationships = Collections.unmodifiableSet(rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(QUERY_DEFINITION_STYLE);
         descriptors.add(QUERY);
+        descriptors.add(QUERY_CLAUSE);
+        descriptors.add(SIZE);
+        descriptors.add(SORT);
+        descriptors.add(AGGREGATIONS);
+        descriptors.add(FIELDS);
+        descriptors.add(SCRIPT_FIELDS);
         descriptors.add(QUERY_ATTRIBUTE);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -144,7 +148,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         descriptors.add(AGGREGATION_RESULTS_FORMAT);
         descriptors.add(OUTPUT_NO_HITS);
 
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
+        queryPropertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -154,7 +158,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return queryPropertyDescriptors;
     }
 
     @Override
@@ -183,8 +187,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
         hitStrategy = ResultOutputStrategy.fromValue(context.getProperty(SEARCH_RESULTS_SPLIT).getValue());
         hitFormat = SearchResultsFormat.valueOf(context.getProperty(SEARCH_RESULTS_FORMAT).getValue());
-        aggregationStrategy = ResultOutputStrategy.fromValue(context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue());
-        aggregationFormat = AggregationResultsFormat.valueOf(context.getProperty(AGGREGATION_RESULTS_FORMAT).getValue());
+        aggregationStrategy = context.getProperty(AGGREGATION_RESULTS_SPLIT).isSet() ? ResultOutputStrategy.fromValue(context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue()) : null;
+        aggregationFormat = context.getProperty(AGGREGATION_RESULTS_FORMAT).isSet() ? AggregationResultsFormat.valueOf(context.getProperty(AGGREGATION_RESULTS_FORMAT).getValue()) : null;
 
         outputNoHits = context.getProperty(OUTPUT_NO_HITS).asBoolean();
     }

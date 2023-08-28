@@ -59,7 +59,7 @@ public class GetElasticsearchTest {
         runner.removeProperty(GetElasticsearch.ATTRIBUTE_NAME);
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        String expected = String.format("Processor has 3 validation failures:\n" +
+        final String expected = String.format("Processor has 3 validation failures:\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n",
@@ -79,7 +79,7 @@ public class GetElasticsearchTest {
         runner.setProperty(GetElasticsearch.ATTRIBUTE_NAME, "");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        String expected = String.format("Processor has 6 validation failures:\n" +
+        final String expected = String.format("Processor has 6 validation failures:\n" +
                         "'%s' validated against '' is invalid because %s cannot be empty\n" +
                         "'%s' validated against '' is invalid because %s cannot be empty\n" +
                         "'%s' validated against '' is invalid because %s cannot be empty\n" +
@@ -101,7 +101,7 @@ public class GetElasticsearchTest {
         runner.setProperty(GetElasticsearch.ATTRIBUTE_NAME, "");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
-        String expected = String.format("Processor has 1 validation failures:\n" +
+        final String expected = String.format("Processor has 1 validation failures:\n" +
                         "'%s' validated against '' is invalid because %s cannot be empty\n",
                 GetElasticsearch.ATTRIBUTE_NAME.getName(), GetElasticsearch.ATTRIBUTE_NAME.getName());
         assertEquals(expected, assertionError.getMessage());

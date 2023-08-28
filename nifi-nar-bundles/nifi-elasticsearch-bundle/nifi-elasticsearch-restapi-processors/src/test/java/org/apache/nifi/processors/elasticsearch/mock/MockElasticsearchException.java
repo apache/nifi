@@ -19,13 +19,13 @@ package org.apache.nifi.processors.elasticsearch.mock;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 
 public class MockElasticsearchException extends ElasticsearchException {
-    public MockElasticsearchException(boolean elastic, boolean notFound) {
+    public MockElasticsearchException(final boolean elastic, final boolean notFound) {
         this(new Exception());
         this.elastic = elastic;
         this.notFound = notFound;
     }
 
-    public MockElasticsearchException(Exception ex) {
+    public MockElasticsearchException(final Exception ex) {
         super(ex);
     }
 }

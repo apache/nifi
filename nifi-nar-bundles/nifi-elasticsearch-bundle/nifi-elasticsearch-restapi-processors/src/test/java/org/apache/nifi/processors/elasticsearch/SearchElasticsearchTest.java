@@ -22,12 +22,14 @@ import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -37,73 +39,41 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         AbstractPaginatedJsonQueryElasticsearchTest.setUpBeforeClass();
     }
 
-    public AbstractPaginatedJsonQueryElasticsearch getProcessor() {
+    AbstractPaginatedJsonQueryElasticsearch getProcessor() {
         return new SearchElasticsearch();
     }
 
-    public boolean isStateUsed() {
-        return true;
+    Scope getStateScope() {
+        return Scope.LOCAL;
     }
 
-    public boolean isInput() {
+    boolean isInput() {
         return false;
     }
 
-    @Test
-    public void testScrollError() {
-        final TestRunner runner = createRunner(false);
-        final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
-        service.setMaxPages(2);
-        service.setThrowErrorInSearch(false);
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
-
-        // initialize search
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-        runner.clearTransferState();
-
-        // scroll (error)
-        service.setThrowErrorInSearch(true);
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
-        assertTrue(runner.getLogger().getErrorMessages().stream().anyMatch(logMessage ->
-                logMessage.getMsg().contains("Could not query documents") && logMessage.getThrowable().getMessage().contains("Simulated IOException - scroll")));
-    }
-
-    @Test
-    public void testScrollExpiration() throws Exception {
-        testPaginationExpiration(PaginationType.SCROLL);
-    }
-
-    @Test
-    public void testPitExpiration() throws Exception {
-        testPaginationExpiration(PaginationType.POINT_IN_TIME);
-    }
-
-    @Test
-    public void testSearchAfterExpiration() throws Exception {
-        testPaginationExpiration(PaginationType.SEARCH_AFTER);
-    }
-
-    private void testPaginationExpiration(final PaginationType paginationType) throws Exception{
+    @ParameterizedTest
+    @EnumSource(PaginationType.class)
+    void testPaginationExpiration(final PaginationType paginationType) throws Exception {
         // test flowfile per page
         final TestRunner runner = createRunner(false);
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "1 sec");
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
+        setQuery(runner, matchAllWithSortByMsgWithSizeQuery);
 
         // first page
         runOnce(runner);
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "1");
-        assertState(runner.getStateManager(), paginationType, 10, 1);
+        assertState(runner, paginationType, 10, 1);
+        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+            assertFalse(getService(runner).getQuery().contains("\"five\""));
+        }
 
         // wait for expiration
-        final Instant expiration = Instant.ofEpochMilli(Long.parseLong(runner.getStateManager().getState(Scope.LOCAL).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP)));
+        final Instant expiration = Instant.ofEpochMilli(Long.parseLong(runner.getStateManager().getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP)));
         while (expiration.isAfter(Instant.now())) {
             Thread.sleep(10);
         }
@@ -121,7 +91,11 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "1");
-        assertState(runner.getStateManager(), paginationType, 10, 1);
+        assertState(runner, paginationType, 10, 1);
+        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+            // trackingRangeValue should be retained after previous query expiry
+            assertTrue(getService(runner).getQuery().contains("\"five\""));
+        }
         runner.clearTransferState();
 
         // second page
@@ -129,63 +103,81 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
-        assertState(runner.getStateManager(), paginationType, 20, 2);
+        assertState(runner, paginationType, 20, 2);
+        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+            assertTrue(getService(runner).getQuery().contains("\"five\""));
+        }
         runner.clearTransferState();
     }
 
     @Override
-    void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws IOException {
-        boolean perResponseResultOutputStrategy = ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy);
-        boolean perHitResultOutputStrategy = ResultOutputStrategy.PER_HIT.equals(resultOutputStrategy);
+    void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, final int iteration) throws IOException {
+        final boolean perResponseResultOutputStrategy = ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy);
+        final boolean perHitResultOutputStrategy = ResultOutputStrategy.PER_HIT.equals(resultOutputStrategy);
         final int expectedHitCount = 10 * iteration;
 
         if (perResponseResultOutputStrategy && (iteration == 1 || iteration == 2)) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", String.valueOf(iteration));
-            assertState(runner.getStateManager(), paginationType, expectedHitCount, iteration);
+            assertState(runner, paginationType, expectedHitCount, iteration);
         } else if (perHitResultOutputStrategy && (iteration == 1 || iteration == 2)) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 10, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
                 hit.assertAttributeEquals("hit.count", "1");
                 hit.assertAttributeEquals("page.number", String.valueOf(iteration));
             });
-            assertState(runner.getStateManager(), paginationType, expectedHitCount, iteration);
+            assertState(runner, paginationType, expectedHitCount, iteration);
         } else if ((perResponseResultOutputStrategy || perHitResultOutputStrategy) && iteration == 3) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
-            assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
+            if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+                assertEquals("five", runner.getStateManager().getState(getStateScope()).get(ConsumeElasticsearch.STATE_RANGE_VALUE));
+            } else {
+                assertTrue(runner.getStateManager().getState(getStateScope()).toMap().isEmpty());
+            }
         } else if (ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
             AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20");
             // the "last" page.number is used, so 2 here because there were 2 pages of hits
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
             assertEquals(20, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length);
-            assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
+            if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+                assertEquals("five", runner.getStateManager().getState(getStateScope()).get(ConsumeElasticsearch.STATE_RANGE_VALUE));
+            } else {
+                assertTrue(runner.getStateManager().getState(getStateScope()).toMap().isEmpty());
+            }
         }
     }
 
-    private void assertState(final MockStateManager stateManager, final PaginationType paginationType, final int hitCount, final int pageCount) throws IOException {
-        stateManager.assertStateEquals(SearchElasticsearch.STATE_HIT_COUNT, Integer.toString(hitCount), Scope.LOCAL);
-        stateManager.assertStateEquals(SearchElasticsearch.STATE_PAGE_COUNT, Integer.toString(pageCount), Scope.LOCAL);
+    private void assertState(final TestRunner runner, final PaginationType paginationType, final int hitCount, final int pageCount) throws IOException {
+        final MockStateManager stateManager = runner.getStateManager();
 
-        final String pageExpirationTimestamp = stateManager.getState(Scope.LOCAL).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP);
+        stateManager.assertStateEquals(SearchElasticsearch.STATE_HIT_COUNT, Integer.toString(hitCount), getStateScope());
+        stateManager.assertStateEquals(SearchElasticsearch.STATE_PAGE_COUNT, Integer.toString(pageCount), getStateScope());
+        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+            stateManager.assertStateEquals(ConsumeElasticsearch.STATE_RANGE_VALUE, "five", getStateScope());
+        } else {
+            stateManager.assertStateNotSet(ConsumeElasticsearch.STATE_RANGE_VALUE, getStateScope());
+        }
+
+        final String pageExpirationTimestamp = stateManager.getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP);
         assertTrue(Long.parseLong(pageExpirationTimestamp) > Instant.now().toEpochMilli());
 
         switch (paginationType) {
             case SCROLL:
-                stateManager.assertStateEquals(SearchElasticsearch.STATE_SCROLL_ID, "scrollId-" + pageCount, Scope.LOCAL);
-                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, Scope.LOCAL);
-                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, Scope.LOCAL);
+                stateManager.assertStateEquals(SearchElasticsearch.STATE_SCROLL_ID, "scrollId-" + pageCount, getStateScope());
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, getStateScope());
                 break;
             case POINT_IN_TIME:
-                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, Scope.LOCAL);
-                stateManager.assertStateEquals(SearchElasticsearch.STATE_PIT_ID, "pitId-" + pageCount, Scope.LOCAL);
-                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", Scope.LOCAL);
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
+                stateManager.assertStateEquals(SearchElasticsearch.STATE_PIT_ID, "pitId-" + pageCount, getStateScope());
+                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
                 break;
             case SEARCH_AFTER:
-                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, Scope.LOCAL);
-                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, Scope.LOCAL);
-                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", Scope.LOCAL);
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
+                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
                 break;
             default:
                 fail("Unknown paginationType: " + paginationType);

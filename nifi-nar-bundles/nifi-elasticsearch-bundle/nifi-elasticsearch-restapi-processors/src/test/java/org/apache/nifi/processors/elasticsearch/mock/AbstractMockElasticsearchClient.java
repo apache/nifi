@@ -33,42 +33,42 @@ import java.util.Map;
 
 public class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
     @Override
-    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         return null;
     }
 
     @Override
-    public IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
+    public IndexOperationResponse add(final IndexOperationRequest operation, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters) {
+    public IndexOperationResponse bulk(final List<IndexOperationRequest> operations, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public Long count(String query, String index, String type, Map<String, String> requestParameters) {
+    public Long count(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteById(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteById(final String index, final String type, final List<String> ids, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+    public DeleteOperationResponse deleteByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+    public UpdateOperationResponse updateByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         return null;
     }
 
@@ -82,42 +82,42 @@ public class AbstractMockElasticsearchClient extends AbstractControllerService i
     }
 
     @Override
-    public boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
+    public boolean documentExists(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         return true;
     }
 
     @Override
-    public Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
+    public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
+    public SearchResponse search(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         return null;
     }
 
     @Override
-    public SearchResponse scroll(String scroll) {
+    public SearchResponse scroll(final String scroll) {
         return null;
     }
 
     @Override
-    public String initialisePointInTime(String index, String keepAlive) {
+    public String initialisePointInTime(final String index, final String keepAlive) {
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deletePointInTime(String pitId) {
+    public DeleteOperationResponse deletePointInTime(final String pitId) {
         return null;
     }
 
     @Override
-    public DeleteOperationResponse deleteScroll(String scrollId) {
+    public DeleteOperationResponse deleteScroll(final String scrollId) {
         return null;
     }
 
     @Override
-    public String getTransitUrl(String index, String type) {
+    public String getTransitUrl(final String index, final String type) {
         return String.format("http://localhost:9200/%s/%s", index, StringUtils.isNotBlank(type) ? type : "");
     }
 
@@ -129,7 +129,7 @@ public class AbstractMockElasticsearchClient extends AbstractControllerService i
         return throwRetriableError;
     }
 
-    public void setThrowRetriableError(boolean throwRetriableError) {
+    public void setThrowRetriableError(final boolean throwRetriableError) {
         this.throwRetriableError = throwRetriableError;
     }
 
@@ -141,7 +141,7 @@ public class AbstractMockElasticsearchClient extends AbstractControllerService i
         return throwFatalError;
     }
 
-    public void setThrowFatalError(boolean throwFatalError) {
+    public void setThrowFatalError(final boolean throwFatalError) {
         this.throwFatalError = throwFatalError;
     }
 

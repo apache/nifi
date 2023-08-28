@@ -48,7 +48,8 @@ Execute the following script from the `nifi-elasticsearch-bundle` directory:
 ```bash
 mvn --fail-at-end -Pcontrib-check clean install
 
-es_versions=(elasticsearch6 elasticsearch7 elasticsearch8)
+# blank entry to run the default integration-tests profile, i.e. Elasticsearch 8
+es_versions=(elasticsearch6 elasticsearch7 " ")
 it_modules=(nifi-elasticsearch-client-service nifi-elasticsearch-restapi-processors)
 for v in "${es_versions[@]}"; do
     for m in "${it_modules[@]}"; do
