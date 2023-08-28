@@ -1118,7 +1118,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'FlowAnalysisRule' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });
