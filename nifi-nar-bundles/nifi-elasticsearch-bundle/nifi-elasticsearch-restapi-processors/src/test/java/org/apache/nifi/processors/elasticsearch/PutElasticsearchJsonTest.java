@@ -28,7 +28,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -62,10 +61,10 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        sampleErrorResponse = Files.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
-        flowFileContents = Files.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
-        script = Files.readString(Paths.get(TEST_DIR,"script.json"));
-        dynamicTemplates = Files.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
+        sampleErrorResponse = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
+        flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
+        script = JsonUtils.readString(Paths.get(TEST_DIR,"script.json"));
+        dynamicTemplates = JsonUtils.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
         expectedScript = new LinkedHashMap<>();
         expectedScript.put("_source", "some script");
         expectedScript.put("language", "painless");
@@ -324,7 +323,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "100");
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
+        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(JsonUtils.readString(BATCH_WITH_ERROR));
         values.forEach(val -> runner.enqueue(val));
         runner.assertValid();
         runner.run();
@@ -365,7 +364,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "true");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(Files.readString(BATCH_WITH_ERROR));
+        List<String> values = JsonUtils.readListOfMapsAsIndividualJson(JsonUtils.readString(BATCH_WITH_ERROR));
         values.forEach(val -> runner.enqueue(val));
         runner.assertValid();
         runner.run();
@@ -416,7 +415,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "false");
         runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "100");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
-        for (final String val : JsonUtils.readListOfMapsAsIndividualJson(Files.readString(Paths.get(TEST_DIR, "batchWithoutError.json")))) {
+        for (final String val : JsonUtils.readListOfMapsAsIndividualJson(JsonUtils.readString(Paths.get(TEST_DIR, "batchWithoutError.json")))) {
             runner.enqueue(val);
         }
 

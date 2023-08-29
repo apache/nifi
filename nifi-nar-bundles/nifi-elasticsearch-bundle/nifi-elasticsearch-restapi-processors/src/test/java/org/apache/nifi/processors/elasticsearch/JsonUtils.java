@@ -31,6 +31,13 @@ public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private JsonUtils() {}
 
+    @Deprecated // Use Files.readString when no longer need to support Java 8
+    static String readString(final Path path) throws IOException {
+        try (Stream<String> lines = Files.lines(path)) {
+            return lines.collect(Collectors.joining("\n"));
+        }
+    }
+
     static String toJson(Object object) {
         try {
             return MAPPER.writeValueAsString(object);
@@ -56,11 +63,6 @@ public class JsonUtils {
         }
     }
 
-    static String readString(final Path path) throws IOException {
-        try (Stream<String> lines = Files.lines(path)) {
-            return lines.collect(Collectors.joining("\n"));
-        }
-    }
     static List<String> readListOfMapsAsIndividualJson(String json) {
             return readListOfMaps(json).stream()
                     .map(JsonUtils::prettyPrint)
