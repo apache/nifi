@@ -70,7 +70,6 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
-import org.apache.nifi.web.dao.TemplateDAO;
 
 import java.util.HashSet;
 import java.util.List;
@@ -186,7 +185,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private ParameterProviderDAO parameterProviderDAO;
     private FlowRegistryDAO flowRegistryDAO;
-    private TemplateDAO templateDAO;
     private AccessPolicyDAO accessPolicyDAO;
     private ParameterContextDAO parameterContextDAO;
 
@@ -604,9 +602,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case FlowAnalysisRule:
                 authorizable = getFlowAnalysisRule(componentId).getAuthorizable();
                 break;
-            case Template:
-                authorizable = getTemplate(componentId);
-                break;
             case ParameterContext:
                 authorizable = getParameterContext(componentId);
                 break;
@@ -748,34 +743,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         if (snippet.getProcessGroups() != null) {
             snippet.getProcessGroups().forEach(group -> createTemporaryProcessorsAndControllerServices(group.getContents(), processors, controllerServices, extensionManager));
         }
-    }
-
-    @Override
-    public Authorizable getTemplate(String id) {
-        return templateDAO.getTemplate(id);
-    }
-
-    @Override
-    public TemplateContentsAuthorizable getTemplateContents(final FlowSnippetDTO snippet) {
-        // templates are immutable so we can pre-compute all encapsulated processors and controller services
-        final Set<ComponentAuthorizable> processors = new HashSet<>();
-        final Set<ComponentAuthorizable> controllerServices = new HashSet<>();
-
-        // find all processors and controller services
-        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
-        createTemporaryProcessorsAndControllerServices(snippet, processors, controllerServices, extensionManager);
-
-        return new TemplateContentsAuthorizable() {
-            @Override
-            public Set<ComponentAuthorizable> getEncapsulatedProcessors() {
-                return processors;
-            }
-
-            @Override
-            public Set<ComponentAuthorizable> getEncapsulatedControllerServices() {
-                return controllerServices;
-            }
-        };
     }
 
     @Override
@@ -1289,11 +1256,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Set<Authorizable> getEncapsulatedTemplates() {
-            return new HashSet<>(processGroup.findAllTemplates());
-        }
-
-        @Override
         public Set<ComponentAuthorizable> getEncapsulatedControllerServices() {
             return processGroup.findAllControllerServices().stream().map(
                     controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, extensionManager)).collect(Collectors.toSet());
@@ -1392,10 +1354,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDAO) {
         this.flowRegistryDAO = flowRegistryDAO;
-    }
-
-    public void setTemplateDAO(TemplateDAO templateDAO) {
-        this.templateDAO = templateDAO;
     }
 
     public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {

@@ -42,7 +42,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
@@ -277,16 +276,6 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
             return wrappedClient.getPoliciesClient(requestConfig);
-        }
-
-        @Override
-        public TemplatesClient getTemplatesClient() {
-            return wrappedClient.getTemplatesClient(requestConfig);
-        }
-
-        @Override
-        public TemplatesClient getTemplatesClient(RequestConfig requestConfig) {
-            return wrappedClient.getTemplatesClient(requestConfig);
         }
 
         @Override

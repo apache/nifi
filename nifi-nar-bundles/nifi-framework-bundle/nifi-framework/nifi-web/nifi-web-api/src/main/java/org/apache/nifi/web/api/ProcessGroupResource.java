@@ -21,16 +21,57 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
 import java.util.ArrayList;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
@@ -40,17 +81,14 @@ import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
-import org.apache.nifi.authorization.TemplateContentsAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
@@ -79,13 +117,10 @@ import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.AnalyzeFlowRequestDTO;
 import org.apache.nifi.web.api.dto.AnalyzeFlowRequestUpdateStepDTO;
-import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ParameterContextHandlingStrategy;
-import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupReplaceRequestDTO;
@@ -93,7 +128,6 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -106,7 +140,6 @@ import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
-import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
@@ -114,7 +147,6 @@ import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
 import org.apache.nifi.web.api.entity.InputPortsEntity;
-import org.apache.nifi.web.api.entity.InstantiateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.LabelsEntity;
 import org.apache.nifi.web.api.entity.OutputPortsEntity;
@@ -131,7 +163,6 @@ import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -139,66 +170,13 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.util.ParameterContextReplacer;
 import org.apache.nifi.web.util.Pause;
-import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
-import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -221,7 +199,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private LabelResource labelResource;
     private RemoteProcessGroupResource remoteProcessGroupResource;
     private ConnectionResource connectionResource;
-    private TemplateResource templateResource;
     private ControllerServiceResource controllerServiceResource;
     private ParameterContextReplacer parameterContextReplacer;
 
@@ -389,7 +366,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
             authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                    false, true, false, true);
+                    false, false, true);
         });
 
         // get the versioned flow
@@ -442,7 +419,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, true, false, false);
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, false, false);
         });
 
         final FlowComparisonEntity entity = serviceFacade.getLocalModifications(groupId);
@@ -1912,10 +1889,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
         final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
-        authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
+        authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false);
 
         processGroup.getEncapsulatedProcessGroups()
-            .forEach(encapsulatedProcessGroup -> authorizeProcessGroup(encapsulatedProcessGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false));
+            .forEach(encapsulatedProcessGroup -> authorizeProcessGroup(encapsulatedProcessGroup, authorizer, lookup, RequestAction.READ, false, false, false, false));
 
         processGroup.getEncapsulatedConnections().stream()
             .map(ConnectionAuthorizable::getSourceData)
@@ -1996,9 +1973,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 lookup -> {
                     final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
 
-                    // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
+                    // ensure write to this process group and all encapsulated components including controller services. additionally, ensure
                     // read to any referenced services by encapsulated components
-                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false, false);
+                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, false, false);
 
                     // ensure write permission to the parent process group, if applicable... if this is the root group the
                     // request will fail later but still need to handle authorization here
@@ -3593,219 +3570,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         );
     }
 
-    // -----------------
-    // template instance
-    // -----------------
-
-    /**
-     * Discovers the compatible bundle details for the components in the specified snippet.
-     *
-     * @param snippet the snippet
-     */
-    private void discoverCompatibleBundles(final FlowSnippetDTO snippet) {
-        if (snippet.getProcessors() != null) {
-            snippet.getProcessors().forEach(processor -> {
-                final BundleCoordinate coordinate = serviceFacade.getCompatibleBundle(processor.getType(), processor.getBundle());
-                processor.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
-            });
-        }
-
-        if (snippet.getControllerServices() != null) {
-            snippet.getControllerServices().forEach(controllerService -> {
-                final BundleCoordinate coordinate = serviceFacade.getCompatibleBundle(controllerService.getType(), controllerService.getBundle());
-                controllerService.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
-            });
-        }
-
-        if (snippet.getProcessGroups() != null) {
-            snippet.getProcessGroups().forEach(processGroup -> {
-                discoverCompatibleBundles(processGroup.getContents());
-            });
-        }
-    }
-
-    /**
-     * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
-     * corresponding URI. Instead the request URI is returned.
-     * <p>
-     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
-     *
-     * @param httpServletRequest               request
-     * @param groupId                          The group id
-     * @param requestInstantiateTemplateRequestEntity The instantiate template request
-     * @return A flowEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/template-instance")
-    @ApiOperation(
-            value = "Instantiates a template",
-            response = FlowEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /process-groups/{uuid}"),
-                    @Authorization(value = "Read - /templates/{uuid}"),
-                    @Authorization(value = "Write - if the template contains any restricted components - /restricted-components")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response instantiateTemplate(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The process group id.",
-                    required = true
-            )
-            @PathParam("id") String groupId,
-            @ApiParam(
-                    value = "The instantiate template request.",
-                    required = true
-            ) InstantiateTemplateRequestEntity requestInstantiateTemplateRequestEntity) {
-
-        // ensure the position has been specified
-        if (requestInstantiateTemplateRequestEntity == null || requestInstantiateTemplateRequestEntity.getOriginX() == null || requestInstantiateTemplateRequestEntity.getOriginY() == null) {
-            throw new IllegalArgumentException("The origin position (x, y) must be specified.");
-        }
-
-        // ensure the template id was provided
-        if (requestInstantiateTemplateRequestEntity.getTemplateId() == null) {
-            throw new IllegalArgumentException("The template id must be specified.");
-        }
-
-        // ensure the template encoding version is valid
-        if (requestInstantiateTemplateRequestEntity.getEncodingVersion() != null) {
-            try {
-                FlowEncodingVersion.parse(requestInstantiateTemplateRequestEntity.getEncodingVersion());
-            } catch (final IllegalArgumentException e) {
-                throw new IllegalArgumentException("The template encoding version is not valid. The expected format is <number>.<number>");
-            }
-        }
-
-        // populate the encoding version if necessary
-        if (requestInstantiateTemplateRequestEntity.getEncodingVersion() == null) {
-            // if the encoding version is not specified, use the latest encoding version as these options were
-            // not available pre 1.x, will be overridden if populating from the underlying template below
-            requestInstantiateTemplateRequestEntity.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
-        }
-
-        // populate the component bundles if necessary
-        if (requestInstantiateTemplateRequestEntity.getSnippet() == null) {
-            // get the desired template in order to determine the supported bundles
-            final TemplateDTO requestedTemplate = serviceFacade.exportTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
-            final FlowSnippetDTO requestTemplateContents = requestedTemplate.getSnippet();
-
-            // determine the compatible bundles to use for each component in this template, this ensures the nodes in the cluster
-            // instantiate the components from the same bundles
-            discoverCompatibleBundles(requestTemplateContents);
-
-            // update the requested template as necessary - use the encoding version from the underlying template
-            requestInstantiateTemplateRequestEntity.setEncodingVersion(requestedTemplate.getEncodingVersion());
-            requestInstantiateTemplateRequestEntity.setSnippet(requestTemplateContents);
-        }
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, requestInstantiateTemplateRequestEntity);
-        } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(requestInstantiateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
-        }
-
-        return withWriteLock(
-                serviceFacade,
-                requestInstantiateTemplateRequestEntity,
-                lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-                    // ensure write on the group
-                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
-
-                    final Authorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
-                    template.authorize(authorizer, RequestAction.READ, user);
-
-                    // ensure read on the template
-                    final TemplateContentsAuthorizable templateContents = lookup.getTemplateContents(requestInstantiateTemplateRequestEntity.getSnippet());
-
-                    final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-                    };
-
-                    // ensure restricted access if necessary
-                    templateContents.getEncapsulatedProcessors().forEach(authorizeRestricted);
-                    templateContents.getEncapsulatedControllerServices().forEach(authorizeRestricted);
-
-                    final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
-                    if (parameterContext != null) {
-                        AuthorizeParameterReference.authorizeParameterReferences(requestInstantiateTemplateRequestEntity.getSnippet(), authorizer, parameterContext, user);
-                    }
-                },
-                () -> serviceFacade.verifyCanInstantiate(groupId, requestInstantiateTemplateRequestEntity.getSnippet()),
-                instantiateTemplateRequestEntity -> {
-                    final FlowSnippetDTO snippet = instantiateTemplateRequestEntity.getSnippet();
-
-                    // Check if the snippet contains any public port violating public port unique constraint with the current flow
-                    verifyPublicPortUniqueness(snippet);
-
-                    // create the template and generate the json
-                    final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
-                        instantiateTemplateRequestEntity.getEncodingVersion(), snippet, getIdGenerationSeed().orElse(null));
-
-                    final FlowDTO flowSnippet = entity.getFlow();
-
-                    // prune response as necessary
-                    for (ProcessGroupEntity childGroupEntity : flowSnippet.getProcessGroups()) {
-                        childGroupEntity.getComponent().setContents(null);
-                    }
-
-                    // create the response entity
-                    populateRemainingSnippetContent(flowSnippet);
-
-                    // generate the response
-                    return generateCreatedResponse(getAbsolutePath(), entity).build();
-                }
-        );
-    }
-
-    private void verifyPublicPortUniqueness(FlowSnippetDTO snippet) {
-        snippet.getInputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
-            .forEach(portDTO -> {
-                try {
-                    serviceFacade.verifyPublicInputPortUniqueness(portDTO.getId(), portDTO.getName());
-                } catch (IllegalStateException e) {
-                    throw toPublicPortUniqueConstraintViolationException("input", portDTO);
-                }
-            });
-
-        snippet.getOutputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
-            .forEach(portDTO -> {
-                try {
-                    serviceFacade.verifyPublicOutputPortUniqueness(portDTO.getId(), portDTO.getName());
-                } catch (IllegalStateException e) {
-                    throw toPublicPortUniqueConstraintViolationException("output", portDTO);
-                }
-            });
-
-        snippet.getProcessGroups().forEach(processGroupDTO -> verifyPublicPortUniqueness(processGroupDTO.getContents()));
-    }
-
-    private IllegalStateException toPublicPortUniqueConstraintViolationException(final String portType, final PortDTO portDTO) {
-        return new IllegalStateException(String.format("The %s port [%s] named '%s' will violate the public port unique constraint." +
-            " Rename the existing port name, or the one in the template to instantiate the template in this flow.", portType, portDTO.getId(), portDTO.getName()));
-    }
-
-    // ---------
-    // templates
-    // ---------
-
     private SnippetAuthorizable authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId,
                                                       final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
 
@@ -3818,282 +3582,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
         authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true, authorizeTransitiveServices, authorizeParameterReferences);
         return snippet;
-    }
-
-    /**
-     * Creates a new template based off of the specified template.
-     *
-     * @param httpServletRequest          request
-     * @param requestCreateTemplateRequestEntity request to create the template
-     * @return A templateEntity
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/templates")
-    @ApiOperation(
-            value = "Creates a template and discards the specified snippet.",
-            response = TemplateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /process-groups/{uuid}"),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response createTemplate(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The process group id.",
-                    required = true
-            )
-            @PathParam("id") final String groupId,
-            @ApiParam(
-                    value = "The create template request.",
-                    required = true
-            ) final CreateTemplateRequestEntity requestCreateTemplateRequestEntity) {
-
-        if (requestCreateTemplateRequestEntity == null || requestCreateTemplateRequestEntity.getSnippetId() == null) {
-            throw new IllegalArgumentException("The snippet identifier must be specified.");
-        }
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, requestCreateTemplateRequestEntity);
-        } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(requestCreateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
-        }
-
-        return withWriteLock(
-                serviceFacade,
-                requestCreateTemplateRequestEntity,
-                lookup -> {
-                    authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId(), true, false);
-                },
-                () -> serviceFacade.verifyCanAddTemplate(groupId, requestCreateTemplateRequestEntity.getName()),
-                createTemplateRequestEntity -> {
-                    // create the template and generate the json
-                    final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
-                            createTemplateRequestEntity.getSnippetId(), groupId, getIdGenerationSeed());
-                    templateResource.populateRemainingTemplateContent(template);
-
-                    // build the response entity
-                    final TemplateEntity entity = new TemplateEntity();
-                    entity.setTemplate(template);
-
-                    // build the response
-                    return generateCreatedResponse(URI.create(template.getUri()), entity).build();
-                }
-        );
-    }
-
-    /**
-     * Imports the specified template.
-     *
-     * @param httpServletRequest request
-     * @param in                 The template stream
-     * @return A templateEntity or an errorResponse XML snippet.
-     * @throws InterruptedException if interrupted
-     */
-    @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_XML)
-    @Path("{id}/templates/upload")
-    @ApiOperation(
-            value = "Uploads a template",
-            response = TemplateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /process-groups/{uuid}")
-            }
-    )
-    @ApiImplicitParams(
-            value = {
-                    @ApiImplicitParam(
-                            name = "template",
-                            value = "The binary content of the template file being uploaded.",
-                            required = true,
-                            type = "file",
-                            paramType = "formData")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response uploadTemplate(
-            @Context final HttpServletRequest httpServletRequest,
-            @Context final UriInfo uriInfo,
-            @ApiParam(
-                    value = "The process group id.",
-                    required = true
-            )
-            @PathParam("id") final String groupId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
-            )
-            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @FormDataParam("template") final InputStream in) throws InterruptedException {
-
-        // unmarshal the template
-        final TemplateDTO template;
-        try {
-            // TODO: Potentially refactor the template parsing to a service layer outside of the resource for web request handling
-            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-            XMLStreamReader xsr = provider.getStreamReader(new StreamSource(in));
-            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
-            template = templateElement.getValue();
-        } catch (JAXBException jaxbe) {
-            logger.warn("An error occurred while parsing a template.", jaxbe);
-            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"The specified template is not in a valid format.\"/>", Response.Status.BAD_REQUEST.getStatusCode());
-            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
-        } catch (IllegalArgumentException iae) {
-            logger.warn("Unable to import template.", iae);
-            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"%s\"/>", Response.Status.BAD_REQUEST.getStatusCode(), sanitizeErrorResponse(iae.getMessage()));
-            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
-        } catch (Exception e) {
-            logger.warn("An error occurred while importing a template.", e);
-            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>",
-                    Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), sanitizeErrorResponse(e.getMessage()));
-            return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
-        }
-
-        if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
-        }
-
-        // build the response entity
-        TemplateEntity entity = new TemplateEntity();
-        entity.setTemplate(template);
-        entity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
-
-        if (isReplicateRequest()) {
-            // convert request accordingly
-            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
-            uriBuilder.segment("process-groups", groupId, "templates", "import");
-            final URI importUri = uriBuilder.build();
-
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_XML);
-
-            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
-            // to the cluster nodes themselves.
-            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                return getRequestReplicator().replicate(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
-            } else {
-                return getRequestReplicator().forwardToCoordinator(
-                        getClusterCoordinatorNode(), HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
-            }
-        }
-
-        // otherwise import the template locally
-        return importTemplate(httpServletRequest, groupId, entity);
-    }
-
-    /**
-     * Returns the sanitized error response which can safely be displayed on the error page.
-     *
-     * @param errorResponse the initial error response
-     * @return the HTML-escaped error response
-     */
-    private String sanitizeErrorResponse(String errorResponse) {
-        if (errorResponse == null || StringUtils.isEmpty(errorResponse)) {
-            return "";
-        }
-
-        return StringEscapeUtils.escapeHtml4(errorResponse);
-    }
-
-    /**
-     * Imports the specified template.
-     *
-     * @param httpServletRequest request
-     * @param requestTemplateEntity     A templateEntity.
-     * @return A templateEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_XML)
-    @Produces(MediaType.APPLICATION_XML)
-    @Path("{id}/templates/import")
-    @ApiOperation(
-            value = "Imports a template",
-            response = TemplateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /process-groups/{uuid}")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response importTemplate(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The process group id.",
-                    required = true
-            )
-            @PathParam("id") final String groupId,
-            final TemplateEntity requestTemplateEntity) {
-
-        // verify the template was specified
-        if (requestTemplateEntity == null || requestTemplateEntity.getTemplate() == null || requestTemplateEntity.getTemplate().getSnippet() == null) {
-            throw new IllegalArgumentException("Template details must be specified.");
-        }
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, requestTemplateEntity);
-        } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(requestTemplateEntity.isDisconnectedNodeAcknowledged());
-        }
-
-        return withWriteLock(
-                serviceFacade,
-                requestTemplateEntity,
-                lookup -> {
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
-                () -> serviceFacade.verifyCanAddTemplate(groupId, requestTemplateEntity.getTemplate().getName()),
-                templateEntity -> {
-                    try {
-                        // import the template
-                        final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId, getIdGenerationSeed());
-                        templateResource.populateRemainingTemplateContent(template);
-
-                        // build the response entity
-                        TemplateEntity entity = new TemplateEntity();
-                        entity.setTemplate(template);
-
-                        // build the response
-                        return generateCreatedResponse(URI.create(template.getUri()), entity).build();
-                    } catch (IllegalArgumentException | IllegalStateException e) {
-                        logger.info("Unable to import template: " + e);
-                        String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"%s\"/>", Response.Status.BAD_REQUEST.getStatusCode(), sanitizeErrorResponse(e.getMessage()));
-                        return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
-                    } catch (Exception e) {
-                        logger.warn("An error occurred while importing a template.", e);
-                        String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>",
-                                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), sanitizeErrorResponse(e.getMessage()));
-                        return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
-                    }
-                }
-        );
     }
 
     // -------------------
@@ -4245,7 +3733,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @Authorization(value = "Write - /process-groups/{uuid}"),
                     @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                     @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                    @Authorization(value = "Write - if the template contains any restricted components - /restricted-components"),
+                    @Authorization(value = "Write - if the snapshot contains any restricted components - /restricted-components"),
                     @Authorization(value = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
@@ -5135,10 +4623,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
-    }
-
-    public void setTemplateResource(TemplateResource templateResource) {
-        this.templateResource = templateResource;
     }
 
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {

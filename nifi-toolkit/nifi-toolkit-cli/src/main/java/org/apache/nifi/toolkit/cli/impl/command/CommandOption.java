@@ -110,9 +110,6 @@ public enum CommandOption {
     POLICY_ACTION("poa", "accessPolicyAction", "The action of an access policy (read or write)", true),
     OVERWRITE_POLICY("owp", "overwritePolicy", "Overwrite the user list and group list for the access policy", false),
 
-    // NiFi - Templates
-    TEMPLATE_ID("tid", "templateId", "The id of a template", true),
-
     // NiFI - Parameter Contexts
     PARAM_CONTEXT_ID("pcid", "paramContextId", "The id of a parameter context", true),
     PARAM_CONTEXT_NAME("pcn", "paramContextName", "The name of a parameter context", true),

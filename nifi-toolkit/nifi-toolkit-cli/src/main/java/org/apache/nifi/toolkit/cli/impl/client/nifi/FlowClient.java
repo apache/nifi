@@ -26,7 +26,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import java.io.IOException;
@@ -129,13 +128,6 @@ public interface FlowClient {
      * @return the parameter providers entity
      */
     ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException;
-
-    /**
-     * Retrieves the all templates.
-     *
-     * @return the templates entity
-     */
-    TemplatesEntity getTemplates() throws NiFiClientException, IOException;
 
     /**
      * Retrives the status for the connection with the given ID

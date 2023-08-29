@@ -158,7 +158,6 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         versionedDataflow.setParameterContexts(List.of());
         versionedDataflow.setParameterProviders(List.of());
         versionedDataflow.setControllerServices(List.of());
-        versionedDataflow.setTemplates(Set.of());
         versionedDataflow.setReportingTasks(
             convertComponents(configSchema::getReportingTasksSchema, this::toVersionedReportingTask, toList()));
 

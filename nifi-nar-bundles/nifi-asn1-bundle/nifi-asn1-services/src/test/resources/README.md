@@ -32,6 +32,6 @@ In order to test JASN1Reader running in a NiFi flow, a JAR file containing model
 $ jar -cvf /tmp/jasn1-examples.jar -C nifi-nar-bundles/nifi-asn1-bundle/nifi-asn1-services/target/test-classes/ .
 ``` 
 
-## NiFi flow template for test
+## NiFi flow definition for test
 
-The `ASN1.xml` is a NiFi flow template contains JASN1Reader and other processors to test the component.
+The `ASN1.json` is a NiFi flow definition contains JASN1Reader and other processors to test the component.

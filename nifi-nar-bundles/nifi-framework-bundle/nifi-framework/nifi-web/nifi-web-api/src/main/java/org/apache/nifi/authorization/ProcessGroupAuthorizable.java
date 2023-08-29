@@ -89,13 +89,6 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     Set<Authorizable> getEncapsulatedRemoteProcessGroups();
 
     /**
-     * The authorizables for all encapsulated templates. Non null
-     *
-     * @return all encapsulated templates
-     */
-    Set<Authorizable> getEncapsulatedTemplates();
-
-    /**
      * The authorizables for all encapsulated input ports. Non null
      *
      * @return all encapsulated input ports

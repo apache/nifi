@@ -84,7 +84,6 @@ import org.apache.nifi.cluster.coordination.http.endpoints.RuntimeManifestEndpoi
 import org.apache.nifi.cluster.coordination.http.endpoints.SearchUsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.TemplatesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMerger;
@@ -170,7 +169,6 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());
         endpointMergers.add(new FlowConfigurationEndpointMerger());
-        endpointMergers.add(new TemplatesEndpointMerger());
         endpointMergers.add(new LabelEndpointMerger());
         endpointMergers.add(new LabelsEndpointMerger());
         endpointMergers.add(new FunnelEndpointMerger());

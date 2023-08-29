@@ -286,13 +286,6 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         final ProcessGroup rootGroup = getRootGroup();
 
-        // Delete templates from all levels first. This allows us to avoid having to purge each individual Process Group recursively
-        // and instead just delete all child Process Groups after removing the connections to/from those Process Groups.
-        for (final ProcessGroup group : rootGroup.findAllProcessGroups()) {
-            group.getTemplates().forEach(group::removeTemplate);
-        }
-        rootGroup.getTemplates().forEach(rootGroup::removeTemplate);
-
         rootGroup.getConnections().forEach(rootGroup::removeConnection);
         rootGroup.getProcessors().forEach(rootGroup::removeProcessor);
         rootGroup.getFunnels().forEach(rootGroup::removeFunnel);
@@ -337,7 +330,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         }
 
         final ProcessGroup rootGroup = getRootGroup();
-        rootGroup.verifyCanDelete(true, true);
+        rootGroup.verifyCanDelete(true);
     }
 
     public Set<ControllerServiceNode> getAllControllerServices() {

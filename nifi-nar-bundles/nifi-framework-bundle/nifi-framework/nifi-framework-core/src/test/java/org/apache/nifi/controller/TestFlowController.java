@@ -1379,7 +1379,6 @@ public class TestFlowController {
         versionedDataflow.setControllerServices(Collections.emptyList());
         versionedDataflow.setReportingTasks(Collections.emptyList());
         versionedDataflow.setFlowAnalysisRules(Collections.emptyList());
-        versionedDataflow.setTemplates(Collections.emptySet());
 
         final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
         rootGroup.setIdentifier(UUID.randomUUID().toString());

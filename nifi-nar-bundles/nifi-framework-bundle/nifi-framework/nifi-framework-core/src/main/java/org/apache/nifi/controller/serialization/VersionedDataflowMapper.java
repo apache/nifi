@@ -23,15 +23,13 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
-import org.apache.nifi.controller.flow.VersionedTemplate;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
-import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -45,13 +43,11 @@ import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.SensitiveValueEncryptor;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.web.api.dto.TemplateDTO;
+
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class VersionedDataflowMapper {
     private static final VersionedFlowEncodingVersion ENCODING_VERSION = new VersionedFlowEncodingVersion(2, 0);
@@ -91,7 +87,6 @@ public class VersionedDataflowMapper {
         dataflow.setFlowAnalysisRules(mapFlowAnalysisRules());
         dataflow.setParameterProviders(mapParameterProviders());
         dataflow.setRootGroup(mapRootGroup());
-        dataflow.setTemplates(mapTemplates());
 
         return dataflow;
     }
@@ -167,24 +162,6 @@ public class VersionedDataflowMapper {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final VersionedProcessGroup versionedRootGroup = flowMapper.mapProcessGroup(rootGroup, flowController.getControllerServiceProvider(), flowController.getFlowManager(), true);
         return versionedRootGroup;
-    }
-
-    private Set<VersionedTemplate> mapTemplates() {
-        return flowController.getFlowManager().getRootGroup().findAllTemplates().stream()
-            .map(this::mapTemplate)
-            .collect(Collectors.toSet());
-    }
-
-    private VersionedTemplate mapTemplate(final Template template) {
-        final TemplateDTO dto = template.getDetails();
-
-        final VersionedTemplate versionedTemplate = new VersionedTemplate();
-        versionedTemplate.setIdentifier(template.getIdentifier());
-        versionedTemplate.setInstanceIdentifier(template.getIdentifier());
-        versionedTemplate.setGroupIdentifier(template.getProcessGroupIdentifier());
-        versionedTemplate.setName(dto.getName());
-        versionedTemplate.setTemplateDto(dto);
-        return versionedTemplate;
     }
 
     private VersionedComponentStateLookup createStateLookup() {

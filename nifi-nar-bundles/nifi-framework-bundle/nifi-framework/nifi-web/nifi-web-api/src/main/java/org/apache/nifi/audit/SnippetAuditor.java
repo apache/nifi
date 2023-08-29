@@ -107,23 +107,6 @@ public class SnippetAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits the instantiation of a template.
-     *
-     * @param proceedingJoinPoint join point
-     * @return dto
-     * @throws Throwable ex
-     */
-    @Around("within(org.apache.nifi.web.dao.TemplateDAO+) && "
-            + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO instantiateTemplate("
-            + "java.lang.String, java.lang.Double, java.lang.Double, java.lang.String, org.apache.nifi.web.api.dto.FlowSnippetDTO, java.lang.String))")
-    public FlowSnippetDTO instantiateTemplateAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
-        // perform the underlying operation
-        FlowSnippetDTO snippet = (FlowSnippetDTO) proceedingJoinPoint.proceed();
-        auditSnippet(snippet);
-        return snippet;
-    }
-
-    /**
      * Audits the specified snippet.
      */
     private void auditSnippet(final FlowSnippetDTO snippet) {

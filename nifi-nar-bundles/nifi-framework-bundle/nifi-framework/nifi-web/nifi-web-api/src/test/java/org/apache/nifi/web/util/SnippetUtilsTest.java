@@ -95,7 +95,7 @@ public class SnippetUtilsTest {
 
     /*
      * This test validates condition where components that are being re-created
-     * from template are now replicated across the cluster. Such components will
+     * are replicated across the cluster. Such components will
      * have the same inception id (msb) yet different instance id (lsb). The id
      * of these components must be different yet their msb must be the same.
      */

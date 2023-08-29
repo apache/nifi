@@ -46,7 +46,6 @@ import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
@@ -1028,13 +1027,6 @@ public class ControllerFacade implements Authorizable {
             resources.add(flowRegistryResource);
             resources.add(ResourceFactory.getPolicyResource(flowRegistryResource));
             resources.add(ResourceFactory.getOperationResource(flowRegistryResource));
-        }
-
-        // add each template
-        for (final Template template : root.findAllTemplates()) {
-            final Resource templateResource = template.getResource();
-            resources.add(templateResource);
-            resources.add(ResourceFactory.getPolicyResource(templateResource));
         }
 
         return resources;

@@ -111,11 +111,11 @@ public class SnippetResource extends ApplicationResource {
     private void authorizeSnippetRequest(final SnippetDTO snippetRequest, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        // note - we are not authorizing templates or controller services as they are not considered when using this snippet
+        // note - we are not authorizing controller services as they are not considered when using this snippet
         snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
         });
         snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
@@ -184,8 +184,8 @@ public class SnippetResource extends ApplicationResource {
                 lookup -> {
                     final SnippetDTO snippetRequest = requestSnippetEntity.getSnippet();
 
-                    // the snippet being created may be used later for batch component modifications,
-                    // copy/paste, or template creation. during those subsequent actions, the snippet
+                    // the snippet being created may be used later for batch component modifications or
+                    // copy/paste. During those subsequent actions, the snippet
                     // will again be authorized accordingly (read or write). at this point we do not
                     // know what the snippet will be used for so we need to attempt to authorize as
                     // read OR write

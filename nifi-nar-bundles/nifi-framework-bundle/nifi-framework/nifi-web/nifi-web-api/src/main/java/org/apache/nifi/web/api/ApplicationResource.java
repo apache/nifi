@@ -459,13 +459,12 @@ public abstract class ApplicationResource {
      * @param lookup                       lookup
      * @param action                       action
      * @param authorizeReferencedServices  whether to authorize referenced services
-     * @param authorizeTemplates           whether to authorize templates
      * @param authorizeControllerServices  whether to authorize controller services
      * @param authorizeTransitiveServices  whether to authorize transitive services
      * @param authorizeParameterReferences whether to authorize parameter references
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                         final boolean authorizeReferencedServices, final boolean authorizeTemplates,
+                                         final boolean authorizeReferencedServices,
                                          final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
                                          final boolean authorizeParameterReferences) {
 
@@ -497,11 +496,6 @@ public abstract class ApplicationResource {
         processGroupAuthorizable.getEncapsulatedLabels().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedProcessGroups().stream().map(group -> group.getAuthorizable()).forEach(authorize);
         processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);
-
-        // authorize templates if necessary
-        if (authorizeTemplates) {
-            processGroupAuthorizable.getEncapsulatedTemplates().forEach(authorize);
-        }
 
         // authorize controller services if necessary
         if (authorizeControllerServices) {
@@ -536,10 +530,10 @@ public abstract class ApplicationResource {
 
         // authorize each component in the specified snippet
         snippet.getSelectedProcessGroups().forEach(processGroupAuthorizable -> {
-            // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
+            // note - we are not authorizing controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices,
-                    false, false, authorizeTransitiveServices, authorizeParameterReferences);
+                    false, authorizeTransitiveServices, authorizeParameterReferences);
         });
         snippet.getSelectedRemoteProcessGroups().forEach(authorize);
         snippet.getSelectedProcessors().forEach(processorAuthorizable -> {

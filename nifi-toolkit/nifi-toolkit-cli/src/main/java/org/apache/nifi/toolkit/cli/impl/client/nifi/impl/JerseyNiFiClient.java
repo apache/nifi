@@ -43,7 +43,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.glassfish.jersey.client.ClientConfig;
@@ -197,16 +196,6 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
         return new JerseyPoliciesClient(baseTarget, requestConfig);
-    }
-
-    @Override
-    public TemplatesClient getTemplatesClient() {
-        return new JerseyTemplatesClient(baseTarget);
-    }
-
-    @Override
-    public TemplatesClient getTemplatesClient(RequestConfig requestConfig) {
-        return new JerseyTemplatesClient(baseTarget, requestConfig);
     }
 
     @Override

@@ -21,7 +21,6 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 public interface AuthorizableLookup {
 
@@ -229,22 +228,6 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getParameterContexts();
-
-    /**
-     * Get the authorizable Template.
-     *
-     * @param id template id
-     * @return authorizable
-     */
-    Authorizable getTemplate(String id);
-
-    /**
-     * Get the authorizable Template contents.
-     *
-     * @param snippet the template contents
-     * @return authorizable
-     */
-    TemplateContentsAuthorizable getTemplateContents(FlowSnippetDTO snippet);
 
     /**
      * Get the authorizable connectable. Note this does not include RemoteGroupPorts.

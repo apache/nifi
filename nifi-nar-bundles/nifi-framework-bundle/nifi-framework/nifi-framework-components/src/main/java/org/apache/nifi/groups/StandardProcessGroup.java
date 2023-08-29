@@ -49,7 +49,6 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
@@ -116,7 +115,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,7 +190,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new ConcurrentHashMap<>();
-    private final Map<String, Template> templates = new HashMap<>();
     private final PropertyEncryptor encryptor;
     private final MutableVariableRegistry variableRegistry;
     private final VersionControlFields versionControlFields = new VersionControlFields();
@@ -2652,102 +2649,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void addTemplate(final Template template) {
-        requireNonNull(template);
-
-        writeLock.lock();
-        try {
-            final String id = template.getDetails().getId();
-            if (id == null) {
-                throw new IllegalStateException("Cannot add template that has no ID");
-            }
-
-            if (templates.containsKey(id)) {
-                throw new IllegalStateException("Process Group already contains a Template with ID " + id);
-            }
-
-            templates.put(id, template);
-            template.setProcessGroup(this);
-            LOG.info("{} added to {}", template, this);
-            onComponentModified();
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public Template getTemplate(final String id) {
-        readLock.lock();
-        try {
-            return templates.get(id);
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
-    public Template findTemplate(final String id) {
-        return findTemplate(id, this);
-    }
-
-    private Template findTemplate(final String id, final ProcessGroup start) {
-        final Template template = start.getTemplate(id);
-        if (template != null) {
-            return template;
-        }
-
-        for (final ProcessGroup child : start.getProcessGroups()) {
-            final Template childTemplate = findTemplate(id, child);
-            if (childTemplate != null) {
-                return childTemplate;
-            }
-        }
-
-        return null;
-    }
-
-    @Override
-    public Set<Template> getTemplates() {
-        readLock.lock();
-        try {
-            return new HashSet<>(templates.values());
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
-    public Set<Template> findAllTemplates() {
-        return findAllTemplates(this);
-    }
-
-    private Set<Template> findAllTemplates(final ProcessGroup group) {
-        final Set<Template> templates = new HashSet<>(group.getTemplates());
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            templates.addAll(findAllTemplates(childGroup));
-        }
-        return templates;
-    }
-
-    @Override
-    public void removeTemplate(final Template template) {
-        writeLock.lock();
-        try {
-            final Template existing = templates.get(requireNonNull(template).getIdentifier());
-            if (existing == null) {
-                throw new IllegalStateException("Template " + template.getIdentifier() + " is not a member of this ProcessGroup");
-            }
-
-            templates.remove(template.getIdentifier());
-            onComponentModified();
-
-            LOG.info("{} removed from flow", template);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
     public void remove(final Snippet snippet) {
         writeLock.lock();
         try {
@@ -3042,34 +2943,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanAddTemplate(final String name) {
-        // ensure the name is specified
-        if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("Template name cannot be blank.");
-        }
-
-        for (final Template template : getRoot().findAllTemplates()) {
-            final TemplateDTO existingDto = template.getDetails();
-
-            // ensure a template with this name doesnt already exist
-            if (name.equals(existingDto.getName())) {
-                throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
-            }
-        }
-    }
-
-    @Override
     public void verifyCanDelete() {
         verifyCanDelete(false);
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignorePortConnections) {
-        verifyCanDelete(ignorePortConnections, false);
-    }
-
-    @Override
-    public void verifyCanDelete(final boolean ignoreConnections, final boolean ignoreTemplates) {
+    public void verifyCanDelete(final boolean ignoreConnections) {
         readLock.lock();
         try {
             for (final Port port : inputPorts.values()) {
@@ -3095,11 +2974,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final ProcessGroup childGroup : processGroups.values()) {
                 // For nested child groups we can ignore the input/output port
                 // connections as they will be being deleted anyway.
-                childGroup.verifyCanDelete(true, ignoreTemplates);
-            }
-
-            if (!ignoreTemplates && !templates.isEmpty()) {
-                throw new IllegalStateException(String.format("Cannot delete Process Group because it contains %s Templates. The Templates must be deleted first.", templates.size()));
+                childGroup.verifyCanDelete(true);
             }
 
             if (!ignoreConnections) {

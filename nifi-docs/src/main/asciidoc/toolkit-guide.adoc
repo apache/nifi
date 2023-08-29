@@ -109,9 +109,6 @@ The following are available commands:
  nifi update-user-group
  nifi get-policy
  nifi update-policy
- nifi list-templates
- nifi download-template
- nifi upload-template
  nifi list-param-contexts
  nifi get-param-context
  nifi create-param-context
@@ -294,21 +291,21 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- cluster-summary         enable-services         list-templates          pg-list
- connect-node            export-param-context    list-user-groups        pg-set-param-context
- create-param-context    get-node                list-users              pg-set-var
- create-reg-client       get-nodes               merge-param-context     pg-start
- create-reporting-task   get-param-context       offload-node            pg-status
- create-service          get-policy              pg-change-version       pg-stop
- create-user             get-reg-client-id       pg-create-service       set-param
- create-user-group       get-reporting-task      pg-disable-services     start-reporting-tasks
- current-user            get-reporting-tasks     pg-enable-services      stop-reporting-tasks
- delete-node             get-root-id             pg-get-all-versions     update-policy
- delete-param            get-service             pg-get-param-context    update-reg-client
- delete-param-context    get-services            pg-get-services         update-user-group
- disable-services        import-param-context    pg-get-vars             upload-template
- disconnect-node         list-param-contexts     pg-get-version          delete-reporting-task
- download-template       list-reg-clients        pg-import
+ cluster-summary         export-param-context    list-users              pg-set-param-context
+ connect-node            get-node                merge-param-context     pg-set-var
+ create-param-context    get-nodes               offload-node            pg-start
+ create-reg-client       get-param-context       pg-change-version       pg-status
+ create-reporting-task   get-policy              pg-create-service       pg-stop
+ create-service          get-reg-client-id       pg-create-service       set-param
+ create-user             get-reporting-task      pg-disable-services     start-reporting-tasks
+ create-user-group       get-reporting-tasks     pg-enable-services      stop-reporting-tasks
+ current-user            get-root-id             pg-get-all-versions     update-policy
+ delete-node             get-service             pg-get-param-context    update-reg-client
+ delete-param            get-services            pg-get-services         update-user-group
+ delete-param-context    import-param-context    pg-get-vars             delete-reporting-task
+ disable-services        list-param-contexts     pg-get-version
+ disconnect-node         list-reg-clients        pg-import
+ enable-services         list-user-groups        pg-list
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 

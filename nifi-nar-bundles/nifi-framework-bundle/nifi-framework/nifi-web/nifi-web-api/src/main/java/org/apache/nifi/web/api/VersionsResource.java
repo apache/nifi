@@ -161,7 +161,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                    false, true, false, true);
+                    false, false, true);
         });
 
         // get the versioned flow
@@ -572,7 +572,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // require read to this group and all descendants
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
             },
             () -> {
                 final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();

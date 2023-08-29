@@ -554,9 +554,6 @@ public final class ResourceFactory {
                     case ProcessGroup:
                         componentType = "Process Group";
                         break;
-                    case Template:
-                        componentType = "Template";
-                        break;
                     case Funnel:
                         componentType = "Funnel";
                         break;
