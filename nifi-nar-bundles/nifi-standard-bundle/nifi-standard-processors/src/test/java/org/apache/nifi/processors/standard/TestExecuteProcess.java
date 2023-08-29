@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.LogMessage;
@@ -90,6 +91,7 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.COMMAND, "echo");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
+        runner.setProperty(ExecuteProcess.MIME_TYPE, "application/json");
 
         runner.run();
 
@@ -97,6 +99,7 @@ public class TestExecuteProcess {
         for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile);
             System.out.println(new String(flowFile.toByteArray()));
+            flowFile.assertAttributeNotExists(CoreAttributes.MIME_TYPE.key());
         }
     }
 
@@ -124,7 +127,7 @@ public class TestExecuteProcess {
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         if(!flowFiles.isEmpty()) {
-            assertTrue(flowFiles.get(0).getAttribute("command").equals("ping"));
+            assertEquals("ping", flowFiles.get(0).getAttribute("command"));
         }
     }
 
@@ -151,7 +154,6 @@ public class TestExecuteProcess {
         for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile);
             totalFlowFilesSize += flowFile.getSize();
-            // System.out.println(new String(flowFile.toByteArray()));
         }
 
         assertEquals(inFile.length(), totalFlowFilesSize);
@@ -198,12 +200,10 @@ public class TestExecuteProcess {
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         long totalFlowFilesSize = 0;
         for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile);
             totalFlowFilesSize += flowFile.getSize();
-            // System.out.println(new String(flowFile.toByteArray()));
         }
 
-        // assertEquals(inFile.length(), totalFlowFilesSize);
+        assertEquals(inFile.length(), totalFlowFilesSize);
     }
 
     @Test
@@ -233,6 +233,7 @@ public class TestExecuteProcess {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
+                // Ignore
             }
         }
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
