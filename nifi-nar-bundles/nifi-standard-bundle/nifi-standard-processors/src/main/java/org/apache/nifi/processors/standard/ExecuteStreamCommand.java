@@ -41,6 +41,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -159,7 +160,8 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
         @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments. Sensitive properties will be masked"),
         @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
-        @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
+        @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command"),
+        @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Mime Type' property is set and 'Output Destination Attribute' is not set")})
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -274,6 +276,14 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .defaultValue("256")
             .build();
 
+    static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
+            .name("mime-type")
+            .displayName("Mime Type")
+            .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Output Destination Attribute' is set.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES;
     private static final String MASKED_ARGUMENT = "********";
 
@@ -287,6 +297,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         props.add(IGNORE_STDIN);
         props.add(PUT_OUTPUT_IN_ATTRIBUTE);
         props.add(PUT_ATTRIBUTE_MAX_LENGTH);
+        props.add(MIME_TYPE);
         PROPERTIES = Collections.unmodifiableList(props);
 
         Set<Relationship> outputStreamRelationships = new HashSet<>();
@@ -516,6 +527,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             attributes.put("execution.status", Integer.toString(exitCode));
             attributes.put("execution.command", executeCommand);
             attributes.put("execution.command.args", commandArguments);
+            if (context.getProperty(MIME_TYPE).isSet() && !putToAttribute) {
+                attributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
+            }
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
 
             if (NONZERO_STATUS_RELATIONSHIP.equals(outputFlowFileRelationship)) {
