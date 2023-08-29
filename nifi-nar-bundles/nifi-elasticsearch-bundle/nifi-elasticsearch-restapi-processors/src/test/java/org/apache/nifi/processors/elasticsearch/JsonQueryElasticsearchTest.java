@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-public class JsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractJsonQueryElasticsearch> {
+import org.apache.nifi.processors.elasticsearch.api.JsonQueryParameters;
+
+public class JsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractJsonQueryElasticsearch<JsonQueryParameters>> {
     @Override
-    public AbstractJsonQueryElasticsearch getProcessor() {
+    public AbstractJsonQueryElasticsearch<JsonQueryParameters> getProcessor() {
         return new JsonQueryElasticsearch();
     }
 

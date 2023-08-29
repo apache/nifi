@@ -19,9 +19,13 @@ package org.apache.nifi.processors.elasticsearch;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -43,6 +47,7 @@ public class JsonUtils {
         }
     }
 
+    @SuppressWarnings("unchecked")
     static Map<String, Object> readMap(String json) {
         try {
             return MAPPER.readValue(json, Map.class);
@@ -51,12 +56,18 @@ public class JsonUtils {
         }
     }
 
+    static String readString(final Path path) throws IOException {
+        try (Stream<String> lines = Files.lines(path)) {
+            return lines.collect(Collectors.joining("\n"));
+        }
+    }
     static List<String> readListOfMapsAsIndividualJson(String json) {
             return readListOfMaps(json).stream()
                     .map(JsonUtils::prettyPrint)
                     .collect(Collectors.toList());
     }
 
+    @SuppressWarnings("unchecked")
     static List<Map<String, Object>> readListOfMaps(String json) {
         try {
             return MAPPER.readValue(json, List.class);

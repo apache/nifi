@@ -39,7 +39,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Date;
@@ -89,10 +88,9 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     public Class<? extends AbstractPutElasticsearch> getTestProcessor() {
         return PutElasticsearchRecord.class;
     }
-
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        flowFileContentMaps = Files.readString(Paths.get(TEST_DIR, "flowFileContentMaps.json"));
+        flowFileContentMaps = JsonUtils.readString(Paths.get(TEST_DIR, "flowFileContentMaps.json"));
         simpleSchema = getRecordSchema(Paths.get(TEST_DIR, "simpleSchema.json"));
         recordPathTestSchema = getRecordSchema(Paths.get(TEST_DIR, "recordPathTestSchema.json"));
         dateTimeFormattingTestSchema = getRecordSchema(Paths.get(TEST_DIR, "dateTimeFormattingTestSchema.json"));
@@ -240,9 +238,9 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     @Test
     public void testRecordPathFeatures() throws Exception {
         Map<String, Object> script =
-                JsonUtils.readMap(Files.readString(Paths.get(TEST_DIR, "script.json")));
+                JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_DIR, "script.json")));
         Map<String, Object> dynamicTemplates =
-                JsonUtils.readMap(Files.readString(Paths.get(TEST_COMMON_DIR, "dynamicTemplates.json")));
+                JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "dynamicTemplates.json")));
         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
             long a = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
             long b = items.stream().filter(item ->  "bulk_b".equals(item.getIndex())).count();
@@ -297,7 +295,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script");
         runner.setProperty(PutElasticsearchRecord.SCRIPTED_UPSERT_RECORD_PATH, "/scripted_upsert");
         runner.setProperty(PutElasticsearchRecord.DYNAMIC_TEMPLATES_RECORD_PATH, "/dynamic_templates");
-        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "1_flowFileContents.json"));
+        String flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "1_flowFileContents.json"));
         flowFileContents = flowFileContents.replaceFirst("\\d{13}", String.valueOf(Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli()));
         runner.enqueue(flowFileContents, Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, RECORD_PATH_TEST_SCHEMA));
 
@@ -313,7 +311,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     @Test
     public void testTimestampDateFormatAndScriptRecordPath() throws Exception {
         Map<String, Object> script =
-                JsonUtils.readMap(Files.readString(Paths.get(TEST_DIR, "script.json")));
+                JsonUtils.readMap(JsonUtils.readString(Paths.get(TEST_DIR, "script.json")));
         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
             long testTypeCount = items.stream().filter(item ->  "test_type".equals(item.getType())).count();
             long messageTypeCount = items.stream().filter(item ->  "message".equals(item.getType())).count();
@@ -356,7 +354,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(SCHEMA_NAME_ATTRIBUTE, RECORD_PATH_TEST_SCHEMA);
         attributes.put("operation", "index");
-        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "2_flowFileContents.json"));
+        String flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "2_flowFileContents.json"));
         flowFileContents = flowFileContents.replaceFirst("\\d{13}", String.valueOf(Date.valueOf(LOCAL_DATE).getTime()));
         runner.enqueue(flowFileContents, attributes);
         runner.run();
@@ -391,7 +389,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.removeProperty(PutElasticsearchRecord.TYPE);
         runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
-        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "3_flowFileContents.json"));
+        String flowFileContents = JsonUtils.readString(Paths.get(TEST_DIR, "3_flowFileContents.json"));
         flowFileContents = flowFileContents.replaceFirst("\\d{8}", String.valueOf(Time.valueOf(LOCAL_TIME).getTime()));
         runner.enqueue(flowFileContents, Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, RECORD_PATH_TEST_SCHEMA));
         runner.run();
@@ -767,7 +765,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     private static RecordSchema getRecordSchema(Path schema) throws IOException {
-        return AvroTypeUtil.createSchema(new Schema.Parser().parse(Files.readString(schema)));
+        return AvroTypeUtil.createSchema(new Schema.Parser().parse(JsonUtils.readString(schema)));
     }
 
     private void testErrorRelationship(final int errorCount, final int successCount, boolean recordWriter) throws Exception {
@@ -777,7 +775,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY);
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
         runner.enableControllerService(writer);
-        clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
+        clientService.setResponse(IndexOperationResponse.fromJsonResponse(JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
         registry.addSchema(schemaName, errorTestSchema);
 
         if(recordWriter) {
@@ -795,7 +793,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter(e -> ProvenanceEventType.SEND.equals(e.getEventType())
-                        && "1 Elasticsearch _bulk operation batch(es) [%s error(s), %s success(es)]".formatted(errorCount, successCount).equals(e.getDetails())).count());
+                        && String.format("1 Elasticsearch _bulk operation batch(es) [%s error(s), %s success(es)]", errorCount, successCount).equals(e.getDetails())).count());
     }
 
     private void testInvalidELRecordPaths(String idRecordPath, String atTimestampRecordPath, Path path, Map<String, String> attributes) throws IOException {
@@ -848,7 +846,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     private String getDateTimeFormattingJson() throws Exception {
-        String json = Files.readString(Paths.get(TEST_DIR, "10_flowFileContents.json"));
+        String json = JsonUtils.readString(Paths.get(TEST_DIR, "10_flowFileContents.json"));
         List<Map<String, Object>> parsedJson = JsonUtils.readListOfMaps(json);
         parsedJson.forEach(msg -> {
             msg.computeIfPresent("ts", (key, val) -> Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli());

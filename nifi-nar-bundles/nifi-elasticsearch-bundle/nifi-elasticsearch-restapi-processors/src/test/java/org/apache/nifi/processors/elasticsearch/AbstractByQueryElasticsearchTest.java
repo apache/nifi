@@ -23,7 +23,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -53,7 +52,7 @@ public abstract class AbstractByQueryElasticsearchTest {
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        matchAllQuery = Files.readString(Paths.get("src/test/resources/common/matchAllQuery.json"));
+        matchAllQuery = JsonUtils.readString(Paths.get("src/test/resources/common/matchAllQuery.json"));
     }
 
     @BeforeEach
@@ -114,7 +113,7 @@ public abstract class AbstractByQueryElasticsearchTest {
 
     @Test
     public void testWithQuery() throws Exception {
-        final String query = Files.readString(Paths.get(TEST_DIR,"matchUsingExpressionLanguageQuery.json"));
+        final String query = JsonUtils.readString(Paths.get(TEST_DIR,"matchUsingExpressionLanguageQuery.json"));
         runner.setProperty(AbstractByQueryElasticsearch.QUERY, query);
         runner.setProperty(AbstractByQueryElasticsearch.INDEX, INDEX);
         runner.setProperty(AbstractByQueryElasticsearch.TYPE, TYPE);
@@ -127,7 +126,7 @@ public abstract class AbstractByQueryElasticsearchTest {
 
         runner.clearTransferState();
 
-        final String query2 = Files.readString(Paths.get(TEST_DIR, "matchQuery.json"));
+        final String query2 = JsonUtils.readString(Paths.get(TEST_DIR, "matchQuery.json"));
         runner.setProperty(AbstractByQueryElasticsearch.QUERY, query2);
         runner.setIncomingConnection(false);
         runner.assertValid();

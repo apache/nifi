@@ -18,6 +18,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processors.elasticsearch.api.AggregationResultsFormat;
+import org.apache.nifi.processors.elasticsearch.api.JsonQueryParameters;
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
 import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
+public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch<? extends JsonQueryParameters>> {
     private static final String TEST_DIR = "src/test/resources/AbstractJsonQueryElasticsearchTest";
     private static final String TEST_COMMON_DIR = "src/test/resources/common";
     private static final String INDEX_NAME = "messages";
@@ -58,8 +58,8 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        matchAllQuery = Files.readString(Paths.get(TEST_COMMON_DIR, "matchAllQuery.json"));
-        matchAllAggregationWithDefaultTermsQuery = Files.readString(Paths.get(TEST_DIR,"matchAllAggregationWithDefaultTermsQuery.json"));
+        matchAllQuery = JsonUtils.readString(Paths.get(TEST_COMMON_DIR, "matchAllQuery.json"));
+        matchAllAggregationWithDefaultTermsQuery = JsonUtils.readString(Paths.get(TEST_DIR,"matchAllAggregationWithDefaultTermsQuery.json"));
     }
 
     @Test
@@ -296,7 +296,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     @Test
     public void testAggregationsUsingExpressionLanguage() throws Exception {
         final TestRunner runner = createRunner(true);
-        String query = Files.readString(Paths.get(TEST_DIR, "matchAllAggregationWithDefaultTermsInExpressionLanguageQuery.json"));
+        String query = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllAggregationWithDefaultTermsInExpressionLanguageQuery.json"));
         runner.setVariable("fieldValue", "msg");
         runner.setVariable("es.index", INDEX_NAME);
         runner.setVariable("es.type", "msg");

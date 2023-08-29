@@ -29,7 +29,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.elasticsearch.mock.MockElasticsearchException;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,8 +42,8 @@ public class TestElasticsearchClientService extends AbstractControllerService im
 
     static {
         try {
-            AGGS_RESULT = Files.readString(Paths.get("src/test/resources/TestElasticsearchClientService/aggsResult.json"));
-            HITS_RESULT = Files.readString(Paths.get("src/test/resources/TestElasticsearchClientService/hitsResult.json"));
+            AGGS_RESULT = JsonUtils.readString(Paths.get("src/test/resources/TestElasticsearchClientService/aggsResult.json"));
+            HITS_RESULT = JsonUtils.readString(Paths.get("src/test/resources/TestElasticsearchClientService/hitsResult.json"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

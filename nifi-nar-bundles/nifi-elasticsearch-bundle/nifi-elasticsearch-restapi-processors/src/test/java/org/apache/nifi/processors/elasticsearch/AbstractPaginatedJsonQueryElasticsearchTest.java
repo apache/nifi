@@ -26,7 +26,6 @@ import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,9 +45,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
         AbstractJsonQueryElasticsearchTest.setUpBeforeClass();
-        matchAllWithSortByMessage = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
-        matchAllWithSortByMsgWithoutSize = Files.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
-        matchAllWithSortByMsgWithSizeQuery = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMsgQueryWithSize.json"));
+        matchAllWithSortByMessage = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
+        matchAllWithSortByMsgWithoutSize = JsonUtils.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
+        matchAllWithSortByMsgWithSizeQuery = JsonUtils.readString(Paths.get(TEST_DIR, "matchAllWithSortByMsgQueryWithSize.json"));
     }
 
     public abstract boolean isInput();
