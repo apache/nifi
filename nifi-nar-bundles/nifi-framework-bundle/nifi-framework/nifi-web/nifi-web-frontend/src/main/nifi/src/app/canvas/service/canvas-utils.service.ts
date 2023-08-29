@@ -16,18 +16,20 @@
  */
 
 import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
+@Injectable({
+  providedIn: 'root'
+})
+export class CanvasUtils {
 
+  constructor() { }
 
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
+  public canModify(selection: any): boolean {
+    var selectionSize = selection.size();
+    var writableSize = selection.filter(function (d: any) {
+      return d.permissions.canWrite;
+    }).size();
 
-  public init(): void {
-    this.funnelManager.init();
+    return selectionSize === writableSize;
   }
 }

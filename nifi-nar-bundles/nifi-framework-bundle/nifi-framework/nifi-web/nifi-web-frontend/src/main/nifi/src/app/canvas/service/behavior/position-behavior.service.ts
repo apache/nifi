@@ -16,18 +16,24 @@
  */
 
 import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
+import { TransitionBehavior } from './transition-behavior.service';
 
 @Injectable({ providedIn: 'root'})
-export class Graph {
-
+export class PositionBehavior {
 
   constructor(
-    private funnelManager: FunnelManager
+      private transitionBehavior: TransitionBehavior
   ) {
   }
 
-  public init(): void {
-    this.funnelManager.init();
+  public position(updated: any, transition: boolean): any {
+      if (updated.empty()) {
+          return;
+      }
+
+      return this.transitionBehavior.transition(updated, transition)
+          .attr('transform', function (d: any) {
+              return 'translate(' + d.position.x + ', ' + d.position.y + ')';
+          });
   }
 }

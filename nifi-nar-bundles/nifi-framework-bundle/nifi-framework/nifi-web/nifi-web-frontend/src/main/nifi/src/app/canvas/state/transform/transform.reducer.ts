@@ -15,19 +15,23 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
+import { createReducer, on } from '@ngrx/store';
+import { setTransform } from './transform.actions';
+import { CanvasTransform } from '../index';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
-
-
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
-
-  public init(): void {
-    this.funnelManager.init();
-  }
+export const INITIAL_TRANSLATE = {
+  x: 0,
+  y: 0
 }
+
+export const INITIAL_SCALE: number = 1;
+
+export const initialState: CanvasTransform = {
+  translate: INITIAL_TRANSLATE,
+  scale: INITIAL_SCALE
+}
+
+export const transformReducer = createReducer(
+  initialState,
+  on(setTransform, (state, { transform}) => transform)
+);

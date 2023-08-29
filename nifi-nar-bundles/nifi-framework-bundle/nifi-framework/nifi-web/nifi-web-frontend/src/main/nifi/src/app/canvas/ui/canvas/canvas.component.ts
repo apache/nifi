@@ -17,11 +17,12 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CanvasState } from '../../state';
-import { select, Store } from '@ngrx/store';
-import { selectFlow } from '../../state/flow/flow.selectors';
+import { Store } from '@ngrx/store';
 import { loadFlow } from '../../state/flow/flow.actions';
 import { Graph } from '../../service/manager/graph.service';
 import * as d3 from 'd3';
+import { CanvasView } from '../../service/canvas-view.service';
+import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 
 @Component({
   selector: 'fd-canvas',
@@ -32,35 +33,33 @@ export class CanvasComponent implements OnInit {
   private svg: any;
   private canvas: any;
 
-  public static readonly SCALE = 1;
-  public static readonly TRANSLATE = [0, 0];
-  public static readonly INCREMENT = 1.2;
-  public static readonly MAX_SCALE = 8;
-  public static readonly MIN_SCALE = 0.2;
-  public static readonly MIN_SCALE_TO_RENDER = 0.6;
-
   constructor(
     private store: Store<CanvasState>,
-    private graphService: Graph
-  ) {
-    this.store.pipe(select(selectFlow))
-        .subscribe(value => {
-          console.log(value);
-        });
-  }
+    private graphService: Graph,
+    private canvasView: CanvasView
+  ) {}
 
   ngOnInit(): void {
+    // initialize the canvas svg
     this.createSvg();
+    this.graphService.init();
+    this.canvasView.init(this.svg, this.canvas);
+
+    // load the flow
     this.store.dispatch(loadFlow());
   }
 
   private createSvg(): void {
-    this.svg = d3.select('div.canvas-background').append('svg');
+    this.svg = d3.select('div.canvas-background').append('svg')
+      .attr('class', 'canvas-svg');
+
     this.createDefs();
+
+    const t = [INITIAL_TRANSLATE.x, INITIAL_TRANSLATE.y];
 
     // create the canvas element
     this.canvas = this.svg.append('g')
-      .attr('transform', 'translate(' + CanvasComponent.TRANSLATE + ') scale(' + CanvasComponent.SCALE + ')')
+      .attr('transform', 'translate(' + t + ') scale(' + INITIAL_SCALE + ')')
       .attr('pointer-events', 'all')
       .attr('id', 'canvas');
   }
@@ -136,7 +135,7 @@ export class CanvasComponent implements OnInit {
       .attr('in', 'SourceGraphic');
 
     // filter for drop shadow
-    var connectionFullDropShadowFilter = defs.append('filter')
+    const connectionFullDropShadowFilter = defs.append('filter')
       .attr('id', 'connection-full-drop-shadow')
       .attr('height', '140%')
       .attr('y', '-20%');

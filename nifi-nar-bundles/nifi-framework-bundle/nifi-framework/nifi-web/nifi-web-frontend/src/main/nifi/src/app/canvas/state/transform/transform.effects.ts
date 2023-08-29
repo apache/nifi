@@ -16,24 +16,25 @@
  */
 
 import { Injectable } from '@angular/core';
-import { TransitionBehavior } from './transition-behavior.service';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import * as TransformActions from './transform.actions';
+import { of, switchMap } from 'rxjs';
 
-@Injectable({ providedIn: 'root'})
-export class PositionBehavior {
+@Injectable()
+export class TransformEffects {
 
-    constructor(
-        private transitionBehavior: TransitionBehavior
-    ) {
-    }
+  constructor(
+    private actions$: Actions
+  ) {}
 
-    public position(updated: any, transition: boolean): any {
-        if (updated.empty()) {
-            return;
-        }
-
-        return this.transitionBehavior.transition(updated, transition)
-            .attr('transform', function (d: any) {
-                return 'translate(' + d.position.x + ', ' + d.position.y + ')';
-            });
-    }
+  loadFlow$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TransformActions.setTransform),
+      switchMap(transform=> {
+        // TODO - persist user viewport
+        return of(transform);
+      })
+    ),
+    { dispatch: false }
+  );
 }

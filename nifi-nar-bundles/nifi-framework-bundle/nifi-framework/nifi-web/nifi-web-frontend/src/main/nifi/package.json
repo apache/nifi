@@ -24,6 +24,7 @@
     "@ngrx/store": "^16.2.0",
     "@ngrx/store-devtools": "^16.2.0",
     "d3": "^7.8.5",
+    "ngrx-immer": "^2.1.1",
     "roboto-fontface": "0.10.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

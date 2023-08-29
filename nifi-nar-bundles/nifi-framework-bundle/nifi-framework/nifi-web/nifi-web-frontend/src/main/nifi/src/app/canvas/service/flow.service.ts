@@ -17,6 +17,7 @@
 
 import { Injectable } from "@angular/core";
 import { delay, Observable, of } from "rxjs";
+import { UpdatePositions } from '../state';
 
 @Injectable({ providedIn: 'root'})
 export class FlowService {
@@ -73,12 +74,40 @@ export class FlowService {
                   "y": 150
                 }
               }
+            },
+            {
+              "revision": {
+                "clientId": "2d12389f-018a-1000-2762-b1abccf8d105",
+                "version": 1
+              },
+              "id": "2d1270d7-018a-1000-ae17-9624e25fae45",
+              "uri": "https://localhost:8443/nifi-api/funnels/2d1270d7-018a-1000-ae17-9624e25fae45",
+              "position": {
+                "x": 792,
+                "y": 150
+              },
+              "permissions": {
+                "canRead": true,
+                "canWrite": true
+              },
+              "component": {
+                "id": "2d1270d7-018a-1000-ae17-9624e25fae45",
+                "parentGroupId": "1edb8929-018a-1000-814c-5672cf7fc951",
+                "position": {
+                  "x": 792,
+                  "y": 150
+                }
+              }
             }
           ]
         },
         "lastRefreshed": "10:21:41 EDT"
       }
     };
-    return of(flow).pipe(delay(2000));
+    return of(flow).pipe(delay(200));
+  }
+
+  updatePositions(updatePositions: UpdatePositions): Observable<UpdatePositions> {
+    return of(updatePositions).pipe(delay(200));
   }
 }

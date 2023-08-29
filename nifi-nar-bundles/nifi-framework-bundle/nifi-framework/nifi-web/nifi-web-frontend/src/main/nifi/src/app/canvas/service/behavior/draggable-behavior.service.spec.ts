@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
+import { TestBed } from '@angular/core/testing';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
+import { DraggableBehavior } from './draggable-behavior.service';
 
+describe('DraggableBehavior', () => {
+  let service: DraggableBehavior;
 
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(DraggableBehavior);
+  });
 
-  public init(): void {
-    this.funnelManager.init();
-  }
-}
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});

@@ -15,19 +15,6 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
+import { CanvasState } from '../index';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
-
-
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
-
-  public init(): void {
-    this.funnelManager.init();
-  }
-}
+export const selectTransform = (state: CanvasState) => state.transform;

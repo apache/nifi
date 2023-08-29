@@ -16,18 +16,25 @@
  */
 
 import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
+@Injectable({
+  providedIn: 'root'
+})
+export class Client {
 
+  private clientId: string = crypto.randomUUID();
 
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
+  constructor() { }
 
-  public init(): void {
-    this.funnelManager.init();
+  /**
+   * Builds the revision fof the specified component
+   * @param d The component
+   * @returns The revision
+   */
+  public getRevision(d: any): any {
+    return {
+      'clientId': this.clientId,
+      'version': d.revision.version
+    }
   }
 }

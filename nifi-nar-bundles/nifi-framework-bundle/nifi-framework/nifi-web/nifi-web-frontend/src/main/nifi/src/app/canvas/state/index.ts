@@ -15,12 +15,92 @@
  * limitations under the License.
  */
 
+/*
+  Canvas Positioning/Transforms
+ */
+
+export interface Dimension {
+  width: number,
+  height: number
+}
+
+export interface Position {
+  x: number,
+  y: number
+}
+
+export interface CanvasTransform {
+  translate: Position,
+  scale: number
+}
+
+/*
+  Update Requests
+ */
+
+export interface UpdateComponentPosition {
+  id: string,
+  position: Position
+}
+
+export interface UpdateConnectionPosition {
+
+}
+
+export interface UpdatePositions {
+  componentPositionUpdates: UpdateComponentPosition[],
+  connectionPositionUpdates: UpdateConnectionPosition
+}
+
+/*
+  Application State
+ */
+
+export interface Permissions {
+  canRead: boolean;
+  canWrite: boolean;
+}
+
+export interface ComponentEntity {
+  id: string;
+  position: Position;
+  component: any;
+}
+
+export interface Flow {
+  processGroups: ComponentEntity[];
+  remoteProcessGroups: ComponentEntity[];
+  processors: ComponentEntity[];
+  inputPorts: ComponentEntity[];
+  outputPorts: ComponentEntity[];
+  connections: ComponentEntity[];
+  labels: ComponentEntity[];
+  funnels: ComponentEntity[];
+}
+
+export interface ProcessGroupFlow {
+  id: string;
+  uri: string;
+  parentGroupId: string;
+  breadcrumb: any;
+  flow: Flow;
+  lastRefreshed: string
+}
+
+export interface ProcessGroupFlowEntity {
+  permissions: Permissions;
+  processGroupFlow: ProcessGroupFlow;
+}
+
 export interface FlowState {
-  flow: any;
+  flow: ProcessGroupFlowEntity;
+  selection: string[];
+  transition: boolean;
   error: string | null;
   status: 'pending' | 'loading' | 'error' | 'success';
 }
 
 export interface CanvasState {
   flowState: FlowState;
+  transform: CanvasTransform;
 }

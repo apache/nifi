@@ -16,25 +16,35 @@
  */
 
 import { Injectable } from '@angular/core';
-import * as d3 from 'd3'
-import { PositionBehavior } from './position-behavior.service';
+import * as d3 from 'd3';
+import { PositionBehavior } from '../behavior/position-behavior.service';
+import { CanvasState, Dimension } from '../../state';
+import { SelectableBehavior } from '../behavior/selectable-behavior.service';
+import { EditableBehavior } from '../behavior/editable-behavior.service';
+import { select, Store } from '@ngrx/store';
+import { selectFunnels, selectSelected, selectTransition } from '../../state/flow/flow.selectors';
 
 @Injectable({ providedIn: 'root'})
 export class FunnelManager {
 
-  private funnels = new Map<String, any>();
-  private funnelContainer;
+  private dimensions: Dimension = {
+    width: 48,
+    height: 48
+  };
+
+  private funnels: string[] = [];
+  private funnelContainer: any;
+  private transition: boolean = false;
 
   constructor(
-      private positionBehavior: PositionBehavior
-  ) {
-    this.funnelContainer = d3.select('#canvas').append('g')
-        .attr('pointer-events', 'all')
-        .attr('class', 'funnels');
-  }
+    private store: Store<CanvasState>,
+    private positionBehavior: PositionBehavior,
+    private selectableBehavior: SelectableBehavior,
+    private editableBehavior: EditableBehavior
+  ) {}
 
   private select() {
-    return this.funnelContainer.selectAll('g.funnel').data(this.funnels.keys(), function (d: any) {
+    return this.funnelContainer.selectAll('g.funnel').data(this.funnels, function (d: any) {
       return d.id;
     });
   }
@@ -48,9 +58,9 @@ export class FunnelManager {
         .attr('id', function (d: any) {
             return 'id-' + d.id;
           })
-        .attr('class', 'funnel component')
-        .classed('selected', false)
-        .call(this.positionBehavior.position);
+        .attr('class', 'funnel component');
+
+    this.positionBehavior.position(funnel, this.transition);
 
     // funnel border
     funnel.append('rect')
@@ -88,8 +98,9 @@ export class FunnelManager {
         .text('\ue803');
 
     // always support selection
+    this.selectableBehavior.activate(funnel);
+
     // funnel
-        // .call(nfSelectable.activate);
         // .call(nfContextMenu.activate);
 
     return funnel;
@@ -112,32 +123,60 @@ export class FunnelManager {
           return d.permissions.canRead === false;
         });
 
-    updated.each(function () {
-      // var funnel = d3.select(this);
-
-      // update the component behavior as appropriate
-      // nfCanvasUtils.editable(funnel, nfConnectable, nfDraggable);
-    });
+    this.editableBehavior.editable(updated);
   }
 
   private removeFunnels(removed: any) {
     removed.remove();
   }
 
-  public set(): void {
+  public init(): void {
+    this.funnelContainer = d3.select('#canvas').append('g')
+      .attr('pointer-events', 'all')
+      .attr('class', 'funnels');
 
+    this.store.pipe(select(selectFunnels))
+      .subscribe(funnels => {
+        this.set(funnels);
+      });
 
-      // select
-      var selection = this.select();
+    this.store.pipe(select(selectSelected))
+      .subscribe(selected => {
+        this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
+          return selected.includes(d.id);
+        });
+      });
 
-      // enter
-      var entered = this.renderFunnels(selection.enter(), /*selectAll*/);
+    this.store.pipe(select(selectTransition))
+        .subscribe(transition => {
+          this.transition = transition;
+        });
+  }
 
-      // update
-      var updated = selection.merge(entered);
-      updated.call(this.updateFunnels).call(this.positionBehavior.position, /*transition*/ false);
+  private set(funnels: any): void {
+    // update the funnel map
+    this.funnels = funnels.map((funnel: any) => {
+      return {
+        ...funnel,
+        type: 'Funnel',
+        dimensions: this.dimensions
+      }
+    });
 
-      // exit
-      selection.exit().call(this.removeFunnels);
+    // select
+    const selection = this.select();
+
+    // enter
+    const entered = this.renderFunnels(selection.enter());
+
+    // update
+    const updated = selection.merge(entered);
+    this.updateFunnels(updated);
+
+    // position
+    this.positionBehavior.position(updated, this.transition);
+
+    // exit
+    selection.exit().call(this.removeFunnels);
   }
 }

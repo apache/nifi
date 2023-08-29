@@ -15,7 +15,12 @@
  * limitations under the License.
  */
 
-import { createAction, props } from "@ngrx/store";
+import { createAction, props } from '@ngrx/store';
+import { UpdatePositions } from '../index';
+
+/*
+    Loading Flow
+ */
 
 export const loadFlow = createAction('[Canvas] Load Flow');
 
@@ -27,4 +32,46 @@ export const loadFlowSuccess = createAction(
 export const loadFlowFailure = createAction(
   '[Canvas] Flow Load Failure',
   props<{ error: string }>()
+)
+
+/*
+    Selectable Behavior
+ */
+
+export const addSelectedComponents = createAction(
+    '[Canvas] Add Selected Component',
+    props<{ ids: string[] }>()
+)
+
+export const setSelectedComponents = createAction(
+    '[Canvas] Set Selected Components',
+    props<{ ids: string[] }>()
+)
+
+export const removeSelectedComponents = createAction(
+    '[Canvas] Remove Selected Components',
+    props<{ ids: string[] }>()
+)
+
+/*
+    Draggable Behavior
+ */
+
+export const updatePositions = createAction(
+  '[Canvas] Update Positions',
+  props<{ positionUpdates: UpdatePositions }>()
+)
+
+export const updatePositionSuccess = createAction(
+  '[Canvas] Update Positions Success',
+  props<{ positionUpdates: UpdatePositions }>()
+)
+
+/*
+    Transition
+ */
+
+export const setTransition = createAction(
+    '[Canvas] Set Transition',
+    props<{ transition: boolean }>()
 )

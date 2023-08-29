@@ -26,6 +26,8 @@ import { flowReducer } from "../state/flow/flow.reducer";
 import { StoreModule } from "@ngrx/store";
 import { EffectsModule } from "@ngrx/effects";
 import { FlowEffects } from "../state/flow/flow.effects";
+import { transformReducer } from '../state/transform/transform.reducer';
+import { TransformEffects } from '../state/transform/transform.effects';
 
 @NgModule({
   declarations: [FlowDesignerComponent],
@@ -39,7 +41,8 @@ import { FlowEffects } from "../state/flow/flow.effects";
     FooterModule,
     FlowDesignerRoutingModule,
     StoreModule.forFeature('flowState', flowReducer),
-    EffectsModule.forFeature([FlowEffects]),
+    StoreModule.forFeature('transform', transformReducer),
+    EffectsModule.forFeature([FlowEffects, TransformEffects]),
   ]
 })
 export class FlowDesignerModule {

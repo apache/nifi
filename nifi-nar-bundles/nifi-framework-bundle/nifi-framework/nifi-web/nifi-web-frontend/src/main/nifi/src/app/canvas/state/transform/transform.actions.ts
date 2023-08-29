@@ -15,19 +15,10 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { FunnelManager } from './funnel-manager.service';
+import { createAction, props } from '@ngrx/store';
+import { CanvasTransform } from '../index';
 
-@Injectable({ providedIn: 'root'})
-export class Graph {
-
-
-  constructor(
-    private funnelManager: FunnelManager
-  ) {
-  }
-
-  public init(): void {
-    this.funnelManager.init();
-  }
-}
+export const setTransform = createAction(
+  '[Canvas] Set Transform',
+  props<{ transform: CanvasTransform }>()
+)

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { CanvasState, FlowState } from "../index";
-import { createSelector } from "@ngrx/store";
+import { CanvasState, FlowState } from '../index';
+import { createSelector } from '@ngrx/store';
 
 export const selectFlowState = (state: CanvasState) => state.flowState;
 
@@ -33,4 +33,19 @@ export const selectFlow = createSelector(
 export const selectFlowLoadingError = createSelector(
   selectFlowState,
   (state: FlowState) => state.error
-);
+)
+
+export const selectSelected = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.selection
+)
+
+export const selectTransition = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.transition
+)
+
+export const selectFunnels = createSelector(
+  selectFlowState,
+  (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
+)

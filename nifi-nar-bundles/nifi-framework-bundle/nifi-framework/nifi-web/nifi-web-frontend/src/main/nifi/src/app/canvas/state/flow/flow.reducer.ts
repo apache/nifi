@@ -15,19 +15,55 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from "@ngrx/store";
-import { loadFlow, loadFlowFailure, loadFlowSuccess } from "./flow.actions";
-import { FlowState } from "../index";
+import { createReducer, on } from '@ngrx/store';
+import {
+  addSelectedComponents,
+  loadFlow,
+  loadFlowFailure,
+  loadFlowSuccess, removeSelectedComponents,
+  setSelectedComponents, setTransition,
+  updatePositionSuccess
+} from './flow.actions';
+import { FlowState } from '../index';
+import { produce } from 'immer';
 
 export const initialState: FlowState = {
-  flow: {},
+  flow: {
+    permissions: {
+      canRead: false,
+      canWrite: false
+    },
+    processGroupFlow: {
+      id: '',
+      uri: '',
+      parentGroupId: '',
+      breadcrumb: {},
+      flow: {
+        processGroups: [],
+        remoteProcessGroups: [],
+        processors: [],
+        inputPorts: [],
+        outputPorts: [],
+        connections: [],
+        labels: [],
+        funnels: []
+      },
+      lastRefreshed: ''
+    }
+  },
+  selection: [],
+  transition: false,
   error: null,
   status: 'pending'
 }
 
 export const flowReducer = createReducer(
   initialState,
-  on(loadFlow, (state) => ({ ...state, status: 'loading' as const })),
+  on(loadFlow, (state) => ({
+    ...state,
+    transition: true,
+    status: 'loading' as const
+  })),
   on(loadFlowSuccess, (state, { flow }) => ({
     ...state,
     flow: flow,
@@ -38,5 +74,32 @@ export const flowReducer = createReducer(
     ...state,
     error: error,
     status: 'error' as const
+  })),
+  on(addSelectedComponents, (state, { ids }) => ({
+    ...state,
+    selection: [...state.selection, ...ids],
+  })),
+  on(setSelectedComponents, (state, { ids }) => ({
+    ...state,
+    selection: ids,
+  })),
+  on(removeSelectedComponents, (state, { ids }) => ({
+    ...state,
+    selection: state.selection.filter(id => !ids.includes(id)),
+  })),
+  on(updatePositionSuccess, (state, { positionUpdates }) => {
+    return produce(state, draftState => {
+      positionUpdates.componentPositionUpdates.forEach(positionUpdate => {
+        const funnel = draftState.flow.processGroupFlow.flow.funnels.find((f: any) => positionUpdate.id === f.id);
+        if (funnel) {
+          funnel.position = positionUpdate.position;
+          funnel.component.position = positionUpdate.position;
+        }
+      })
+    });
+  }),
+  on(setTransition, (state, { transition }) => ({
+    ...state,
+    transition: transition,
   }))
 );
