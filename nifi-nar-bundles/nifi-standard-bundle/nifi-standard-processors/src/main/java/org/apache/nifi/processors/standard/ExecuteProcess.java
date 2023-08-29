@@ -33,6 +33,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -83,7 +84,8 @@ import java.util.concurrent.locks.ReentrantLock;
 )
 @WritesAttributes({
     @WritesAttribute(attribute = "command", description = "Executed command"),
-    @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command")
+    @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command"),
+    @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Output MIME Type' property is set and 'Batch Duration' is not set")
 })
 public class ExecuteProcess extends AbstractProcessor {
 
@@ -146,6 +148,13 @@ public class ExecuteProcess extends AbstractProcessor {
       .defaultValue(" ")
       .build();
 
+    static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
+            .name("Output MIME type")
+            .displayName("Output MIME Type")
+            .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Batch Duration' is set.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
     .name("success")
@@ -173,6 +182,7 @@ public class ExecuteProcess extends AbstractProcessor {
         properties.add(REDIRECT_ERROR_STREAM);
         properties.add(WORKING_DIR);
         properties.add(ARG_DELIMITER);
+        properties.add(MIME_TYPE);
         return properties;
     }
 
@@ -265,6 +275,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         try {
                             longRunningProcess.get();
                         } catch (final InterruptedException ie) {
+                            // Ignore
                         } catch (final ExecutionException ee) {
                             getLogger().error("Process execution failed due to {}", new Object[] { ee.getCause() });
                         }
@@ -273,6 +284,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         try {
                             TimeUnit.NANOSECONDS.sleep(batchNanos);
                         } catch (final InterruptedException ie) {
+                            // Ignore
                         }
                     }
 
@@ -290,15 +302,20 @@ public class ExecuteProcess extends AbstractProcessor {
             session.remove(flowFile);
             getLogger().error("Failed to read data from Process, so will not generate FlowFile");
         } else {
-            // add command and arguments as attribute
-            flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND, command);
+            // add command, arguments, and MIME type as attributes
+            Map<String,String> attributes = new HashMap<>();
+            attributes.put(ATTRIBUTE_COMMAND, command);
             if(arguments != null) {
-                flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND_ARGS, arguments);
+                attributes.put(ATTRIBUTE_COMMAND_ARGS, arguments);
             }
+            if (batchNanos == null && context.getProperty(ExecuteProcess.MIME_TYPE).isSet()) {
+                attributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(ExecuteProcess.MIME_TYPE).getValue());
+            }
+            flowFile = session.putAllAttributes(flowFile, attributes);
 
             // All was good. Generate event and transfer FlowFile.
             session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString);
-            getLogger().info("Created {} and routed to success", new Object[] { flowFile });
+            getLogger().info("Created {} and routed to success", flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
