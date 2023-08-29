@@ -133,9 +133,7 @@ public interface FlowManager extends ParameterProviderLookup {
      * @throws IllegalStateException if the snippet is not valid because a
      * component in the snippet has an ID that is not unique to this flow, or
      * because it shares an Input Port or Output Port at the root level whose
-     * name already exists in the given ProcessGroup, or because the Template
-     * contains a Processor or a Prioritizer whose class is not valid within
-     * this instance of NiFi.
+     * name already exists in the given ProcessGroup.
      * @throws ProcessorInstantiationException if unable to instantiate a
      * processor
      */
@@ -404,7 +402,6 @@ public interface FlowManager extends ParameterProviderLookup {
      *
      * Process Groups (and all components within it)
      * Controller Services
-     * Templates
      * Reporting Tasks
      * Flow Analysis Rules
      * Parameter Contexts

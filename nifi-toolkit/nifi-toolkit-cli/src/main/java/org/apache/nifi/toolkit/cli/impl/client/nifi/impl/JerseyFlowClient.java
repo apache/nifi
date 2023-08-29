@@ -35,7 +35,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import javax.ws.rs.client.Entity;
@@ -252,14 +251,6 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving parameter providers", () -> {
             final WebTarget target = flowTarget.path("parameter-providers");
             return getRequestBuilder(target).get(ParameterProvidersEntity.class);
-        });
-    }
-
-    @Override
-    public TemplatesEntity getTemplates() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving templates", () -> {
-            final WebTarget target = flowTarget.path("templates");
-            return getRequestBuilder(target).get(TemplatesEntity.class);
         });
     }
 

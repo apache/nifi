@@ -36,14 +36,12 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
 import org.apache.nifi.controller.StandardSnippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
-import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
@@ -422,11 +420,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     controller.setRootGroup(rootGroup);
                 }
 
-                // We must remove templates before attempting to synchronize the Process Group, as synchronizing may result in removal of a Process Group,
-                // which cannot be done while Templates exist. After synchronizing root Process Group, we will inherit any templates in the proposed flow
-                final Set<Template> allTemplates = controller.getFlowManager().getRootGroup().findAllTemplates();
-                allTemplates.forEach(template -> template.getProcessGroup().removeTemplate(template));
-
                 // Synchronize the root group
                 final FlowSynchronizationOptions syncOptions = new FlowSynchronizationOptions.Builder()
                     .componentIdGenerator(componentIdGenerator)
@@ -454,9 +447,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .build();
 
                 rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);
-
-                // Inherit templates, now that all necessary Process Groups have been created
-                inheritTemplates(controller, versionedFlow);
             }
 
             inheritSnippets(controller, proposedFlow);
@@ -540,25 +530,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         logger.debug("Components affected by inheriting the flow are: {}", affectedComponentSet);
         return affectedComponentSet;
-    }
-
-
-    private void inheritTemplates(final FlowController controller, final VersionedDataflow dataflow) {
-        if (dataflow.getTemplates() == null) {
-            return;
-        }
-
-        logger.debug("Synchronizing templates in dataflow");
-        final FlowManager flowManager = controller.getFlowManager();
-        for (final VersionedTemplate versionedTemplate : dataflow.getTemplates()) {
-            final ProcessGroup group = flowManager.getGroup(versionedTemplate.getGroupIdentifier());
-            if (group == null) {
-                logger.warn("Found Template for Process Group with ID {} but no Process Group exists with that ID", versionedTemplate.getGroupIdentifier());
-                continue;
-            }
-
-            group.addTemplate(new Template(versionedTemplate.getTemplateDto()));
-        }
     }
 
     private void inheritRegistries(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {

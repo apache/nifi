@@ -84,7 +84,6 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
@@ -982,31 +981,6 @@ public final class DtoFactory {
             dtos.put(entry.getKey(), revisionDto);
         }
         return dtos;
-    }
-
-    /**
-     * Creates a TemplateDTO from the specified template.
-     *
-     * @param template template
-     * @return dto
-     */
-    public TemplateDTO createTemplateDTO(final Template template) {
-        if (template == null) {
-            return null;
-        }
-
-        final TemplateDTO original = template.getDetails();
-
-        final TemplateDTO copy = new TemplateDTO();
-        copy.setId(original.getId());
-        copy.setGroupId(template.getProcessGroup().getIdentifier());
-        copy.setName(original.getName());
-        copy.setDescription(original.getDescription());
-        copy.setTimestamp(original.getTimestamp());
-        copy.setUri(original.getUri());
-        copy.setEncodingVersion(original.getEncodingVersion());
-
-        return copy;
     }
 
 

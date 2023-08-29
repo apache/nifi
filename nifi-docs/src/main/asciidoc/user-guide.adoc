@@ -120,11 +120,6 @@ UI may become unavailable.
 	as well as the message of the Bulletin.
 	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Global Menu.
 
-*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DFMs to select a part of the dataflow
-	(or the entire dataflow) and create a Template. This Template is given a name and can then be dragged onto the canvas just like the other components.
-	As a result, several components may be combined together to make a larger building block from which to create a dataflow.
-	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
-
 *flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the _flow.xml.gz_. This file is located in the `nifi/conf` directory by default.
 	Any change made on the canvas is automatically saved to this file, without the user needing to click a "Save" button.
 	In addition, NiFi automatically creates a backup copy of this file in the archive directory when it is updated.
@@ -317,7 +312,6 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *Center in view*: This option centers the view of the canvas on the given Processor.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
-- *Create template*: This option allows the user to create a template from the selected Processor.
 - *Copy*: This option places a copy of the selected Processor on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Processor from the canvas.
 
@@ -385,7 +379,6 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *Download flow definition*: This option allows the user to download the flow definition of the process group as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. There are two options when downloading a flow definition:
 ** -> *Without external services*: Controller services referenced by the selected process group but outside its scope (e.g., services in a parent group) _will not be_ included in the flow definition as services.
 ** -> *With external services*: Controller services referenced by the selected process group but outside its scope (e.g., services in a parent group) _will be_ included in the flow definition.
-- *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
 - *Delete*: This option allows the DFM to delete a Process Group.
@@ -415,7 +408,6 @@ The following options are typically available when you have full privileges to w
 - *Center in view*: This option centers the view of the canvas on the given Remote Process Group.
 - *Go to*: This option opens a view of the remote NiFi instance in a new tab of the browser. Note that if the Site-to-Site configuration is secure, the user must have access to the remote NiFi instance in order to view it.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Remote Process Group and any other components selected on the canvas.
-- *Create template*: This option allows the user to create a template from the selected Remote Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Remote Process Group from the canvas.
 
@@ -428,21 +420,6 @@ have to span a large space. By funneling these Connections into a single Connect
 drawn to span that large space instead. Secondly, Connections can be configured with FlowFile Prioritizers. Data from
 several Connections can be funneled into a single Connection, providing the ability to Prioritize all of the data on that
 one Connection, rather than prioritizing the data on each Connection independently.
-
-
-[[template]]
-image:iconTemplate.png["Template"]
-*Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
-dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
-dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
-
-image::instantiate-template.png["Instantiate Template Dialog"]
-
-Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show a question mark
-icon, indicating that there is more information. Hovering over the icon with the mouse will show this description:
-
-image::instantiate-template-description.png["Instantiate Template Dialog"]
-
 
 
 [[label]]
@@ -3038,91 +3015,6 @@ The import fails:
 image:import-xyz-flow-fails.png["XYZ Import Fails"]
 
 
-[[templates]]
-== Templates
-DFMs have the ability to build very large and complex DataFlows using NiFi. This is achieved
-by using the basic components: Processor, Funnel, Input/Output Port, Process Group, and Remote Process Group. These
-can be thought of as the most basic building blocks for constructing a DataFlow. At times, though, using these
-small building blocks can become tedious if the same logic needs to be repeated several times.
-
-To solve this issue, NiFi provides the concept of a Template. A Template is a way of combining these basic building
-blocks into larger building blocks. Once a DataFlow has been created, parts of it can be formed into a Template.
-This Template can then be dragged onto the canvas, or can be exported as an XML file and shared with others. Templates
-received from others can then be imported into an instance of NiFi and dragged onto the canvas.
-
-[[Create_Template]]
-=== Creating a Template
-To create a Template, select the components that are to be a part of the template, and then click the
-"Create Template" (image:iconNewTemplate.png["Create Template"]) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
-
-Clicking this button without selecting anything will create a Template that contains all of the contents of the
-current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
-will create a single Template that contains the entire flow.
-
-After clicking this button, the user is prompted to provide a name and an optional description for the template.
-Each template must have a unique name. After entering the name and optional description, clicking the "Create" button
-will generate the template and notify the user that the template was successfully created, or provide an appropriate
-error message if unable to create the template for some reason.
-
-NOTE: It is important to note that if any Processor that is Templated has a sensitive property (such as a password), the value of that
-sensitive property is not included in the Template. As a result, when dragging the Template onto the canvas, newly
-created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any
-Connection that was selected when making the Template is not included in the Template if either the source or the
-destination of the Connection is not also included in the Template.
-
-[[Import_Template]]
-=== Importing a Template
-After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
-the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
-authorization.
-
-From the Operate Palette, click the "Upload Template" (image:iconUploadTemplate.png["Upload Template"]) button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
-dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
-Select the file and click Open.
-Clicking the "Upload" button will attempt to import the Template into this instance of NiFi.
-The Upload Template dialog will update to show "Success" or an error message if there was a problem importing the template.
-
-
-=== Instantiating a Template
-
-Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
-instantiated, or added to the canvas. This is accomplished by dragging the Template icon (
-image:iconTemplate.png["Template"]
-) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
-
-This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
-click the "Add" button. The Template will be added to the canvas with the upper-left-hand side of the Template
-being placed wherever the user dropped the Template icon.
-
-This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
-longer wanted, it may be deleted.
-
-
-[[Manage_Templates]]
-=== Managing Templates
-
-One of the most powerful features of NiFi Templates is the ability to easily export a Template to an XML file
-and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
-of a DataFlow with others. You can select Templates from the Global Menu (see <<User_Interface>>) to open a dialog
-that displays all of the Templates that are currently available,
-filter the templates to see only those of interest, export, and delete Templates.
-
-
-[[Export_Template]]
-==== Exporting a Template
-Once a Template has been created, it can be shared with others in the Template Management page.
-To export a Template, locate the Template in the table. The Filter in the top-right corner
-can be used to help find the appropriate Template if several are available. Then click the "Download" button (image:iconDownloadTemplate.png["Export"]). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported into other instances of NiFi (see <<Import_Template>>).
-
-
-==== Removing a Template
-
-Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
-may be used to find the appropriate Template if several are available) and click the "Delete" button (
-image:iconDelete.png["Delete"]
-). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
-and will no longer be available to add to the canvas.
-
 [[data_provenance]]
 == Data Provenance
 While monitoring a dataflow, users often need a way to determine what happened to a particular data object (FlowFile).
@@ -3295,7 +3187,7 @@ Every attempt is made to provide more detailed and specific information around t
 [[other_management_features]]
 == Other Management Features
 
-In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are
+In addition to the Summary Page, Data Provenance Page and Bulletin Board Page, there are
 other tools in the Global Menu (see <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
 all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a
 recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and

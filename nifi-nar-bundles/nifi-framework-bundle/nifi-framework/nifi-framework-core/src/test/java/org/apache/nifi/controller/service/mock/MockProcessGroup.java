@@ -28,7 +28,6 @@ import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
@@ -651,11 +650,6 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignorePortConnections, final boolean ignoreTemplates) {
-
-    }
-
-    @Override
     public void verifyCanStart() {
 
     }
@@ -677,39 +671,6 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void verifyCanMove(final Snippet snippet, final ProcessGroup newProcessGroup) {
 
-    }
-
-    @Override
-    public void verifyCanAddTemplate(String name) {
-    }
-
-    @Override
-    public void addTemplate(final Template template) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void removeTemplate(final Template template) {
-    }
-
-    @Override
-    public Template getTemplate(final String id) {
-        return null;
-    }
-
-    @Override
-    public Template findTemplate(final String id) {
-        return null;
-    }
-
-    @Override
-    public Set<Template> getTemplates() {
-        return null;
-    }
-
-    @Override
-    public Set<Template> findAllTemplates() {
-        return null;
     }
 
     @Override

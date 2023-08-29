@@ -29,7 +29,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -43,7 +42,6 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
-import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
@@ -59,13 +57,10 @@ import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -320,10 +315,6 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
         for (final ControllerServiceNode service : group.getControllerServices(false)) {
             addControllerService(element, service, encryptor);
-        }
-
-        for (final Template template : group.getTemplates()) {
-            addTemplate(element, template);
         }
 
         final VariableRegistry variableRegistry = group.getVariableRegistry();
@@ -735,23 +726,5 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         final Element toAdd = doc.createElement(name);
         toAdd.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(value.get())); // value should already be filtered, but just in case ensure there are no invalid xml characters
         element.appendChild(toAdd);
-    }
-
-    public static void addTemplate(final Element element, final Template template) {
-        try {
-            final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
-
-            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
-            documentProvider.setNamespaceAware(true);
-            final Document document;
-            try (final InputStream in = new ByteArrayInputStream(serialized)) {
-                document = documentProvider.parse(in);
-            }
-
-            final Node templateNode = element.getOwnerDocument().importNode(document.getDocumentElement(), true);
-            element.appendChild(templateNode);
-        } catch (final Exception e) {
-            throw new FlowSerializationException(e);
-        }
     }
 }

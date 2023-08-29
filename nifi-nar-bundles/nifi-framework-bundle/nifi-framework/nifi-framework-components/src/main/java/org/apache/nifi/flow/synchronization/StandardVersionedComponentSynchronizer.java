@@ -35,7 +35,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
@@ -1053,8 +1052,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     @Override
     public void verifyCanSynchronize(final ProcessGroup group, final VersionedProcessGroup flowContents, final boolean verifyConnectionRemoval) {
-        // Ensure no deleted child process groups contain templates and optionally no deleted connections contain data
-        // in their queue. Note that this check enforces ancestry among the group components to avoid a scenario where
+        // Optionally check that no deleted connections contain data in their queue.
+        // Note that this check enforces ancestry among the group components to avoid a scenario where
         // a component is matched by id, but it does not exist in the same hierarchy and thus will be removed and
         // re-added when the update is performed
         verifyCanRemoveMissingComponents(group, flowContents, verifyConnectionRemoval);
@@ -1704,8 +1703,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     throw new FlowSynchronizationException("Could not synchronize flow with proposal due to: failed to disable Controller Services", ee.getCause());
                 }
 
-                // Remove all templates from the group and remove the group
-                processGroup.getTemplates().forEach(processGroup::removeTemplate);
+                // Remove the group
                 processGroup.getParent().removeProcessGroup(processGroup);
 
                 LOG.info("Successfully synchronized {} by removing it from the flow", processGroup);
@@ -3786,7 +3784,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     /**
      * Match components of the given process group to the proposed versioned process group and verify missing components
      * are in a state that they can be safely removed. Specifically, check for removed child process groups and descendants.
-     * Disallow removal of groups with attached templates. Optionally also check for removed connections with data in their
+     * Optionally also check for removed connections with data in their
      * queue, either because the connections were removed from a matched process group or their group itself was removed.
      *
      * @param processGroup the current process group to examine
@@ -3824,13 +3822,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 NiFiRegistryFlowMapper.generateVersionedComponentId(childGroup.getIdentifier()));
             final VersionedProcessGroup proposedChildGroup = proposedGroupsByVersionedId.get(versionedId);
             if (proposedChildGroup == null) {
-                // child group will be removed, check group and descendants for attached templates
-                final Template removedTemplate = childGroup.findAllTemplates().stream().findFirst().orElse(null);
-                if (removedTemplate != null) {
-                    throw new IllegalStateException(processGroup + " cannot be updated to the proposed flow because the child " + removedTemplate.getProcessGroup()
-                        + " that exists locally has one or more Templates, and the proposed flow does not contain these templates. "
-                        + "A Process Group cannot be deleted while it contains Templates. Please remove the Templates before re-attempting.");
-                }
                 if (verifyConnectionRemoval) {
                     // check removed group and its descendants for connections with data in the queue
                     final Connection removedConnection = childGroup.findAllConnections().stream()

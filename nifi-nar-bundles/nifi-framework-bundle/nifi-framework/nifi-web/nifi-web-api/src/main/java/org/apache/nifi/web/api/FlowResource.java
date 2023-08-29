@@ -111,8 +111,6 @@ import org.apache.nifi.web.api.entity.RuntimeManifestEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
@@ -186,7 +184,6 @@ public class FlowResource extends ApplicationResource {
     private LabelResource labelResource;
     private RemoteProcessGroupResource remoteProcessGroupResource;
     private ConnectionResource connectionResource;
-    private TemplateResource templateResource;
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
@@ -3048,56 +3045,6 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    // ---------
-    // templates
-    // ---------
-
-    /**
-     * Retrieves all the of templates in this NiFi.
-     *
-     * @return A templatesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("templates")
-    @ApiOperation(
-            value = "Gets all templates",
-            response = TemplatesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getTemplates() {
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
-        // authorize access
-        authorizeFlow();
-
-        // get all the templates
-        final Set<TemplateEntity> templates = serviceFacade.getTemplates();
-        templateResource.populateRemainingTemplateEntitiesContent(templates);
-
-        // create the response entity
-        final TemplatesEntity entity = new TemplatesEntity();
-        entity.setTemplates(templates);
-        entity.setGenerated(new Date());
-
-        // generate the response
-        return generateOkResponse(entity).build();
-    }
-
     // -------------
     // flow-analysis
     // -------------
@@ -3287,10 +3234,6 @@ public class FlowResource extends ApplicationResource {
 
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
-    }
-
-    public void setTemplateResource(TemplateResource templateResource) {
-        this.templateResource = templateResource;
     }
 
     public void setProcessGroupResource(ProcessGroupResource processGroupResource) {

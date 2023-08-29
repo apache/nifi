@@ -71,12 +71,6 @@ public interface NiFiClient extends Closeable {
 
     PoliciesClient getPoliciesClient(RequestConfig requestConfig);
 
-    // ----- TemplatesClient -----
-
-    TemplatesClient getTemplatesClient();
-
-    TemplatesClient getTemplatesClient(RequestConfig requestConfig);
-
     // ----- ReportingTasksClient -----
 
     ReportingTasksClient getReportingTasksClient();

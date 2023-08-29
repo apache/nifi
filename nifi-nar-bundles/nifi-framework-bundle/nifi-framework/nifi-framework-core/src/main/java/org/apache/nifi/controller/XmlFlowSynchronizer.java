@@ -110,7 +110,6 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
@@ -461,21 +460,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
-        // If there are any Templates that do not exist in the Proposed Flow that do exist in the 'existing flow', we need
-        // to ensure that we also add those to the appropriate Process Groups, so that we don't lose them.
-        if (!existingFlowEmpty) {
-            final Document existingFlowConfiguration = existingFlow.getFlowDocument();
-            if (existingFlowConfiguration != null) {
-                final Element existingRootElement = (Element) existingFlowConfiguration.getElementsByTagName("flowController").item(0);
-                if (existingRootElement != null) {
-                    final Element existingRootGroupElement = (Element) existingRootElement.getElementsByTagName("rootGroup").item(0);
-                    if (existingRootElement != null) {
-                        addLocalTemplates(existingRootGroupElement, rootGroup);
-                    }
-                }
-            }
-        }
-
         // get all the reporting task elements
         final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
         final List<Element> reportingTaskElements = new ArrayList<>();
@@ -654,29 +638,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                     componentNode.resumeValidationTrigger();
                 }
             }
-        }
-    }
-
-    private void addLocalTemplates(final Element processGroupElement, final ProcessGroup processGroup) {
-        // Replace the templates with those from the proposed flow
-        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
-        if (templateNodeList != null) {
-            for (final Element templateElement : templateNodeList) {
-                final TemplateDTO templateDto = TemplateUtils.parseDto(templateElement);
-                final Template template = new Template(templateDto);
-
-                // If the Process Group does not have the template, add it.
-                if (processGroup.getTemplate(template.getIdentifier()) == null) {
-                    processGroup.addTemplate(template);
-                }
-            }
-        }
-
-        final List<Element> childGroupElements = getChildrenByTagName(processGroupElement, "processGroup");
-        for (final Element childGroupElement : childGroupElements) {
-            final String childGroupId = getString(childGroupElement, "id");
-            final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
-            addLocalTemplates(childGroupElement, childGroup);
         }
     }
 
@@ -1387,22 +1348,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        // Replace the templates with those from the proposed flow
-        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
-        for (final Element templateElement : templateNodeList) {
-            final TemplateDTO templateDto = TemplateUtils.parseDto(templateElement);
-            final Template template = new Template(templateDto);
-
-            // If the Process Group already has the template, remove it and add it again. We do this
-            // to ensure that all of the nodes have the same view of the template. Templates are immutable,
-            // so any two nodes that have a template with the same ID should have the exact same template.
-            // This just makes sure that they do.
-            if (processGroup.getTemplate(template.getIdentifier()) != null) {
-                processGroup.removeTemplate(template);
-            }
-            processGroup.addTemplate(template);
-        }
-
         return processGroup;
     }
 
@@ -1413,8 +1358,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
      * value from the parent of this process group
      *
      * @throws IllegalStateException if no process group can be found with the
-     * ID of DTO or with the ID of the DTO's parentGroupId, if the template ID
-     * specified is invalid, or if the DTO's Parent Group ID changes but the
+     * ID of DTO or with the ID of the DTO's parentGroupId, or if the DTO's Parent Group ID changes but the
      * parent group has incoming or outgoing connections
      *
      * @throws NullPointerException if the DTO or its ID is null
@@ -1628,7 +1572,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         addNestedProcessGroups(processGroupElement, processGroup, controller, encodingVersion);
         addRemoteProcessGroups(processGroupElement, processGroup, controller);
         addConnections(processGroupElement, processGroup, controller);
-        addTemplates(processGroupElement, processGroup);
 
         return processGroup;
     }
@@ -2006,15 +1949,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             }
 
             processGroup.addConnection(connection);
-        }
-    }
-
-    private void addTemplates(final Element processGroupElement, final ProcessGroup processGroup) {
-        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
-        for (final Element templateNode : templateNodeList) {
-            final TemplateDTO templateDTO = TemplateUtils.parseDto(templateNode);
-            final Template template = new Template(templateDTO);
-            processGroup.addTemplate(template);
         }
     }
 

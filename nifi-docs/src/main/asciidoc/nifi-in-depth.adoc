@@ -107,17 +107,17 @@ It is considered a best practice to analyze the contents of a FlowFile as few ti
 
 
 == Life of a FlowFile
-To better understand how the repos interact with one another, the underlying functionality of NiFi, and the life of a FlowFile; this next section will include examples of a FlowFile at different points in a real flow. The flow is a template called "WebCrawler.xml" and is available here: link:https://cwiki.apache.org/confluence/display/NIFI/Example+Dataflow+Templates[https://cwiki.apache.org/confluence/display/NIFI/Example+Dataflow+Templates^].
+To better understand how the repos interact with one another, the underlying functionality of NiFi, and the life of a FlowFile; this next section will include examples of a FlowFile at different points in a real flow. The flow called "WebCrawler" is available here: link:misc/WebCrawler.json[WebCrawler.json].
 
-At a high level, this template reaches out to a seed URL configured in the GetHTTP processor, then analyzes the response using the RouteText processor to find instances of a keyword (in this case "nifi"), and potential URLs to hit. Then InvokeHTTP executes a HTTP Get request using the URLs found in the original seed web page. The response is routed based on the status code attribute and only 200-202 status codes are routed back to the original RouteText processor for analysis.
+At a high level, this flow reaches out to a seed URL configured in the InvokeHTTP processor, called Get from seed URL, then analyzes the response using the RouteText processor to find instances of a keyword (in this case "nifi"), and potential URLs to hit. Then InvokeHTTP executes a HTTP Get request using the URLs found in the original seed web page. The response is routed based on the status code attribute and only 200-202 status codes are routed back to the original RouteText processor for analysis.
 
 The flow also detects duplicate URLs and prevents processing them again, emails the user when keywords are found, logs all successful HTTP requests, and bundles up the successful requests to be compressed and archived on disk.
 
-NOTE: To use this flow you need to configure a couple options. First a DistributedMapCacheServer controller service must be added with default properties. At the time of writing there was no way to explicitly add the controller service to the template and since no processors reference the service it is not included. Also to get emails, the PutEmail processor must be configured with your email credentials. Finally, to use HTTPS the StandardSSLContextService must be configured with proper key and trust stores. Remember that the truststore must be configured with the proper Certificate Authorities in order to work for websites. The command below is an example of using the "keytool" command to add the default Java 1.8.0_60 CAs to a truststore called myTrustStore:
+NOTE: To use this flow you need to configure a couple options. First a DistributedMapCacheServer controller service must be added with default properties. Also to get emails, the PutEmail processor must be configured with your email credentials. Finally, to use HTTPS the StandardSSLContextService must be configured with proper key and trust stores. Remember that the truststore must be configured with the proper Certificate Authorities in order to work for websites. The command below is an example of using the "keytool" command to add the default Java 1.8.0_60 CAs to a truststore called myTrustStore:
 keytool -importkeystore -srckeystore /Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/jre/lib/security/cacerts  -destkeystore myTrustStore
 
 
-=== WebCrawler Template
+=== WebCrawler Flow
 
 image::WebCrawler.png["Web Crawler Flow"]
 
@@ -128,7 +128,7 @@ A FlowFile is created in the system when a producer processor invokes "ProcessSe
 
 ProvenanceReporter is used to emit the Provenance Events for the FlowFile. If the file is created by NiFi from data not received by an external entity then a "CREATE" event should be emitted. If instead the data was created from data received from an external source then a "RECEIVE" event should be emitted. The Provenance Events are made using "ProvenanceReporter.create()" and "ProvenanceReporter.receive()" respectively.
 
-In our WebCrawler flow, the GetHTTP processor creates the initial FlowFile using "ProcessSession.create()" and records the receipt of data using "ProvenanceReporter.receive()". This method call also provides the URL from which the data was received, how long it took the transfer the data, and any FlowFile attributes that were added to the FlowFile. HTTP Headers, for instance, can be added as FlowFile attributes.
+In our WebCrawler flow, the InvokeHTTP processor, called Get from seed URL, creates the initial FlowFile using "ProcessSession.create()" and records the receipt of data using "ProvenanceReporter.receive()". This method call also provides the URL from which the data was received, how long it took the transfer the data, and any FlowFile attributes that were added to the FlowFile. HTTP Headers, for instance, can be added as FlowFile attributes.
 
 image::DataIngress.png["Data Ingress"]
 
@@ -159,7 +159,7 @@ From a developer point of view, you can view a Funnel just as a very simple proc
 image::Funnels.png["Funnel"]
 
 === Copy on Write
-In the previous example, there was only routing but no changes to the content of the FlowFile. This next example focuses on the CompressContent processor of the template that compresses the bundle of merged FlowFiles containing webpages that were queued to be analyzed.
+In the previous example, there was only routing but no changes to the content of the FlowFile. This next example focuses on the CompressContent processor that compresses the bundle of merged FlowFiles containing webpages that were queued to be analyzed.
 
 In this example, the content C1 for FlowFile F1 is being compressed in the CompressContent processor. Since C1 is immutable and we want a full re-playable provenance history we can't just overwrite C1. In order to "modify" C1 we do a "copy on write", which we accomplish by modifying the content as it is copied to a new location within the content repository. When doing so, FlowFile reference F1 is updated to point to the new compressed content C2 and a new Provenance Event P2 is created referencing the new FlowFile F1.1. Because the FlowFile repo is immutable, instead of modifying the old F1, a new delta (F1.1) is created.  Previous provenance events still have the pointer to the Content C1 and contain old attributes, but they are not the most up-to-date version of the FlowFile.
 

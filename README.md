@@ -210,7 +210,7 @@ To run MiNiFi:
 - View the logs located in the logs folder
   $ tail -F ~/example-minifi-deploy/logs/minifi-app.log
 
-- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit, which aids in adapting NiFi templates to MiNiFi YAML configuration file format.
+- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit.
 
 - If you are testing ongoing development, you will likely want to stop your instance.
 

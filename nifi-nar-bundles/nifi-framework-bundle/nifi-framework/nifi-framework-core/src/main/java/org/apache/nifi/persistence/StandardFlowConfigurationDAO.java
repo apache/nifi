@@ -110,7 +110,7 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             // not empty, then we can get into a bad situation, since the Processors, etc. don't have the appropriate "Scheduled
             // State" yet (since they haven't yet been scheduled). So if there are components in the flow and we save it, we
             // may end up saving the flow in such a way that all components are stopped.
-            // We save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
+            // We save based on the controller, not the provided data flow.
             save(controller, true);
         }
     }

@@ -904,7 +904,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             lookup -> {
                 final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
-                authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
+                authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false);
 
                 Set<Authorizable> remoteProcessGroups = processGroup.getEncapsulatedRemoteProcessGroups();
                 for (Authorizable remoteProcessGroup : remoteProcessGroups) {

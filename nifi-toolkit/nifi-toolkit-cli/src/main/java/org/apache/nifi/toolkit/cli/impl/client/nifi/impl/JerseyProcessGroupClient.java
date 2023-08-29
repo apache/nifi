@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
@@ -28,11 +27,8 @@ import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
-import org.glassfish.jersey.media.multipart.MultiPartFeature;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -223,33 +219,6 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
             return getRequestBuilder(target).post(
                     Entity.entity(controllerService, MediaType.APPLICATION_JSON),
                     ControllerServiceEntity.class
-            );
-        });
-    }
-
-    @Override
-    public TemplateEntity uploadTemplate(
-            final String processGroupId, final TemplateDTO templateDTO) throws NiFiClientException, IOException {
-        if (StringUtils.isBlank(processGroupId)) {
-            throw new IllegalArgumentException("Process group id cannot be null or blank");
-        }
-
-        if (templateDTO == null) {
-            throw new IllegalArgumentException("The template dto cannot be null");
-        }
-
-        return executeAction("Error uploading template file", () -> {
-            final WebTarget target = processGroupsTarget
-                    .path("{id}/templates/upload")
-                    .resolveTemplate("id", processGroupId)
-                    .register(MultiPartFeature.class);
-
-            FormDataMultiPart form = new FormDataMultiPart();
-            form.field("template", templateDTO, MediaType.TEXT_XML_TYPE);
-
-            return getRequestBuilder(target).post(
-                    Entity.entity(form, MediaType.MULTIPART_FORM_DATA),
-                    TemplateEntity.class
             );
         });
     }

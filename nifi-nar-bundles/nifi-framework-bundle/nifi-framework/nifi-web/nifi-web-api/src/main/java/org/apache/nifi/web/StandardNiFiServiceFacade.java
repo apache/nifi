@@ -83,7 +83,6 @@ import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
@@ -240,7 +239,6 @@ import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
@@ -323,7 +321,6 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
@@ -351,7 +348,6 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
-import org.apache.nifi.web.dao.TemplateDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
 import org.apache.nifi.web.revision.DeleteRevisionTask;
@@ -369,7 +365,6 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -426,7 +421,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ReportingTaskDAO reportingTaskDAO;
     private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private ParameterProviderDAO parameterProviderDAO;
-    private TemplateDAO templateDAO;
     private UserDAO userDAO;
     private UserGroupDAO userGroupDAO;
     private AccessPolicyDAO accessPolicyDAO;
@@ -2319,7 +2313,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             processGroup.findAllLabels().forEach(label -> snippetResources.add(label.getResource()));
             processGroup.findAllProcessGroups().forEach(childGroup -> snippetResources.add(childGroup.getResource()));
             processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> snippetResources.add(remoteProcessGroup.getResource()));
-            processGroup.findAllTemplates().forEach(template -> snippetResources.add(template.getResource()));
             processGroup.findAllControllerServices().forEach(controllerService -> snippetResources.add(controllerService.getResource()));
         });
 
@@ -2407,7 +2400,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         processGroup.findAllLabels().forEach(label -> groupResources.add(label.getResource()));
         processGroup.findAllProcessGroups().forEach(childGroup -> groupResources.add(childGroup.getResource()));
         processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> groupResources.add(remoteProcessGroup.getResource()));
-        processGroup.findAllTemplates().forEach(template -> groupResources.add(template.getResource()));
         processGroup.findAllControllerServices().forEach(controllerService -> groupResources.add(controllerService.getResource()));
 
         final ProcessGroupDTO snapshot = deleteComponent(
@@ -2436,13 +2428,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         return entityFactory.createRemoteProcessGroupEntity(snapshot, null, permissions, operatePermissions, null, null);
-    }
-
-    @Override
-    public void deleteTemplate(final String id) {
-        // delete the template and save the flow
-        templateDAO.deleteTemplate(id);
-        controllerFacade.save();
     }
 
     @Override
@@ -2819,16 +2804,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanAddTemplate(String groupId, String name) {
-        templateDAO.verifyCanAddTemplate(name, groupId);
-    }
-
-    @Override
-    public void verifyCanInstantiate(final String groupId, final FlowSnippetDTO snippetDTO) {
-        templateDAO.verifyCanInstantiate(groupId, snippetDTO);
-    }
-
-    @Override
     public void verifyComponentTypes(final VersionedProcessGroup versionedGroup) {
     }
 
@@ -2871,38 +2846,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         verifyImportProcessGroup(vciDto, contents, group.getParent());
     }
 
-    @Override
-    public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
-        // get the specified snippet
-        final Snippet snippet = snippetDAO.getSnippet(snippetId);
-
-        // create the template
-        final TemplateDTO templateDTO = new TemplateDTO();
-        templateDTO.setName(name);
-        templateDTO.setDescription(description);
-        templateDTO.setTimestamp(new Date());
-        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true, true));
-        templateDTO.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
-
-        // set the id based on the specified seed
-        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
-        templateDTO.setId(uuid);
-
-        // create the template
-        final Template template = templateDAO.createTemplate(templateDTO, groupId);
-
-        // drop the snippet
-        snippetDAO.dropSnippet(snippetId);
-
-        // save the flow
-        controllerFacade.save();
-
-        return dtoFactory.createTemplateDTO(template);
-    }
-
     /**
-     * Ensures default values are populated for all components in this snippet. This is necessary to handle old templates without default values
-     * and when existing properties have default values introduced.
+     * Ensures default values are populated for all components in this snippet. This is necessary to handle when existing properties have default values introduced.
      *
      * @param snippet snippet
      */
@@ -2959,28 +2904,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
     }
 
-    @Override
-    public TemplateDTO importTemplate(final TemplateDTO templateDTO, final String groupId, final Optional<String> idGenerationSeed) {
-        // ensure id is set
-        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
-        templateDTO.setId(uuid);
-
-        // mark the timestamp
-        templateDTO.setTimestamp(new Date());
-
-        // ensure default values are populated
-        ensureDefaultPropertyValuesArePopulated(templateDTO.getSnippet());
-
-        // import the template
-        final Template template = templateDAO.importTemplate(templateDTO, groupId);
-
-
-        controllerFacade.save();
-
-        // return the template dto
-        return dtoFactory.createTemplateDTO(template);
-    }
-
     /**
      * Post processes a new flow snippet including validation, removing the snippet, and DTO conversion.
      *
@@ -3029,25 +2952,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
         return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager, this::getProcessGroupBulletins);
-    }
-
-    @Override
-    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateEncodingVersion,
-                                             final FlowSnippetDTO requestSnippet, final String idGenerationSeed) {
-
-        // instantiate the template - there is no need to make another copy of the flow snippet since the actual template
-        // was copied and this dto is only used to instantiate it's components (which as already completed)
-        final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateEncodingVersion, requestSnippet, idGenerationSeed);
-
-        // save the flow
-        controllerFacade.save();
-
-        // post process the new flow snippet
-        final FlowDTO flowDto = postProcessNewFlowSnippet(groupId, snippet);
-
-        final FlowEntity flowEntity = new FlowEntity();
-        flowEntity.setFlow(flowDto);
-        return flowEntity;
     }
 
     @Override
@@ -3995,38 +3899,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(revision);
         entity.setRunStatusDetails(runStatusDetailsDto);
         return entity;
-    }
-
-
-
-    @Override
-    public TemplateDTO exportTemplate(final String id) {
-        final Template template = templateDAO.getTemplate(id);
-        final TemplateDTO templateDetails = template.getDetails();
-
-        final TemplateDTO templateDTO = dtoFactory.createTemplateDTO(template);
-        templateDTO.setSnippet(dtoFactory.copySnippetContents(templateDetails.getSnippet()));
-        return templateDTO;
-    }
-
-    @Override
-    public TemplateDTO getTemplate(final String id) {
-        return dtoFactory.createTemplateDTO(templateDAO.getTemplate(id));
-    }
-
-    @Override
-    public Set<TemplateEntity> getTemplates() {
-        return templateDAO.getTemplates().stream()
-                .map(template -> {
-                    final TemplateDTO dto = dtoFactory.createTemplateDTO(template);
-                    final PermissionsDTO permissions = dtoFactory.createPermissionsDto(template);
-
-                    final TemplateEntity entity = new TemplateEntity();
-                    entity.setId(dto.getId());
-                    entity.setPermissions(permissions);
-                    entity.setTemplate(dto);
-                    return entity;
-                }).collect(Collectors.toSet());
     }
 
     @Override
@@ -6830,10 +6702,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setParameterContextDAO(final ParameterContextDAO parameterContextDAO) {
         this.parameterContextDAO = parameterContextDAO;
-    }
-
-    public void setTemplateDAO(final TemplateDAO templateDAO) {
-        this.templateDAO = templateDAO;
     }
 
     public void setSnippetUtils(final SnippetUtils snippetUtils) {

@@ -22,7 +22,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameterProvider;
@@ -30,15 +29,9 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.util.BundleUtils;
-import org.apache.nifi.util.DomUtils;
-import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import java.util.Set;
 
@@ -179,48 +172,6 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
     }
 
     private FlowInheritability checkInheritability(final Document configuration, final FlowController flowController) {
-        if (configuration == null) {
-            return FlowInheritability.inheritable();
-        }
-
-        final ExtensionManager extensionManager = flowController.getExtensionManager();
-        final NodeList bundleNodes = configuration.getElementsByTagName("bundle");
-        for (int i = 0; i < bundleNodes.getLength(); i++) {
-            final Node bundleNode = bundleNodes.item(i);
-            if (bundleNode instanceof Element) {
-                final Element bundleElement = (Element) bundleNode;
-
-                final Node componentNode = bundleElement.getParentNode();
-                if (componentNode instanceof Element) {
-                    final Element componentElement = (Element) componentNode;
-                    if (!withinTemplate(componentElement)) {
-                        final String componentType = DomUtils.getChildText(componentElement, "class");
-                        final BundleDTO bundleDto = FlowFromDOMFactory.getBundle(bundleElement);
-
-                        try {
-                            BundleUtils.getBundle(extensionManager, componentType, bundleDto);
-                        } catch (final IllegalStateException e) {
-                            final String bundleDescription = bundleDto.getGroup() + ":" + bundleDto.getArtifact() + ":" + bundleDto.getVersion();
-                            return FlowInheritability.notInheritable("Could not find Bundle " + bundleDescription + ": " + e.getMessage());
-                        }
-                    }
-                }
-            }
-        }
-
         return FlowInheritability.inheritable();
-    }
-
-    private boolean withinTemplate(final Element element) {
-        if ("template".equals(element.getTagName())) {
-            return true;
-        } else {
-            final Node parentNode = element.getParentNode();
-            if (parentNode instanceof Element) {
-                return withinTemplate((Element) parentNode);
-            } else {
-                return false;
-            }
-        }
     }
 }

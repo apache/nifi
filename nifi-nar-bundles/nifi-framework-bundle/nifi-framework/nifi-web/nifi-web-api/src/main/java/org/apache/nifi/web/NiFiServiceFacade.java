@@ -58,7 +58,6 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -75,7 +74,6 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
@@ -133,7 +131,6 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -148,7 +145,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -464,26 +460,6 @@ public interface NiFiServiceFacade {
      */
     Set<DocumentedTypeDTO> getWorkQueuePrioritizerTypes();
 
-    // ----------------------------------------
-    // Template methods
-    // ----------------------------------------
-
-    /**
-     * Verifies a template with the specified name can be created.
-     *
-     * @param groupId the id of the group for the template
-     * @param name name of proposed template
-     */
-    void verifyCanAddTemplate(String groupId, String name);
-
-    /**
-     * Verifies the given template can be instantiated in the group with the given ID
-     *
-     * @param groupId the ID of the Process Group
-     * @param snippetDTO the contents of the template
-     */
-    void verifyCanInstantiate(String groupId, FlowSnippetDTO snippetDTO);
-
     /**
      * Verifies the types of components in a versioned process group
      *
@@ -502,72 +478,6 @@ public interface NiFiServiceFacade {
      * @throws IllegalStateException if the flow cannot be imported into the specified group
      */
     void verifyImportProcessGroup(VersionControlInformationDTO versionControlInfo, final VersionedProcessGroup versionedProcessGroup, String groupId);
-
-    /**
-     * Creates a new Template based off the specified snippet.
-     *
-     * @param name name
-     * @param description description
-     * @param snippetId id
-     * @param groupId id of the process group
-     * @param idGenerationSeed the seed to use for generating a UUID
-     * @return template
-     */
-    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
-
-    /**
-     * Imports the specified Template.
-     *
-     * @param templateDTO The template dto
-     * @param groupId id of the process group
-     * @param idGenerationSeed the seed to use for generating a UUID
-     *
-     * @return The new template dto
-     */
-    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId, Optional<String> idGenerationSeed);
-
-    /**
-     * Instantiate the corresponding template.
-     *
-     * @param groupId group id
-     * @param originX x
-     * @param originY y
-     * @param templateEncodingVersion template encoding version
-     * @param snippet template snippet
-     * @param idGenerationSeed the ID to use for generating UUID's. May be null.
-     * @return snapshot
-     */
-    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateEncodingVersion, FlowSnippetDTO snippet, String idGenerationSeed);
-
-    /**
-     * Gets the template with the specified id.
-     *
-     * @param id id
-     * @return template
-     */
-    TemplateDTO getTemplate(String id);
-
-    /**
-     * Gets the template, includes contents, with the specified id.
-     *
-     * @param id id
-     * @return template
-     */
-    TemplateDTO exportTemplate(String id);
-
-    /**
-     * Gets all templates.
-     *
-     * @return templates
-     */
-    Set<TemplateEntity> getTemplates();
-
-    /**
-     * Deletes the specified template.
-     *
-     * @param id The id of the template
-     */
-    void deleteTemplate(String id);
 
     // ----------------------------------------
     // Processor methods

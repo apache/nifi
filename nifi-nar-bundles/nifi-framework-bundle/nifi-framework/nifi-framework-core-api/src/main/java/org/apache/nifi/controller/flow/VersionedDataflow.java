@@ -26,7 +26,6 @@ import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedParameterContext;
 
 import java.util.List;
-import java.util.Set;
 
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
@@ -37,7 +36,6 @@ public class VersionedDataflow {
     private List<VersionedControllerService> controllerServices;
     private List<VersionedReportingTask> reportingTasks;
     private List<VersionedFlowAnalysisRule> flowAnalysisRules;
-    private Set<VersionedTemplate> templates;
     private VersionedProcessGroup rootGroup;
 
     public VersionedFlowEncodingVersion getEncodingVersion() {
@@ -110,13 +108,5 @@ public class VersionedDataflow {
 
     public void setRootGroup(final VersionedProcessGroup rootGroup) {
         this.rootGroup = rootGroup;
-    }
-
-    public Set<VersionedTemplate> getTemplates() {
-        return templates;
-    }
-
-    public void setTemplates(final Set<VersionedTemplate> templates) {
-        this.templates = templates;
     }
 }

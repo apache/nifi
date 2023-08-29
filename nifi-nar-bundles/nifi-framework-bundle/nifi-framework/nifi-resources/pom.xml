@@ -45,7 +45,6 @@
         <nifi.flow.configuration.archive.max.storage>500 MB</nifi.flow.configuration.archive.max.storage>
         <nifi.login.identity.provider.configuration.file>./conf/login-identity-providers.xml</nifi.login.identity.provider.configuration.file>
         <nifi.authorizer.configuration.file>./conf/authorizers.xml</nifi.authorizer.configuration.file>
-        <nifi.templates.directory>./conf/templates</nifi.templates.directory>
         <nifi.database.directory>./database_repository</nifi.database.directory>
 
         <nifi.state.management.configuration.file>./conf/state-management.xml</nifi.state.management.configuration.file>
