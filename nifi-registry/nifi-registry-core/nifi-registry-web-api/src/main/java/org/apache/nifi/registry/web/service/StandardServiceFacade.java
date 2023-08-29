@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
 
 /**
  * A wrapper around the service layer that applies validation, authorization, and revision management to all services.
- *
+ * <p>
  * All REST resources should access the service layer through this facade.
  */
 @Service
@@ -177,7 +177,7 @@ public class StandardServiceFacade implements ServiceFacade {
                 () -> registryService.updateBucket(bucket));
         permissionsService.populateBucketPermissions(updatedBucket);
         linkService.populateLinks(updatedBucket);
-        return  updatedBucket;
+        return updatedBucket;
     }
 
     @Override
@@ -272,7 +272,7 @@ public class StandardServiceFacade implements ServiceFacade {
 
     @Override
     public VersionedFlow getFlow(final String flowIdentifier) {
-        final VersionedFlow flow =  getRevisableEntity(() -> registryService.getFlow(flowIdentifier));
+        final VersionedFlow flow = getRevisableEntity(() -> registryService.getFlow(flowIdentifier));
         authorizeBucketAccess(RequestAction.READ, flow);
 
         permissionsService.populateItemPermissions(flow);
@@ -298,7 +298,7 @@ public class StandardServiceFacade implements ServiceFacade {
         // verify outside of the revisable update so ResourceNotFoundException will be thrown instead of InvalidRevisionException
         registryService.verifyFlowExists(versionedFlow.getIdentifier());
 
-        final VersionedFlow updatedFlow =  updateRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE, currentUserIdentity(),
+        final VersionedFlow updatedFlow = updateRevisableEntity(versionedFlow, VERSIONED_FLOW_ENTITY_TYPE, currentUserIdentity(),
                 () -> registryService.updateFlow(versionedFlow));
         permissionsService.populateItemPermissions(updatedFlow);
         linkService.populateLinks(updatedFlow);
@@ -319,14 +319,10 @@ public class StandardServiceFacade implements ServiceFacade {
 
     // ---------------------- Flow Snapshot methods ----------------------------------------------
 
-    @Override
     public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
-        return createFlowSnapshot(flowSnapshot,false);
-    }
-    public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot,final boolean  preserveSourceProperties) {
         authorizeBucketAccess(RequestAction.WRITE, flowSnapshot);
 
-        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(flowSnapshot,preserveSourceProperties);
+        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(flowSnapshot);
         populateLinksAndPermissions(createdSnapshot);
         return createdSnapshot;
     }
@@ -1202,7 +1198,7 @@ public class StandardServiceFacade implements ServiceFacade {
     /**
      * NOTE: This logic should be moved back to validateCreationOfRevisableEntity once we no longer need to maintain
      * backwards compatibility (i.e. on a major release like 1.0.0).
-     *
+     * <p>
      * Currently NiFi has been sending an identifier when creating a flow, so we need to continue to allow that.
      */
     private void validateIdentifierNotPresent(final RevisableEntity entity, final String entityTypeName) {
@@ -1330,7 +1326,7 @@ public class StandardServiceFacade implements ServiceFacade {
     }
 
     private <T extends RevisableEntity> T deleteRevisableEntity(final String entityIdentifier, final String entityTypeName,
-                                                 final RevisionInfo revisionInfo, final Supplier<T> deleteEntity) {
+                                                                final RevisionInfo revisionInfo, final Supplier<T> deleteEntity) {
         // skip using the entity service if revision feature is disabled
         if (!revisionFeature.isEnabled()) {
             final T entity = deleteEntity.get();

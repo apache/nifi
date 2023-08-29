@@ -762,7 +762,7 @@ public class TestRegistryService {
         when(metadataService.getFlowById(existingFlow.getId())).thenReturn(existingFlow);
         when(metadataService.getFlowByIdWithSnapshotCounts(existingFlow.getId())).thenReturn(existingFlow);
 
-        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(snapshot,true);
+        final VersionedFlowSnapshot createdSnapshot = registryService.createFlowSnapshot(snapshot);
         assertNotNull(createdSnapshot);
         assertNotNull(createdSnapshot.getSnapshotMetadata());
         assertNotNull(createdSnapshot.getFlow());

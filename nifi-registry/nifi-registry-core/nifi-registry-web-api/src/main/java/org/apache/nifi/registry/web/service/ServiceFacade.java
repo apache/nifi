@@ -95,7 +95,6 @@ public interface ServiceFacade {
     // ---------------------- Flow Snapshot methods ----------------------------------------------
 
     VersionedFlowSnapshot createFlowSnapshot(VersionedFlowSnapshot flowSnapshot);
-    VersionedFlowSnapshot createFlowSnapshot(VersionedFlowSnapshot flowSnapshot,boolean preserveSourceProperties);
 
     VersionedFlowSnapshot getFlowSnapshot(String bucketIdentifier, String flowIdentifier, Integer version);
 

@@ -539,15 +539,12 @@ public class RegistryService {
     // ---------------------- VersionedFlowSnapshot methods ---------------------------------------------
 
     public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
-        return createFlowSnapshot(flowSnapshot,false);
-    }
-    public VersionedFlowSnapshot createFlowSnapshot(final VersionedFlowSnapshot flowSnapshot, final boolean preserveSourceProperties) {
         if (flowSnapshot == null) {
             throw new IllegalArgumentException("Versioned flow snapshot cannot be null");
         }
 
         // validation will ensure that the metadata and contents are not null
-        if (flowSnapshot.getSnapshotMetadata() != null && !preserveSourceProperties ) {
+        if (flowSnapshot.getSnapshotMetadata() != null && flowSnapshot.getSnapshotMetadata().getTimestamp() <= 0) {
             flowSnapshot.getSnapshotMetadata().setTimestamp(System.currentTimeMillis());
         }
 
