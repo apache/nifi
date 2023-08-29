@@ -891,7 +891,6 @@ public class FingerprintFactory {
         builder.append(dto.getComments());
         builder.append(dto.getEnforcementPolicy());
         builder.append(dto.getState());
-        builder.append(dto.getAnnotationData());
 
         // get the temp instance of the FlowAnalysisRule so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());

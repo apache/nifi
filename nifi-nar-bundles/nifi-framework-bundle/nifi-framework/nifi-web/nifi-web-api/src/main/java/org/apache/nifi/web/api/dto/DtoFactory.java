@@ -5136,7 +5136,6 @@ public final class DtoFactory {
         dto.setType(flowAnalysisRuleNode.getCanonicalClassName());
         dto.setBundle(createBundleDto(bundleCoordinate));
         dto.setState(flowAnalysisRuleNode.getState().name());
-        dto.setAnnotationData(flowAnalysisRuleNode.getAnnotationData());
         dto.setComments(flowAnalysisRuleNode.getComments());
         dto.setPersistsState(flowAnalysisRuleClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(flowAnalysisRuleNode.isSupportsSensitiveDynamicProperties());

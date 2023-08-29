@@ -107,7 +107,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     }
 
     private void analyzeComponent(VersionedComponent component) {
-        Instant start = Instant.now();
+        long start = System.currentTimeMillis();
 
         String componentId = component.getIdentifier();
         Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
@@ -143,18 +143,17 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
         ruleViolationsManager.upsertComponentViolations(componentId, violations);
 
-        Instant end = Instant.now();
+        long end = System.currentTimeMillis();
+        long durationMs = end - start;
 
-        long durationMs = Duration.between(start, end).toMillis();
-
-        logger.debug("Flow Analysis took {} ms", durationMs);
+        logger.trace("Flow Analysis of component '{}' took {} ms", componentId, durationMs);
     }
 
     @Override
     public void analyzeProcessGroup(VersionedProcessGroup processGroup) {
         logger.debug("Running analysis on process group {}.", processGroup.getIdentifier());
 
-        Instant start = Instant.now();
+        long start = System.currentTimeMillis();
 
         Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
 
@@ -165,11 +164,10 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
         ruleViolationsManager.upsertGroupViolations(processGroup, groupViolations, componentToRuleViolations);
 
-        Instant end = Instant.now();
+        long end = System.currentTimeMillis();
+        long durationMs = end - start;
 
-        long durationMs = Duration.between(start, end).toMillis();
-
-        logger.debug("Flow Analysis took {} ms", durationMs);
+        logger.debug("Flow Analysis of process group '{}' took {} ms", processGroup.getIdentifier(), durationMs);
     }
 
     private void analyzeProcessGroup(

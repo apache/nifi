@@ -3110,12 +3110,12 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("flow-analysis/result/{processGroupId}")
+    @Path("flow-analysis/results/{processGroupId}")
     @ApiOperation(
         value = "Returns flow analysis results produced by the analysis of a given process group",
         response = FlowAnalysisResultEntity.class,
         authorizations = {
-            @Authorization(value = "Read - /controller")
+            @Authorization(value = "Read - /flow")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -3152,12 +3152,12 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("flow-analysis/result")
+    @Path("flow-analysis/results")
     @ApiOperation(
         value = "Returns all flow analysis results currently in effect",
         response = FlowAnalysisResultEntity.class,
         authorizations = {
-            @Authorization(value = "Read - /controller")
+            @Authorization(value = "Read - /flow")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),

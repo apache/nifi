@@ -326,9 +326,6 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
         if (flowAnalysisRuleDTO.getName() != null) {
             values.put(NAME, flowAnalysisRule.getName());
         }
-        if (flowAnalysisRuleDTO.getAnnotationData() != null) {
-            values.put(ANNOTATION_DATA, flowAnalysisRule.getAnnotationData());
-        }
         if (flowAnalysisRuleDTO.getBundle() != null) {
             final BundleCoordinate bundle = flowAnalysisRule.getBundleCoordinate();
             values.put(EXTENSION_VERSION, formatExtensionVersion(flowAnalysisRule.getComponentType(), bundle));

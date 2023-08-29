@@ -224,14 +224,13 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                 }
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format(
-                        "The specified flow analysis rule state (%s) is not valid. Valid options are 'RUNNING', 'STOPPED', and 'DISABLED'.",
+                        "The specified flow analysis rule state (%s) is not valid. Valid options are 'ENABLED' or 'DISABLED'.",
                         flowAnalysisRuleDTO.getState()));
             }
         }
 
         boolean modificationRequest = false;
         if (isAnyNotNull(flowAnalysisRuleDTO.getName(),
-                flowAnalysisRuleDTO.getAnnotationData(),
                 flowAnalysisRuleDTO.getProperties(),
                 flowAnalysisRuleDTO.getBundle())) {
             modificationRequest = true;
@@ -295,7 +294,6 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
 
     private void configureFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
         final String name = flowAnalysisRuleDTO.getName();
-        final String annotationData = flowAnalysisRuleDTO.getAnnotationData();
         final String comments = flowAnalysisRuleDTO.getComments();
         final String enforcementPolicy = flowAnalysisRuleDTO.getEnforcementPolicy();
         final Map<String, String> properties = flowAnalysisRuleDTO.getProperties();
@@ -307,9 +305,6 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
             }
             if (isNotNull(name)) {
                 flowAnalysisRule.setName(name);
-            }
-            if (isNotNull(annotationData)) {
-                flowAnalysisRule.setAnnotationData(annotationData);
             }
             if (isNotNull(comments)) {
                 flowAnalysisRule.setComments(comments);

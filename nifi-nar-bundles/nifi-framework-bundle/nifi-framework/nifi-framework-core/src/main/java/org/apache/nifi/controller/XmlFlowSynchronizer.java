@@ -992,7 +992,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
             flowAnalysisRule.setEnforcementPolicy(EnforcementPolicy.valueOf(dto.getEnforcementPolicy()));
 
-            flowAnalysisRule.setAnnotationData(dto.getAnnotationData());
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(dto.getSensitiveDynamicPropertyNames(), flowAnalysisRule);
             flowAnalysisRule.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames);
 

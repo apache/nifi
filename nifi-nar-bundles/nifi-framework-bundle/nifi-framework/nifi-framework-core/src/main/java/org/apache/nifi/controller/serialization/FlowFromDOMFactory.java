@@ -169,7 +169,6 @@ public class FlowFromDOMFactory {
 
         dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
-        dto.setAnnotationData(getString(element, "annotationData"));
 
         return dto;
     }

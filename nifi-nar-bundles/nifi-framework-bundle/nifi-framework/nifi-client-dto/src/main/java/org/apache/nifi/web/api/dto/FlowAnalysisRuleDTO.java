@@ -47,9 +47,6 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     private Map<String, PropertyDescriptorDTO> descriptors;
     private Set<String> sensitiveDynamicPropertyNames;
 
-    private String customUiUrl;
-    private String annotationData;
-
     private Collection<String> validationErrors;
     private String validationStatus;
 
@@ -263,34 +260,6 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
 
     public void setSensitiveDynamicPropertyNames(final Set<String> sensitiveDynamicPropertyNames) {
         this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
-    }
-
-    /**
-     * @return the URL for this flow analysis rule custom configuration UI if applicable. Null otherwise
-     */
-    @ApiModelProperty(
-            value = "The URL for the custom configuration UI for the flow analysis rule."
-    )
-    public String getCustomUiUrl() {
-        return customUiUrl;
-    }
-
-    public void setCustomUiUrl(String customUiUrl) {
-        this.customUiUrl = customUiUrl;
-    }
-
-    /**
-     * @return currently configured annotation data for the flow analysis rule
-     */
-    @ApiModelProperty(
-            value = "The annotation data for the repoting task. This is how the custom UI relays configuration to the flow analysis rule."
-    )
-    public String getAnnotationData() {
-        return annotationData;
-    }
-
-    public void setAnnotationData(String annotationData) {
-        this.annotationData = annotationData;
     }
 
     /**
