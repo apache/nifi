@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -36,7 +35,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -146,7 +144,6 @@ public class FileAccessPolicyProviderTest {
     private File restoreAuthorizations;
     private File restoreTenants;
     private File flow;
-    private File flowJson;
     private File flowNoPorts;
     private File flowWithDns;
 
@@ -170,21 +167,18 @@ public class FileAccessPolicyProviderTest {
         restoreTenants = new File("target/restore/users.xml");
         FileUtils.ensureDirectoryExistAndCanAccess(restoreTenants.getParentFile());
 
-        flow = new File("src/test/resources/flow.xml.gz");
+        flow = new File("src/test/resources/flow.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
 
-        flowJson = new File("src/test/resources/flow.json.gz");
-
-        flowNoPorts = new File("src/test/resources/flow-no-ports.xml.gz");
+        flowNoPorts = new File("src/test/resources/flow-no-ports.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
-        flowWithDns = new File("src/test/resources/flow-with-dns.xml.gz");
+        flowWithDns = new File("src/test/resources/flow-with-dns.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowWithDns.getParentFile());
 
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
-        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider = new FileUserGroupProvider();
         userGroupProvider.setNiFiProperties(properties);
@@ -196,7 +190,6 @@ public class FileAccessPolicyProviderTest {
             ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_USER_GROUP_PROVIDER))).thenReturn(new StandardPropertyValue("user-group-provider", null,
             ParameterLookup.EMPTY));
         when(configurationContext.getProperties()).then((invocation) -> {
@@ -210,11 +203,6 @@ public class FileAccessPolicyProviderTest {
             final PropertyValue tenantFile = configurationContext.getProperty(FileUserGroupProvider.PROP_TENANTS_FILE);
             if (tenantFile != null) {
                 properties.put(FileUserGroupProvider.PROP_TENANTS_FILE, tenantFile.getValue());
-            }
-
-            final PropertyValue legacyAuthFile = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
-            if (legacyAuthFile != null) {
-                properties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, legacyAuthFile.getValue());
             }
 
             final PropertyValue initialAdmin = configurationContext.getProperty(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY);
@@ -281,262 +269,6 @@ public class FileAccessPolicyProviderTest {
     }
 
     @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvidedWithOverlappingRoles() throws Exception {
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
-
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.Flow.getValue(), RequestAction.READ));
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.Controller.getValue(), RequestAction.READ));
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.Controller.getValue(), RequestAction.WRITE));
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.System.getValue(), RequestAction.READ));
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID, RequestAction.READ));
-        assertNotNull(accessPolicyProvider.getAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID, RequestAction.WRITE));
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvidedAndFlowHasNoPorts() throws Exception {
-        properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(flowNoPorts);
-
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
-
-        boolean foundDataTransferPolicy = false;
-        for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
-            if (policy.getResource().contains(ResourceType.DataTransfer.name())) {
-                foundDataTransferPolicy = true;
-                break;
-            }
-        }
-
-        assertFalse(foundDataTransferPolicy);
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
-
-        final User user1 = userGroupProvider.getUserByIdentity("user1");
-        final User user2 = userGroupProvider.getUserByIdentity("user2");
-        final User user3 = userGroupProvider.getUserByIdentity("user3");
-        final User user4 = userGroupProvider.getUserByIdentity("user4");
-        final User user5 = userGroupProvider.getUserByIdentity("user5");
-        final User user6 = userGroupProvider.getUserByIdentity("user6");
-
-        // verify one group got created
-        final Set<Group> groups = userGroupProvider.getGroups();
-        final Group group1 = groups.iterator().next();
-
-        // verify more than one policy got created
-        final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertTrue(policies.size() > 0);
-
-        // verify user1's policies
-        final Map<String,Set<RequestAction>> user1Policies = getResourceActions(policies, user1);
-        assertEquals(4, user1Policies.size());
-
-        assertTrue(user1Policies.containsKey(ResourceType.Flow.getValue()));
-        assertEquals(1, user1Policies.get(ResourceType.Flow.getValue()).size());
-        assertTrue(user1Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
-
-        assertTrue(user1Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
-        assertEquals(1, user1Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
-        assertTrue(user1Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.READ));
-
-        // verify user2's policies
-        final Map<String,Set<RequestAction>> user2Policies = getResourceActions(policies, user2);
-        assertEquals(3, user2Policies.size());
-
-        assertTrue(user2Policies.containsKey(ResourceType.Provenance.getValue()));
-        assertEquals(1, user2Policies.get(ResourceType.Provenance.getValue()).size());
-        assertTrue(user2Policies.get(ResourceType.Provenance.getValue()).contains(RequestAction.READ));
-
-        assertTrue(user2Policies.containsKey(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID));
-        assertEquals(1, user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
-        assertTrue(user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
-
-        assertTrue(user2Policies.containsKey(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID));
-        assertEquals(1, user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
-        assertTrue(user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
-
-        // verify user3's policies
-        final Map<String,Set<RequestAction>> user3Policies = getResourceActions(policies, user3);
-        assertEquals(6, user3Policies.size());
-
-        assertTrue(user3Policies.containsKey(ResourceType.Flow.getValue()));
-        assertEquals(1, user3Policies.get(ResourceType.Flow.getValue()).size());
-        assertTrue(user3Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
-
-        assertTrue(user3Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
-        assertEquals(2, user3Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
-        assertTrue(user3Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.WRITE));
-
-        // verify user4's policies
-        final Map<String,Set<RequestAction>> user4Policies = getResourceActions(policies, user4);
-        assertEquals(6, user4Policies.size());
-
-        assertTrue(user4Policies.containsKey(ResourceType.Flow.getValue()));
-        assertEquals(1, user4Policies.get(ResourceType.Flow.getValue()).size());
-        assertTrue(user4Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
-
-        assertTrue(user4Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
-        assertEquals(1, user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
-        assertTrue(user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.READ));
-
-        assertTrue(user4Policies.containsKey(ResourceType.Tenant.getValue()));
-        assertEquals(2, user4Policies.get(ResourceType.Tenant.getValue()).size());
-        assertTrue(user4Policies.get(ResourceType.Tenant.getValue()).contains(RequestAction.WRITE));
-
-        assertTrue(user4Policies.containsKey(ResourceType.Policy.getValue()));
-        assertEquals(2, user4Policies.get(ResourceType.Policy.getValue()).size());
-        assertTrue(user4Policies.get(ResourceType.Policy.getValue()).contains(RequestAction.WRITE));
-
-        // verify user5's policies
-        final Map<String,Set<RequestAction>> user5Policies = getResourceActions(policies, user5);
-        assertEquals(2, user5Policies.size());
-
-        assertTrue(user5Policies.containsKey(ResourceType.Proxy.getValue()));
-        assertEquals(1, user5Policies.get(ResourceType.Proxy.getValue()).size());
-        assertTrue(user5Policies.get(ResourceType.Proxy.getValue()).contains(RequestAction.WRITE));
-
-        // verify user6's policies
-        final Map<String,Set<RequestAction>> user6Policies = getResourceActions(policies, user6);
-        assertEquals(3, user6Policies.size());
-
-        assertTrue(user6Policies.containsKey(ResourceType.SiteToSite.getValue()));
-        assertEquals(1, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
-        assertTrue(user6Policies.get(ResourceType.SiteToSite.getValue()).contains(RequestAction.READ));
-
-        final Resource inputPortResource = ResourceFactory.getDataTransferResource(
-                ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
-        final AccessPolicy inputPortPolicy = accessPolicyProvider.getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
-        assertNotNull(inputPortPolicy);
-        assertEquals(1, inputPortPolicy.getUsers().size());
-        assertTrue(inputPortPolicy.getUsers().contains(user6.getIdentifier()));
-        assertEquals(1, inputPortPolicy.getGroups().size());
-        assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
-
-        final Resource outputPortResource = ResourceFactory.getDataTransferResource(
-                ResourceFactory.getComponentResource(ResourceType.OutputPort, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output"));
-        final AccessPolicy outputPortPolicy = accessPolicyProvider.getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
-        assertNotNull(outputPortPolicy);
-        assertEquals(1, outputPortPolicy.getUsers().size());
-        assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
-    }
-
-    private Map<String,Set<RequestAction>> getResourceActions(final Set<AccessPolicy> policies, final User user) {
-        Map<String,Set<RequestAction>> resourceActionMap = new HashMap<>();
-
-        for (AccessPolicy accessPolicy : policies) {
-            if (accessPolicy.getUsers().contains(user.getIdentifier())) {
-                Set<RequestAction> actions = resourceActionMap.get(accessPolicy.getResource());
-                if (actions == null) {
-                    actions = new HashSet<>();
-                    resourceActionMap.put(accessPolicy.getResource(), actions);
-                }
-                actions.add(accessPolicy.getAction());
-            }
-        }
-
-        return resourceActionMap;
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvidedWithIdentityMappings() throws Exception {
-        final Properties props = new Properties();
-        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
-        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
-
-        properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
-        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
-
-        userGroupProvider.setNiFiProperties(properties);
-        accessPolicyProvider.setNiFiProperties(properties);
-
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
-
-        final User user4 = userGroupProvider.getUserByIdentity("user4");
-        final User user6 = userGroupProvider.getUserByIdentity("user6");
-
-        // verify one group got created
-        final Set<Group> groups = userGroupProvider.getGroups();
-        final Group group1 = groups.iterator().next();
-
-        final Resource inputPortResource = ResourceFactory.getDataTransferResource(
-                ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
-        final AccessPolicy inputPortPolicy = accessPolicyProvider.getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
-        assertNotNull(inputPortPolicy);
-        assertEquals(1, inputPortPolicy.getUsers().size());
-        assertTrue(inputPortPolicy.getUsers().contains(user6.getIdentifier()));
-        assertEquals(1, inputPortPolicy.getGroups().size());
-        assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
-
-        final Resource outputPortResource = ResourceFactory.getDataTransferResource(
-                ResourceFactory.getComponentResource(ResourceType.OutputPort, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output"));
-        final AccessPolicy outputPortPolicy = accessPolicyProvider.getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
-        assertNotNull(outputPortPolicy);
-        assertEquals(1, outputPortPolicy.getUsers().size());
-        assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
-    }
-
-    @Test
-    public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> accessPolicyProvider.onConfigured(configurationContext));
-    }
-
-    @Test
-    public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
-        final String adminIdentity = "admin-user";
-        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
-
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> accessPolicyProvider.onConfigured(configurationContext));
-    }
-
-    @Test
     public void testOnConfiguredWhenInitialAdminNotProvided() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -586,8 +318,7 @@ public class FileAccessPolicyProviderTest {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.xml.gz"));
-        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
+        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.json.gz"));
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -627,8 +358,7 @@ public class FileAccessPolicyProviderTest {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(null);
-        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
+        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.json.gz"));
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -672,7 +402,6 @@ public class FileAccessPolicyProviderTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
-        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);

@@ -55,7 +55,6 @@ public class NiFiProperties extends ApplicationProperties {
     // core properties
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
-    public static final String FLOW_CONFIGURATION_JSON_FILE = "nifi.flow.configuration.json.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_ENABLED = "nifi.flow.configuration.archive.enabled";
     public static final String FLOW_CONFIGURATION_ARCHIVE_DIR = "nifi.flow.configuration.archive.dir";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "nifi.flow.configuration.archive.max.time";
@@ -453,28 +452,12 @@ public class NiFiProperties extends ApplicationProperties {
         super(props);
     }
 
-    // getters for core properties //
     public File getFlowConfigurationFile() {
         try {
             return new File(getProperty(FLOW_CONFIGURATION_FILE));
         } catch (Exception ex) {
             return null;
         }
-    }
-
-    public File getFlowConfigurationJsonFile() {
-        final String jsonFilename = getProperty(FLOW_CONFIGURATION_JSON_FILE);
-        if (jsonFilename != null) {
-            return new File(jsonFilename);
-        }
-
-        final File xmlFile = getFlowConfigurationFile();
-        final String xmlFilename = xmlFile.getName();
-        if (xmlFilename.contains(".xml")) {
-            return new File(xmlFile.getParentFile(), xmlFilename.replace(".xml", ".json"));
-        }
-
-        return new File(xmlFile.getParentFile(), xmlFilename.replace(".gz", "") + ".json.gz");
     }
 
     public File getFlowConfigurationFileDir() {

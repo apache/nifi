@@ -50,9 +50,4 @@ public interface DataFlow {
      * @return the component ids of components that were created as a missing ghost component
      */
     Set<String> getMissingComponents();
-
-    /**
-     * @return <code>true</code> if the contents are empty or are made up of XML, <code>false</code> if the contents are JSON
-     */
-    boolean isXml();
 }

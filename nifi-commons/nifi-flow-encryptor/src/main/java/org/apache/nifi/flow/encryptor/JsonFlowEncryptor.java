@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedInputStream;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 
 import java.io.IOException;
@@ -33,9 +34,13 @@ public class JsonFlowEncryptor extends AbstractFlowEncryptor {
     @Override
     public void processFlow(final InputStream inputStream, final OutputStream outputStream,
                             final PropertyEncryptor inputEncryptor, final PropertyEncryptor outputEncryptor) {
+
+        final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+        bufferedInputStream.mark(1);
+
         final JsonFactory factory = new JsonFactory();
         try (final JsonGenerator generator = factory.createGenerator(outputStream)){
-            try (final JsonParser parser = factory.createParser(inputStream)) {
+            try (final JsonParser parser = factory.createParser(bufferedInputStream)) {
                 parser.setCodec(new ObjectMapper());
                 processJsonByTokens(parser, generator, inputEncryptor, outputEncryptor);
             }

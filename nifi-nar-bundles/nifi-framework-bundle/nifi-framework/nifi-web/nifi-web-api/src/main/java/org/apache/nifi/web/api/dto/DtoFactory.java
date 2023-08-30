@@ -1420,6 +1420,12 @@ public final class DtoFactory {
            dto.setGroupAccessControl(publicPort.getGroupAccessControl());
            dto.setUserAccessControl(publicPort.getUserAccessControl());
        }
+        // if this port is remotely accessible, determine if its actually connected to another nifi
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
+            dto.setAllowRemoteAccess(true);
+            dto.setTransmitting(publicPort.isTransmitting());
+        }
 
        final Collection<ValidationResult> validationErrors = port.getValidationErrors();
        if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -4479,6 +4485,23 @@ public final class DtoFactory {
        copy.setPortFunction(original.getPortFunction());
        return copy;
    }
+    public PortDTO copy(final PortDTO original) {
+        final PortDTO copy = new PortDTO();
+        copy.setPosition(original.getPosition());
+        copy.setId(original.getId());
+        copy.setName(original.getName());
+        copy.setComments(original.getComments());
+        copy.setParentGroupId(original.getParentGroupId());
+        copy.setState(original.getState());
+        copy.setType(original.getType());
+        copy.setTransmitting(original.isTransmitting());
+        copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
+        copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setAllowRemoteAccess(original.getAllowRemoteAccess());
+        copy.setPortFunction(original.getPortFunction());
+        return copy;
+    }
 
    public RemoteProcessGroupPortDTO copy(final RemoteProcessGroupPortDTO original) {
        final RemoteProcessGroupPortDTO copy = new RemoteProcessGroupPortDTO();

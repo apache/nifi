@@ -3327,11 +3327,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 
 |===
 |*Property*|*Description*
-|`nifi.flow.configuration.file`*|The location of the XML-based flow configuration file. The default value is `./conf/flow.xml.gz`. This is a legacy property. Older versions of NiFi used an
-XML-formatted file to store the flow configuration. However, newer versions use a JSON representation. In order to maintain backward compatibility of flows and still load flows developed using
-older versions of NiFi, upon startup, NiFi will use the `nifi.flow.configuration.json.file` first. If the file exists, it will be used. However, if it does not exist, NiFi will fall back to this
-property to determine the XML version of the file and use it.
-|`nifi.flow.configuration.json.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.json.gz`.
+|`nifi.flow.configuration.file`*|The location of the JSON-based flow configuration file. The default value is `./conf/flow.json.gz`.
 |`nifi.flow.configuration.archive.enabled`*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
 |`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.json_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
 This cleanup mechanism takes into account only automatically created archived _flow.json_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.json.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
@@ -4409,7 +4405,7 @@ If you are encrypting sensitive component properties in your dataflow via the se
 
 If the below properties point to directories inside the NiFi base installation path, you must copy the target directories to the new NiFi. Stop your existing NiFi installation before you do this.
 
-|`nifi.flow.configuration.json.file=`
+|`nifi.flow.configuration.file=`
 
 If you have retained the default value (`./conf/flow.json.gz`), copy _flow.json.gz_ from the existing to the new NiFi base install conf directory.
 
@@ -4477,7 +4473,7 @@ When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the spe
 2. Encrypts all the sensitive values with a specified new key.
 3. Updates the _nifi.properties_ and _flow.json.gz_ files or creates new versions of them.
 
-As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.xml.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.xml.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
+As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.json.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.json.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
 
 ```
 $ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.json.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.json.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi
@@ -4506,7 +4502,6 @@ $ ./bin/nifi.sh set-sensitive-properties-algorithm <algorithm>
 The command reads the following flow configuration file properties from _nifi.properties_:
 
 - `nifi.flow.configuration.file`
-- `nifi.flow.configuration.json.file`
 
 The command checks for the existence of each file and updates the sensitive property values found.
 
@@ -4522,12 +4517,11 @@ The following command can be used to read an existing flow configuration and set
 $ ./bin/nifi.sh set-sensitive-properties-key <sensitivePropertiesKey>
 ```
 
-The command reads the following flow configuration file properties from _nifi.properties_:
+The command reads the following flow configuration file property from _nifi.properties_:
 
 - `nifi.flow.configuration.file`
-- `nifi.flow.configuration.json.file`
 
-The command checks for the existence of each file and updates the sensitive property values found.
+The command checks for the existence of the file file and updates the sensitive property values found.
 
 The minimum required length for a new sensitive properties key is 12 characters.
 

@@ -30,7 +30,6 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -150,8 +149,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     flowController,
                     props,
                     null, // revision manager
-                    authorizer,
-                    getFlowSerializationStrategy());
+                    authorizer);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);
@@ -260,10 +258,6 @@ public class HeadlessNiFiServer implements NiFiServer {
 
     protected List<Bundle> getBundles(final String bundleClass) {
         return ExtensionManagerHolder.getExtensionManager().getBundles(bundleClass);
-    }
-
-    protected FlowSerializationStrategy getFlowSerializationStrategy() {
-        return FlowSerializationStrategy.WRITE_XML_ONLY;
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {

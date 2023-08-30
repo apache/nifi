@@ -53,7 +53,9 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public RunningComponentSetFilter(final VersionedDataflow dataflow) {
         dataflow.getControllerServices().forEach(service -> controllerServices.put(service.getInstanceIdentifier(), service));
         dataflow.getReportingTasks().forEach(task -> reportingTasks.put(task.getInstanceIdentifier(), task));
-        dataflow.getFlowAnalysisRules().forEach(rule -> flowAnalysisRules.put(rule.getInstanceIdentifier(), rule));
+        if (dataflow.getFlowAnalysisRules() != null) {
+            dataflow.getFlowAnalysisRules().forEach(rule -> flowAnalysisRules.put(rule.getInstanceIdentifier(), rule));
+        }
         flatten(dataflow.getRootGroup());
     }
 

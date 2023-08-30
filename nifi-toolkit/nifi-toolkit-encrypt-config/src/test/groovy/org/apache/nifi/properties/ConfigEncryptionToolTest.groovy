@@ -88,8 +88,6 @@ class ConfigEncryptionToolTest {
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
     private final String SECRET_PROP_REGEX = "<property[^>]* name=\".* Secret\""
 
-    private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
-
     @BeforeClass
     static void setUpOnce() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)

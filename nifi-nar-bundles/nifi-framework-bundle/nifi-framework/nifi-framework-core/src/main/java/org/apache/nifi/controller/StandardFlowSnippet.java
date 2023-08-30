@@ -46,7 +46,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -309,12 +308,6 @@ public class StandardFlowSnippet implements FlowSnippet {
             if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 final String portName = generatePublicInputPortName(flowManager, portDTO.getName());
                 inputPort = flowManager.createPublicInputPort(portDTO.getId(), portName);
-                if (portDTO.getGroupAccessControl() != null) {
-                    ((PublicPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
-                }
-                if (portDTO.getUserAccessControl() != null) {
-                    ((PublicPort) inputPort).setUserAccessControl(portDTO.getUserAccessControl());
-                }
             } else {
                 inputPort = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
             }
@@ -337,12 +330,6 @@ public class StandardFlowSnippet implements FlowSnippet {
             if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 final String portName = generatePublicOutputPortName(flowManager, portDTO.getName());
                 outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portName);
-                if (portDTO.getGroupAccessControl() != null) {
-                    ((PublicPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
-                }
-                if (portDTO.getUserAccessControl() != null) {
-                    ((PublicPort) outputPort).setUserAccessControl(portDTO.getUserAccessControl());
-                }
             } else {
                 outputPort = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());
             }

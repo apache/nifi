@@ -15,7 +15,7 @@
 
 # Core Properties #
 
-nifi.flow.configuration.file=./conf/flow.xml.gz
+nifi.flow.configuration.file=./conf/flow.json.gz
 nifi.flow.configuration.archive.enabled=false
 nifi.flow.configuration.archive.dir=./conf/archive/
 nifi.flowcontroller.autoResumeState=true

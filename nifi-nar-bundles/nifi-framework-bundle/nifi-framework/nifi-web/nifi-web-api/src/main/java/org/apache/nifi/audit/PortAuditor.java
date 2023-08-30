@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.audit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.remote.PublicPort;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -93,14 +91,8 @@ public class PortAuditor extends NiFiAuditor {
         final int maxConcurrentTasks = port.getMaxConcurrentTasks();
 
         final Set<String> existingUsers = new HashSet<>();
-        final Set<String> existingGroups = new HashSet<>();
         boolean isPublicPort = false;
-        if (port instanceof PublicPort) {
-            isPublicPort = true;
-            final PublicPort publicPort = (PublicPort) port;
-            existingUsers.addAll(publicPort.getUserAccessControl());
-            existingGroups.addAll(publicPort.getGroupAccessControl());
-        }
+
 
         // perform the underlying operation
         final Port updatedPort = (Port) proceedingJoinPoint.proceed();
@@ -144,46 +136,6 @@ public class PortAuditor extends NiFiAuditor {
                     configDetails.setPreviousValue(String.valueOf(maxConcurrentTasks));
 
                     configurationDetails.add(configDetails);
-                }
-
-                // if user access control was specified in the request
-                if (portDTO.getUserAccessControl() != null) {
-                    final Set<String> newUsers = new HashSet<>(portDTO.getUserAccessControl());
-                    newUsers.removeAll(existingUsers);
-
-                    final Set<String> removedUsers = new HashSet<>(existingUsers);
-                    removedUsers.removeAll(portDTO.getUserAccessControl());
-
-                    // if users were added/removed
-                    if (newUsers.size() > 0 || removedUsers.size() > 0) {
-                        // create the config details
-                        FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                        configDetails.setName("User Access Control");
-                        configDetails.setValue(StringUtils.join(portDTO.getUserAccessControl(), ", "));
-                        configDetails.setPreviousValue(StringUtils.join(existingUsers, ", "));
-
-                        configurationDetails.add(configDetails);
-                    }
-                }
-
-                // if group access control was specified in the request
-                if (portDTO.getGroupAccessControl() != null) {
-                    final Set<String> newGroups = new HashSet<>(portDTO.getGroupAccessControl());
-                    newGroups.removeAll(existingGroups);
-
-                    final Set<String> removedGroups = new HashSet<>(existingGroups);
-                    removedGroups.removeAll(portDTO.getGroupAccessControl());
-
-                    // if groups were added/removed
-                    if (newGroups.size() > 0 || removedGroups.size() > 0) {
-                        // create the config details
-                        FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                        configDetails.setName("Group Access Control");
-                        configDetails.setValue(StringUtils.join(portDTO.getGroupAccessControl(), ", "));
-                        configDetails.setPreviousValue(StringUtils.join(existingGroups, ", "));
-
-                        configurationDetails.add(configDetails);
-                    }
                 }
             }
 
