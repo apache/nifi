@@ -20,22 +20,40 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Utility class for Bundles.
  */
 public final class BundleUtils {
-    private static Optional<BundleCoordinate> findOptionalBundleForType(final ExtensionManager extensionManager, final String type, final BundleCoordinate desiredCoordinate) {
+    static Optional<BundleCoordinate> findOptionalBundleForType(final ExtensionManager extensionManager, final String type, final Bundle frameworkBundle) {
         final List<Bundle> bundles = extensionManager.getBundles(type);
         if (bundles.size() == 1) {
             return Optional.of(bundles.get(0).getBundleDetails().getCoordinate());
         }
+
+        // All NARs that are packaged with NiFi will have the same bundle coordinate as the NiFi framework bundle.
+        // During an upgrade, it's fairly common to have two versions of a NAR: the version shipped with NiFi and another version, perhaps to maintain
+        // backward compatibility to because the new version behaves some different way and the user wants the old behavior in some instances, etc.
+        // In this case, the user may have two versions. For example, version 2.2.0 and 2.4.0 while NiFi is at version 2.4.0.
+        // Now, during upgrade to 2.4.1, there will no longer be a 2.4.0 available. We want to be smart enough to realize that those extension using version
+        // 2.2.0 stay there but those using 2.4.0 upgrade to 2.4.1.
+        // To do this, we always first match on the exact version but this method is called when there's no exact match. So those marked 2.2.0 won't arrive here.
+        // But for those extensions that were using 2.4.0, we want to now look for version 2.4.1 - I.e., the one with the same version as the framework. If we
+        // find that version, then we want to use it. This helps to smooth out the upgrade process even when users have multiple versions of a given NAR.
+        final String frameworkVersion = frameworkBundle.getBundleDetails().getCoordinate().getVersion();
+        for (final Bundle bundle : bundles) {
+            final String componentVersion = bundle.getBundleDetails().getCoordinate().getVersion();
+            if (frameworkVersion.equals(componentVersion)) {
+                return Optional.of(bundle.getBundleDetails().getCoordinate());
+            }
+        }
+
         return Optional.empty();
     }
 
@@ -71,7 +89,10 @@ public final class BundleUtils {
                 throw new IllegalStateException(String.format("%s from %s is not known to this NiFi instance.", type, coordinate));
             }
         } else {
-            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
+            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream()
+                .map(b -> b.getBundleDetails().getCoordinate())
+                .toList();
+
             if (bundlesForType.contains(coordinate)) {
                 return coordinate;
             } else {
@@ -82,18 +103,17 @@ public final class BundleUtils {
 
 
     private static Optional<BundleCoordinate> findOptionalCompatibleBundle(final ExtensionManager extensionManager, final String type,
-                                                         final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
+                                                         final BundleDTO bundleDTO) {
         final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
         final Bundle bundle = extensionManager.getBundle(coordinate);
 
         if (bundle == null) {
-            if (allowCompatibleBundle) {
-                return findOptionalBundleForType(extensionManager, type, coordinate);
-            } else {
-                return Optional.empty();
-            }
+            return findOptionalBundleForType(extensionManager, type, NarClassLoadersHolder.getInstance().getFrameworkBundle());
         } else {
-            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
+            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream()
+                .map(b -> b.getBundleDetails().getCoordinate())
+                .toList();
+
             if (bundlesForType.contains(coordinate)) {
                 return Optional.of(coordinate);
             } else {
@@ -181,9 +201,9 @@ public final class BundleUtils {
 
     public static Optional<BundleCoordinate> getOptionalCompatibleBundle(final ExtensionManager extensionManager, final String type, final BundleDTO bundleDTO) {
         if (bundleDTO == null) {
-            return findOptionalBundleForType(extensionManager, type, null);
+            return findOptionalBundleForType(extensionManager, type, NarClassLoadersHolder.getInstance().getFrameworkBundle());
         } else {
-            return findOptionalCompatibleBundle(extensionManager, type, bundleDTO, true);
+            return findOptionalCompatibleBundle(extensionManager, type, bundleDTO);
         }
     }
 

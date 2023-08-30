@@ -956,7 +956,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setNodeId(nodeId);
 
             // load new controller state
-            loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL);
+            loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
 
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);
