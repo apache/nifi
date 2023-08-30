@@ -19,6 +19,11 @@
   Canvas Positioning/Transforms
  */
 
+export enum ComponentType {
+  Processor = 'Processor',
+  Funnel = 'Funnel'
+}
+
 export interface Dimension {
   width: number,
   height: number
@@ -40,6 +45,9 @@ export interface CanvasTransform {
 
 export interface UpdateComponentPosition {
   id: string,
+  type: ComponentType,
+  uri: string,
+  revision: any,
   position: Position
 }
 
@@ -47,9 +55,10 @@ export interface UpdateConnectionPosition {
 
 }
 
-export interface UpdatePositions {
-  componentPositionUpdates: UpdateComponentPosition[],
-  connectionPositionUpdates: UpdateConnectionPosition
+export interface UpdateComponentPositionResponse {
+  id: string,
+  type: ComponentType,
+  response: any;
 }
 
 /*

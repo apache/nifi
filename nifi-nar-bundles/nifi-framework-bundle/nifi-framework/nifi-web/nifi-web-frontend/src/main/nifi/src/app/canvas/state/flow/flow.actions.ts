@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { UpdatePositions } from '../index';
+import { UpdateComponentPosition, UpdateComponentPositionResponse } from '../index';
 
 /*
     Loading Flow
@@ -29,8 +29,8 @@ export const loadFlowSuccess = createAction(
   props<{ flow: any }>()
 );
 
-export const loadFlowFailure = createAction(
-  '[Canvas] Flow Load Failure',
+export const flowApiError = createAction(
+  '[Canvas] Flow Api Error',
   props<{ error: string }>()
 )
 
@@ -57,14 +57,14 @@ export const removeSelectedComponents = createAction(
     Draggable Behavior
  */
 
-export const updatePositions = createAction(
+export const updatePosition = createAction(
   '[Canvas] Update Positions',
-  props<{ positionUpdates: UpdatePositions }>()
+  props<{ positionUpdate: UpdateComponentPosition }>()
 )
 
 export const updatePositionSuccess = createAction(
   '[Canvas] Update Positions Success',
-  props<{ positionUpdates: UpdatePositions }>()
+  props<{ positionUpdateResponse: UpdateComponentPositionResponse }>()
 )
 
 /*

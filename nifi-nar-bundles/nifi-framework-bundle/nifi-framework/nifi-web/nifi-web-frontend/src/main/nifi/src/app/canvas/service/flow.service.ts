@@ -16,98 +16,52 @@
  */
 
 import { Injectable } from "@angular/core";
-import { delay, Observable, of } from "rxjs";
-import { UpdatePositions } from '../state';
+import { Observable } from "rxjs";
+import { UpdateComponentPosition } from '../state';
+import { HttpClient } from '@angular/common/http';
 
-@Injectable({ providedIn: 'root'})
+@Injectable({providedIn: 'root'})
 export class FlowService {
 
-  getFlow(): Observable<any> {
-    const flow = {
-      "permissions": {
-        "canRead": true,
-        "canWrite": true
-      },
-      "processGroupFlow": {
-        "id": "1edb8929-018a-1000-814c-5672cf7fc951",
-        "uri": "https://localhost:8443/nifi-api/flow/process-groups/1edb8929-018a-1000-814c-5672cf7fc951",
-        "breadcrumb": {
-          "id": "1edb8929-018a-1000-814c-5672cf7fc951",
-          "permissions": {
-            "canRead": true,
-            "canWrite": true
-          },
-          "breadcrumb": {
-            "id": "1edb8929-018a-1000-814c-5672cf7fc951",
-            "name": "NiFi Flow2"
-          }
-        },
-        "flow": {
-          "processGroups": [],
-          "remoteProcessGroups": [],
-          "processors": [],
-          "inputPorts": [],
-          "outputPorts": [],
-          "connections": [],
-          "labels": [],
-          "funnels": [
-            {
-              "revision": {
-                "clientId": "2d12389f-018a-1000-2762-b1abccf8d105",
-                "version": 1
-              },
-              "id": "2d1270d7-018a-1000-ae17-9624e25fae44",
-              "uri": "https://localhost:8443/nifi-api/funnels/2d1270d7-018a-1000-ae17-9624e25fae44",
-              "position": {
-                "x": 892,
-                "y": 150
-              },
-              "permissions": {
-                "canRead": true,
-                "canWrite": true
-              },
-              "component": {
-                "id": "2d1270d7-018a-1000-ae17-9624e25fae44",
-                "parentGroupId": "1edb8929-018a-1000-814c-5672cf7fc951",
-                "position": {
-                  "x": 892,
-                  "y": 150
-                }
-              }
-            },
-            {
-              "revision": {
-                "clientId": "2d12389f-018a-1000-2762-b1abccf8d105",
-                "version": 1
-              },
-              "id": "2d1270d7-018a-1000-ae17-9624e25fae45",
-              "uri": "https://localhost:8443/nifi-api/funnels/2d1270d7-018a-1000-ae17-9624e25fae45",
-              "position": {
-                "x": 792,
-                "y": 150
-              },
-              "permissions": {
-                "canRead": true,
-                "canWrite": true
-              },
-              "component": {
-                "id": "2d1270d7-018a-1000-ae17-9624e25fae45",
-                "parentGroupId": "1edb8929-018a-1000-814c-5672cf7fc951",
-                "position": {
-                  "x": 792,
-                  "y": 150
-                }
-              }
-            }
-          ]
-        },
-        "lastRefreshed": "10:21:41 EDT"
-      }
-    };
-    return of(flow).pipe(delay(200));
-  }
+    private static readonly API: string = '../nifi-api'
 
-  updatePositions(updatePositions: UpdatePositions): Observable<UpdatePositions> {
-    return of(updatePositions).pipe(delay(200));
-  }
+    constructor(
+        private httpClient: HttpClient
+    ) {
+    }
+
+    /**
+     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
+     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
+     *
+     * https://stackoverflow.com/a/59586462
+     *
+     * @param url
+     * @private
+     */
+    private stripProtocol(url: string): string {
+        let result = '';
+        var indexOfColon = url.indexOf(':');
+        if (indexOfColon >= 0) {
+            var indexAfterColon = indexOfColon + 1;
+            if (indexAfterColon < url.length) {
+                result = url.substring(indexAfterColon);
+            }
+        }
+        return result;
+    }
+
+    getFlow(processGroupId: string = 'root'): Observable<any> {
+        return this.httpClient.get(FlowService.API + '/flow/process-groups/' + processGroupId);
+    }
+
+    updateComponentPosition(updateComponentPosition: UpdateComponentPosition): Observable<any> {
+        return this.httpClient.put(this.stripProtocol(updateComponentPosition.uri), {
+            'revision': updateComponentPosition.revision,
+            'component': {
+                'id': updateComponentPosition.id,
+                'position': updateComponentPosition.position
+            }
+        });
+    }
 }

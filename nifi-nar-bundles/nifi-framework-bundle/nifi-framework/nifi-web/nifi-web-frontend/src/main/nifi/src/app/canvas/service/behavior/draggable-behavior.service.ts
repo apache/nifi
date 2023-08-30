@@ -22,7 +22,8 @@ import { CanvasState, Position, UpdateComponentPosition } from '../../state';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
-import { updatePositions } from '../../state/flow/flow.actions';
+import { updatePosition } from '../../state/flow/flow.actions';
+import { Client } from '../client.service';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +38,7 @@ export class DraggableBehavior {
 
   constructor(
     private store: Store<CanvasState>,
+    private client: Client,
     private canvasUtils: CanvasUtils
   ) {
     const self: DraggableBehavior = this;
@@ -214,12 +216,12 @@ export class DraggableBehavior {
     });
 
     // dispatch the position updates
-    this.store.dispatch(updatePositions({
-      positionUpdates: {
-        componentPositionUpdates: componentUpdates,
-        connectionPositionUpdates: []
-      }
-    }));
+    componentUpdates.forEach(componentUpdate => {
+      // TODO - update back end to accept a batch of position updates
+      this.store.dispatch(updatePosition({
+        positionUpdate: componentUpdate
+      }));
+    })
 
     // this.refreshConnections(updates);
   };
@@ -260,41 +262,11 @@ export class DraggableBehavior {
 
     return {
       id: d.id,
+      type: d.type,
+      revision: this.client.getRevision(d),
+      uri: d.uri,
       position: newPosition
     };
-
-    // // build the entity
-    // var entity = {
-    //   'revision': nfClient.getRevision(d),
-    //   'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-    //   'component': {
-    //     'id': d.id,
-    //     'position': newPosition
-    //   }
-    // };
-    //
-    // // update the component positioning
-    // return $.Deferred(function (deferred) {
-    //   $.ajax({
-    //     type: 'PUT',
-    //     url: d.uri,
-    //     data: JSON.stringify(entity),
-    //     dataType: 'json',
-    //     contentType: 'application/json'
-    //   }).done(function (response) {
-    //     // update the component
-    //     nfCanvasUtils.getComponentByType(d.type).set(response);
-    //
-    //     // resolve with an object so we can refresh when finished
-    //     deferred.resolve({
-    //       type: d.type,
-    //       id: d.id
-    //     });
-    //   }).fail(function (xhr, status, error) {
-    //     nfErrorHandler.handleAjaxError(xhr, status, error);
-    //     deferred.reject();
-    //   });
-    // }).promise();
   }
 
   // public refreshConnections(updates: any): void {

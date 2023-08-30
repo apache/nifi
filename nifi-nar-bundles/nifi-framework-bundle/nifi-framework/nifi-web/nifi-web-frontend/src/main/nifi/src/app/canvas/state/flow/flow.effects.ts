@@ -20,57 +20,66 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
+import { UpdateComponentPositionResponse } from '../index';
 
 @Injectable()
 export class FlowEffects {
 
-  constructor(
-    private actions$: Actions,
-    private flowService: FlowService
-  ) {}
+    constructor(
+        private actions$: Actions,
+        private flowService: FlowService
+    ) {
+    }
 
-  loadFlow$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FlowActions.loadFlow),
-      switchMap(() =>
-        from(this.flowService.getFlow()).pipe(
-          map((flow) => FlowActions.loadFlowSuccess({ flow: flow })),
-          catchError((error) => of(FlowActions.loadFlowFailure({ error })))
+    loadFlow$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadFlow),
+            switchMap(() =>
+                from(this.flowService.getFlow()).pipe(
+                    map((flow) => FlowActions.loadFlowSuccess({flow: flow})),
+                    catchError((error) => of(FlowActions.flowApiError({error})))
+                )
+            )
         )
-      )
-    )
-  );
+    );
 
-  loadFlowSuccess$ = createEffect(() =>
-    this.actions$.pipe(
-        ofType(FlowActions.loadFlowSuccess),
-        switchMap(() => {
-            // flow loading is complete, reset the transition flag
-            return of(FlowActions.setTransition({ transition: false }));
-        })
-    )
-  );
-
-  updatePositions$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FlowActions.updatePositions),
-      switchMap(({ positionUpdates }) =>
-        from(this.flowService.updatePositions(positionUpdates)).pipe(
-          map((updatePositionResponse) => FlowActions.updatePositionSuccess({ positionUpdates: updatePositionResponse })),
-          catchError((error) => of(FlowActions.loadFlowFailure({ error })))
+    loadFlowSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadFlowSuccess),
+            switchMap(() => {
+                // flow loading is complete, reset the transition flag
+                return of(FlowActions.setTransition({transition: false}));
+            })
         )
-      )
-    )
-  );
+    );
 
-  updatePositionsSuccess$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FlowActions.updatePositionSuccess),
-      switchMap((positionUpdates) => {
-        // TODO - refresh connections
-        return of(positionUpdates);
-      })
-    ),
-    { dispatch: false }
-  );
+    updatePositions$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updatePosition),
+            switchMap(({positionUpdate}) =>
+                from(this.flowService.updateComponentPosition(positionUpdate)).pipe(
+                    map((updatePositionResponse) => {
+                        const response: UpdateComponentPositionResponse = {
+                            id: positionUpdate.id,
+                            type: positionUpdate.type,
+                            response: updatePositionResponse
+                        }
+                        return FlowActions.updatePositionSuccess({positionUpdateResponse: response})
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({error})))
+                )
+            )
+        )
+    );
+
+    updatePositionsSuccess$ = createEffect(() =>
+            this.actions$.pipe(
+                ofType(FlowActions.updatePositionSuccess),
+                switchMap((positionUpdates) => {
+                    // TODO - refresh connections
+                    return of(positionUpdates);
+                })
+            ),
+        {dispatch: false}
+    );
 }

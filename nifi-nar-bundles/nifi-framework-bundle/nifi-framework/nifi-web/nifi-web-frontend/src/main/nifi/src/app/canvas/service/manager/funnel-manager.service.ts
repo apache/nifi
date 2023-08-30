@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { PositionBehavior } from '../behavior/position-behavior.service';
-import { CanvasState, Dimension } from '../../state';
+import { CanvasState, ComponentType, Dimension } from '../../state';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import { select, Store } from '@ngrx/store';
@@ -158,7 +158,7 @@ export class FunnelManager {
     this.funnels = funnels.map((funnel: any) => {
       return {
         ...funnel,
-        type: 'Funnel',
+        type: ComponentType.Funnel,
         dimensions: this.dimensions
       }
     });
