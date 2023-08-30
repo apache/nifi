@@ -92,8 +92,8 @@ div.selected-disabled-option {
     width: calc(100% - 15px);
 }
 
-.combo-option-enabled {
-    color: #262626;
+.combo-option-special {
+    font-style: italic;
 }
 
 .combo-glass-pane {
