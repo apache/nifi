@@ -178,20 +178,14 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
             "outpublicport1_versionedId_omniMatch",
             ScheduledState.STOPPED,
             true,
-            AUTHORIZED,
-            Arrays.asList("outpublicport1_userAccessControl1_omniMatch", "outpublicport1_userAccessControl2_omniMatch"),
-            Arrays.asList("outpublicport1_groupAccessControl1_omniMatch", "outpublicport1_groupAccessControl2_omniMatch")
+            AUTHORIZED
         );
 
         final ComponentSearchResultDTO outputPublicPort1Result = getSimpleResultFromRoot("outpublicport1_id_omniMatch", "outpublicport1_name_omniMatch",
             "Id: outpublicport1_id_omniMatch",
             "Version Control ID: outpublicport1_versionedId_omniMatch",
             "Name: outpublicport1_name_omniMatch",
-            "Comments: outpublicport1_comments_omniMatch",
-            "User access control: outpublicport1_userAccessControl1_omniMatch",
-            "User access control: outpublicport1_userAccessControl2_omniMatch",
-            "Group access control: outpublicport1_groupAccessControl1_omniMatch",
-            "Group access control: outpublicport1_groupAccessControl2_omniMatch"
+            "Comments: outpublicport1_comments_omniMatch"
         );
 
         final Label label1 = getLabel("label1_id_omniMatch", "label1_value_omniMatch", true);

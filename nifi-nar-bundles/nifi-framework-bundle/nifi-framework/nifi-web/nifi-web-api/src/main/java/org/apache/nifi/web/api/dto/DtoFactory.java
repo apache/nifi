@@ -1417,9 +1417,13 @@ public final class DtoFactory {
            final PublicPort publicPort = (PublicPort) port;
            dto.setAllowRemoteAccess(true);
            dto.setTransmitting(publicPort.isTransmitting());
-           dto.setGroupAccessControl(publicPort.getGroupAccessControl());
-           dto.setUserAccessControl(publicPort.getUserAccessControl());
        }
+        // if this port is remotely accessible, determine if its actually connected to another nifi
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
+            dto.setAllowRemoteAccess(true);
+            dto.setTransmitting(publicPort.isTransmitting());
+        }
 
        final Collection<ValidationResult> validationErrors = port.getValidationErrors();
        if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -4471,8 +4475,6 @@ public final class DtoFactory {
        copy.setType(original.getType());
        copy.setTransmitting(original.isTransmitting());
        copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
-       copy.setUserAccessControl(copy(original.getUserAccessControl()));
-       copy.setGroupAccessControl(copy(original.getGroupAccessControl()));
        copy.setValidationErrors(copy(original.getValidationErrors()));
        copy.setVersionedComponentId(original.getVersionedComponentId());
        copy.setAllowRemoteAccess(original.getAllowRemoteAccess());

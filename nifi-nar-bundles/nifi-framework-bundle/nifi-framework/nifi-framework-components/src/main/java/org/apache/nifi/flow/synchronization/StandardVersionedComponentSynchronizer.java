@@ -1472,7 +1472,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 return decryptor.decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUFFIX.length()));
             } catch (EncryptionException e) {
                 final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.xml.gz file";
+                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
                 throw new EncryptionException(moreDescriptiveMessage, e);
             }
         } else {

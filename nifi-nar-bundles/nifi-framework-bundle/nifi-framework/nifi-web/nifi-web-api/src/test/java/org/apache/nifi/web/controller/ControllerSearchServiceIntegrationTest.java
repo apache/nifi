@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +44,6 @@ import static org.apache.nifi.web.controller.ComponentMockUtil.getConnection;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getFunnel;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getProcessorNode;
-import static org.apache.nifi.web.controller.ComponentMockUtil.getPublicPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getRemoteProcessGroup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -601,22 +599,6 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         // then
         thenResultConsists()
                 .ofRemoteProcessGroup(getSimpleResultFromRoot("remote2", "remoteName2", "Transmission: Off"))
-                .validate(results);
-    }
-
-    @Test
-    public void testSearchBasedOnPortPublicity() {
-        // given
-        givenRootProcessGroup()
-                .withInputPort(getPublicPort("port", "portName", "", ScheduledState.RUNNING, true, AUTHORIZED,
-                        Arrays.asList("accessAllowed1"), Arrays.asList("accessAllowed2")));
-
-        // when
-        whenExecuteSearch("allowed");
-
-        // then
-        thenResultConsists()
-                .ofInputPort(getSimpleResultFromRoot("port", "portName", "User access control: accessAllowed1", "Group access control: accessAllowed2"))
                 .validate(results);
     }
 }

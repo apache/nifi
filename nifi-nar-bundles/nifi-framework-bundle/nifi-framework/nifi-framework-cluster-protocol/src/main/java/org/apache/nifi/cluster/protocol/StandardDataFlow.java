@@ -60,7 +60,7 @@ public class StandardDataFlow implements Serializable, DataFlow {
      * Constructs an instance.
      *
      * @param flow a valid flow as bytes, which cannot be null
-     * @param snippetBytes an XML representation of snippets.  May be null.
+     * @param snippetBytes a JSON representation of snippets. May be null.
      * @param authorizerFingerprint the bytes of the Authorizer's fingerprint. May be null when using an external Authorizer.
      * @param missingComponentIds the ids of components that were created as missing ghost components
      *
@@ -160,13 +160,5 @@ public class StandardDataFlow implements Serializable, DataFlow {
         } catch (final Exception e) {
             throw new FlowSerializationException("Could not parse flow as a VersionedDataflow", e);
         }
-    }
-
-    public boolean isXml() {
-        if (flow == null || flow.length == 0) {
-            return true;
-        }
-
-        return flow[0] == '<';
     }
 }

@@ -39,8 +39,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private static final String FILE_USER_GROUP_PROVIDER_ID = "file-user-group-provider";
     private static final String FILE_ACCESS_POLICY_PROVIDER_ID = "file-access-policy-provider";
 
-    static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
-
     private FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
     private FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
 
@@ -93,9 +91,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         if (configurationProperties.containsKey(FileUserGroupProvider.PROP_TENANTS_FILE)) {
             userGroupProperties.put(FileUserGroupProvider.PROP_TENANTS_FILE, configurationProperties.get(FileUserGroupProvider.PROP_TENANTS_FILE));
         }
-        if (configurationProperties.containsKey(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
-            userGroupProperties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE));
-        }
 
         // relay the relevant config
         final Map<String, String> accessPolicyProperties = new HashMap<>();
@@ -105,9 +100,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         }
         if (configurationProperties.containsKey(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)) {
             accessPolicyProperties.put(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY, configurationProperties.get(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY));
-        }
-        if (configurationProperties.containsKey(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
-            accessPolicyProperties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE));
         }
 
         // ensure all node identities are seeded into the user provider

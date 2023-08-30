@@ -83,8 +83,8 @@ public class JoinClusterAdjustStateIT extends NiFiSystemIT {
         final NiFiInstance node2Instance = getNiFiInstance().getNodeInstance(2);
 
         // Copy the flow from Node 1 to Node 2.
-        final File node1Flow = new File(firstNodeInstanceDir, "conf/flow.xml.gz");
-        final File node2Flow = new File(node2Instance.getInstanceDirectory(), "conf/flow.xml.gz");
+        final File node1Flow = new File(firstNodeInstanceDir, "conf/flow.json.gz");
+        final File node2Flow = new File(node2Instance.getInstanceDirectory(), "conf/flow.json.gz");
         Thread.sleep(2000L); // Wait a bit before copying it, since the flow is written out in the background, and we want to ensure that the flow is up-to-date.
         Files.copy(node1Flow.toPath(), node2Flow.toPath());
 

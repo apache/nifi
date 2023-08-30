@@ -17,7 +17,6 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
-
 import groovy.xml.XmlSlurper
 import groovy.xml.XmlUtil
 import groovy.xml.slurpersupport.GPathResult
@@ -32,7 +31,7 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder
 import org.apache.nifi.flow.encryptor.FlowEncryptor
-import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
+import org.apache.nifi.flow.encryptor.JsonFlowEncryptor
 import org.apache.nifi.properties.scheme.ProtectionScheme
 import org.apache.nifi.properties.scheme.StandardProtectionScheme
 import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
@@ -50,10 +49,8 @@ import org.xml.sax.SAXException
 import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import java.security.KeyException
 import java.util.function.Supplier
 import java.util.regex.Matcher
@@ -71,8 +68,8 @@ class ConfigEncryptionTool {
     public String outputLoginIdentityProvidersPath
     public String authorizersPath
     public String outputAuthorizersPath
-    public static flowXmlPath
-    public String outputFlowXmlPath
+    public static flowJsonPath
+    public String outputFlowJsonPath
 
     static final ProtectionScheme DEFAULT_PROTECTION_SCHEME = new StandardProtectionScheme("aes/gcm")
 
@@ -93,7 +90,7 @@ class ConfigEncryptionTool {
     private NiFiProperties niFiProperties
     private String loginIdentityProviders
     private String authorizers
-    private InputStream flowXmlInputStream
+    private InputStream flowJsonInputStream
 
     private boolean usingPassword = true
     private boolean usingPasswordMigration = true
@@ -102,7 +99,7 @@ class ConfigEncryptionTool {
     private boolean handlingNiFiProperties = false
     private boolean handlingLoginIdentityProviders = false
     private boolean handlingAuthorizers = false
-    private boolean handlingFlowXml = false
+    private boolean handlingFlowJson = false
     private boolean ignorePropertiesFiles = false
     private boolean translatingCli = false
 
@@ -115,8 +112,8 @@ class ConfigEncryptionTool {
     private static final String OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG = "outputLoginIdentityProviders"
     private static final String AUTHORIZERS_ARG = "authorizers"
     private static final String OUTPUT_AUTHORIZERS_ARG = "outputAuthorizers"
-    private static final String FLOW_XML_ARG = "flowXml"
-    private static final String OUTPUT_FLOW_XML_ARG = "outputFlowXml"
+    private static final String FLOW_JSON_ARG = "flowJson"
+    private static final String OUTPUT_FLOW_JSON_ARG = "outputFlowJson"
     private static final String KEY_ARG = "key"
     private static final String PROTECTION_SCHEME_ARG = "protectionScheme"
     private static final String PASSWORD_ARG = "password"
@@ -126,7 +123,7 @@ class ConfigEncryptionTool {
     private static final String USE_KEY_ARG = "useRawKey"
     private static final String MIGRATION_ARG = "migrate"
     private static final String PROPS_KEY_ARG = "propsKey"
-    private static final String DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG = "encryptFlowXmlOnly"
+    private static final String DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG = "encryptFlowJsonOnly"
     private static final String NEW_FLOW_ALGORITHM_ARG = "newFlowAlgorithm"
     private static final String NEW_FLOW_PROVIDER_ARG = "newFlowProvider"
     private static final String TRANSLATE_CLI_ARG = "translateCli"
@@ -162,7 +159,7 @@ class ConfigEncryptionTool {
             "prompts the user for a root key, and encrypts each value. It will replace the " +
             "plain value with the protected value in the same file (or write to a new file if " +
             "specified). It can also be used to migrate already-encrypted values in those " +
-            "files or in flow.xml.gz to be encrypted with a new key."
+            "files or in flow.json.gz to be encrypted with a new key."
 
     private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
     private static
@@ -201,9 +198,7 @@ class ConfigEncryptionTool {
             /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.authorization\.azure\.AzureGraphUserGroupProvider.*?<\/userGroupProvider>/
 
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
-    private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
 
-    private static final String DEFAULT_FLOW_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256"
 
     private static final Map<String, String> PROPERTY_KEY_MAP = [
             "nifi.security.keystore"        : "keystore",
@@ -246,8 +241,8 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("i").longOpt(OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG).hasArg(true).argName("file").desc("The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)").build())
         options.addOption(Option.builder("a").longOpt(AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The authorizers.xml file containing unprotected config values (will be overwritten unless -u is specified)").build())
         options.addOption(Option.builder("u").longOpt(OUTPUT_AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The destination authorizers.xml file containing protected config values (will not modify input authorizers.xml)").build())
-        options.addOption(Option.builder("f").longOpt(FLOW_XML_ARG).hasArg(true).argName("file").desc("The flow.xml.gz file currently protected with old password (will be overwritten unless -g is specified)").build())
-        options.addOption(Option.builder("g").longOpt(OUTPUT_FLOW_XML_ARG).hasArg(true).argName("file").desc("The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)").build())
+        options.addOption(Option.builder("f").longOpt(FLOW_JSON_ARG).hasArg(true).argName("file").desc("The flow.json.gz file currently protected with old password (will be overwritten unless -g is specified)").build())
+        options.addOption(Option.builder("g").longOpt(OUTPUT_FLOW_JSON_ARG).hasArg(true).argName("file").desc("The destination flow.json.gz file containing protected config values (will not modify input flow.json.gz)").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF_ARG).hasArg(true).argName("file").desc("The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.").build())
         options.addOption(Option.builder("S").longOpt(PROTECTION_SCHEME_ARG).hasArg(true).argName("protectionScheme").desc(PROTECTION_SCHEME_DESC).build())
         options.addOption(Option.builder("k").longOpt(KEY_ARG).hasArg(true).argName("keyhex").desc("The raw hexadecimal key to use to encrypt the sensitive properties").build())
@@ -257,10 +252,10 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("w").longOpt(PASSWORD_MIGRATION_ARG).hasArg(true).argName("password").desc("The old password from which to derive the key during migration").build())
         options.addOption(Option.builder("r").longOpt(USE_KEY_ARG).hasArg(false).desc("If provided, the secure console will prompt for the raw key value in hexadecimal form").build())
         options.addOption(Option.builder("m").longOpt(MIGRATION_ARG).hasArg(false).desc("If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with the new scheme").build())
-        options.addOption(Option.builder("x").longOpt(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG).hasArg(false).desc("If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified").build())
-        options.addOption(Option.builder("s").longOpt(PROPS_KEY_ARG).hasArg(true).argName("password|keyhex").desc("The password or key to use to encrypt the sensitive processor properties in flow.xml.gz").build())
-        options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz").build())
-        options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder("x").longOpt(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG).hasArg(false).desc("If provided, the properties in flow.json.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified").build())
+        options.addOption(Option.builder("s").longOpt(PROPS_KEY_ARG).hasArg(true).argName("password|keyhex").desc("The password or key to use to encrypt the sensitive processor properties in flow.json.gz").build())
+        options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.json.gz").build())
+        options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.json.gz").build())
         options.addOption(Option.builder("c").longOpt(TRANSLATE_CLI_ARG).hasArg(false).desc("Translates the nifi.properties file to a format suitable for the NiFi CLI tool").build())
         options
     }
@@ -383,24 +378,24 @@ class ConfigEncryptionTool {
                 }
             }
 
-            if (commandLine.hasOption(FLOW_XML_ARG)) {
+            if (commandLine.hasOption(FLOW_JSON_ARG)) {
                 if (isVerbose) {
-                    logger.info("Handling encryption of flow.xml.gz")
+                    logger.info("Handling encryption of flow.json.gz")
                 }
-                flowXmlPath = commandLine.getOptionValue(FLOW_XML_ARG)
-                outputFlowXmlPath = commandLine.getOptionValue(OUTPUT_FLOW_XML_ARG, flowXmlPath)
-                handlingFlowXml = true
+                flowJsonPath = commandLine.getOptionValue(FLOW_JSON_ARG)
+                outputFlowJsonPath = commandLine.getOptionValue(OUTPUT_FLOW_JSON_ARG, flowJsonPath)
+                handlingFlowJson = true
 
                 newFlowAlgorithm = commandLine.getOptionValue(NEW_FLOW_ALGORITHM_ARG)
                 newFlowProvider = commandLine.getOptionValue(NEW_FLOW_PROVIDER_ARG)
 
-                if (flowXmlPath == outputFlowXmlPath) {
+                if (flowJsonPath == outputFlowJsonPath) {
                     // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
-                    logger.warn("The source flow.xml.gz and destination flow.xml.gz are identical [${outputFlowXmlPath}] so the original will be overwritten")
+                    logger.warn("The source flow.json.gz and destination flow.json.gz are identical [${outputFlowJsonPath}] so the original will be overwritten")
                 }
 
                 if (!commandLine.hasOption(NIFI_PROPERTIES_ARG)) {
-                    printUsageAndThrow("In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--${NIFI_PROPERTIES_ARG}'.", ExitCode.INVALID_ARGS)
+                    printUsageAndThrow("In order to migrate a flow.json.gz, a nifi.properties file must also be specified via '-n'/'--${NIFI_PROPERTIES_ARG}'.", ExitCode.INVALID_ARGS)
                 }
             }
 
@@ -412,8 +407,8 @@ class ConfigEncryptionTool {
                 logger.info("(dest) login-identity-providers.xml: ${outputLoginIdentityProvidersPath}")
                 logger.info("(src)  authorizers.xml:              ${authorizersPath}")
                 logger.info("(dest) authorizers.xml:              ${outputAuthorizersPath}")
-                logger.info("(src)  flow.xml.gz:                  ${flowXmlPath}")
-                logger.info("(dest) flow.xml.gz:                  ${outputFlowXmlPath}")
+                logger.info("(src)  flow.json.gz:                  ${flowJsonPath}")
+                logger.info("(dest) flow.json.gz:                  ${outputFlowJsonPath}")
             }
 
             if (!commandLine.hasOption(NIFI_PROPERTIES_ARG)
@@ -681,11 +676,11 @@ class ConfigEncryptionTool {
     /**
      * Loads the flow definition from the provided file path, handling the GZIP file compression. Unlike {@link #loadLoginIdentityProviders()} this method does not decrypt the content (for performance and separation of concern reasons).
      *
-     * @param The path to the XML file
+     * @param The path to the JSON file
      * @return The file content
-     * @throw IOException if the flow.xml.gz file cannot be read
+     * @throw IOException if the flow.json.gz file cannot be read
      */
-    private InputStream loadFlowXml(String filePath) throws IOException {
+    private InputStream loadFlowJson(String filePath) throws IOException {
         if (filePath && (new File(filePath)).exists()) {
             try {
                 return new GZIPInputStream(new FileInputStream(filePath))
@@ -704,32 +699,32 @@ class ConfigEncryptionTool {
     }
 
     /**
-     * Scans XML content and decrypts each encrypted element, then re-encrypts it with the new key, and returns the final XML content.
+     * Scans JSON content and decrypts each encrypted element, then re-encrypts it with the new key, and returns the final JSON content.
      *
-     * @param flowXmlContent the original flow.xml.gz as an input stream
+     * @param flowJsonContent the original flow.json.gz as an input stream
      * @param existingFlowPassword the existing value of nifi.sensitive.props.key (not a raw key, but rather a password)
      * @param newFlowPassword the password to use to for encryption (not a raw key, but rather a password)
      * @param existingAlgorithm the KDF algorithm to use
      * @param existingProvider the {@link java.security.Provider} to use (defaults to BC)
-     * @return the encrypted XML content as an InputStream
+     * @return the encrypted JSON content as an InputStream
      */
-    private InputStream migrateFlowXmlContent(InputStream flowXmlContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String newAlgorithm = DEFAULT_FLOW_ALGORITHM) {
-        File tempFlowXmlFile = new File(getTemporaryFlowXmlFile(outputFlowXmlPath).toString())
-        final OutputStream flowOutputStream = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
+    private InputStream migrateFlowJsonContent(InputStream flowJsonContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String newAlgorithm = DEFAULT_FLOW_ALGORITHM) {
+        File tempFlowJsonFile = new File(getTemporaryFlowJsonFile(outputFlowJsonPath).toString())
+        final OutputStream flowOutputStream = getFlowOutputStream(tempFlowJsonFile, flowJsonContent instanceof GZIPInputStream)
 
         final PropertyEncryptor inputEncryptor = new PropertyEncryptorBuilder(existingFlowPassword).setAlgorithm(existingAlgorithm).build()
         final PropertyEncryptor outputEncryptor = new PropertyEncryptorBuilder(newFlowPassword).setAlgorithm(newAlgorithm).build()
 
-        final FlowEncryptor flowEncryptor = new StandardFlowEncryptor()
-        flowEncryptor.processFlow(flowXmlContent, flowOutputStream, inputEncryptor, outputEncryptor)
+        final FlowEncryptor flowEncryptor = new JsonFlowEncryptor()
+        flowEncryptor.processFlow(flowJsonContent, flowOutputStream, inputEncryptor, outputEncryptor)
 
         // Overwrite the original flow file with the migrated flow file
-        Files.move(tempFlowXmlFile.toPath(), Paths.get(outputFlowXmlPath), StandardCopyOption.ATOMIC_MOVE)
-        loadFlowXml(outputFlowXmlPath)
+        Files.move(tempFlowJsonFile.toPath(), Paths.get(outputFlowJsonPath), StandardCopyOption.ATOMIC_MOVE)
+        loadFlowJson(outputFlowJsonPath)
     }
 
-    private static OutputStream getFlowOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
-        OutputStream flowOutputStream = new FileOutputStream(outputFlowXmlPath)
+    private static OutputStream getFlowOutputStream(File outputFlowJsonPath, boolean isFileGZipped) {
+        OutputStream flowOutputStream = new FileOutputStream(outputFlowJsonPath)
         if(isFileGZipped) {
             flowOutputStream = new GZIPOutputStream(flowOutputStream)
         }
@@ -737,10 +732,10 @@ class ConfigEncryptionTool {
     }
 
     // Create a temporary output file we can write the stream to
-    private static Path getTemporaryFlowXmlFile(String originalOutputFlowXmlPath) {
-        String outputFilename = Paths.get(originalOutputFlowXmlPath).getFileName().toString()
+    private static Path getTemporaryFlowJsonFile(String originalOutputFlowJsonPath) {
+        String outputFilename = Paths.get(originalOutputFlowJsonPath).getFileName().toString()
         String migratedFileName = "migrated-${outputFilename}"
-        Paths.get(originalOutputFlowXmlPath).resolveSibling(migratedFileName)
+        Paths.get(originalOutputFlowJsonPath).resolveSibling(migratedFileName)
     }
 
     private SensitivePropertyProviderFactory getSensitivePropertyProviderFactory(final String keyHex) {
@@ -1373,8 +1368,8 @@ class ConfigEncryptionTool {
                 }
 
                 boolean existingNiFiPropertiesAreEncrypted = tool.niFiPropertiesAreEncrypted()
-                if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {
-                    // If we are handling the flow.xml.gz and nifi.properties is already encrypted, try getting the key from bootstrap.conf rather than the console
+                if (!tool.ignorePropertiesFiles || (tool.handlingFlowJson && existingNiFiPropertiesAreEncrypted)) {
+                    // If we are handling the flow.json.gz and nifi.properties is already encrypted, try getting the key from bootstrap.conf rather than the console
                     if (tool.ignorePropertiesFiles) {
                         tool.keyHex = NiFiBootstrapUtils.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
                     } else {
@@ -1412,8 +1407,8 @@ class ConfigEncryptionTool {
                 }
                 String existingKeyHex = tool.migrationKeyHex ?: tool.keyHex
 
-                // Load NiFiProperties for either scenario; only encrypt if "handling" (see after flow XML)
-                if (tool.handlingNiFiProperties || tool.handlingFlowXml) {
+                // Load NiFiProperties for either scenario; only encrypt if "handling" (see after flow JSON)
+                if (tool.handlingNiFiProperties || tool.handlingFlowJson) {
                     try {
                         tool.niFiProperties = tool.loadNiFiProperties(existingKeyHex)
                     } catch (Exception e) {
@@ -1442,14 +1437,14 @@ class ConfigEncryptionTool {
                     tool.authorizers = tool.encryptAuthorizers(tool.authorizers)
                 }
 
-                if (tool.handlingFlowXml) {
+                if (tool.handlingFlowJson) {
                     try {
-                        tool.flowXmlInputStream = tool.loadFlowXml(flowXmlPath)
+                        tool.flowJsonInputStream = tool.loadFlowJson(flowJsonPath)
                     } catch (Exception e) {
                         if (tool.isVerbose) {
                             logger.error("Encountered an error: ", e)
                         }
-                        tool.printUsageAndThrow("Cannot load flow.xml.gz", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+                        tool.printUsageAndThrow("Cannot load flow.json.gz", ExitCode.ERROR_READING_NIFI_PROPERTIES)
                     }
                 }
 
@@ -1477,10 +1472,10 @@ class ConfigEncryptionTool {
                     if (!tool.ignorePropertiesFiles) {
                         tool.writeKeyToBootstrapConf()
                     }
-                    if (tool.handlingFlowXml) {
-                        tool.handleFlowXml(tool.niFiPropertiesAreEncrypted())
+                    if (tool.handlingFlowJson) {
+                        tool.handleFlowJson(tool.niFiPropertiesAreEncrypted())
                     }
-                    if (tool.handlingNiFiProperties || tool.handlingFlowXml) {
+                    if (tool.handlingNiFiProperties || tool.handlingFlowJson) {
                         tool.writeNiFiProperties()
                     }
                     if (tool.handlingLoginIdentityProviders) {
@@ -1503,7 +1498,7 @@ class ConfigEncryptionTool {
         System.exit(ExitCode.SUCCESS.ordinal())
     }
 
-    void handleFlowXml(boolean existingNiFiPropertiesAreEncrypted = false) {
+    void handleFlowJson(boolean existingNiFiPropertiesAreEncrypted = false) {
         String existingFlowPassword = existingFlowPropertiesPassword ?: getExistingFlowPassword()
 
         // If the new password was not provided in the arguments, read from the console. If that is empty, use the same value (essentially a copy no-op)
@@ -1519,12 +1514,12 @@ class ConfigEncryptionTool {
         String newAlgorithm = newFlowAlgorithm ?: existingAlgorithm
 
         try {
-            logger.info("Migrating flow.xml file at ${flowXmlPath}. This could take a while if the flow XML is very large.")
-            migrateFlowXmlContent(flowXmlInputStream, existingFlowPassword, newFlowPassword, existingAlgorithm, newAlgorithm)
+            logger.info("Migrating flow.json file at ${flowJsonPath}. This could take a while if the flow JSON is very large.")
+            migrateFlowJsonContent(flowJsonInputStream, existingFlowPassword, newFlowPassword, existingAlgorithm, newAlgorithm)
         } catch (Exception e) {
             logger.error("Encountered an error: ${e.getLocalizedMessage()}")
             if (e instanceof BadPaddingException) {
-                logger.error("This error is likely caused by providing the wrong existing flow password. Check that the existing flow password [-p] is the one used to encrypt the provided flow.xml.gz file")
+                logger.error("This error is likely caused by providing the wrong existing flow password. Check that the existing flow password [-p] is the one used to encrypt the provided flow.json.gz file")
             }
             if (isVerbose) {
                 logger.error("Exception: ", e)
@@ -1549,7 +1544,7 @@ class ConfigEncryptionTool {
                 // Manually update the protection scheme or it will be lost
                 rawProperties.put(ApplicationPropertiesProtector.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY), spp.getIdentifierKey())
                 if (isVerbose) {
-                    logger.info("Tool is not configured to encrypt nifi.properties, but the existing nifi.properties is encrypted and flow.xml.gz was migrated, so manually persisting the new encrypted value to nifi.properties")
+                    logger.info("Tool is not configured to encrypt nifi.properties, but the existing nifi.properties is encrypted and flow.json.gz was migrated, so manually persisting the new encrypted value to nifi.properties")
                 }
             } else {
                 rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, newFlowPassword)

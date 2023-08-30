@@ -288,7 +288,7 @@ configuration provides it with the necessary information for what flow to run.
 The flow's location must be provided either by specifying a NiFi Registry URL, Bucket ID, and Flow ID (and optional version);
 by specifying a local filename for the flow; by specifying a URL for the flow; or by including a "stringified" version of the JSON flow definition itself.
 Note that if using a local filename, the format of the file is not the same as
-the `flow.xml.gz` file that NiFi uses but rather is the `Versioned Flow Snapshot` format that is used by the NiFi Registry.
+the `flow.json.gz` file that NiFi uses but rather is the `Versioned Flow Snapshot` format that is used by the NiFi Registry.
 The easiest way to export a flow from NiFi onto local disk for use by Stateless NiFi is to right-click on a Process Group or
 the canvas in NiFi and choose `Downlaod Flow`.
 

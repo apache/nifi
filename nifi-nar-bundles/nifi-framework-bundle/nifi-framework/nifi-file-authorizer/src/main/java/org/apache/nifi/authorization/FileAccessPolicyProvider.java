@@ -25,12 +25,10 @@ import org.apache.nifi.authorization.exception.UninheritableAuthorizationsExcept
 import org.apache.nifi.authorization.file.generated.Authorizations;
 import org.apache.nifi.authorization.file.generated.Policies;
 import org.apache.nifi.authorization.file.generated.Policy;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.user.generated.Users;
 import org.apache.nifi.util.FlowInfo;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
@@ -131,7 +129,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private File restoreAuthorizationsFile;
     private String rootGroupId;
     private String initialAdminIdentity;
-    private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
     private String nodeGroupIdentifier;
     private List<PortDTO> ports = new ArrayList<>();
@@ -212,10 +209,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
             initialAdminIdentity = initialAdminIdentityProp.isSet() ? IdentityMappingUtil.mapIdentity(initialAdminIdentityProp.getValue(), identityMappings) : null;
-
-            // get the value of the legacy authorized users file
-            final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
-            legacyAuthorizedUsersFile = legacyAuthorizedUsersProp.isSet() ? legacyAuthorizedUsersProp.getValue() : null;
 
             // extract any node identities
             nodeIdentities = new HashSet<>();
@@ -594,20 +587,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations);
         final boolean emptyAuthorizations = authorizationsHolder.getAllPolicies().isEmpty();
         final boolean hasInitialAdminIdentity = (initialAdminIdentity != null && !StringUtils.isBlank(initialAdminIdentity));
-        final boolean hasLegacyAuthorizedUsers = (legacyAuthorizedUsersFile != null && !StringUtils.isBlank(legacyAuthorizedUsersFile));
 
         // if we are starting fresh then we might need to populate an initial admin or convert legacy users
         if (emptyAuthorizations) {
             parseFlow();
 
-            if (hasInitialAdminIdentity && hasLegacyAuthorizedUsers) {
-                throw new AuthorizerCreationException("Cannot provide an Initial Admin Identity and a Legacy Authorized Users File");
-            } else if (hasInitialAdminIdentity) {
+            if (hasInitialAdminIdentity) {
                 logger.info("Populating authorizations for Initial Admin: " + initialAdminIdentity);
                 populateInitialAdmin(authorizations);
-            } else if (hasLegacyAuthorizedUsers) {
-                logger.info("Converting " + legacyAuthorizedUsersFile + " to new authorizations model");
-                convertLegacyAuthorizedUsers(authorizations);
             }
 
             populateNodes(authorizations);
@@ -652,15 +639,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      */
     private void parseFlow() throws SAXException {
         final FlowParser flowParser = new FlowParser();
-
-        final File flowConfigurationFile;
-        final File jsonFile = properties.getFlowConfigurationJsonFile();
-        if (jsonFile.exists()) {
-            flowConfigurationFile = jsonFile;
-        } else {
-            flowConfigurationFile = properties.getFlowConfigurationFile();
-        }
-
+        final File flowConfigurationFile = properties.getFlowConfigurationFile();
         final FlowInfo flowInfo = flowParser.parse(flowConfigurationFile);
 
         if (flowInfo != null) {
@@ -739,151 +718,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, nodeGroupIdentifier, WRITE_CODE);
             }
         }
-    }
-
-    /**
-     * Unmarshalls an existing authorized-users.xml and converts the object model to the new model.
-     *
-     * @param authorizations the current Authorizations instance that policies will be added to
-     * @throws AuthorizerCreationException if the legacy authorized users file that was provided does not exist
-     * @throws JAXBException if the legacy authorized users file that was provided could not be unmarshalled
-     */
-    private void convertLegacyAuthorizedUsers(final Authorizations authorizations) throws AuthorizerCreationException, JAXBException {
-        final File authorizedUsersFile = new File(legacyAuthorizedUsersFile);
-        if (!authorizedUsersFile.exists()) {
-            throw new AuthorizerCreationException("Legacy Authorized Users File '" + legacyAuthorizedUsersFile + "' does not exists");
-        }
-
-        final Unmarshaller unmarshaller = JAXB_USERS_CONTEXT.createUnmarshaller();
-        unmarshaller.setSchema(usersSchema);
-
-        final XMLStreamReader xsr;
-        try {
-            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-            xsr = provider.getStreamReader(new StreamSource(authorizedUsersFile));
-        } catch (final ProcessingException e) {
-            logger.error("Encountered an error reading authorized users file: ", e);
-            throw new JAXBException("Error reading authorized users file", e);
-        }
-        final JAXBElement<Users> element = unmarshaller.unmarshal(
-                xsr, org.apache.nifi.user.generated.Users.class);
-
-        final org.apache.nifi.user.generated.Users users = element.getValue();
-        if (users.getUser().isEmpty()) {
-            logger.info("Legacy Authorized Users File contained no users, nothing to convert");
-            return;
-        }
-
-        // get all the user DNs into a list
-        List<String> userIdentities = new ArrayList<>();
-        for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
-            userIdentities.add(IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings));
-        }
-
-        // sort the list and pull out the first identity
-        Collections.sort(userIdentities);
-        final String seedIdentity = userIdentities.get(0);
-
-        // create mapping from Role to access policies
-        final Map<Role,Set<RoleAccessPolicy>> roleAccessPolicies = RoleAccessPolicy.getMappings(rootGroupId);
-
-        final List<Policy> allPolicies = new ArrayList<>();
-
-        for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
-            // create the identifier of the new user based on the DN
-            final String legacyUserDn = IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings);
-            final User user = userGroupProvider.getUserByIdentity(legacyUserDn);
-            if (user == null) {
-                throw new AuthorizerCreationException("Unable to locate legacy user " + legacyUserDn + " to seed policies.");
-            }
-
-            // create policies based on the given role
-            for (org.apache.nifi.user.generated.Role jaxbRole : legacyUser.getRole()) {
-                Role role = Role.valueOf(jaxbRole.getName());
-                Set<RoleAccessPolicy> policies = roleAccessPolicies.get(role);
-
-                for (RoleAccessPolicy roleAccessPolicy : policies) {
-
-                    // get the matching policy, or create a new one
-                    Policy policy = getOrCreatePolicy(
-                            allPolicies,
-                            seedIdentity,
-                            roleAccessPolicy.getResource(),
-                            roleAccessPolicy.getAction());
-
-                    // add the user to the policy if it doesn't exist
-                    addUserToPolicy(user.getIdentifier(), policy);
-                }
-            }
-
-        }
-
-        // convert any access controls on ports to the appropriate policies
-        for (PortDTO portDTO : ports) {
-            final Resource resource;
-            if (portDTO.getType() != null && portDTO.getType().equals("inputPort")) {
-                resource = ResourceFactory.getDataTransferResource(ResourceFactory.getComponentResource(ResourceType.InputPort, portDTO.getId(), portDTO.getName()));
-            } else {
-                resource = ResourceFactory.getDataTransferResource(ResourceFactory.getComponentResource(ResourceType.OutputPort, portDTO.getId(), portDTO.getName()));
-            }
-
-            if (portDTO.getUserAccessControl() != null) {
-                for (String userAccessControl : portDTO.getUserAccessControl()) {
-                    // need to perform the identity mapping on the access control so it matches the identities in the User objects
-                    final String mappedUserAccessControl = IdentityMappingUtil.mapIdentity(userAccessControl, identityMappings);
-                    final User foundUser = userGroupProvider.getUserByIdentity(mappedUserAccessControl);
-
-                    // couldn't find the user matching the access control so log a warning and skip
-                    if (foundUser == null) {
-                        logger.warn("Found port with user access control for {} but no user exists with this identity, skipping...",
-                                new Object[] {mappedUserAccessControl});
-                        continue;
-                    }
-
-                    // we found the user so create the appropriate policy and add the user to it
-                    Policy policy = getOrCreatePolicy(
-                            allPolicies,
-                            seedIdentity,
-                            resource.getIdentifier(),
-                            WRITE_CODE);
-
-                    addUserToPolicy(foundUser.getIdentifier(), policy);
-                }
-            }
-
-            if (portDTO.getGroupAccessControl() != null) {
-                for (String groupAccessControl : portDTO.getGroupAccessControl()) {
-                    final String legacyGroupName = IdentityMappingUtil.mapIdentity(groupAccessControl, groupMappings);
-
-                    // find a group where the name is the groupAccessControl
-                    Group foundGroup = null;
-                    for (Group group : userGroupProvider.getGroups()) {
-                        if (group.getName().equals(legacyGroupName)) {
-                            foundGroup = group;
-                            break;
-                        }
-                    }
-
-                    // couldn't find the group matching the access control so log a warning and skip
-                    if (foundGroup == null) {
-                        logger.warn("Found port with group access control for {} but no group exists with this name, skipping...",
-                                new Object[] {legacyGroupName});
-                        continue;
-                    }
-
-                    // we found the group so create the appropriate policy and add all the users to it
-                    Policy policy = getOrCreatePolicy(
-                            allPolicies,
-                            seedIdentity,
-                            resource.getIdentifier(),
-                            WRITE_CODE);
-
-                    addGroupToPolicy(IdentifierUtil.getIdentifier(legacyGroupName), policy);
-                }
-            }
-        }
-
-        authorizations.getPolicies().getPolicy().addAll(allPolicies);
     }
 
     /**

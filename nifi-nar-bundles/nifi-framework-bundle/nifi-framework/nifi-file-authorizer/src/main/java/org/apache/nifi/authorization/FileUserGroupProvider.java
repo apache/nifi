@@ -116,7 +116,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private NiFiProperties properties;
     private File tenantsFile;
     private File restoreTenantsFile;
-    private String legacyAuthorizedUsersFile;
     private Set<String> initialUserIdentities;
     private List<IdentityMapping> identityMappings;
     private List<IdentityMapping> groupMappings;
@@ -177,10 +176,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             // extract the identity and group mappings from nifi.properties if any are provided
             identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
             groupMappings = Collections.unmodifiableList(IdentityMappingUtil.getGroupMappings(properties));
-
-            // get the value of the legacy authorized users file
-            final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
-            legacyAuthorizedUsersFile = legacyAuthorizedUsersProp.isSet() ? legacyAuthorizedUsersProp.getValue() : null;
 
             // extract any node identities
             initialUserIdentities = new HashSet<>();
@@ -692,14 +687,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         final UserGroupHolder userGroupHolder = new UserGroupHolder(tenants);
         final boolean emptyTenants = userGroupHolder.getAllUsers().isEmpty() && userGroupHolder.getAllGroups().isEmpty();
-        final boolean hasLegacyAuthorizedUsers = (legacyAuthorizedUsersFile != null && !StringUtils.isBlank(legacyAuthorizedUsersFile));
 
         if (emptyTenants) {
-            if (hasLegacyAuthorizedUsers) {
-                logger.info("Loading users from legacy model " + legacyAuthorizedUsersFile + " into new users file.");
-                convertLegacyAuthorizedUsers(tenants);
-            }
-
             populateInitialUsers(tenants);
 
             // save any changes that were made and repopulate the holder
@@ -737,55 +726,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private void populateInitialUsers(final Tenants tenants) {
         for (String initialUserIdentity : initialUserIdentities) {
             getOrCreateUser(tenants, initialUserIdentity);
-        }
-    }
-
-    /**
-     * Unmarshalls an existing authorized-users.xml and converts the object model to the new model.
-     *
-     * @param tenants the current Tenants instance users and groups will be added to
-     * @throws AuthorizerCreationException if the legacy authorized users file that was provided does not exist
-     * @throws JAXBException if the legacy authorized users file that was provided could not be unmarshalled
-     */
-    private void convertLegacyAuthorizedUsers(final Tenants tenants) throws AuthorizerCreationException, JAXBException {
-        final File authorizedUsersFile = new File(legacyAuthorizedUsersFile);
-        if (!authorizedUsersFile.exists()) {
-            throw new AuthorizerCreationException("Legacy Authorized Users File '" + legacyAuthorizedUsersFile + "' does not exists");
-        }
-
-        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-        final XMLStreamReader xsr;
-        try {
-            xsr = provider.getStreamReader(new StreamSource(authorizedUsersFile));
-        } catch (final ProcessingException e) {
-            throw new AuthorizerCreationException("Error converting the legacy authorizers file", e);
-        }
-
-        final Unmarshaller unmarshaller = JAXB_USERS_CONTEXT.createUnmarshaller();
-        unmarshaller.setSchema(usersSchema);
-
-        final JAXBElement<org.apache.nifi.user.generated.Users> element = unmarshaller.unmarshal(
-                xsr, org.apache.nifi.user.generated.Users.class);
-
-        final org.apache.nifi.user.generated.Users users = element.getValue();
-        if (users.getUser().isEmpty()) {
-            logger.info("Legacy Authorized Users File contained no users, nothing to convert");
-            return;
-        }
-
-        for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
-            // create the identifier of the new user based on the DN
-            final String legacyUserDn = IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings);
-            org.apache.nifi.authorization.file.tenants.generated.User user = getOrCreateUser(tenants, legacyUserDn);
-
-            // if there was a group name find or create the group and add the user to it
-            if (StringUtils.isNotBlank(legacyUser.getGroup())) {
-                final String legacyGroupName = IdentityMappingUtil.mapIdentity(legacyUser.getGroup(), groupMappings);
-                org.apache.nifi.authorization.file.tenants.generated.Group group = getOrCreateGroup(tenants, legacyGroupName);
-                org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
-                groupUser.setIdentifier(user.getIdentifier());
-                group.getUser().add(groupUser);
-            }
         }
     }
 

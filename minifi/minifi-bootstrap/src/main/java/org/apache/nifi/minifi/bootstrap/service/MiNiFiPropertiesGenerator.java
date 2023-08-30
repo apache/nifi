@@ -137,11 +137,11 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_URL, EMPTY, EMPTY),
         Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_CERTIFICATE, EMPTY, EMPTY),
         Triple.of(NiFiProperties.CLUSTER_IS_NODE, "false", EMPTY),
-        Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.xml.gz", EMPTY)
+        Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.json.gz", EMPTY)
     );
 
     static final Map<String, String> MINIFI_TO_NIFI_PROPERTY_MAPPING = Map.of(
-        MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_JSON_FILE,
+        MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_FILE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(), NiFiProperties.SECURITY_KEYSTORE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(), NiFiProperties.SECURITY_KEYSTORE_TYPE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_KEYSTORE_PASSWD,

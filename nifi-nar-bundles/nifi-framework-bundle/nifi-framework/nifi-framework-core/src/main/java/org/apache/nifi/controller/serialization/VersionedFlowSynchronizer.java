@@ -66,6 +66,7 @@ import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
 import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
+import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.EncryptionException;
@@ -163,56 +164,78 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         logger.info("Synchronizing FlowController with proposed flow: Controller Already Synchronized = {}", flowAlreadySynchronized);
 
+        final DataFlow existingDataFlow = getExistingDataFlow(controller);
+        boolean existingFlowEmpty = isFlowEmpty(existingDataFlow);
+
         // If bundle update strategy is configured to allow for compatible bundles, update any components to use compatible bundles if
         // the exact bundle does not exist.
-        if (bundleUpdateStrategy == BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST) {
+        if (!existingFlowEmpty && bundleUpdateStrategy == BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST) {
             mapCompatibleBundles(proposedFlow, controller.getExtensionManager());
         }
 
         // serialize controller state to bytes
-        final DataFlow existingDataFlow = getExistingDataFlow(controller);
         checkFlowInheritability(existingDataFlow, proposedFlow, controller, bundleUpdateStrategy);
 
-        final FlowComparison flowComparison = compareFlows(existingDataFlow, proposedFlow, controller.getEncryptor());
-        final Set<FlowDifference> flowDifferences = flowComparison.getDifferences();
-        if (flowDifferences.isEmpty()) {
-            logger.debug("No differences between current flow and proposed flow. Will not create backup of existing flow.");
-        } else if (isExistingFlowEmpty(controller)) {
-            logger.debug("Currently loaded dataflow is empty. Will not create backup of existing flow.");
-        } else {
-            backupExistingFlow();
+        logger.debug("Checking missing component inheritability");
+        final FlowInheritabilityCheck missingComponentsCheck = new MissingComponentsCheck();
+        final FlowInheritability componentInheritability = missingComponentsCheck.checkInheritability(existingDataFlow, proposedFlow, controller);
+        if (!componentInheritability.isInheritable()) {
+            throw new UninheritableFlowException("Proposed Flow is not inheritable by the flow controller because of differences in missing components: " + componentInheritability.getExplanation());
         }
 
-        final AffectedComponentSet affectedComponents = determineAffectedComponents(flowComparison, controller);
-        final AffectedComponentSet activeSet = affectedComponents.toActiveSet();
+        FlowComparison flowComparison = null;
+        AffectedComponentSet affectedComponents = null;
+        AffectedComponentSet activeSet = null;
 
-        // Stop the active components, and then wait for all components to be stopped.
-        logger.info("In order to inherit proposed dataflow, will stop any components that will be affected by the update");
-        if (logger.isDebugEnabled()) {
-            logger.debug("Will stop the following components:");
-            logger.debug(activeSet.toString());
-            final String differencesToString = flowDifferences.stream()
-                .map(FlowDifference::toString)
-                .collect(Collectors.joining("\n"));
-            logger.debug("This Active Set was determined from the following Flow Differences:\n{}", differencesToString);
+        if (!existingFlowEmpty) {
+            flowComparison = compareFlows(existingDataFlow, proposedFlow, controller.getEncryptor());
+            final Set<FlowDifference> flowDifferences = flowComparison.getDifferences();
+
+            if (flowDifferences.isEmpty()) {
+                logger.debug("No differences between current flow and proposed flow. Will not create backup of existing flow.");
+            } else if (isExistingFlowEmpty(controller)) {
+                logger.debug("Currently loaded dataflow is empty. Will not create backup of existing flow.");
+            } else {
+                backupExistingFlow();
+            }
+
+            affectedComponents = determineAffectedComponents(flowComparison, controller);
+            activeSet = affectedComponents.toActiveSet();
+
+            // Stop the active components, and then wait for all components to be stopped.
+            logger.info("In order to inherit proposed dataflow, will stop any components that will be affected by the update");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Will stop the following components:");
+                logger.debug(activeSet.toString());
+                final String differencesToString = flowDifferences.stream()
+                        .map(FlowDifference::toString)
+                        .collect(Collectors.joining("\n"));
+                logger.debug("This Active Set was determined from the following Flow Differences:\n{}",
+                        differencesToString);
+            }
+
+            activeSet.stop();
         }
-
-        activeSet.stop();
 
         try {
             // Ensure that the proposed flow doesn't remove any Connections for which there is currently data queued
-            verifyNoConnectionsWithDataRemoved(existingDataFlow, proposedFlow, controller, flowComparison);
+            if (!existingFlowEmpty) {
+                verifyNoConnectionsWithDataRemoved(existingDataFlow, proposedFlow, controller, flowComparison);
+            }
 
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
         } finally {
             // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
             // so attempting to start them will fail.
-            final AffectedComponentSet startable = activeSet.toExistingSet().toStartableSet();
 
-            final ComponentSetFilter runningComponentFilter = new RunningComponentSetFilter(proposedFlow.getVersionedDataflow());
-            final ComponentSetFilter stoppedComponentFilter = runningComponentFilter.reverse();
-            startable.removeComponents(stoppedComponentFilter);
-            startable.start();
+            if (!existingFlowEmpty) {
+                final AffectedComponentSet startable = activeSet.toExistingSet().toStartableSet();
+
+                final ComponentSetFilter runningComponentFilter = new RunningComponentSetFilter(proposedFlow.getVersionedDataflow());
+                final ComponentSetFilter stoppedComponentFilter = runningComponentFilter.reverse();
+                startable.removeComponents(stoppedComponentFilter);
+                startable.start();
+            }
         }
 
         final long millis = System.currentTimeMillis() - start;
@@ -661,6 +684,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final VersionedDataflow dataflow,
         final AffectedComponentSet affectedComponentSet
     ) throws FlowAnalysisRuleInstantiationException {
+        // Guard state in order to be able to read flow.json from before adding the flow analysis rules
+        if (dataflow.getFlowAnalysisRules() == null) {
+            return;
+        }
+
         for (final VersionedFlowAnalysisRule versionedFlowAnalysisRule : dataflow.getFlowAnalysisRules()) {
             final FlowAnalysisRuleNode existing = controller.getFlowAnalysisRuleNode(versionedFlowAnalysisRule.getInstanceIdentifier());
             if (existing == null) {
@@ -1201,13 +1229,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
     private DataFlow getExistingDataFlow(final FlowController controller) {
         final FlowManager flowManager = controller.getFlowManager();
+        final ProcessGroup root = flowManager.getRootGroup();
 
         // Determine missing components
         final Set<String> missingComponents = new HashSet<>();
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         flowManager.getAllParameterProviders().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
-        flowManager.findAllProcessors(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
+        flowManager.getAllFlowRegistryClients().stream().filter(ComponentNode::isExtensionMissing).forEach(c -> missingComponents.add(c.getIdentifier()));
+        root.findAllProcessors().stream().filter(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
 
         logger.trace("Exporting snippets from controller");
         final byte[] existingSnippets = controller.getSnippetManager().export();

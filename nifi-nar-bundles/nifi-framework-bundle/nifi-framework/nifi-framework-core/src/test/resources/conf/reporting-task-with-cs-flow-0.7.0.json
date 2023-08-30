@@ -1,0 +1,142 @@
+{
+    "encodingVersion": {
+        "majorVersion": 2,
+        "minorVersion": 0
+    },
+    "maxTimerDrivenThreadCount": 10,
+    "maxEventDrivenThreadCount": 5,
+    "registries": [],
+    "parameterContexts": [],
+    "parameterProviders": [],
+    "controllerServices": [
+        {
+            "identifier": "8209b929-e3f1-3a0c-b6e4-7b42a99160c9",
+            "instanceIdentifier": "32ea3f7c-c258-31c3-b720-b3e657d4945d",
+            "name": "ControllerService",
+            "comments": "",
+            "type": "org.apache.nifi.controller.service.mock.ServiceD",
+            "bundle": {
+                "group": "default",
+                "artifact": "system",
+                "version": "unversioned"
+            },
+            "properties": {
+                "Foo1": "Bar1"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE"
+        }
+    ],
+    "reportingTasks": [
+        {
+            "identifier": "fb9b40ce-608f-4a2f-9822-3899f695f699",
+            "instanceIdentifier": "fb9b40ce-608f-4a2f-9822-3899f695f699",
+            "name": "ReportingTask",
+            "comments": "",
+            "type": "org.apache.nifi.controller.service.mock.DummyReportingTask",
+            "bundle": {
+                "group": "default",
+                "artifact": "system",
+                "version": "unversioned"
+            },
+            "properties": {
+                "Controller Service": "32ea3f7c-c258-31c3-b720-b3e657d4945d"
+            },
+            "propertyDescriptors": {},
+            "scheduledState": "ENABLED",
+            "schedulingPeriod": "5 mins",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "componentType": "REPORTING_TASK"
+        }
+    ],
+    "templates": [],
+    "rootGroup": {
+        "identifier": "3ddb274d-5d53-3a68-8db3-1e95b702852d",
+        "instanceIdentifier": "778f676e-6542-4c18-9d06-24b6fd3a1b29",
+        "name": "NiFi Flow",
+        "comments": "",
+        "position": {
+            "x": 0,
+            "y": 0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [
+            {
+                "identifier": "131d4261-d2ca-31fd-9104-7330706c83a8",
+                "instanceIdentifier": "809cca74-cd11-4ffa-9831-39d446a8ed54",
+                "name": "DummyProcessor",
+                "comments": "",
+                "position": {
+                    "x": 1005,
+                    "y": 314.90000000000003
+                },
+                "type": "org.apache.nifi.controller.service.mock.DummyProcessor",
+                "bundle": {
+                    "group": "default",
+                    "artifact": "system",
+                    "version": "unversioned"
+                },
+                "properties": {
+                    "Controller Service": "edf22ee5-376a-46dc-a38a-919351124456"
+                },
+                "propertyDescriptors": {},
+                "style": {},
+                "schedulingPeriod": "0 sec",
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "executionNode": "ALL",
+                "penaltyDuration": "30 sec",
+                "yieldDuration": "1 sec",
+                "bulletinLevel": "WARN",
+                "runDurationMillis": 0,
+                "concurrentlySchedulableTaskCount": 1,
+                "autoTerminatedRelationships": [],
+                "scheduledState": "ENABLED",
+                "retryCount": 10,
+                "retriedRelationships": [],
+                "backoffMechanism": "PENALIZE_FLOWFILE",
+                "maxBackoffPeriod": "10 mins",
+                "componentType": "PROCESSOR",
+                "groupIdentifier": "3ddb274d-5d53-3a68-8db3-1e95b702852d"
+            }
+        ],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [
+            {
+                "identifier": "32ea3f7c-c258-31c3-b720-b3e657d4945d",
+                "instanceIdentifier": "edf22ee5-376a-46dc-a38a-919351124456",
+                "name": "ControllerService",
+                "comments": "",
+                "type": "org.apache.nifi.controller.service.mock.ServiceD",
+                "bundle": {
+                    "group": "default",
+                    "artifact": "system",
+                    "version": "unversioned"
+                },
+                "properties": {
+                    "Foo1": "Bar1"
+                },
+                "propertyDescriptors": {},
+                "controllerServiceApis": [],
+                "scheduledState": "DISABLED",
+                "bulletinLevel": "WARN",
+                "componentType": "CONTROLLER_SERVICE",
+                "groupIdentifier": "3ddb274d-5d53-3a68-8db3-1e95b702852d"
+            }
+        ],
+        "variables": {},
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "componentType": "PROCESS_GROUP",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+    }
+}

@@ -25,7 +25,7 @@ import java.util.Objects;
 public class InstanceConfiguration {
     private final File bootstrapConfigFile;
     private final File instanceDirectory;
-    private final File flowXmlGz;
+    private final File flowJsonGz;
     private final File stateDirectory;
     private final boolean autoStart;
     private final Map<String, String> nifiPropertiesOverrides;
@@ -34,7 +34,7 @@ public class InstanceConfiguration {
     private InstanceConfiguration(Builder builder) {
         this.bootstrapConfigFile = builder.bootstrapConfigFile;
         this.instanceDirectory = builder.instanceDirectory;
-        this.flowXmlGz = builder.flowXmlGz;
+        this.flowJsonGz = builder.flowJsonGz;
         this.stateDirectory = builder.stateDirectory;
         this.autoStart = builder.autoStart;
         this.nifiPropertiesOverrides = builder.nifiPropertiesOverrides;
@@ -49,8 +49,8 @@ public class InstanceConfiguration {
         return instanceDirectory;
     }
 
-    public File getFlowXmlGz() {
-        return flowXmlGz;
+    public File getFlowJsonGz() {
+        return flowJsonGz;
     }
 
     public File getStateDirectory() {
@@ -81,19 +81,19 @@ public class InstanceConfiguration {
 
         final InstanceConfiguration that = (InstanceConfiguration) other;
         return autoStart == that.autoStart && unpackPythonExtensions == that.unpackPythonExtensions && Objects.equals(bootstrapConfigFile, that.bootstrapConfigFile)
-            && Objects.equals(instanceDirectory, that.instanceDirectory) && Objects.equals(flowXmlGz, that.flowXmlGz)
+            && Objects.equals(instanceDirectory, that.instanceDirectory) && Objects.equals(flowJsonGz, that.flowJsonGz)
             && Objects.equals(stateDirectory, that.stateDirectory) && Objects.equals(nifiPropertiesOverrides, that.nifiPropertiesOverrides);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(bootstrapConfigFile, instanceDirectory, flowXmlGz, stateDirectory, autoStart, nifiPropertiesOverrides, unpackPythonExtensions);
+        return Objects.hash(bootstrapConfigFile, instanceDirectory, flowJsonGz, stateDirectory, autoStart, nifiPropertiesOverrides, unpackPythonExtensions);
     }
 
     public static class Builder {
         private File bootstrapConfigFile;
         private File instanceDirectory;
-        private File flowXmlGz;
+        private File flowJsonGz;
         private File stateDirectory;
         private boolean autoStart = true;
         private boolean unpackPythonExtensions = false;
@@ -130,13 +130,13 @@ public class InstanceConfiguration {
             return instanceDirectory(new File(instanceDirName));
         }
 
-        public Builder flowXml(final File flowXml) {
-            this.flowXmlGz = flowXml;
+        public Builder flowJson(final File flowJsonGz) {
+            this.flowJsonGz = flowJsonGz;
             return this;
         }
 
-        public Builder flowXml(final String flowXmlFilename) {
-            return flowXml(new File(flowXmlFilename));
+        public Builder flowJson(final String flowJsonFilename) {
+            return flowJson(new File(flowJsonFilename));
         }
 
         public Builder stateDirectory(final File stateDirectory) {

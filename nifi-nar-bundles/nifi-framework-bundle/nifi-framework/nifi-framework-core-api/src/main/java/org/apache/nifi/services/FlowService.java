@@ -86,7 +86,7 @@ public interface FlowService extends LifeCycle {
     void copyCurrentFlow(OutputStream os) throws IOException;
 
     /**
-     * Copies the contents of the current flow.xml.gz to the given file, overwriting the file if it exists
+     * Copies the contents of the current flow.json.gz to the given file, overwriting the file if it exists
      * @param file the file to write the current flow to
      * @throws IOException if unable to read the current flow or unable to write to the given file
      */

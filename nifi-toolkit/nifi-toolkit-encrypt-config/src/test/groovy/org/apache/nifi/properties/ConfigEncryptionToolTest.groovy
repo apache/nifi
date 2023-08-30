@@ -88,8 +88,6 @@ class ConfigEncryptionToolTest {
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
     private final String SECRET_PROP_REGEX = "<property[^>]* name=\".* Secret\""
 
-    private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
-
     @BeforeClass
     static void setUpOnce() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
@@ -3290,7 +3288,7 @@ class ConfigEncryptionToolTest {
         // Assert
         assert !tool.handlingNiFiProperties
         assert !tool.handlingLoginIdentityProviders
-        assert tool.handlingFlowXml
+        assert tool.handlingFlowJson
     }
 
     @Test
@@ -3766,8 +3764,8 @@ class ConfigEncryptionToolTest {
     void testFindFieldsInStream() {
         def verifyTool = new ConfigEncryptionTool()
         verifyTool.isVerbose = true
-        verifyTool.flowXmlPath = new File("src/test/resources/flow.xml.gz").path
-        InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowXmlPath)
+        verifyTool.flowJsonPath = new File("src/test/resources/flow.xml.gz").path
+        InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowJsonPath)
         Set<String> fieldsFound = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
         assert(fieldsFound.size() > 0)
     }
