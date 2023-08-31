@@ -19,7 +19,6 @@ import { Component, OnInit } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { loadFlow } from '../../state/flow/flow.actions';
-import { Graph } from '../../service/manager/graph.service';
 import * as d3 from 'd3';
 import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
@@ -35,14 +34,12 @@ export class CanvasComponent implements OnInit {
 
   constructor(
     private store: Store<CanvasState>,
-    private graphService: Graph,
     private canvasView: CanvasView
   ) {}
 
   ngOnInit(): void {
     // initialize the canvas svg
     this.createSvg();
-    this.graphService.init();
     this.canvasView.init(this.svg, this.canvas);
 
     // load the flow
@@ -50,7 +47,7 @@ export class CanvasComponent implements OnInit {
   }
 
   private createSvg(): void {
-    this.svg = d3.select('div.canvas-background').append('svg')
+    this.svg = d3.select('#canvas-container').append('svg')
       .attr('class', 'canvas-svg');
 
     this.createDefs();

@@ -68,9 +68,8 @@ export class SelectableBehavior {
   public activate(components: any): void {
     const self = this;
 
-    components.on('mousedown.selection', function (event: MouseEvent) {
-      // @ts-ignore
-      self.select(event, d3.select(event.currentTarget));
+    components.on('mousedown.selection', function (this: any, event: MouseEvent) {
+      self.select(event, d3.select(this));
 
       // update URL deep linking params
       // nfCanvasUtils.setURLParameters();

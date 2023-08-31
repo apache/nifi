@@ -47,8 +47,16 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.loadFlowSuccess),
             switchMap(() => {
-                // flow loading is complete, reset the transition flag
-                return of(FlowActions.setTransition({transition: false}));
+                return of(FlowActions.loadFlowComplete());
+            })
+        )
+    );
+
+    loadFlowComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadFlowComplete),
+            switchMap(() => {
+                return of(FlowActions.setRenderRequired({renderRequired: false}));
             })
         )
     );
@@ -73,13 +81,13 @@ export class FlowEffects {
     );
 
     updatePositionsSuccess$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(FlowActions.updatePositionSuccess),
-                switchMap((positionUpdates) => {
-                    // TODO - refresh connections
-                    return of(positionUpdates);
-                })
-            ),
+        this.actions$.pipe(
+            ofType(FlowActions.updatePositionSuccess),
+            switchMap((positionUpdates) => {
+                // TODO - refresh connections
+                return of(positionUpdates);
+            })
+        ),
         {dispatch: false}
     );
 }

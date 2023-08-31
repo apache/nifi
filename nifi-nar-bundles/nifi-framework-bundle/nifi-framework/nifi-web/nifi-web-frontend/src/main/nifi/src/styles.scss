@@ -20,8 +20,80 @@
 @use '@angular/material' as mat;
 
 // Plus imports for other components in your app.
-@import "../node_modules/roboto-fontface/css/roboto/roboto-fontface.css";
+@import "~roboto-fontface/css/roboto/roboto-fontface.css";
 @import "assets/font/flowfont/flowfont.css";
+@import "~font-awesome/css/font-awesome.min.css";
+
+$fontPrimary: "Roboto", sans-serif;
+$fontSecondary: "Robot Slab", sans-serif;
+$fontMedium: "Roboto Medium", sans-serif;
+$fontLight: "Roboto Light", sans-serif;
+
+$appFontPath: "~roboto-fontface/fonts";
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 300;
+  src: local("Roboto Light"), local("Roboto-Light"),
+  url("#{$appFontPath}/roboto/Roboto-Light.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: 300;
+  src: local("Roboto LightItalic"), local("Roboto-LightItalic"),
+  url("#{$appFontPath}/roboto/Roboto-LightItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: normal;
+  src: local("Roboto Regular"), local("Roboto-Regular"),
+  url("#{$appFontPath}/roboto/Roboto-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Roboto Medium"), local("Roboto-Medium"),
+  url("#{$appFontPath}/roboto/Roboto-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: bold;
+  src: local("Roboto Bold"), local("Roboto-Bold"),
+  url("#{$appFontPath}/roboto/Roboto-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: normal;
+  src: local("Roboto Italic"), local("Roboto-Italic"),
+  url("#{$appFontPath}/roboto/Roboto-RegularItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto Slab";
+  font-style: normal;
+  font-weight: normal;
+  src: local("RobotoSlab Regular"), local("RobotoSlab-Regular"),
+  url("#{$appFontPath}/roboto-slab/Roboto-Slab-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto Slab";
+  font-style: normal;
+  font-weight: bold;
+  src: local("RobotoSlab Bold"), local("RobotoSlab-Bold"),
+  url("#{$appFontPath}/roboto-slab/Roboto-Slab-Bold.woff2") format("woff2");
+}
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
@@ -44,11 +116,11 @@ $nifi-warn: mat.define-palette(mat.$red-palette);
 // Create the theme object. A theme consists of configurations for individual
 // theming systems such as "color" or "typography".
 $nifi-theme: mat.define-light-theme((
-  color: (
-    primary: $nifi-primary,
-    accent: $nifi-accent,
-    warn: $nifi-warn,
-  )
+        color: (
+                primary: $nifi-primary,
+                accent: $nifi-accent,
+                warn: $nifi-warn,
+        )
 ));
 
 // Include theme styles for core and each component used in your app.
@@ -56,24 +128,13 @@ $nifi-theme: mat.define-light-theme((
 // that you are using.
 @include mat.all-component-themes($nifi-theme);
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 /* You can add global styles to this file, and also import other style files */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}

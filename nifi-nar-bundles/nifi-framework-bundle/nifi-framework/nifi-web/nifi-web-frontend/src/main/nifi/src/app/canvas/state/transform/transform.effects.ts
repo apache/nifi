@@ -23,18 +23,19 @@ import { of, switchMap } from 'rxjs';
 @Injectable()
 export class TransformEffects {
 
-  constructor(
-    private actions$: Actions
-  ) {}
+    constructor(
+        private actions$: Actions
+    ) {
+    }
 
-  loadFlow$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(TransformActions.setTransform),
-      switchMap(transform=> {
-        // TODO - persist user viewport
-        return of(transform);
-      })
-    ),
-    { dispatch: false }
-  );
+    loadFlow$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(TransformActions.setTransform),
+            switchMap((transform) => {
+                // TODO - persist user viewport
+                return of(transform);
+            })
+        ),
+        {dispatch: false}
+    );
 }

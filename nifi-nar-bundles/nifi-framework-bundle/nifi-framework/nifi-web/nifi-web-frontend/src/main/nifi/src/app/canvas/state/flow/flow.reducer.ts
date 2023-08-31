@@ -21,8 +21,8 @@ import {
     loadFlow,
     flowApiError,
     loadFlowSuccess, removeSelectedComponents,
-    setSelectedComponents, setTransition,
-    updatePositionSuccess
+    setSelectedComponents, setTransitionRequired,
+    updatePositionSuccess, setRenderRequired, loadFlowComplete
 } from './flow.actions';
 import { ComponentType, FlowState } from '../index';
 import { produce } from 'immer';
@@ -52,7 +52,8 @@ export const initialState: FlowState = {
         }
     },
     selection: [],
-    transition: false,
+    renderRequired: false,
+    transitionRequired: false,
     error: null,
     status: 'pending'
 }
@@ -61,7 +62,7 @@ export const flowReducer = createReducer(
     initialState,
     on(loadFlow, (state) => ({
         ...state,
-        transition: true,
+        transitionRequired: true,
         status: 'loading' as const
     })),
     on(loadFlowSuccess, (state, {flow}) => ({
@@ -69,6 +70,11 @@ export const flowReducer = createReducer(
         flow: flow,
         error: null,
         status: 'success' as const
+    })),
+    on(loadFlowComplete, (state) => ({
+        ...state,
+        transitionRequired: false,
+        renderRequired: true,
     })),
     on(flowApiError, (state, {error}) => ({
         ...state,
@@ -103,8 +109,12 @@ export const flowReducer = createReducer(
             }
         });
     }),
-    on(setTransition, (state, {transition}) => ({
+    on(setTransitionRequired, (state, {transitionRequired}) => ({
         ...state,
-        transition: transition,
+        transitionRequired: transitionRequired,
+    })),
+    on(setRenderRequired, (state, {renderRequired}) => ({
+        ...state,
+        renderRequired: renderRequired,
     }))
 );

@@ -6,7 +6,8 @@
     "start": "ng serve --proxy-config proxy.config.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write"
   },
   "private": true,
   "dependencies": {
@@ -24,10 +25,12 @@
     "@ngrx/store": "^16.2.0",
     "@ngrx/store-devtools": "^16.2.0",
     "d3": "^7.8.5",
+    "font-awesome": "4.7.0",
     "ngrx-immer": "^2.1.1",
     "roboto-fontface": "0.10.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "webfontloader": "^1.6.28",
     "zone.js": "~0.13.0"
   },
   "devDependencies": {
@@ -36,7 +39,10 @@
     "@angular/compiler-cli": "^16.2.0",
     "@types/d3": "^7.4.0",
     "@types/jasmine": "~4.3.0",
+    "@types/webfontloader": "^1.6.35",
     "autoprefixer": "^10.4.15",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
     "jasmine-core": "~4.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
@@ -44,6 +50,7 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "postcss": "^8.4.28",
+    "prettier": "3.0.3",
     "tailwindcss": "^3.3.3",
     "typescript": "~5.1.3"
   }

@@ -29,6 +29,8 @@ export const loadFlowSuccess = createAction(
   props<{ flow: any }>()
 );
 
+export const loadFlowComplete = createAction('[Canvas] Flow Load Complete')
+
 export const flowApiError = createAction(
   '[Canvas] Flow Api Error',
   props<{ error: string }>()
@@ -71,7 +73,12 @@ export const updatePositionSuccess = createAction(
     Transition
  */
 
-export const setTransition = createAction(
-    '[Canvas] Set Transition',
-    props<{ transition: boolean }>()
+export const setTransitionRequired = createAction(
+    '[Canvas] Set Transition Required',
+    props<{ transitionRequired: boolean }>()
+)
+
+export const setRenderRequired = createAction(
+    '[Canvas] Set Render Required',
+    props<{ renderRequired: boolean }>()
 )

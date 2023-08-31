@@ -19,6 +19,7 @@ import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { UpdateComponentPosition } from '../state';
 import { HttpClient } from '@angular/common/http';
+import { CanvasUtils } from './canvas-utils.service';
 
 @Injectable({providedIn: 'root'})
 export class FlowService {
@@ -26,7 +27,8 @@ export class FlowService {
     private static readonly API: string = '../nifi-api'
 
     constructor(
-        private httpClient: HttpClient
+        private httpClient: HttpClient,
+        private canvasUtils: CanvasUtils
     ) {
     }
 
@@ -40,15 +42,7 @@ export class FlowService {
      * @private
      */
     private stripProtocol(url: string): string {
-        let result = '';
-        var indexOfColon = url.indexOf(':');
-        if (indexOfColon >= 0) {
-            var indexAfterColon = indexOfColon + 1;
-            if (indexAfterColon < url.length) {
-                result = url.substring(indexAfterColon);
-            }
-        }
-        return result;
+        return this.canvasUtils.substringAfterFirst(url, ':');
     }
 
     getFlow(processGroupId: string = 'root'): Observable<any> {

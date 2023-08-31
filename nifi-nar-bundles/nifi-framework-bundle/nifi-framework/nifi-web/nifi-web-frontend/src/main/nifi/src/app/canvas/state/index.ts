@@ -21,6 +21,7 @@
 
 export enum ComponentType {
   Processor = 'Processor',
+  ProcessGrouop = 'ProcessGroup',
   Funnel = 'Funnel'
 }
 
@@ -104,7 +105,8 @@ export interface ProcessGroupFlowEntity {
 export interface FlowState {
   flow: ProcessGroupFlowEntity;
   selection: string[];
-  transition: boolean;
+  transitionRequired: boolean;
+  renderRequired: boolean;
   error: string | null;
   status: 'pending' | 'loading' | 'error' | 'success';
 }
