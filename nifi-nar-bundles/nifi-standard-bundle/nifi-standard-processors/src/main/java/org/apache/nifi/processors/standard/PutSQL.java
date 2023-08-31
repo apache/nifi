@@ -59,6 +59,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -290,7 +291,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             fc.originalAutoCommit = connection.getAutoCommit();
             final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
             if(fc.originalAutoCommit != autocommit) {
-                connection.setAutoCommit(autocommit);
+                try {
+                    connection.setAutoCommit(autocommit);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    getLogger().debug("setAutoCommit({}) not supported by this driver", autocommit);
+                }
             }
         } catch (SQLException e) {
             throw new ProcessException("Failed to disable auto commit due to " + e, e);

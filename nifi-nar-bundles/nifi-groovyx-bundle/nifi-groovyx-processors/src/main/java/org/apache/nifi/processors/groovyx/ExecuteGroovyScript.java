@@ -56,6 +56,7 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -353,7 +354,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {
-                    sql.getConnection().setAutoCommit(false);
+                    try {
+                        sql.getConnection().setAutoCommit(false);
+                    } catch (SQLFeatureNotSupportedException sfnse) {
+                        getLogger().debug("setAutoCommit(false) not supported by this driver");
+                    }
                 }
             } catch (Throwable ei) {
                 getLogger().warn("Failed to set autocommit=false for `" + e.getKey() + "`", ei);
@@ -382,7 +387,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
-                    sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+                    try {
+                        sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+                    } catch (SQLFeatureNotSupportedException sfnse) {
+                        getLogger().debug("setAutoCommit(true) not supported by this driver");
+                    }
                 }
             } catch (Throwable ei) {
                 getLogger().warn("Failed to set autocommit=true for `" + e.getKey() + "`", ei);

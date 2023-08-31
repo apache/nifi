@@ -33,7 +33,10 @@ public class ScriptRunner {
 
     public ScriptRunner(Connection connection) throws SQLException {
         this.connection = connection;
-        this.connection.setAutoCommit(true);
+        if (!this.connection.getAutoCommit()) {
+            // May throw SQLFeatureNotSupportedException which is a subclass of SQLException
+            this.connection.setAutoCommit(true);
+        }
     }
 
     public void runScript(Reader reader) throws IOException, SQLException {
