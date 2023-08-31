@@ -398,6 +398,32 @@ public class TestPutSQL {
     }
 
     @Test
+    public void testFailInMiddleWithNumberFormatException() throws InitializationException, ProcessException {
+        final TestRunner runner = initTestRunner();
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "false");
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "hello");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_FAILURE);
+    }
+
+    @Test
     public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         testFailInMiddleWithBadParameterValue(runner);
@@ -1260,7 +1286,7 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 1);
-        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_RETRY);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_RETRY);
     }
 
     @Test
@@ -1411,7 +1437,7 @@ public class TestPutSQL {
 
         // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
-        assertNonSQLExceptionRelatedAttribute(runner);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
@@ -1744,8 +1770,8 @@ public class TestPutSQL {
         });
     }
 
-    private static void assertNonSQLExceptionRelatedAttribute(final TestRunner runner) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+    private static void assertNonSQLErrorRelatedAttributes(final TestRunner runner,  Relationship relationship) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> {
             ff.assertAttributeExists("error.message");
         });
