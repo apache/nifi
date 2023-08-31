@@ -18,6 +18,7 @@ package org.apache.nifi.admin.service.transaction.impl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import javax.sql.DataSource;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
@@ -35,7 +36,14 @@ public class StandardTransactionBuilder implements TransactionBuilder {
         try {
             // get a new connection
             Connection connection = dataSource.getConnection();
-            connection.setAutoCommit(false);
+            final boolean isAutoCommit = connection.getAutoCommit();
+            if (isAutoCommit) {
+                try {
+                    connection.setAutoCommit(false);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    throw new TransactionException("setAutoCommit(false) not supported by this driver");
+                }
+            }
 
             // create a new transaction
             return new StandardTransaction(connection);

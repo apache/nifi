@@ -27,6 +27,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
 /**
@@ -146,7 +147,14 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
             try {
                 // get a connection
                 connection = connectionPool.getConnection();
-                connection.setAutoCommit(false);
+                final boolean isAutoCommit = connection.getAutoCommit();
+                if (isAutoCommit) {
+                    try {
+                        connection.setAutoCommit(false);
+                    } catch (SQLFeatureNotSupportedException sfnse) {
+                        logger.debug("setAutoCommit(false) not supported by this driver");
+                    }
+                }
 
                 // create a statement for initializing the database
                 statement = connection.createStatement();
