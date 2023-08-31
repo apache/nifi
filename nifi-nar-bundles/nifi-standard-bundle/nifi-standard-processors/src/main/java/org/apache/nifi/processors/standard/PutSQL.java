@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.util.Optional;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -75,9 +76,9 @@ import java.util.function.BiFunction;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.processor.util.pattern.ErrorTypes.Destination.Failure;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
 
 @SupportsBatching
@@ -462,15 +463,16 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     private ExceptionHandler.OnError<FunctionContext, FlowFile> onFlowFileError(final ProcessContext context, final ProcessSession session, final RoutingResult result) {
         ExceptionHandler.OnError<FunctionContext, FlowFile> onFlowFileError = createOnError(context, session, result, REL_FAILURE, REL_RETRY);
         onFlowFileError = onFlowFileError.andThen((ctx, flowFile, errorTypesResult, exception) -> {
-            flowFile = addErrorAttributesToFlowFile(session, flowFile, exception);
 
             switch (errorTypesResult.destination()) {
                 case Failure:
                     getLogger().error("Failed to update database for {} due to {}; routing to failure", flowFile, exception, exception);
+                    addErrorAttributesToFlowFile(session, flowFile, exception);
                     break;
                 case Retry:
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                            flowFile, exception, exception);
+                    addErrorAttributesToFlowFile(session, flowFile, exception);
                     break;
                 case Self:
                     getLogger().error("Failed to update database for {} due to {};",  flowFile, exception, exception);
@@ -485,12 +487,24 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 ExceptionHandler.createOnGroupError(context, session, result, REL_FAILURE, REL_RETRY);
 
         onGroupError = onGroupError.andThen((ctx, flowFileGroup, errorTypesResult, exception) -> {
-            Relationship relationship = errorTypesResult.destination() == Failure ? REL_FAILURE : REL_RETRY;
-            List<FlowFile> flowFilesToRelationship = result.getRoutedFlowFiles().get(relationship);
-            result.getRoutedFlowFiles().put(relationship, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRelationship, flowFileGroup.getFlowFiles(), exception));
+            switch (errorTypesResult.destination()) {
+                case Failure:
+                    List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationship(result, REL_FAILURE);
+                    result.getRoutedFlowFiles().put(REL_FAILURE, addErrorAttributesToFlowFilesInGroup(session, flowFilesToFailure, flowFileGroup.getFlowFiles(), exception));
+                    break;
+                case Retry:
+                    List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationship(result, REL_RETRY);
+                    result.getRoutedFlowFiles().put(REL_RETRY, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRetry, flowFileGroup.getFlowFiles(), exception));
+                    break;
+            }
         });
 
         return onGroupError;
+    }
+
+    private List<FlowFile> getFlowFilesOnRelationship(RoutingResult result, final Relationship relationship) {
+        return Optional.ofNullable(result.getRoutedFlowFiles().get(relationship))
+                .orElse(emptyList());
     }
 
     private List<FlowFile> addErrorAttributesToFlowFilesInGroup(ProcessSession session, List<FlowFile> flowFilesOnRelationship, List<FlowFile> flowFilesInGroup, Exception exception) {
@@ -861,8 +875,16 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         attributes.put(ERROR_MESSAGE_ATTR, exception.getMessage());
 
         if (exception instanceof SQLException) {
-            attributes.put(ERROR_CODE_ATTR, valueOf(((SQLException) exception).getErrorCode()));
-            attributes.put(ERROR_SQL_STATE_ATTR, valueOf(((SQLException) exception).getSQLState()));
+            int errorCode = ((SQLException) exception).getErrorCode();
+            String sqlState = ((SQLException) exception).getSQLState();
+
+            if (errorCode > 0) {
+                attributes.put(ERROR_CODE_ATTR, valueOf(errorCode));
+            }
+
+            if (sqlState != null) {
+                attributes.put(ERROR_SQL_STATE_ATTR, sqlState);
+            }
         }
 
         return session.putAllAttributes(flowFile, attributes);
