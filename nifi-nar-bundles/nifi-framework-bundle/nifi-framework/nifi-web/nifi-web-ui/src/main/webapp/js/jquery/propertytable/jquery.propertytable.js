@@ -468,7 +468,7 @@
             var PARAMETER_REFERENCE_OPTION = {
                 text: 'Reference parameter...',
                 value: undefined,
-                optionClass: 'unset'
+                optionClass: 'combo-option-special'
             };
             var LOADING_PARAMETERS_OPTION = {
                 text: 'Loading parameters...',
@@ -479,7 +479,7 @@
             var CREATE_CONTROLLER_SERVICE_OPTION = {
                 text: 'Create new service...',
                 value: 'createControllerService',
-                optionClass: 'unset'
+                optionClass: 'combo-option-special'
             };
 
             var scope = this;
