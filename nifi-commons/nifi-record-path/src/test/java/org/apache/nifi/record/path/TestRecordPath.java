@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1866,11 +1867,11 @@ public class TestRecordPath {
 
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
-        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
+        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals(
                 "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]}",
-                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
     }
 
@@ -1911,7 +1912,7 @@ public class TestRecordPath {
                             Collections.singletonMap("address_1", "456 Anywhere Road")
                     ));
                 }},
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(mapAddressesArray).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(mapAddressesArray).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test CHOICE resulting in nested single RECORD
@@ -1927,7 +1928,7 @@ public class TestRecordPath {
                     put("nicknames", Arrays.asList("J", "Johnny"));
                     put("addresses", Collections.singletonMap("address_1", "123 Somewhere Street"));
                 }},
-                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(mapAddressesSingle).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(mapAddressesSingle).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test single Record converted from Map Object
@@ -1941,7 +1942,41 @@ public class TestRecordPath {
                     put("firstName", "John");
                     put("age", 30);
                 }}, "json_str"),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordFromMap).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+
+        // test nested Record converted from Map Object
+        final Record nestedRecordFromMap = new MapRecord(schema,
+                Collections.singletonMap(
+                        "json_str",
+                        "{\"firstName\":\"John\",\"age\":30,\"addresses\":[{\"address_1\":\"123 Fake Street\"}]}")
+        );
+        // recursively convert Maps to Records (addresses becomes and ARRAY or RECORDs)
+        assertEquals(
+                DataTypeUtils.toRecord(new LinkedHashMap<String, Object>(){{
+                    put("firstName", "John");
+                    put("age", 30);
+                    put("addresses", new Object[] {DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Fake Street"), "addresses")});
+                }}, "json_str"),
+                RecordPath.compile("unescapeJson(/json_str, 'true', 'true')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+        // convert Map to Record, without recursion (addresses becomes an ARRAY, but contents are still Maps)
+        assertEquals(
+                DataTypeUtils.toRecord(new LinkedHashMap<String, Object>(){{
+                    put("firstName", "John");
+                    put("age", 30);
+                    put("addresses", new Object[] {Collections.singletonMap("address_1", "123 Fake Street")});
+                }}, "json_str"),
+                RecordPath.compile("unescapeJson(/json_str, 'true', 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        );
+        // without Map conversion to Record (addresses remains a Collection, Maps are unchanged)
+        assertEquals(
+                new LinkedHashMap<String, Object>(){{
+                    put("firstName", "John");
+                    put("age", 30);
+                    put("addresses", Collections.singletonList(Collections.singletonMap("address_1", "123 Fake Street")));
+                }},
+                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test collection of Record converted from Map collection
@@ -1955,23 +1990,23 @@ public class TestRecordPath {
                         DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Somewhere Street"), "json_str"),
                         DataTypeUtils.toRecord(Collections.singletonMap("address_1", "456 Anywhere Road"), "json_str")
                 ),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordCollectionFromMaps).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordCollectionFromMaps).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test simple String field
         final Record recordJustName = new MapRecord(schema, Collections.singletonMap("json_str", "{\"firstName\":\"John\"}"));
         assertEquals(
                 new HashMap<String, Object>(){{put("firstName", "John");}},
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
         );
 
         // test simple String
         final Record recordJustString = new MapRecord(schema, Collections.singletonMap("json_str", "\"John\""));
-        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
 
         // test simple Int
         final Record recordJustInt = new MapRecord(schema, Collections.singletonMap("json_str", "30"));
-        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
 
         // test invalid JSON
         final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
@@ -1979,7 +2014,7 @@ public class TestRecordPath {
         RecordPathException rpe = assertThrows(RecordPathException.class,
                 () -> RecordPath.compile("unescapeJson(/json_str)")
                         .evaluate(recordInvalidJson).getSelectedFields()
-                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+                        .findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
 
         // test not String
@@ -1987,7 +2022,7 @@ public class TestRecordPath {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
                 () -> RecordPath.compile("unescapeJson(/person/age)")
                         .evaluate(recordNotString).getSelectedFields()
-                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+                        .findFirst().orElseThrow(AssertionError::new).getValue());
         assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
     }
 

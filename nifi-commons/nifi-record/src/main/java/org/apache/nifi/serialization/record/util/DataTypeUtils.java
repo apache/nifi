@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -463,7 +464,11 @@ public class DataTypeUtils {
     }
 
     public static Record toRecord(final Object value, final String fieldName) {
-        return toRecord(value, fieldName, StandardCharsets.UTF_8);
+        return toRecord(value, fieldName, false);
+    }
+
+    public static Record toRecord(final Object value, final String fieldName, final boolean recursive) {
+        return toRecord(value, fieldName, StandardCharsets.UTF_8, recursive);
     }
 
     public static RecordSchema inferSchema(final Map<String, Object> values, final String fieldName, final Charset charset) {
@@ -472,7 +477,6 @@ public class DataTypeUtils {
         }
 
         final List<RecordField> inferredFieldTypes = new ArrayList<>();
-        final Map<String, Object> coercedValues = new LinkedHashMap<>();
 
         for (final Map.Entry<?, ?> entry : values.entrySet()) {
             final Object keyValue = entry.getKey();
@@ -487,21 +491,51 @@ public class DataTypeUtils {
             final RecordField recordField = new RecordField(key, inferredDataType, true);
             inferredFieldTypes.add(recordField);
 
-            final Object coercedValue = convertType(rawValue, inferredDataType, fieldName, charset);
-            coercedValues.put(key, coercedValue);
+            convertType(rawValue, inferredDataType, fieldName, charset);
         }
 
-        final RecordSchema inferredSchema = new SimpleRecordSchema(inferredFieldTypes);
-        return inferredSchema;
+        return new SimpleRecordSchema(inferredFieldTypes);
     }
 
     public static Record toRecord(final Object value, final String fieldName, final Charset charset) {
+        return toRecord(value, fieldName, charset, false);
+    }
+
+    private static Object covertObjectToRecord(final Object rawValue, final String key, final Charset charset) {
+        final Object coercedValue;
+        if (rawValue instanceof Map<?, ?>) {
+            coercedValue = toRecord(rawValue, key, charset, true);
+        } else if (rawValue instanceof Object[]) {
+            final Object[] objArray = (Object[]) rawValue;
+            coercedValue = Arrays.stream(objArray).noneMatch(o -> o instanceof Map<?, ?>)
+                    ? objArray
+                    : Arrays.stream(objArray).map(o -> toRecord(o, key, charset, true)).toArray();
+        } else if (rawValue instanceof Collection<?>) {
+            final Collection<?> objCollection = (Collection<?>) rawValue;
+            // Records have ARRAY DataTypes, so convert any Collections
+            coercedValue = objCollection.stream().noneMatch(o -> o instanceof Map<?, ?>)
+                    ? objCollection.toArray()
+                    : objCollection.stream().map(o -> toRecord(o, key, charset, true)).toArray();
+        } else {
+            coercedValue = rawValue;
+        }
+        return coercedValue;
+    }
+
+    public static Record toRecord(final Object value, final String fieldName, final Charset charset, final boolean recursive) {
         if (value == null) {
             return null;
         }
 
         if (value instanceof Record) {
-            return ((Record) value);
+            final Record record = ((Record) value);
+            if (recursive) {
+                record.getRawFieldNames().forEach(name -> {
+                    final Object rawValue = record.getValue(name);
+                    record.setValue(name, covertObjectToRecord(rawValue, name, charset));
+                });
+            }
+            return record;
         }
 
         final List<RecordField> inferredFieldTypes = new ArrayList<>();
@@ -522,7 +556,9 @@ public class DataTypeUtils {
                 final RecordField recordField = new RecordField(key, inferredDataType, true);
                 inferredFieldTypes.add(recordField);
 
-                final Object coercedValue = convertType(rawValue, inferredDataType, fieldName, charset);
+                final Object coercedValue = recursive
+                        ? covertObjectToRecord(rawValue, key, charset)
+                        : convertType(rawValue, inferredDataType, fieldName, charset);
                 coercedValues.put(key, coercedValue);
             }
 
@@ -821,13 +857,7 @@ public class DataTypeUtils {
         if (value instanceof Map) {
             final Map<?, ?> original = (Map<?, ?>) value;
 
-            boolean keysAreStrings = true;
-            for (final Object key : original.keySet()) {
-                if (!(key instanceof String)) {
-                    keysAreStrings = false;
-                    break;
-                }
-            }
+            boolean keysAreStrings = original.keySet().stream().allMatch(key -> key instanceof String);
 
             if (keysAreStrings) {
                 return (Map<String, Object>) value;

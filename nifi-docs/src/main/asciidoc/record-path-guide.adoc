@@ -936,7 +936,11 @@ The following record path expression would convert the record into an escaped JS
 === unescapeJson
 
 Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set.
-Optionally convert JSON Objects parsed as Maps into Records (defaults to false).
+Optionally convert JSON Objects parsed as Maps into Records (defaults to false), recursively (defaults to false).
+
+*Note*: RecordSetWriters will not be able to serialise Maps, so fields may be omitted if not converted to Records.
+For example, using `unescapeJson` to replace the root ("/") of a Record in `UpdateRecord` without using the Record conversion,
+would result in an empty output because the RecordSetWriter is unable to match the resultant Map content to a RecordSchema.
 
 For example, given a schema such as:
 
@@ -987,6 +991,27 @@ The following record path expression would return:
 | `unescapeJson(/json_str)` | {"name"="John", "age"=30} (as a Map)
 |==========================================================
 
+*Note* that Maps cannot be serialised with a RecordSetWriter.
+
+Given a record such as:
+
+----
+{
+  "json_str": "{\"name\":\"John\",\"age\":30,\"addresses\"[{\"address_1\": \"123 Fake Street\"}]}"
+}
+----
+
+The following record path expression would return:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str, 'false')` | {"name"="John", "age"=30, "addresses"=[{address_1"="123 Fake Street"}]} (as a Map, with each entry in "addresses" as a Map)
+| `unescapeJson(/json_str, 'true', 'false')` | {"name": "John", "age": 30, "addresses"=[{address_1"="123 Fake Street"}]} (as a Record, with each entry in "addresses" as a Map)
+| `unescapeJson(/json_str, 'true', 'true')` | {"name": "John", "age": 30, "addresses": [{"address_1": "123 Fake Street"}]} (as a Record, with each entry in "addresses" as a Record)
+|==========================================================
+
+*Note* that Maps cannot be serialised with a RecordSetWriter.
+
 Given a record such as:
 
 ----
@@ -1002,7 +1027,7 @@ The following record path expression would return:
 | `unescapeJson(/json_str)` | "John"
 |==========================================================
 
-Note that the target schema must be pre-defined if the unescaped JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
+*Note* that the target schema must be pre-defined if the `unescaped` JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
 
 === hash
 

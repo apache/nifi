@@ -791,6 +791,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/embedded-string.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/organisation.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-stringified-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
@@ -799,6 +800,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/organisation.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
@@ -811,6 +813,8 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/embedded-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/organisation-with-departments.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/organisation-with-departments-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
