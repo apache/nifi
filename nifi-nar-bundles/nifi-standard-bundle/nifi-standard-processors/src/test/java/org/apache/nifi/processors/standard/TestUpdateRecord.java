@@ -26,6 +26,7 @@ import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 
@@ -466,6 +468,67 @@ public class TestUpdateRecord {
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/name-fields-only.json")));
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+    }
+
+    @Test
+    public void testSetNestedRootWithUnescapeJsonCall() throws InitializationException, IOException {
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/organisation-with-departments-string.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/organisation-with-departments.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES);
+        final Path input = Paths.get("src/test/resources/TestUpdateRecord/input/organisation.json");
+
+        // recursive conversion
+        runner.enqueue(input);
+        runner.setProperty("/", "unescapeJson(/record_json, 'true', 'true')");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/organisation.json")));
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        assertTrue(runner.getLogger().getErrorMessages().isEmpty());
+
+        // no conversion
+        runner.clearTransferState();
+        runner.enqueue(input);
+        runner.setProperty("/", "unescapeJson(/record_json)");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = "[ {\n" +
+                "  \"name\" : null,\n" +
+                "  \"departments\" : null,\n" +
+                "  \"address\" : null\n" +
+                "} ]";
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        assertTrue(runner.getLogger().getErrorMessages().isEmpty());
+
+        // non-recursive conversion
+        runner.clearTransferState();
+        runner.enqueue(input);
+        runner.setProperty("/", "unescapeJson(/record_json, 'true')");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_FAILURE, 1);
+        final LogMessage errorMessage = runner.getLogger().getErrorMessages().get(0);
+        assertTrue(errorMessage.getMsg().contains("java.lang.ClassCastException: " +
+                "class java.util.LinkedHashMap cannot be cast to class org.apache.nifi.serialization.record.Record"));
     }
 
     @Test

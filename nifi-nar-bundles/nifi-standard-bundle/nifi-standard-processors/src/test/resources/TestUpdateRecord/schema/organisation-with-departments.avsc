@@ -1,0 +1,78 @@
+{
+  "fields": [
+    {
+      "name": "name",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "departments",
+      "type": [
+        {
+          "items": {
+            "fields": [
+              {
+                "name": "name",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "name": "manager",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "name": "department",
+            "namespace": "test.nifi",
+            "type": "record"
+          },
+          "type": "array"
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "address",
+      "type": [
+        {
+          "fields": [
+            {
+              "name": "address_1",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "name": "address_2",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "name": "postcode",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          ],
+          "name": "address",
+          "namespace": "test.nifi",
+          "type": "record"
+        },
+        "null"
+      ]
+    }
+  ],
+  "name": "organisation",
+  "namespace": "test.nifi",
+  "type": "record"
+}
