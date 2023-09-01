@@ -18,23 +18,22 @@
 import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root'
 })
 export class Client {
+    private clientId: string = crypto.randomUUID();
 
-  private clientId: string = crypto.randomUUID();
+    constructor() {}
 
-  constructor() { }
-
-  /**
-   * Builds the revision fof the specified component
-   * @param d The component
-   * @returns The revision
-   */
-  public getRevision(d: any): any {
-    return {
-      'clientId': this.clientId,
-      'version': d.revision.version
+    /**
+     * Builds the revision fof the specified component
+     * @param d The component
+     * @returns The revision
+     */
+    public getRevision(d: any): any {
+        return {
+            clientId: this.clientId,
+            version: d.revision.version
+        };
     }
-  }
 }

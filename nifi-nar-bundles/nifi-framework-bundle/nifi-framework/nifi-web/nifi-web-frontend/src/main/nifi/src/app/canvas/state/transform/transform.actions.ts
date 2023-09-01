@@ -18,7 +18,4 @@
 import { createAction, props } from '@ngrx/store';
 import { CanvasTransform } from '../index';
 
-export const setTransform = createAction(
-  '[Canvas] Set Transform',
-  props<{ transform: CanvasTransform }>()
-)
+export const setTransform = createAction('[Canvas] Set Transform', props<{ transform: CanvasTransform }>());

@@ -17,10 +17,10 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-  EnterProcessGroupRequest,
-  EnterProcessGroupResponse,
-  UpdateComponentPosition,
-  UpdateComponentPositionResponse
+    EnterProcessGroupRequest,
+    EnterProcessGroupResponse,
+    UpdateComponentPosition,
+    UpdateComponentPositionResponse
 } from '../index';
 
 /*

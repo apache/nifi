@@ -30,7 +30,6 @@ import { selectRenderRequired } from '../state/flow/flow.selectors';
     providedIn: 'root'
 })
 export class CanvasView {
-
     private static readonly INCREMENT: number = 1.2;
     private static readonly MAX_SCALE: number = 8;
     private static readonly MIN_SCALE: number = 0.2;
@@ -50,12 +49,11 @@ export class CanvasView {
         private processGroupManager: ProcessGroupManager,
         private funnelManager: FunnelManager
     ) {
-        this.store.pipe(select(selectRenderRequired))
-            .subscribe(renderRequired => {
-                if (renderRequired) {
-                    this.updateCanvasVisibility();
-                }
-            });
+        this.store.pipe(select(selectRenderRequired)).subscribe((renderRequired) => {
+            if (renderRequired) {
+                this.updateCanvasVisibility();
+            }
+        });
     }
 
     public init(svg: any, canvas: any): void {
@@ -63,7 +61,7 @@ export class CanvasView {
             custom: {
                 families: ['Roboto', 'Roboto Slab', 'flowfont', 'FontAwesome']
             },
-            active: function() {
+            active: function () {
                 // re-render once the fonts have loaded, without the fonts
                 // positions of elements on the canvas may be incorrect
                 self.processGroupManager.render();
@@ -82,7 +80,8 @@ export class CanvasView {
         let panning: boolean = false;
 
         // define the behavior
-        this.behavior = d3.zoom()
+        this.behavior = d3
+            .zoom()
             .scaleExtent([CanvasView.MIN_SCALE, CanvasView.MAX_SCALE])
             .on('start', function () {
                 // hide the context menu
@@ -150,15 +149,17 @@ export class CanvasView {
                 panning = false;
 
                 // dispatch the current transform
-                self.store.dispatch(setTransform({
-                    transform: {
-                        translate: {
-                            x: self.x,
-                            y: self.y
-                        },
-                        scale: self.k
-                    }
-                }));
+                self.store.dispatch(
+                    setTransform({
+                        transform: {
+                            translate: {
+                                x: self.x,
+                                y: self.y
+                            },
+                            scale: self.k
+                        }
+                    })
+                );
             });
 
         // add the behavior to the canvas and disable dbl click zoom
@@ -172,7 +173,7 @@ export class CanvasView {
         } else {
             return false;
         }
-    };
+    }
 
     // see if the scale has changed during this zoom event,
     // we want to only transition when zooming in/out as running
@@ -187,7 +188,7 @@ export class CanvasView {
         } else {
             return true;
         }
-    };
+    }
 
     private updateCanvasVisibility(): void {
         const self: CanvasView = this;
@@ -205,8 +206,8 @@ export class CanvasView {
         // calculate the screen bounds one screens worth in each direction
         const screenLeft = -translate[0] - screenWidth;
         const screenTop = -translate[1] - screenHeight;
-        const screenRight = screenLeft + (screenWidth * 3);
-        const screenBottom = screenTop + (screenHeight * 3);
+        const screenRight = screenLeft + screenWidth * 3;
+        const screenBottom = screenTop + screenHeight * 3;
 
         // detects whether a component is visible and should be rendered
         const isComponentVisible = function (d: any) {
@@ -248,10 +249,12 @@ export class CanvasView {
             var wasVisible = selection.classed('visible');
 
             // mark the selection as appropriate
-            selection.classed('visible', visible)
+            selection
+                .classed('visible', visible)
                 .classed('entering', function () {
                     return visible && !wasVisible;
-                }).classed('leaving', function () {
+                })
+                .classed('leaving', function () {
                     return !visible && wasVisible;
                 });
         };
@@ -326,17 +329,16 @@ export class CanvasView {
      * @param {object} options Options for the refresh operation
      */
     private async refresh({
-                      persist = true,
-                      transition = false,
-                      refreshComponents = true,
-                      refreshBirdseye = true
-                  }: {
-        persist?: boolean,
-        transition?: boolean,
-        refreshComponents?: boolean,
-        refreshBirdseye?: boolean
+        persist = true,
+        transition = false,
+        refreshComponents = true,
+        refreshBirdseye = true
+    }: {
+        persist?: boolean;
+        transition?: boolean;
+        refreshComponents?: boolean;
+        refreshBirdseye?: boolean;
     } = {}): Promise<void> {
-
         const self: CanvasView = this;
 
         await new Promise<void>(function (resolve) {
@@ -357,7 +359,8 @@ export class CanvasView {
 
             // update the canvas
             if (transition) {
-                self.canvas.transition()
+                self.canvas
+                    .transition()
                     .duration(500)
                     .attr('transform', function () {
                         return 'translate(' + t + ') scale(' + s + ')';

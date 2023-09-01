@@ -19,14 +19,14 @@ import { TestBed } from '@angular/core/testing';
 import { SelectableBehavior } from './selectable-behavior.service';
 
 describe('SelectableBehavior', () => {
-  let service: SelectableBehavior;
+    let service: SelectableBehavior;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(SelectableBehavior);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(SelectableBehavior);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });

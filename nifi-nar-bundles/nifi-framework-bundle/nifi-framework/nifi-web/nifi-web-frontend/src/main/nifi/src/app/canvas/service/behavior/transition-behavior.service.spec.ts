@@ -20,14 +20,14 @@ import { TestBed } from '@angular/core/testing';
 import { TransitionBehavior } from './transition-behavior.service';
 
 describe('TransitionBehavior', () => {
-  let service: TransitionBehavior;
+    let service: TransitionBehavior;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(TransitionBehavior);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(TransitionBehavior);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });

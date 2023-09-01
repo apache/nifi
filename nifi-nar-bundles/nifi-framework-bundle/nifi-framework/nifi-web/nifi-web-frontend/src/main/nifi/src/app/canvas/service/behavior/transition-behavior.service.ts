@@ -17,9 +17,8 @@
 
 import { Injectable } from '@angular/core';
 
-@Injectable({ providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class TransitionBehavior {
-
     public transition(selection: any, transition: boolean): any {
         if (transition && !selection.empty()) {
             return selection.transition().duration(400);

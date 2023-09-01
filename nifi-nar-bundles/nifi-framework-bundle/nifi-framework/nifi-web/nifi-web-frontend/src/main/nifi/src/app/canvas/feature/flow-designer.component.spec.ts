@@ -20,19 +20,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowDesignerComponent } from './flow-designer.component';
 
 describe('CanvasComponent', () => {
-  let component: FlowDesignerComponent;
-  let fixture: ComponentFixture<FlowDesignerComponent>;
+    let component: FlowDesignerComponent;
+    let fixture: ComponentFixture<FlowDesignerComponent>;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      declarations: [FlowDesignerComponent]
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [FlowDesignerComponent]
+        });
+        fixture = TestBed.createComponent(FlowDesignerComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
     });
-    fixture = TestBed.createComponent(FlowDesignerComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
 });

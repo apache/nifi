@@ -20,14 +20,14 @@ import { TestBed } from '@angular/core/testing';
 import { CanvasUtils } from './canvas-utils.service';
 
 describe('CanvasUtils', () => {
-  let service: CanvasUtils;
+    let service: CanvasUtils;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(CanvasUtils);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(CanvasUtils);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });

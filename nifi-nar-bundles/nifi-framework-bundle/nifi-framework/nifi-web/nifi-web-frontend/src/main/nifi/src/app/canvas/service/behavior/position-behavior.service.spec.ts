@@ -20,14 +20,14 @@ import { TestBed } from '@angular/core/testing';
 import { PositionBehavior } from './position-behavior.service';
 
 describe('PositionBehavior', () => {
-  let service: PositionBehavior;
+    let service: PositionBehavior;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(PositionBehavior);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(PositionBehavior);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });

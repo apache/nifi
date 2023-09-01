@@ -20,14 +20,14 @@ import { TestBed } from '@angular/core/testing';
 import { DraggableBehavior } from './draggable-behavior.service';
 
 describe('DraggableBehavior', () => {
-  let service: DraggableBehavior;
+    let service: DraggableBehavior;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(DraggableBehavior);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(DraggableBehavior);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });

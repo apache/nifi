@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { UpdateComponentPosition } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class FlowService {
-
-    private static readonly API: string = '../nifi-api'
+    private static readonly API: string = '../nifi-api';
 
     constructor(
         private httpClient: HttpClient,
         private canvasUtils: CanvasUtils
-    ) {
-    }
+    ) {}
 
     /**
      * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
@@ -51,10 +49,10 @@ export class FlowService {
 
     updateComponentPosition(updateComponentPosition: UpdateComponentPosition): Observable<any> {
         return this.httpClient.put(this.stripProtocol(updateComponentPosition.uri), {
-            'revision': updateComponentPosition.revision,
-            'component': {
-                'id': updateComponentPosition.id,
-                'position': updateComponentPosition.position
+            revision: updateComponentPosition.revision,
+            component: {
+                id: updateComponentPosition.id,
+                position: updateComponentPosition.position
             }
         });
     }

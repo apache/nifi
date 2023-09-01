@@ -18,10 +18,8 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'flow-designer',
-  templateUrl: './flow-designer.component.html',
-  styleUrls: ['./flow-designer.component.scss']
+    selector: 'flow-designer',
+    templateUrl: './flow-designer.component.html',
+    styleUrls: ['./flow-designer.component.scss']
 })
-export class FlowDesignerComponent {
-
-}
+export class FlowDesignerComponent {}

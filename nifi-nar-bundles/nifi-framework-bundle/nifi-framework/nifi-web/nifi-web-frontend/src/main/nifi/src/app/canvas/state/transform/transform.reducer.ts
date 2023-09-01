@@ -20,18 +20,18 @@ import { setTransform } from './transform.actions';
 import { CanvasTransform } from '../index';
 
 export const INITIAL_TRANSLATE = {
-  x: 0,
-  y: 0
-}
+    x: 0,
+    y: 0
+};
 
 export const INITIAL_SCALE: number = 1;
 
 export const initialState: CanvasTransform = {
-  translate: INITIAL_TRANSLATE,
-  scale: INITIAL_SCALE
-}
+    translate: INITIAL_TRANSLATE,
+    scale: INITIAL_SCALE
+};
 
 export const transformReducer = createReducer(
-  initialState,
-  on(setTransform, (state, { transform}) => transform)
+    initialState,
+    on(setTransform, (state, { transform }) => transform)
 );

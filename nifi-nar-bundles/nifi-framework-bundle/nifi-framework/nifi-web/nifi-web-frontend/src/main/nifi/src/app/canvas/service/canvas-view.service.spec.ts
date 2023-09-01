@@ -20,14 +20,14 @@ import { TestBed } from '@angular/core/testing';
 import { CanvasView } from './canvas-view.service';
 
 describe('CanvasView', () => {
-  let service: CanvasView;
+    let service: CanvasView;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(CanvasView);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(CanvasView);
+    });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
 });
