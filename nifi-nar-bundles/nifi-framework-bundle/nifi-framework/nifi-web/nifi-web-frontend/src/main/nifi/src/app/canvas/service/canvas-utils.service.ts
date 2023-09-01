@@ -17,6 +17,9 @@
 
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
+import { select, Store } from '@ngrx/store';
+import { CanvasState } from '../state';
+import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -24,8 +27,10 @@ import * as d3 from 'd3';
 export class CanvasUtils {
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
 
-    constructor() {
-        // TODO - store subscribe to reset trim length cache
+    constructor(private store: Store<CanvasState>) {
+        this.store.pipe(select(selectCurrentProcessGroupId)).subscribe(() => {
+            this.trimLengthCaches.clear();
+        });
     }
 
     public canModify(selection: any): boolean {
@@ -149,7 +154,7 @@ export class CanvasUtils {
                 width -= 5;
 
                 // determine the appropriate index
-                const i = this.binarySearch(text.length, function (x: number) {
+                trimLength = this.binarySearch(text.length, function (x: number) {
                     const length = node.getSubStringLength(0, x);
                     if (length > width) {
                         // length is too long, try the lower half
@@ -160,14 +165,11 @@ export class CanvasUtils {
                     }
                     return 0;
                 });
-
-                trimLength = i;
             } else {
                 // trimLength of -1 indicates we do not need ellipses
                 trimLength = -1;
             }
 
-            // TODO: Can we clear this when process group changes?
             // Store the trim length in our cache
             let trimLengthsForText = trimLengths.get(text);
             if (trimLengthsForText === undefined) {

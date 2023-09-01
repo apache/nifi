@@ -20,24 +20,39 @@
  */
 
 export enum ComponentType {
-  Processor = 'Processor',
-  ProcessGrouop = 'ProcessGroup',
-  Funnel = 'Funnel'
+    Processor = 'Processor',
+    ProcessGrouop = 'ProcessGroup',
+    Funnel = 'Funnel'
 }
 
 export interface Dimension {
-  width: number,
-  height: number
+    width: number;
+    height: number;
 }
 
 export interface Position {
-  x: number,
-  y: number
+    x: number;
+    y: number;
 }
 
 export interface CanvasTransform {
-  translate: Position,
-  scale: number
+    translate: Position;
+    scale: number;
+}
+
+/*
+  Enter Process Group
+ */
+
+export interface EnterProcessGroupRequest {
+    id: string;
+    selection: string[];
+}
+
+export interface EnterProcessGroupResponse {
+    id: string;
+    selection: string[];
+    flow: any;
 }
 
 /*
@@ -45,21 +60,19 @@ export interface CanvasTransform {
  */
 
 export interface UpdateComponentPosition {
-  id: string,
-  type: ComponentType,
-  uri: string,
-  revision: any,
-  position: Position
+    id: string;
+    type: ComponentType;
+    uri: string;
+    revision: any;
+    position: Position;
 }
 
-export interface UpdateConnectionPosition {
-
-}
+export interface UpdateConnectionPosition {}
 
 export interface UpdateComponentPositionResponse {
-  id: string,
-  type: ComponentType,
-  response: any;
+    id: string;
+    type: ComponentType;
+    response: any;
 }
 
 /*
@@ -67,51 +80,52 @@ export interface UpdateComponentPositionResponse {
  */
 
 export interface Permissions {
-  canRead: boolean;
-  canWrite: boolean;
+    canRead: boolean;
+    canWrite: boolean;
 }
 
 export interface ComponentEntity {
-  id: string;
-  position: Position;
-  component: any;
+    id: string;
+    position: Position;
+    component: any;
 }
 
 export interface Flow {
-  processGroups: ComponentEntity[];
-  remoteProcessGroups: ComponentEntity[];
-  processors: ComponentEntity[];
-  inputPorts: ComponentEntity[];
-  outputPorts: ComponentEntity[];
-  connections: ComponentEntity[];
-  labels: ComponentEntity[];
-  funnels: ComponentEntity[];
+    processGroups: ComponentEntity[];
+    remoteProcessGroups: ComponentEntity[];
+    processors: ComponentEntity[];
+    inputPorts: ComponentEntity[];
+    outputPorts: ComponentEntity[];
+    connections: ComponentEntity[];
+    labels: ComponentEntity[];
+    funnels: ComponentEntity[];
 }
 
 export interface ProcessGroupFlow {
-  id: string;
-  uri: string;
-  parentGroupId: string;
-  breadcrumb: any;
-  flow: Flow;
-  lastRefreshed: string
+    id: string;
+    uri: string;
+    parentGroupId: string;
+    breadcrumb: any;
+    flow: Flow;
+    lastRefreshed: string;
 }
 
 export interface ProcessGroupFlowEntity {
-  permissions: Permissions;
-  processGroupFlow: ProcessGroupFlow;
+    permissions: Permissions;
+    processGroupFlow: ProcessGroupFlow;
 }
 
 export interface FlowState {
-  flow: ProcessGroupFlowEntity;
-  selection: string[];
-  transitionRequired: boolean;
-  renderRequired: boolean;
-  error: string | null;
-  status: 'pending' | 'loading' | 'error' | 'success';
+    id: string;
+    flow: ProcessGroupFlowEntity;
+    selection: string[];
+    transitionRequired: boolean;
+    renderRequired: boolean;
+    error: string | null;
+    status: 'pending' | 'loading' | 'error' | 'success';
 }
 
 export interface CanvasState {
-  flowState: FlowState;
-  transform: CanvasTransform;
+    flowState: FlowState;
+    transform: CanvasTransform;
 }

@@ -18,16 +18,21 @@
 import { createReducer, on } from '@ngrx/store';
 import {
     addSelectedComponents,
-    loadFlow,
+    enterProcessGroup,
+    enterProcessGroupComplete,
+    enterProcessGroupSuccess,
     flowApiError,
-    loadFlowSuccess, removeSelectedComponents,
-    setSelectedComponents, setTransitionRequired,
-    updatePositionSuccess, setRenderRequired, loadFlowComplete
+    removeSelectedComponents,
+    setRenderRequired,
+    setSelectedComponents,
+    setTransitionRequired,
+    updatePositionSuccess
 } from './flow.actions';
 import { ComponentType, FlowState } from '../index';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {
+    id: '',
     flow: {
         permissions: {
             canRead: false,
@@ -56,49 +61,56 @@ export const initialState: FlowState = {
     transitionRequired: false,
     error: null,
     status: 'pending'
-}
+};
 
 export const flowReducer = createReducer(
     initialState,
-    on(loadFlow, (state) => ({
+    on(enterProcessGroup, (state) => ({
         ...state,
         transitionRequired: true,
         status: 'loading' as const
     })),
-    on(loadFlowSuccess, (state, {flow}) => ({
+    on(enterProcessGroupSuccess, (state, { response }) => ({
         ...state,
-        flow: flow,
+        id: response.id,
+        flow: response.flow,
         error: null,
         status: 'success' as const
     })),
-    on(loadFlowComplete, (state) => ({
+    on(enterProcessGroupComplete, (state, { response }) => ({
         ...state,
         transitionRequired: false,
         renderRequired: true,
+        selection: response.selection
     })),
-    on(flowApiError, (state, {error}) => ({
+    on(flowApiError, (state, { error }) => ({
         ...state,
+        transitionRequired: false,
         error: error,
         status: 'error' as const
     })),
-    on(addSelectedComponents, (state, {ids}) => ({
+    on(addSelectedComponents, (state, { ids }) => ({
         ...state,
-        selection: [...state.selection, ...ids],
+        selection: [...state.selection, ...ids]
     })),
-    on(setSelectedComponents, (state, {ids}) => ({
+    on(setSelectedComponents, (state, { ids }) => ({
         ...state,
-        selection: ids,
+        selection: ids
     })),
-    on(removeSelectedComponents, (state, {ids}) => ({
+    on(removeSelectedComponents, (state, { ids }) => ({
         ...state,
-        selection: state.selection.filter(id => !ids.includes(id)),
+        selection: state.selection.filter((id) => !ids.includes(id))
     })),
-    on(updatePositionSuccess, (state, {positionUpdateResponse}) => {
-        return produce(state, draftState => {
+    on(updatePositionSuccess, (state, { positionUpdateResponse }) => {
+        return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (positionUpdateResponse.type) {
                 case ComponentType.Funnel:
                     collection = draftState.flow.processGroupFlow.flow.funnels;
+                    break;
+                case ComponentType.ProcessGrouop:
+                    collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
             }
 
             if (collection) {
@@ -109,12 +121,12 @@ export const flowReducer = createReducer(
             }
         });
     }),
-    on(setTransitionRequired, (state, {transitionRequired}) => ({
+    on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
-        transitionRequired: transitionRequired,
+        transitionRequired: transitionRequired
     })),
-    on(setRenderRequired, (state, {renderRequired}) => ({
+    on(setRenderRequired, (state, { renderRequired }) => ({
         ...state,
-        renderRequired: renderRequired,
+        renderRequired: renderRequired
     }))
 );

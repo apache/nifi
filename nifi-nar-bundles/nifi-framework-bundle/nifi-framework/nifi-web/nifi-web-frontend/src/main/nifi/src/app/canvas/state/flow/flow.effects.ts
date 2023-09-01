@@ -20,43 +20,55 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
-import { UpdateComponentPositionResponse } from '../index';
+import { EnterProcessGroupRequest, EnterProcessGroupResponse, UpdateComponentPositionResponse } from '../index';
 
 @Injectable()
 export class FlowEffects {
-
     constructor(
         private actions$: Actions,
         private flowService: FlowService
-    ) {
-    }
+    ) {}
 
     loadFlow$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.loadFlow),
-            switchMap(() =>
-                from(this.flowService.getFlow()).pipe(
-                    map((flow) => FlowActions.loadFlowSuccess({flow: flow})),
-                    catchError((error) => of(FlowActions.flowApiError({error})))
+            ofType(FlowActions.enterProcessGroup),
+            map((action) => action.request),
+            switchMap((request: EnterProcessGroupRequest) =>
+                from(this.flowService.getFlow(request.id)).pipe(
+                    map((flow) =>
+                        FlowActions.enterProcessGroupSuccess({
+                            response: {
+                                id: request.id,
+                                selection: request.selection,
+                                flow: flow
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
                 )
             )
         )
     );
 
-    loadFlowSuccess$ = createEffect(() =>
+    enterProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.loadFlowSuccess),
-            switchMap(() => {
-                return of(FlowActions.loadFlowComplete());
+            ofType(FlowActions.enterProcessGroupSuccess),
+            map((action) => action.response),
+            switchMap((response: EnterProcessGroupResponse) => {
+                return of(
+                    FlowActions.enterProcessGroupComplete({
+                        response: response
+                    })
+                );
             })
         )
     );
 
-    loadFlowComplete$ = createEffect(() =>
+    enterProcessGroupComplete$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.loadFlowComplete),
+            ofType(FlowActions.enterProcessGroupComplete),
             switchMap(() => {
-                return of(FlowActions.setRenderRequired({renderRequired: false}));
+                return of(FlowActions.setRenderRequired({ renderRequired: false }));
             })
         )
     );
@@ -64,30 +76,32 @@ export class FlowEffects {
     updatePositions$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updatePosition),
-            switchMap(({positionUpdate}) =>
+            map((action) => action.positionUpdate),
+            switchMap((positionUpdate) =>
                 from(this.flowService.updateComponentPosition(positionUpdate)).pipe(
                     map((updatePositionResponse) => {
                         const response: UpdateComponentPositionResponse = {
                             id: positionUpdate.id,
                             type: positionUpdate.type,
                             response: updatePositionResponse
-                        }
-                        return FlowActions.updatePositionSuccess({positionUpdateResponse: response})
+                        };
+                        return FlowActions.updatePositionSuccess({ positionUpdateResponse: response });
                     }),
-                    catchError((error) => of(FlowActions.flowApiError({error})))
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
                 )
             )
         )
     );
 
-    updatePositionsSuccess$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.updatePositionSuccess),
-            switchMap((positionUpdates) => {
-                // TODO - refresh connections
-                return of(positionUpdates);
-            })
-        ),
-        {dispatch: false}
+    updatePositionsSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.updatePositionSuccess),
+                switchMap((positionUpdates) => {
+                    // TODO - refresh connections
+                    return of(positionUpdates);
+                })
+            ),
+        { dispatch: false }
     );
 }

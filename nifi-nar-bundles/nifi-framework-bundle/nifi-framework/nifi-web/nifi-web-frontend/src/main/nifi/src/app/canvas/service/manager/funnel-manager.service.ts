@@ -24,15 +24,14 @@ import { EditableBehavior } from '../behavior/editable-behavior.service';
 import { select, Store } from '@ngrx/store';
 import { selectFunnels, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class FunnelManager {
-
     private dimensions: Dimension = {
         width: 48,
         height: 48
     };
 
-    private funnels: string[] = [];
+    private funnels: [] = [];
     private funnelContainer: any;
     private transitionRequired: boolean = false;
 
@@ -41,8 +40,7 @@ export class FunnelManager {
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private editableBehavior: EditableBehavior
-    ) {
-    }
+    ) {}
 
     private select() {
         return this.funnelContainer.selectAll('g.funnel').data(this.funnels, function (d: any) {
@@ -55,7 +53,8 @@ export class FunnelManager {
             return entered;
         }
 
-        var funnel = entered.append('g')
+        var funnel = entered
+            .append('g')
             .attr('id', function (d: any) {
                 return 'id-' + d.id;
             })
@@ -64,7 +63,8 @@ export class FunnelManager {
         this.positionBehavior.position(funnel, this.transitionRequired);
 
         // funnel border
-        funnel.append('rect')
+        funnel
+            .append('rect')
             .attr('rx', 2)
             .attr('ry', 2)
             .attr('class', 'border')
@@ -78,7 +78,8 @@ export class FunnelManager {
             .attr('stroke', 'transparent');
 
         // funnel body
-        funnel.append('rect')
+        funnel
+            .append('rect')
             .attr('rx', 2)
             .attr('ry', 2)
             .attr('class', 'body')
@@ -92,11 +93,7 @@ export class FunnelManager {
             .attr('stroke-width', 0);
 
         // funnel icon
-        funnel.append('text')
-            .attr('class', 'funnel-icon')
-            .attr('x', 9)
-            .attr('y', 34)
-            .text('\ue803');
+        funnel.append('text').attr('class', 'funnel-icon').attr('x', 9).attr('y', 34).text('\ue803');
 
         // always support selection
         this.selectableBehavior.activate(funnel);
@@ -113,16 +110,14 @@ export class FunnelManager {
         }
 
         // funnel border authorization
-        updated.select('rect.border')
-            .classed('unauthorized', function (d: any) {
-                return d.permissions.canRead === false;
-            });
+        updated.select('rect.border').classed('unauthorized', function (d: any) {
+            return d.permissions.canRead === false;
+        });
 
         // funnel body authorization
-        updated.select('rect.body')
-            .classed('unauthorized', function (d: any) {
-                return d.permissions.canRead === false;
-            });
+        updated.select('rect.body').classed('unauthorized', function (d: any) {
+            return d.permissions.canRead === false;
+        });
 
         this.editableBehavior.editable(updated);
     }
@@ -132,26 +127,23 @@ export class FunnelManager {
     }
 
     public init(): void {
-        this.funnelContainer = d3.select('#canvas').append('g')
-            .attr('pointer-events', 'all')
-            .attr('class', 'funnels');
+        this.funnelContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'funnels');
 
-        this.store.pipe(select(selectFunnels))
-            .subscribe(funnels => {
-                this.set(funnels);
-            });
+        this.store.pipe(select(selectFunnels)).subscribe((funnels) => {
+            this.set(funnels);
+        });
 
-        this.store.pipe(select(selectSelected))
-            .subscribe(selected => {
+        this.store.pipe(select(selectSelected)).subscribe((selected) => {
+            if (selected && selected.length) {
                 this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
                     return selected.includes(d.id);
                 });
-            });
+            }
+        });
 
-        this.store.pipe(select(selectTransitionRequired))
-            .subscribe(transitionRequired => {
-                this.transitionRequired = transitionRequired;
-            });
+        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
+            this.transitionRequired = transitionRequired;
+        });
     }
 
     private set(funnels: any): void {
@@ -161,7 +153,7 @@ export class FunnelManager {
                 ...funnel,
                 type: ComponentType.Funnel,
                 dimensions: this.dimensions
-            }
+            };
         });
 
         // select
@@ -178,7 +170,7 @@ export class FunnelManager {
         this.positionBehavior.position(updated, this.transitionRequired);
 
         // exit
-        selection.exit().call(this.removeFunnels);
+        this.removeFunnels(selection.exit());
     }
 
     public selectAll(): any {
@@ -186,10 +178,10 @@ export class FunnelManager {
     }
 
     public render(): void {
-        this.updateFunnels(d3.selectAll('g.funnel'))
+        this.updateFunnels(d3.selectAll('g.funnel'));
     }
 
     public pan(): void {
-        this.updateFunnels(d3.selectAll('g.funnel.entering, g.funnel.leaving'))
+        this.updateFunnels(d3.selectAll('g.funnel.entering, g.funnel.leaving'));
     }
 }

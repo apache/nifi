@@ -18,156 +18,170 @@
 import { Component, OnInit } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
-import { loadFlow } from '../../state/flow/flow.actions';
+import { enterProcessGroup } from '../../state/flow/flow.actions';
 import * as d3 from 'd3';
 import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 
 @Component({
-  selector: 'fd-canvas',
-  templateUrl: './canvas.component.html',
-  styleUrls: ['./canvas.component.scss']
+    selector: 'fd-canvas',
+    templateUrl: './canvas.component.html',
+    styleUrls: ['./canvas.component.scss']
 })
 export class CanvasComponent implements OnInit {
-  private svg: any;
-  private canvas: any;
+    private svg: any;
+    private canvas: any;
 
-  constructor(
-    private store: Store<CanvasState>,
-    private canvasView: CanvasView
-  ) {}
+    constructor(
+        private store: Store<CanvasState>,
+        private canvasView: CanvasView
+    ) {}
 
-  ngOnInit(): void {
-    // initialize the canvas svg
-    this.createSvg();
-    this.canvasView.init(this.svg, this.canvas);
+    ngOnInit(): void {
+        // initialize the canvas svg
+        this.createSvg();
+        this.canvasView.init(this.svg, this.canvas);
 
-    // load the flow
-    this.store.dispatch(loadFlow());
-  }
+        // enter the root process group
+        this.store.dispatch(
+            enterProcessGroup({
+                request: {
+                    id: 'root',
+                    selection: []
+                }
+            })
+        );
+    }
 
-  private createSvg(): void {
-    this.svg = d3.select('#canvas-container').append('svg')
-      .attr('class', 'canvas-svg');
+    private createSvg(): void {
+        this.svg = d3.select('#canvas-container').append('svg').attr('class', 'canvas-svg');
 
-    this.createDefs();
+        this.createDefs();
 
-    const t = [INITIAL_TRANSLATE.x, INITIAL_TRANSLATE.y];
+        const t = [INITIAL_TRANSLATE.x, INITIAL_TRANSLATE.y];
 
-    // create the canvas element
-    this.canvas = this.svg.append('g')
-      .attr('transform', 'translate(' + t + ') scale(' + INITIAL_SCALE + ')')
-      .attr('pointer-events', 'all')
-      .attr('id', 'canvas');
-  }
+        // create the canvas element
+        this.canvas = this.svg
+            .append('g')
+            .attr('transform', 'translate(' + t + ') scale(' + INITIAL_SCALE + ')')
+            .attr('pointer-events', 'all')
+            .attr('id', 'canvas');
+    }
 
-  private createDefs(): void {
-    // create the definitions element
-    const defs = this.svg.append('defs');
+    private createDefs(): void {
+        // create the definitions element
+        const defs = this.svg.append('defs');
 
-    // create arrow definitions for the various line types
-    defs.selectAll('marker')
-      .data(['normal', 'ghost', 'unauthorized', 'full'])
-      .enter().append('marker')
-      .attr('id', function (d: string) {
-        return d;
-      })
-      .attr('viewBox', '0 0 6 6')
-      .attr('refX', 5)
-      .attr('refY', 3)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .attr('fill', function (d: string) {
-        if (d === 'ghost') {
-          return '#aaaaaa';
-        } else if (d === 'unauthorized') {
-          return '#ba554a';
-        } else if (d === 'full') {
-          return '#ba554a';
-        } else {
-          return '#000000';
-        }
-      })
-      .append('path')
-      .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
+        // create arrow definitions for the various line types
+        defs.selectAll('marker')
+            .data(['normal', 'ghost', 'unauthorized', 'full'])
+            .enter()
+            .append('marker')
+            .attr('id', function (d: string) {
+                return d;
+            })
+            .attr('viewBox', '0 0 6 6')
+            .attr('refX', 5)
+            .attr('refY', 3)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .attr('fill', function (d: string) {
+                if (d === 'ghost') {
+                    return '#aaaaaa';
+                } else if (d === 'unauthorized') {
+                    return '#ba554a';
+                } else if (d === 'full') {
+                    return '#ba554a';
+                } else {
+                    return '#000000';
+                }
+            })
+            .append('path')
+            .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
 
-    // filter for drop shadow
-    const componentDropShadowFilter = defs.append('filter')
-      .attr('id', 'component-drop-shadow')
-      .attr('height', '140%')
-      .attr('y', '-20%');
+        // filter for drop shadow
+        const componentDropShadowFilter = defs
+            .append('filter')
+            .attr('id', 'component-drop-shadow')
+            .attr('height', '140%')
+            .attr('y', '-20%');
 
-    // blur
-    componentDropShadowFilter.append('feGaussianBlur')
-      .attr('in', 'SourceAlpha')
-      .attr('stdDeviation', 3)
-      .attr('result', 'blur');
+        // blur
+        componentDropShadowFilter
+            .append('feGaussianBlur')
+            .attr('in', 'SourceAlpha')
+            .attr('stdDeviation', 3)
+            .attr('result', 'blur');
 
-    // offset
-    componentDropShadowFilter.append('feOffset')
-      .attr('in', 'blur')
-      .attr('dx', 0)
-      .attr('dy', 1)
-      .attr('result', 'offsetBlur');
+        // offset
+        componentDropShadowFilter
+            .append('feOffset')
+            .attr('in', 'blur')
+            .attr('dx', 0)
+            .attr('dy', 1)
+            .attr('result', 'offsetBlur');
 
-    // color/opacity
-    componentDropShadowFilter.append('feFlood')
-      .attr('flood-color', '#000000')
-      .attr('flood-opacity', 0.4)
-      .attr('result', 'offsetColor');
+        // color/opacity
+        componentDropShadowFilter
+            .append('feFlood')
+            .attr('flood-color', '#000000')
+            .attr('flood-opacity', 0.4)
+            .attr('result', 'offsetColor');
 
-    // combine
-    componentDropShadowFilter.append('feComposite')
-      .attr('in', 'offsetColor')
-      .attr('in2', 'offsetBlur')
-      .attr('operator', 'in')
-      .attr('result', 'offsetColorBlur');
+        // combine
+        componentDropShadowFilter
+            .append('feComposite')
+            .attr('in', 'offsetColor')
+            .attr('in2', 'offsetBlur')
+            .attr('operator', 'in')
+            .attr('result', 'offsetColorBlur');
 
-    // stack the effect under the source graph
-    const componentDropShadowFeMerge = componentDropShadowFilter.append('feMerge');
-    componentDropShadowFeMerge.append('feMergeNode')
-      .attr('in', 'offsetColorBlur');
-    componentDropShadowFeMerge.append('feMergeNode')
-      .attr('in', 'SourceGraphic');
+        // stack the effect under the source graph
+        const componentDropShadowFeMerge = componentDropShadowFilter.append('feMerge');
+        componentDropShadowFeMerge.append('feMergeNode').attr('in', 'offsetColorBlur');
+        componentDropShadowFeMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-    // filter for drop shadow
-    const connectionFullDropShadowFilter = defs.append('filter')
-      .attr('id', 'connection-full-drop-shadow')
-      .attr('height', '140%')
-      .attr('y', '-20%');
+        // filter for drop shadow
+        const connectionFullDropShadowFilter = defs
+            .append('filter')
+            .attr('id', 'connection-full-drop-shadow')
+            .attr('height', '140%')
+            .attr('y', '-20%');
 
-    // blur
-    connectionFullDropShadowFilter.append('feGaussianBlur')
-      .attr('in', 'SourceAlpha')
-      .attr('stdDeviation', 3)
-      .attr('result', 'blur');
+        // blur
+        connectionFullDropShadowFilter
+            .append('feGaussianBlur')
+            .attr('in', 'SourceAlpha')
+            .attr('stdDeviation', 3)
+            .attr('result', 'blur');
 
-    // offset
-    connectionFullDropShadowFilter.append('feOffset')
-      .attr('in', 'blur')
-      .attr('dx', 0)
-      .attr('dy', 1)
-      .attr('result', 'offsetBlur');
+        // offset
+        connectionFullDropShadowFilter
+            .append('feOffset')
+            .attr('in', 'blur')
+            .attr('dx', 0)
+            .attr('dy', 1)
+            .attr('result', 'offsetBlur');
 
-    // color/opacity
-    connectionFullDropShadowFilter.append('feFlood')
-      .attr('flood-color', '#ba554a')
-      .attr('flood-opacity', 1)
-      .attr('result', 'offsetColor');
+        // color/opacity
+        connectionFullDropShadowFilter
+            .append('feFlood')
+            .attr('flood-color', '#ba554a')
+            .attr('flood-opacity', 1)
+            .attr('result', 'offsetColor');
 
-    // combine
-    connectionFullDropShadowFilter.append('feComposite')
-      .attr('in', 'offsetColor')
-      .attr('in2', 'offsetBlur')
-      .attr('operator', 'in')
-      .attr('result', 'offsetColorBlur');
+        // combine
+        connectionFullDropShadowFilter
+            .append('feComposite')
+            .attr('in', 'offsetColor')
+            .attr('in2', 'offsetBlur')
+            .attr('operator', 'in')
+            .attr('result', 'offsetColorBlur');
 
-    // stack the effect under the source graph
-    const connectionFullFeMerge = connectionFullDropShadowFilter.append('feMerge');
-    connectionFullFeMerge.append('feMergeNode')
-      .attr('in', 'offsetColorBlur');
-    connectionFullFeMerge.append('feMergeNode')
-      .attr('in', 'SourceGraphic');
-  }
+        // stack the effect under the source graph
+        const connectionFullFeMerge = connectionFullDropShadowFilter.append('feMerge');
+        connectionFullFeMerge.append('feMergeNode').attr('in', 'offsetColorBlur');
+        connectionFullFeMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+    }
 }

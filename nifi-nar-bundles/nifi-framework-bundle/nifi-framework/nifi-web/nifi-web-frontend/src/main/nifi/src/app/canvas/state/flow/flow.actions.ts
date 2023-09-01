@@ -16,58 +16,57 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { UpdateComponentPosition, UpdateComponentPositionResponse } from '../index';
+import {
+  EnterProcessGroupRequest,
+  EnterProcessGroupResponse,
+  UpdateComponentPosition,
+  UpdateComponentPositionResponse
+} from '../index';
 
 /*
     Loading Flow
  */
 
-export const loadFlow = createAction('[Canvas] Load Flow');
-
-export const loadFlowSuccess = createAction(
-  '[Canvas] Flow Load Success',
-  props<{ flow: any }>()
+export const enterProcessGroup = createAction(
+    '[Canvas] Enter Process Group',
+    props<{ request: EnterProcessGroupRequest }>()
 );
 
-export const loadFlowComplete = createAction('[Canvas] Flow Load Complete')
+export const enterProcessGroupSuccess = createAction(
+    '[Canvas] Enter Process Group Success',
+    props<{ response: EnterProcessGroupResponse }>()
+);
 
-export const flowApiError = createAction(
-  '[Canvas] Flow Api Error',
-  props<{ error: string }>()
-)
+export const enterProcessGroupComplete = createAction(
+    '[Canvas] Enter Process Group Complete',
+    props<{ response: EnterProcessGroupResponse }>()
+);
+
+export const flowApiError = createAction('[Canvas] Flow Api Error', props<{ error: string }>());
 
 /*
     Selectable Behavior
  */
 
-export const addSelectedComponents = createAction(
-    '[Canvas] Add Selected Component',
-    props<{ ids: string[] }>()
-)
+export const addSelectedComponents = createAction('[Canvas] Add Selected Component', props<{ ids: string[] }>());
 
-export const setSelectedComponents = createAction(
-    '[Canvas] Set Selected Components',
-    props<{ ids: string[] }>()
-)
+export const setSelectedComponents = createAction('[Canvas] Set Selected Components', props<{ ids: string[] }>());
 
-export const removeSelectedComponents = createAction(
-    '[Canvas] Remove Selected Components',
-    props<{ ids: string[] }>()
-)
+export const removeSelectedComponents = createAction('[Canvas] Remove Selected Components', props<{ ids: string[] }>());
 
 /*
     Draggable Behavior
  */
 
 export const updatePosition = createAction(
-  '[Canvas] Update Positions',
-  props<{ positionUpdate: UpdateComponentPosition }>()
-)
+    '[Canvas] Update Positions',
+    props<{ positionUpdate: UpdateComponentPosition }>()
+);
 
 export const updatePositionSuccess = createAction(
-  '[Canvas] Update Positions Success',
-  props<{ positionUpdateResponse: UpdateComponentPositionResponse }>()
-)
+    '[Canvas] Update Positions Success',
+    props<{ positionUpdateResponse: UpdateComponentPositionResponse }>()
+);
 
 /*
     Transition
@@ -76,9 +75,6 @@ export const updatePositionSuccess = createAction(
 export const setTransitionRequired = createAction(
     '[Canvas] Set Transition Required',
     props<{ transitionRequired: boolean }>()
-)
+);
 
-export const setRenderRequired = createAction(
-    '[Canvas] Set Render Required',
-    props<{ renderRequired: boolean }>()
-)
+export const setRenderRequired = createAction('[Canvas] Set Render Required', props<{ renderRequired: boolean }>());

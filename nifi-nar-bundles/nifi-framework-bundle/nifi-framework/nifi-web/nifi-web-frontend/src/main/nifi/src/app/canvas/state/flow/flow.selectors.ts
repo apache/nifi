@@ -20,42 +20,26 @@ import { createSelector } from '@ngrx/store';
 
 export const selectFlowState = (state: CanvasState) => state.flowState;
 
-export const selectFlowLoadingStatus = createSelector(
-  selectFlowState,
-  (state: FlowState) => state.status
-)
+export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: FlowState) => state.status);
 
-export const selectFlow = createSelector(
-  selectFlowState,
-  (state: FlowState) => state.flow
-)
+export const selectFlow = createSelector(selectFlowState, (state: FlowState) => state.flow);
 
-export const selectFlowLoadingError = createSelector(
-  selectFlowState,
-  (state: FlowState) => state.error
-)
+export const selectFlowLoadingError = createSelector(selectFlowState, (state: FlowState) => state.error);
 
-export const selectSelected = createSelector(
-    selectFlowState,
-    (state: FlowState) => state.selection
-)
+export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
-export const selectTransitionRequired = createSelector(
-    selectFlowState,
-    (state: FlowState) => state.transitionRequired
-)
+export const selectSelected = createSelector(selectFlowState, (state: FlowState) => state.selection);
 
-export const selectRenderRequired = createSelector(
-    selectFlowState,
-    (state: FlowState) => state.renderRequired
-)
+export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);
+
+export const selectRenderRequired = createSelector(selectFlowState, (state: FlowState) => state.renderRequired);
 
 export const selectFunnels = createSelector(
-  selectFlowState,
-  (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
-)
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
+);
 
 export const selectProcessGroups = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.processGroups
-)
+);
