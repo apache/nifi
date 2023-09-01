@@ -59,7 +59,7 @@ public class SynchronousFileWatcher {
     /**
      * Checks if the file has been updated according to the configured {@link UpdateMonitor} and resets the state
      *
-     * @return true if updated; false otherwise
+     * @return true if updated; false if not updated or if not yet time to check
      * @throws IOException if failure occurs checking for changes
      */
     public boolean checkAndReset() throws IOException {
@@ -77,21 +77,16 @@ public class SynchronousFileWatcher {
     private boolean checkForUpdate() throws IOException {
         if (resourceLock.tryLock()) {
             try {
-                final StateWrapper wrapper = lastState.get();
+                final Object oldState = lastState.get().getState();
                 final Object newState = monitor.getCurrentState(path);
-                if (newState == null && wrapper.getState() == null) {
+                if (newState == null && oldState == null) {
                     return false;
                 }
-                if (newState == null || wrapper.getState() == null) {
-                    lastState.set(new StateWrapper(newState));
+                lastState.set(new StateWrapper(newState));
+                if (newState == null || oldState == null) {
                     return true;
                 }
-
-                final boolean unmodified = newState.equals(wrapper.getState());
-                if (!unmodified) {
-                    lastState.set(new StateWrapper(newState));
-                }
-                return !unmodified;
+                return !newState.equals(oldState);
             } finally {
                 resourceLock.unlock();
             }
