@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,28 +32,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestSynchronousFileWatcher {
 
     @Test
-    public void testIt() throws UnsupportedEncodingException, IOException, InterruptedException {
+    public void testIt() throws IOException, InterruptedException {
         final Path path = Paths.get("target/1.txt");
         Files.copy(new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")), path, StandardCopyOption.REPLACE_EXISTING);
         final UpdateMonitor monitor = new DigestUpdateMonitor();
 
-        final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 10L);
+        final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 40L);
         assertFalse(watcher.checkAndReset());
-        Thread.sleep(30L);
+        Thread.sleep(41L);
         assertFalse(watcher.checkAndReset());
 
-        final FileOutputStream fos = new FileOutputStream(path.toFile());
-        try {
+        try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
             fos.write("Good-bye, World!".getBytes("UTF-8"));
             fos.getFD().sync();
-        } finally {
-            fos.close();
         }
 
-        assertTrue(watcher.checkAndReset());
+        // immediately after file changes, but before the next check time is reached, answer should be false
         assertFalse(watcher.checkAndReset());
 
-        Thread.sleep(30L);
+        // after check time has passed, answer should be true
+        Thread.sleep(41L);
+        assertTrue(watcher.checkAndReset());
         assertFalse(watcher.checkAndReset());
     }
 }
