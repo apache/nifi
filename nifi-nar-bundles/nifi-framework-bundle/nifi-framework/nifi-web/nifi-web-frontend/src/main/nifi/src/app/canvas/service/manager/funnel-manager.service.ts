@@ -178,10 +178,10 @@ export class FunnelManager {
     }
 
     public render(): void {
-        this.updateFunnels(d3.selectAll('g.funnel'));
+        this.updateFunnels(this.funnelContainer.selectAll('g.funnel'));
     }
 
     public pan(): void {
-        this.updateFunnels(d3.selectAll('g.funnel.entering, g.funnel.leaving'));
+        this.updateFunnels(this.funnelContainer.selectAll('g.funnel.entering, g.funnel.leaving'));
     }
 }

@@ -22,6 +22,7 @@
 export enum ComponentType {
     Processor = 'Processor',
     ProcessGrouop = 'ProcessGroup',
+    Label = 'Label',
     Funnel = 'Funnel'
 }
 
@@ -58,6 +59,27 @@ export interface EnterProcessGroupResponse {
 /*
   Update Requests
  */
+
+export interface UpdateComponent {
+    id: string;
+    type: ComponentType;
+    uri: string;
+    payload: any;
+    restoreOnFailure?: any;
+}
+
+export interface UpdateComponentResponse {
+    id: string;
+    type: ComponentType;
+    response: any;
+}
+
+export interface UpdateComponentFailure {
+    error: string;
+    id: string;
+    type: ComponentType;
+    restoreOnFailure?: any;
+}
 
 export interface UpdateComponentPosition {
     id: string;

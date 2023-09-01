@@ -43,3 +43,8 @@ export const selectProcessGroups = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.processGroups
 );
+
+export const selectLabels = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow?.flow.labels
+);

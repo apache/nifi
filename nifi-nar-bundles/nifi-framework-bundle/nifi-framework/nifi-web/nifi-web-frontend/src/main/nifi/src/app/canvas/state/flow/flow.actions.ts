@@ -19,8 +19,11 @@ import { createAction, props } from '@ngrx/store';
 import {
     EnterProcessGroupRequest,
     EnterProcessGroupResponse,
+    UpdateComponent,
+    UpdateComponentFailure,
     UpdateComponentPosition,
-    UpdateComponentPositionResponse
+    UpdateComponentPositionResponse,
+    UpdateComponentResponse
 } from '../index';
 
 /*
@@ -53,6 +56,22 @@ export const addSelectedComponents = createAction('[Canvas] Add Selected Compone
 export const setSelectedComponents = createAction('[Canvas] Set Selected Components', props<{ ids: string[] }>());
 
 export const removeSelectedComponents = createAction('[Canvas] Remove Selected Components', props<{ ids: string[] }>());
+
+/*
+    Component Actions
+ */
+
+export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
+
+export const updateComponentSuccess = createAction(
+    '[Canvas] Update Component Success',
+    props<{ response: UpdateComponentResponse }>()
+);
+
+export const updateComponentFailure = createAction(
+    '[Canvas] Update Component Failure',
+    props<{ response: UpdateComponentFailure }>()
+);
 
 /*
     Draggable Behavior

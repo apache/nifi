@@ -26,6 +26,8 @@ import {
     setRenderRequired,
     setSelectedComponents,
     setTransitionRequired,
+    updateComponentFailure,
+    updateComponentSuccess,
     updatePositionSuccess
 } from './flow.actions';
 import { ComponentType, FlowState } from '../index';
@@ -101,15 +103,70 @@ export const flowReducer = createReducer(
         ...state,
         selection: state.selection.filter((id) => !ids.includes(id))
     })),
+    on(updateComponentSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            let collection: any[] | null = null;
+            switch (response.type) {
+                case ComponentType.ProcessGrouop:
+                    collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.Label:
+                    collection = draftState.flow.processGroupFlow.flow.labels;
+                    break;
+                case ComponentType.Funnel:
+                    collection = draftState.flow.processGroupFlow.flow.funnels;
+                    break;
+            }
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex] = response.response;
+                }
+            }
+        });
+    }),
+    on(updateComponentFailure, (state, { response }) => {
+        return produce(state, (draftState) => {
+            if (response.restoreOnFailure) {
+                let collection: any[] | null = null;
+                switch (response.type) {
+                    case ComponentType.ProcessGrouop:
+                        collection = draftState.flow.processGroupFlow.flow.processGroups;
+                        break;
+                    case ComponentType.Label:
+                        collection = draftState.flow.processGroupFlow.flow.labels;
+                        break;
+                    case ComponentType.Funnel:
+                        collection = draftState.flow.processGroupFlow.flow.funnels;
+                        break;
+                }
+
+                if (collection) {
+                    const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
+                    if (componentIndex > -1) {
+                        const currentComponent: any = collection[componentIndex];
+                        collection[componentIndex] = {
+                            ...currentComponent,
+                            ...response.restoreOnFailure
+                        };
+                    }
+                }
+            }
+        });
+    }),
     on(updatePositionSuccess, (state, { positionUpdateResponse }) => {
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (positionUpdateResponse.type) {
-                case ComponentType.Funnel:
-                    collection = draftState.flow.processGroupFlow.flow.funnels;
-                    break;
                 case ComponentType.ProcessGrouop:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.Label:
+                    collection = draftState.flow.processGroupFlow.flow.labels;
+                    break;
+                case ComponentType.Funnel:
+                    collection = draftState.flow.processGroupFlow.flow.funnels;
                     break;
             }
 

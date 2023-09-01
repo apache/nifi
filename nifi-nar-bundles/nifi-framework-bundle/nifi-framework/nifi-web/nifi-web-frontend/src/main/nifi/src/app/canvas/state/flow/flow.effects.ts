@@ -20,7 +20,13 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
-import { EnterProcessGroupRequest, EnterProcessGroupResponse, UpdateComponentPositionResponse } from '../index';
+import {
+    EnterProcessGroupRequest,
+    EnterProcessGroupResponse,
+    UpdateComponentFailure,
+    UpdateComponentPositionResponse,
+    UpdateComponentResponse
+} from '../index';
 
 @Injectable()
 export class FlowEffects {
@@ -70,6 +76,34 @@ export class FlowEffects {
             switchMap(() => {
                 return of(FlowActions.setRenderRequired({ renderRequired: false }));
             })
+        )
+    );
+
+    updateComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateComponent),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.updateComponent(request)).pipe(
+                    map((response) => {
+                        const updateComponentResponse: UpdateComponentResponse = {
+                            id: request.id,
+                            type: request.type,
+                            response: response
+                        };
+                        return FlowActions.updateComponentSuccess({ response: updateComponentResponse });
+                    }),
+                    catchError((error) => {
+                        const updateComponentFailure: UpdateComponentFailure = {
+                            id: request.id,
+                            type: request.type,
+                            restoreOnFailure: request.restoreOnFailure,
+                            error: error
+                        };
+                        return of(FlowActions.updateComponentFailure({ response: updateComponentFailure }));
+                    })
+                )
+            )
         )
     );
 

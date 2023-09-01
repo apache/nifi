@@ -1419,10 +1419,12 @@ export class ProcessGroupManager {
     }
 
     public render(): void {
-        this.updateProcessGroups(d3.selectAll('g.process-group'));
+        this.updateProcessGroups(this.processGroupContainer.selectAll('g.process-group'));
     }
 
     public pan(): void {
-        this.updateProcessGroups(d3.selectAll('g.process-group.entering, g.process-group.leaving'));
+        this.updateProcessGroups(
+            this.processGroupContainer.selectAll('g.process-group.entering, g.process-group.leaving')
+        );
     }
 }

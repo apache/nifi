@@ -82,6 +82,26 @@ export class CanvasUtils {
     }
 
     /**
+     * Extracts the contents of the specified str after the last strToFind. If the
+     * strToFind is not found or the last part of the str, an empty string is
+     * returned.
+     *
+     * @argument {string} str       The full string
+     * @argument {string} strToFind The substring to find
+     */
+    public substringAfterLast(str: string, strToFind: string): string {
+        let result = '';
+        const indexOfStrToFind = str.lastIndexOf(strToFind);
+        if (indexOfStrToFind >= 0) {
+            const indexAfterStrToFind = indexOfStrToFind + strToFind.length;
+            if (indexAfterStrToFind < str.length) {
+                result = str.substring(indexAfterStrToFind);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Determines whether the specified string is blank (or null or undefined).
      *
      * @argument {string} str   The string to test
@@ -338,5 +358,18 @@ export class CanvasUtils {
                     d3.select(this).selectAll('title').remove();
                 });
         }
+    }
+
+    /**
+     * Determines the contrast color of a given hex color.
+     *
+     * @param {string} hex  The hex color to test.
+     * @returns {string} The contrasting color string.
+     */
+    public determineContrastColor(hex: string): string {
+        if (parseInt(hex, 16) > 0xffffff / 1.5) {
+            return '#000000';
+        }
+        return '#ffffff';
     }
 }

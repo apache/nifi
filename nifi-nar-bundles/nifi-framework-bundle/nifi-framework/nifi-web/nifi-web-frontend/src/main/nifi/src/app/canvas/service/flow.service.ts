@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { UpdateComponentPosition } from '../state';
+import { UpdateComponent, UpdateComponentPosition } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 
@@ -45,6 +45,10 @@ export class FlowService {
 
     getFlow(processGroupId: string = 'root'): Observable<any> {
         return this.httpClient.get(FlowService.API + '/flow/process-groups/' + processGroupId);
+    }
+
+    updateComponent(updateComponent: UpdateComponent): Observable<any> {
+        return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
     }
 
     updateComponentPosition(updateComponentPosition: UpdateComponentPosition): Observable<any> {
