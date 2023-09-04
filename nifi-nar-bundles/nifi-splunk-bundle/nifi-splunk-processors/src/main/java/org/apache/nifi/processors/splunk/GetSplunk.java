@@ -49,6 +49,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -68,7 +70,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -247,6 +248,13 @@ public class GetSplunk extends AbstractProcessor {
             .defaultValue(TLS_1_2_VALUE.getValue())
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Results retrieved from Splunk are sent out this relationship.")
@@ -289,6 +297,7 @@ public class GetSplunk extends AbstractProcessor {
         descriptors.add(PASSWORD);
         descriptors.add(SECURITY_PROTOCOL);
         descriptors.add(OUTPUT_MODE);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -570,6 +579,11 @@ public class GetSplunk extends AbstractProcessor {
         final String secProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
         if (!StringUtils.isBlank(secProtocol) && HTTPS_SCHEME.equals(scheme)) {
             serviceArgs.setSSLSecurityProtocol(SSLSecurityProtocol.valueOf(secProtocol));
+        }
+
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            Service.setSSLSocketFactory(sslContextService.createContext().getSocketFactory());
         }
 
         return Service.connect(serviceArgs);
