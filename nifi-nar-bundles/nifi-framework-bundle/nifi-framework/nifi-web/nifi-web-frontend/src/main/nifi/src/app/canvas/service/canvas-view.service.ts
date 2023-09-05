@@ -26,6 +26,7 @@ import { ProcessGroupManager } from './manager/process-group-manager.service';
 import { FunnelManager } from './manager/funnel-manager.service';
 import { selectRenderRequired } from '../state/flow/flow.selectors';
 import { LabelManager } from './manager/label-manager.service';
+import { ProcessorManager } from './manager/processor-manager.service';
 
 @Injectable({
     providedIn: 'root'
@@ -47,6 +48,7 @@ export class CanvasView {
 
     constructor(
         private store: Store<CanvasState>,
+        private processorManager: ProcessorManager,
         private processGroupManager: ProcessGroupManager,
         private funnelManager: FunnelManager,
         private labelManager: LabelManager
@@ -66,6 +68,7 @@ export class CanvasView {
             active: function () {
                 // re-render once the fonts have loaded, without the fonts
                 // positions of elements on the canvas may be incorrect
+                self.processorManager.render();
                 self.processGroupManager.render();
                 self.labelManager.render();
                 self.funnelManager.render();
@@ -75,6 +78,7 @@ export class CanvasView {
         this.svg = svg;
         this.canvas = canvas;
 
+        this.processorManager.init();
         this.processGroupManager.init();
         this.labelManager.init();
         this.funnelManager.init();
@@ -264,6 +268,9 @@ export class CanvasView {
         };
 
         // update the visibility
+        this.processorManager.selectAll().each(function (this: any, d: any) {
+            updateVisibility(d3.select(this), d, isComponentVisible);
+        });
         this.processGroupManager.selectAll().each(function (this: any, d: any) {
             updateVisibility(d3.select(this), d, isComponentVisible);
         });
@@ -275,6 +282,7 @@ export class CanvasView {
         });
 
         // trigger pan
+        this.processorManager.pan();
         this.processGroupManager.pan();
         this.labelManager.pan();
         this.funnelManager.pan();

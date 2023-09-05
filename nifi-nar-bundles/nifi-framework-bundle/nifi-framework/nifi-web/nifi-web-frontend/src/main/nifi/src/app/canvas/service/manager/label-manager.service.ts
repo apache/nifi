@@ -59,7 +59,7 @@ export class LabelManager {
         });
     }
 
-    private renderProcessGroups(entered: any) {
+    private renderLabels(entered: any) {
         if (entered.empty()) {
             return entered;
         }
@@ -365,7 +365,7 @@ export class LabelManager {
         const selection = this.select();
 
         // enter
-        const entered = this.renderProcessGroups(selection.enter());
+        const entered = this.renderLabels(selection.enter());
 
         // update
         const updated = selection.merge(entered);

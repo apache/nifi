@@ -114,6 +114,51 @@ export class CanvasUtils {
         return true;
     }
 
+    /**
+     * Determines if the specified array is empty. If the specified arg is not an
+     * array, then true is returned.
+     *
+     * @argument {array} arr    The array to test
+     */
+    public isEmpty(arr: any) {
+        return Array.isArray(arr) ? arr.length === 0 : true;
+    }
+
+    /**
+     * Formats the class name of this component.
+     *
+     * @param dataContext component datum
+     */
+    public formatClassName(dataContext: any): string {
+        return this.substringAfterLast(dataContext.type, '.');
+    }
+
+    /**
+     * Formats the type of this component.
+     *
+     * @param dataContext component datum
+     */
+    public formatType(dataContext: any): string {
+        let typeString: string = this.formatClassName(dataContext);
+        if (dataContext.bundle.version !== 'unversioned') {
+            typeString += ' ' + dataContext.bundle.version;
+        }
+        return typeString;
+    }
+
+    /**
+     * Formats the bundle label.
+     *
+     * @param bundle
+     */
+    public formatBundle(bundle: any): string {
+        let groupString: string = '';
+        if (bundle.group !== 'default') {
+            groupString = bundle.group + ' - ';
+        }
+        return groupString + bundle.artifact;
+    }
+
     private binarySearch(length: number, comparator: Function): number {
         let low = 0;
         let high = length - 1;

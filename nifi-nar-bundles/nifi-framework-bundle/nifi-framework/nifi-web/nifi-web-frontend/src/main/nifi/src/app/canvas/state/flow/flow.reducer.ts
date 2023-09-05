@@ -107,6 +107,9 @@ export const flowReducer = createReducer(
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (response.type) {
+                case ComponentType.Processor:
+                    collection = draftState.flow.processGroupFlow.flow.processors;
+                    break;
                 case ComponentType.ProcessGrouop:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
                     break;
@@ -131,6 +134,9 @@ export const flowReducer = createReducer(
             if (response.restoreOnFailure) {
                 let collection: any[] | null = null;
                 switch (response.type) {
+                    case ComponentType.Processor:
+                        collection = draftState.flow.processGroupFlow.flow.processors;
+                        break;
                     case ComponentType.ProcessGrouop:
                         collection = draftState.flow.processGroupFlow.flow.processGroups;
                         break;
@@ -159,6 +165,9 @@ export const flowReducer = createReducer(
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (positionUpdateResponse.type) {
+                case ComponentType.Processor:
+                    collection = draftState.flow.processGroupFlow.flow.processors;
+                    break;
                 case ComponentType.ProcessGrouop:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
                     break;

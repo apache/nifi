@@ -39,6 +39,11 @@ export const selectFunnels = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
 );
 
+export const selectProcessors = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow?.flow.processors
+);
+
 export const selectProcessGroups = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.processGroups

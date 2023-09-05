@@ -147,7 +147,7 @@ export class ProcessGroupManager {
             .filter(function (d: any) {
                 return d.permissions.canWrite && d.permissions.canRead;
             })
-            .on('mouseover.drop', function (d: any) {
+            .on('mouseover.drop', function () {
                 // TODO
                 // Using mouseover/out to workaround chrome issue #122746
                 // get the target and ensure its not already been marked for drop
@@ -174,7 +174,7 @@ export class ProcessGroupManager {
                 //     }
                 // }
             })
-            .on('mouseout.drop', function (d: any) {
+            .on('mouseout.drop', function () {
                 // mark that we are no longer hovering over a drop area unconditionally
                 // d3.select(this).classed('drop', false);
             });
@@ -1337,7 +1337,7 @@ export class ProcessGroupManager {
             });
 
             // ---------
-            // bulletins
+            // TODO bulletins
             // ---------
 
             // processGroup.select('rect.bulletin-background').classed('has-bulletins', function () {
