@@ -104,7 +104,6 @@ export class LabelManager {
         if (updated.empty()) {
             return;
         }
-
         const self: LabelManager = this;
 
         // update the border using the configured color
@@ -383,7 +382,7 @@ export class LabelManager {
     }
 
     public render(): void {
-        this.updateLabels(this.labelContainer.selectAll('g.label'));
+        this.updateLabels(this.selectAll());
     }
 
     public pan(): void {

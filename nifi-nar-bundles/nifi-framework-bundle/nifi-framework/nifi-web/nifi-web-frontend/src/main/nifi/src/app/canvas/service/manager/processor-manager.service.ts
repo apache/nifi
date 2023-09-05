@@ -23,11 +23,7 @@ import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
-import {
-    selectProcessors,
-    selectSelected,
-    selectTransitionRequired
-} from '../../state/flow/flow.selectors';
+import { selectProcessors, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -913,7 +909,7 @@ export class ProcessorManager {
     }
 
     public render(): void {
-        this.updateProcessors(this.processorContainer.selectAll('g.processor'));
+        this.updateProcessors(this.selectAll());
     }
 
     public pan(): void {

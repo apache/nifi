@@ -261,7 +261,7 @@ export class CanvasUtils {
      * @param {string} text
      * @param {string} cacheName
      */
-    private multilineEllipsis(selection: any, lineCount: number, text: string, cacheName: string) {
+    public multilineEllipsis(selection: any, lineCount: number, text: string, cacheName: string) {
         let i: number = 1;
         const words: string[] = text.split(/\s+/).reverse();
 

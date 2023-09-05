@@ -178,7 +178,7 @@ export class FunnelManager {
     }
 
     public render(): void {
-        this.updateFunnels(this.funnelContainer.selectAll('g.funnel'));
+        this.updateFunnels(this.selectAll());
     }
 
     public pan(): void {

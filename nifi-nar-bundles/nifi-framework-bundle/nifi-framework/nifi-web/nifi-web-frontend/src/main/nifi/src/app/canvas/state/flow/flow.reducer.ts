@@ -110,8 +110,14 @@ export const flowReducer = createReducer(
                 case ComponentType.Processor:
                     collection = draftState.flow.processGroupFlow.flow.processors;
                     break;
-                case ComponentType.ProcessGrouop:
+                case ComponentType.ProcessGroup:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.InputPort:
+                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
+                    break;
+                case ComponentType.OutputPort:
+                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
                     break;
                 case ComponentType.Label:
                     collection = draftState.flow.processGroupFlow.flow.labels;
@@ -137,8 +143,14 @@ export const flowReducer = createReducer(
                     case ComponentType.Processor:
                         collection = draftState.flow.processGroupFlow.flow.processors;
                         break;
-                    case ComponentType.ProcessGrouop:
+                    case ComponentType.ProcessGroup:
                         collection = draftState.flow.processGroupFlow.flow.processGroups;
+                        break;
+                    case ComponentType.InputPort:
+                        collection = draftState.flow.processGroupFlow.flow.inputPorts;
+                        break;
+                    case ComponentType.OutputPort:
+                        collection = draftState.flow.processGroupFlow.flow.outputPorts;
                         break;
                     case ComponentType.Label:
                         collection = draftState.flow.processGroupFlow.flow.labels;
@@ -168,8 +180,14 @@ export const flowReducer = createReducer(
                 case ComponentType.Processor:
                     collection = draftState.flow.processGroupFlow.flow.processors;
                     break;
-                case ComponentType.ProcessGrouop:
+                case ComponentType.ProcessGroup:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.InputPort:
+                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
+                    break;
+                case ComponentType.OutputPort:
+                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
                     break;
                 case ComponentType.Label:
                     collection = draftState.flow.processGroupFlow.flow.labels;

@@ -1392,7 +1392,7 @@ export class ProcessGroupManager {
         this.processGroups = processGroups.map((processGroup: any) => {
             return {
                 ...processGroup,
-                type: ComponentType.ProcessGrouop,
+                type: ComponentType.ProcessGroup,
                 dimensions: this.dimensions
             };
         });
@@ -1419,7 +1419,7 @@ export class ProcessGroupManager {
     }
 
     public render(): void {
-        this.updateProcessGroups(this.processGroupContainer.selectAll('g.process-group'));
+        this.updateProcessGroups(this.selectAll());
     }
 
     public pan(): void {

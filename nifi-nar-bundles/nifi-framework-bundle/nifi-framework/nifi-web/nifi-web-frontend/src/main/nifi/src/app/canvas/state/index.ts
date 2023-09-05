@@ -21,7 +21,9 @@
 
 export enum ComponentType {
     Processor = 'Processor',
-    ProcessGrouop = 'ProcessGroup',
+    ProcessGroup = 'ProcessGroup',
+    InputPort = 'InputPort',
+    OutputPort = 'OutputPort',
     Label = 'Label',
     Funnel = 'Funnel'
 }

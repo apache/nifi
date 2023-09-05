@@ -27,6 +27,7 @@ import { FunnelManager } from './manager/funnel-manager.service';
 import { selectRenderRequired } from '../state/flow/flow.selectors';
 import { LabelManager } from './manager/label-manager.service';
 import { ProcessorManager } from './manager/processor-manager.service';
+import { PortManager } from './manager/port-manager.service';
 
 @Injectable({
     providedIn: 'root'
@@ -50,6 +51,7 @@ export class CanvasView {
         private store: Store<CanvasState>,
         private processorManager: ProcessorManager,
         private processGroupManager: ProcessGroupManager,
+        private portManager: PortManager,
         private funnelManager: FunnelManager,
         private labelManager: LabelManager
     ) {
@@ -70,6 +72,7 @@ export class CanvasView {
                 // positions of elements on the canvas may be incorrect
                 self.processorManager.render();
                 self.processGroupManager.render();
+                self.portManager.render();
                 self.labelManager.render();
                 self.funnelManager.render();
             }
@@ -80,6 +83,7 @@ export class CanvasView {
 
         this.processorManager.init();
         this.processGroupManager.init();
+        this.portManager.init();
         this.labelManager.init();
         this.funnelManager.init();
 
@@ -274,6 +278,9 @@ export class CanvasView {
         this.processGroupManager.selectAll().each(function (this: any, d: any) {
             updateVisibility(d3.select(this), d, isComponentVisible);
         });
+        this.portManager.selectAll().each(function (this: any, d: any) {
+            updateVisibility(d3.select(this), d, isComponentVisible);
+        });
         this.labelManager.selectAll().each(function (this: any, d: any) {
             updateVisibility(d3.select(this), d, isComponentVisible);
         });
@@ -284,6 +291,7 @@ export class CanvasView {
         // trigger pan
         this.processorManager.pan();
         this.processGroupManager.pan();
+        this.portManager.pan();
         this.labelManager.pan();
         this.funnelManager.pan();
     }

@@ -1,0 +1,601 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Injectable } from '@angular/core';
+import { CanvasState, ComponentType, Dimension } from '../../state';
+import { Store, select } from '@ngrx/store';
+import { CanvasUtils } from '../canvas-utils.service';
+import { PositionBehavior } from '../behavior/position-behavior.service';
+import { SelectableBehavior } from '../behavior/selectable-behavior.service';
+import { EditableBehavior } from '../behavior/editable-behavior.service';
+import * as d3 from 'd3';
+import { selectPorts, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class PortManager {
+    private portDimensions: Dimension = {
+        width: 240,
+        height: 48
+    };
+    private remotePortDimensions: Dimension = {
+        width: 240,
+        height: 80
+    };
+
+    private static readonly PREVIEW_NAME_LENGTH: number = 15;
+    private static readonly OFFSET_VALUE: number = 25;
+
+    private ports: [] = [];
+    private portContainer: any;
+    private transitionRequired: boolean = false;
+
+    constructor(
+        private store: Store<CanvasState>,
+        private canvasUtils: CanvasUtils,
+        private positionBehavior: PositionBehavior,
+        private selectableBehavior: SelectableBehavior,
+        private editableBehavior: EditableBehavior
+    ) {}
+
+    private dimensions(d: any): Dimension {
+        return d.allowRemoteAccess === true ? this.remotePortDimensions : this.portDimensions;
+    }
+
+    private portType(d: any): ComponentType {
+        return d.portType === 'INPUT_PORT' ? ComponentType.InputPort : ComponentType.OutputPort;
+    }
+
+    /**
+     * Utility method to check if the target port is a local port.
+     */
+    private isLocalPort(d: any) {
+        return d.allowRemoteAccess !== true;
+    }
+
+    /**
+     * Utility method to calculate offset y position based on whether this port is remotely accessible.
+     */
+    private offsetY(y: any) {
+        const self: PortManager = this;
+        return function (d: any) {
+            return y + (self.isLocalPort(d) ? 0 : PortManager.OFFSET_VALUE);
+        };
+    }
+
+    private select() {
+        return this.portContainer.selectAll('g.input-port, g.output-port').data(this.ports, function (d: any) {
+            return d.id;
+        });
+    }
+
+    private renderPorts(entered: any) {
+        if (entered.empty()) {
+            return entered;
+        }
+
+        var port = entered
+            .append('g')
+            .attr('id', function (d: any) {
+                return 'id-' + d.id;
+            })
+            .attr('class', function (d: any) {
+                if (d.portType === 'INPUT_PORT') {
+                    return 'input-port component';
+                } else {
+                    return 'output-port component';
+                }
+            });
+
+        // port border
+        port.append('rect')
+            .attr('class', 'border')
+            .attr('width', function (d: any) {
+                return d.dimensions.width;
+            })
+            .attr('height', function (d: any) {
+                return d.dimensions.height;
+            })
+            .attr('fill', 'transparent')
+            .attr('stroke', 'transparent');
+
+        // port body
+        port.append('rect')
+            .attr('class', 'body')
+            .attr('width', function (d: any) {
+                return d.dimensions.width;
+            })
+            .attr('height', function (d: any) {
+                return d.dimensions.height;
+            })
+            .attr('filter', 'url(#component-drop-shadow)')
+            .attr('stroke-width', 0);
+
+        // port remote banner
+        port.append('rect')
+            .attr('class', 'remote-banner')
+            .attr('width', this.remotePortDimensions.width)
+            .attr('height', PortManager.OFFSET_VALUE)
+            .attr('fill', '#e3e8eb')
+            .classed('hidden', this.isLocalPort);
+
+        // port icon
+        port.append('text')
+            .attr('class', 'port-icon')
+            .attr('x', 10)
+            .attr('y', this.offsetY(38))
+            .text(function (d: any) {
+                if (d.portType === 'INPUT_PORT') {
+                    return '\ue832';
+                } else {
+                    return '\ue833';
+                }
+            });
+
+        // port name
+        port.append('text')
+            .attr('x', 70)
+            .attr('y', this.offsetY(25))
+            .attr('width', 95)
+            .attr('height', 30)
+            .attr('class', 'port-name');
+
+        // always support selection
+        this.selectableBehavior.activate(port);
+
+        // TODO
+        // .call(nfContextMenu.activate)
+        // TODO
+        // .call(nfQuickSelect.activate);
+
+        return port;
+    }
+
+    private updatePorts(updated: any) {
+        if (updated.empty()) {
+            return;
+        }
+        const self: PortManager = this;
+
+        // port border authorization
+        updated
+            .select('rect.border')
+            .attr('height', function (d: any) {
+                return d.dimensions.height;
+            })
+            .classed('unauthorized', function (d: any) {
+                return d.permissions.canRead === false;
+            });
+
+        // port body authorization
+        updated
+            .select('rect.body')
+            .attr('height', function (d: any) {
+                return d.dimensions.height;
+            })
+            .classed('unauthorized', function (d: any) {
+                return d.permissions.canRead === false;
+            });
+
+        updated.each(function (this: any, portData: any) {
+            const port: any = d3.select(this);
+            let details: any = port.select('g.port-details');
+
+            // update the component behavior as appropriate
+            self.editableBehavior.editable(port);
+
+            // if this port is visible, render everything
+            if (port.classed('visible')) {
+                if (details.empty()) {
+                    // Adding details when the port is rendered for the 1st time, or it becomes visible due to permission updates.
+                    details = port.append('g').attr('class', 'port-details');
+
+                    // port transmitting icon
+                    details
+                        .append('text')
+                        .attr('class', 'port-transmission-icon')
+                        .attr('x', 10)
+                        .attr('y', 18)
+                        .classed('hidden', self.isLocalPort);
+
+                    // bulletin background
+                    details
+                        .append('rect')
+                        .attr('class', 'bulletin-background')
+                        .attr('x', self.remotePortDimensions.width - PortManager.OFFSET_VALUE)
+                        .attr('width', PortManager.OFFSET_VALUE)
+                        .attr('height', PortManager.OFFSET_VALUE)
+                        .classed('hidden', self.isLocalPort);
+
+                    // bulletin icon
+                    details
+                        .append('text')
+                        .attr('class', 'bulletin-icon')
+                        .attr('x', self.remotePortDimensions.width - 18)
+                        .attr('y', 18)
+                        .text('\uf24a')
+                        .classed('hidden', self.isLocalPort);
+
+                    // run status icon
+                    details.append('text').attr('class', 'run-status-icon').attr('x', 50).attr('y', self.offsetY(25));
+
+                    // --------
+                    // comments
+                    // --------
+
+                    details
+                        .append('path')
+                        .attr('class', 'component-comments')
+                        .attr(
+                            'transform',
+                            'translate(' +
+                                (portData.dimensions.width - 2) +
+                                ', ' +
+                                (portData.dimensions.height - 10) +
+                                ')'
+                        )
+                        .attr('d', 'm0,0 l0,8 l-8,0 z');
+
+                    // -------------------
+                    // active thread count
+                    // -------------------
+
+                    // active thread count
+                    details
+                        .append('text')
+                        .attr('class', 'active-thread-count-icon')
+                        .attr('y', self.offsetY(43))
+                        .text('\ue83f');
+
+                    // active thread icon
+                    details.append('text').attr('class', 'active-thread-count').attr('y', self.offsetY(43));
+                }
+
+                if (portData.permissions.canRead) {
+                    // Update the remote port banner, these are needed when remote access is changed.
+                    port.select('rect.remote-banner').classed('hidden', self.isLocalPort);
+
+                    port.select('text.port-icon').attr('y', self.offsetY(38));
+
+                    details.select('text.port-transmission-icon').classed('hidden', self.isLocalPort);
+
+                    details.select('rect.bulletin-background').classed('hidden', self.isLocalPort);
+
+                    details.select('rect.bulletin-icon').classed('hidden', self.isLocalPort);
+
+                    // update the port name
+                    port.select('text.port-name')
+                        .attr('y', self.offsetY(25))
+                        .each(function (this: any, d: any) {
+                            var portName = d3.select(this);
+                            var name = d.component.name;
+                            var words = name.split(/\s+/);
+
+                            // reset the port name to handle any previous state
+                            portName.text(null).selectAll('tspan, title').remove();
+
+                            // handle based on the number of tokens in the port name
+                            if (words.length === 1) {
+                                // apply ellipsis to the port name as necessary
+                                self.canvasUtils.ellipsis(portName, name, 'port-name');
+                            } else {
+                                self.canvasUtils.multilineEllipsis(portName, 2, name, 'port-name');
+                            }
+                        })
+                        .append('title')
+                        .text(function (d: any) {
+                            return d.component.name;
+                        });
+
+                    // update the port comments
+                    port.select('path.component-comments')
+                        .style(
+                            'visibility',
+                            self.canvasUtils.isBlank(portData.component.comments) ? 'hidden' : 'visible'
+                        )
+                        .attr(
+                            'transform',
+                            'translate(' +
+                                (portData.dimensions.width - 2) +
+                                ', ' +
+                                (portData.dimensions.height - 10) +
+                                ')'
+                        )
+                        .each(function () {
+                            // get the tip
+                            let tip: any = d3.select('#comments-tip-' + portData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (self.canvasUtils.isBlank(portData.component.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3
+                                        .select('#port-tooltips')
+                                        .append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + portData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.text(portData.component.comments);
+
+                                // TODO - add the tooltip
+                                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
+                } else {
+                    // clear the port name
+                    port.select('text.port-name').text(null);
+
+                    // clear the port comments
+                    port.select('path.component-comments').style('visibility', 'hidden');
+
+                    // TODO clear tooltips
+                    // port.call(removeTooltips);
+                }
+
+                // populate the stats
+                self.updatePortStatus(port);
+
+                // TODO? - Update connections to update anchor point positions those may have been updated by changing ports remote accessibility.
+                // nfConnection.getComponentConnections(portData.id).forEach(function (connection){
+                //     nfConnection.refresh(connection.id);
+                // });
+            } else {
+                if (portData.permissions.canRead) {
+                    // update the port name
+                    port.select('text.port-name').text(function (d: any) {
+                        var name = d.component.name;
+                        if (name.length > PortManager.PREVIEW_NAME_LENGTH) {
+                            return name.substring(0, PortManager.PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                        } else {
+                            return name;
+                        }
+                    });
+                } else {
+                    // clear the port name
+                    port.select('text.port-name').text(null);
+                }
+
+                // TODO - remove tooltips if necessary
+                // port.call(removeTooltips);
+
+                // remove the details if necessary
+                if (!details.empty()) {
+                    details.remove();
+                }
+            }
+        });
+    }
+
+    private updatePortStatus(updated: any) {
+        if (updated.empty()) {
+            return;
+        }
+        const self: PortManager = this;
+
+        // update the run status
+        updated
+            .select('text.run-status-icon')
+            .attr('fill', function (d: any) {
+                var fill = '#728e9b';
+
+                if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                    fill = '#cf9f5d';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
+                    fill = '#7dc7a0';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
+                    fill = '#d18686';
+                }
+
+                return fill;
+            })
+            .attr('font-family', function (d: any) {
+                var family = 'FontAwesome';
+                if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
+                    family = 'flowfont';
+                }
+                return family;
+            })
+            .attr('y', this.offsetY(25))
+            .text(function (d: any) {
+                var img = '';
+                if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
+                    img = '\ue802';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                    img = '\uf071';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
+                    img = '\uf04b';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
+                    img = '\uf04d';
+                }
+                return img;
+            })
+            .each(function (d: any) {
+                // get the tip
+                let tip: any = d3.select('#run-status-tip-' + d.id);
+
+                // if there are validation errors generate a tooltip
+                if (d.permissions.canRead && !self.canvasUtils.isEmpty(d.component.validationErrors)) {
+                    // create the tip if necessary
+                    if (tip.empty()) {
+                        tip = d3
+                            .select('#port-tooltips')
+                            .append('div')
+                            .attr('id', function () {
+                                return 'run-status-tip-' + d.id;
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // TODO - update the tip
+                    // tip.html(function () {
+                    //     var list = nfCommon.formatUnorderedList(d.component.validationErrors);
+                    //     if (list === null || list.length === 0) {
+                    //         return '';
+                    //     } else {
+                    //         return $('<div></div>').append(list).html();
+                    //     }
+                    // });
+
+                    // TODO - add the tooltip
+                    // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                } else {
+                    // remove if necessary
+                    if (!tip.empty()) {
+                        tip.remove();
+                    }
+                }
+            });
+
+        updated
+            .select('text.port-transmission-icon')
+            .attr('font-family', function (d: any) {
+                if (d.status.transmitting === true) {
+                    return 'FontAwesome';
+                } else {
+                    return 'flowfont';
+                }
+            })
+            .text(function (d: any) {
+                if (d.status.transmitting === true) {
+                    return '\uf140';
+                } else {
+                    return '\ue80a';
+                }
+            })
+            .classed('transmitting', function (d: any) {
+                if (d.status.transmitting === true) {
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+            .classed('not-transmitting', function (d: any) {
+                if (d.status.transmitting !== true) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+
+        updated.each(function (this: any, d: any) {
+            const port: any = d3.select(this);
+            let offset: number = 0;
+
+            // -------------------
+            // active thread count
+            // -------------------
+
+            self.canvasUtils.activeThreadCount(port, d, function (off: any) {
+                offset = off;
+            });
+
+            port.select('text.active-thread-count-icon').attr('y', self.offsetY(43));
+            port.select('text.active-thread-count').attr('y', self.offsetY(43));
+
+            // ---------
+            // TODO bulletins
+            // ---------
+
+            port.select('rect.bulletin-background').classed('has-bulletins', function () {
+                return !self.canvasUtils.isEmpty(d.status.aggregateSnapshot.bulletins);
+            });
+
+            // nfCanvasUtils.bulletins(port, d, function () {
+            //     return d3.select('#port-tooltips');
+            // }, offset);
+        });
+    }
+
+    private removePorts(removed: any) {
+        // TODO
+        // removed.call(removeTooltips).remove();
+        removed.remove();
+    }
+
+    public init(): void {
+        this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
+
+        this.store.pipe(select(selectPorts)).subscribe((ports) => {
+            this.set(ports);
+        });
+
+        this.store.pipe(select(selectSelected)).subscribe((selected) => {
+            if (selected && selected.length) {
+                this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
+            }
+        });
+
+        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
+            this.transitionRequired = transitionRequired;
+        });
+    }
+
+    private set(ports: any): void {
+        // update the ports
+        this.ports = ports.map((port: any) => {
+            return {
+                ...port,
+                type: this.portType(port),
+                dimensions: this.dimensions(port)
+            };
+        });
+
+        // select
+        const selection = this.select();
+
+        // enter
+        const entered = this.renderPorts(selection.enter());
+
+        // update
+        const updated = selection.merge(entered);
+        this.updatePorts(updated);
+
+        // position
+        this.positionBehavior.position(updated, this.transitionRequired);
+
+        // exit
+        this.removePorts(selection.exit());
+    }
+
+    public selectAll(): any {
+        return this.portContainer.selectAll('g.input-port, g.output-port');
+    }
+
+    public render(): void {
+        this.updatePorts(this.selectAll());
+    }
+
+    public pan(): void {
+        this.updatePorts(
+            this.portContainer.selectAll(
+                'g.input-port.entering, g.output-port.entering, g.input-port.leaving, g.output-port.leaving'
+            )
+        );
+    }
+}
