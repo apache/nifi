@@ -127,6 +127,7 @@ public class StandardLogRepository implements LogRepository {
         try {
             final Set<LogObserver> observersCopy = new HashSet<>(observers);
             observers.clear();
+            observersPerLogLevel.clear();
 
             for (final LogObserver observer : observersCopy) {
                 addObserver(level, observer);
