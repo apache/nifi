@@ -22,6 +22,7 @@
 export enum ComponentType {
     Processor = 'Processor',
     ProcessGroup = 'ProcessGroup',
+    RemoteProcessGroup = 'RemoteProcessGroup',
     InputPort = 'InputPort',
     OutputPort = 'OutputPort',
     Label = 'Label',

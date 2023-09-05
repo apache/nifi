@@ -49,6 +49,11 @@ export const selectProcessGroups = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.processGroups
 );
 
+export const selectRemoteProcessGroups = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow?.flow.remoteProcessGroups
+);
+
 export const selectInputPorts = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.inputPorts
@@ -59,9 +64,12 @@ export const selectOutputPorts = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.outputPorts
 );
 
-export const selectPorts = createSelector(selectFlowState, (state: FlowState) => [
-    ...state.flow.processGroupFlow?.flow.inputPorts,
-    ...state.flow.processGroupFlow?.flow.outputPorts
+export const selectPorts = createSelector(
+  selectInputPorts,
+  selectOutputPorts,
+  (inputPorts: any, outputPorts: any) => [
+    ...inputPorts,
+    ...outputPorts
 ]);
 
 export const selectLabels = createSelector(

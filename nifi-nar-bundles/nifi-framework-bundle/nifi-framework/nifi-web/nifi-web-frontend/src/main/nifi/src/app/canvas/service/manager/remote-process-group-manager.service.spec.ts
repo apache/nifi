@@ -17,14 +17,14 @@
 
 import { TestBed } from '@angular/core/testing';
 
-import { ProcessorManager } from './processor-manager.service';
+import { RemoteProcessGroupManager } from './remote-process-group-manager.service';
 
-describe('ProcessorManager', () => {
-    let service: ProcessorManager;
+describe('RemoteProcessGroupManager', () => {
+    let service: RemoteProcessGroupManager;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
-        service = TestBed.inject(ProcessorManager);
+        service = TestBed.inject(RemoteProcessGroupManager);
     });
 
     it('should be created', () => {

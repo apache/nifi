@@ -53,7 +53,7 @@ export class FunnelManager {
             return entered;
         }
 
-        var funnel = entered
+        const funnel = entered
             .append('g')
             .attr('id', function (d: any) {
                 return 'id-' + d.id;

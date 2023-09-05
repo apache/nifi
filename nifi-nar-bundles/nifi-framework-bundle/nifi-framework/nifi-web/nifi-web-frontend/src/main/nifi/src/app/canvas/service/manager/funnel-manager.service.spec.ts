@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { FunnelManager } from './funnel-manager.service';
 
-describe('FunnelManagerService', () => {
+describe('FunnelManager', () => {
     let service: FunnelManager;
 
     beforeEach(() => {

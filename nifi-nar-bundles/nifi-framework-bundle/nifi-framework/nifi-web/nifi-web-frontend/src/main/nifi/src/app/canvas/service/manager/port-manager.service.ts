@@ -89,7 +89,7 @@ export class PortManager {
             return entered;
         }
 
-        var port = entered
+        const port = entered
             .append('g')
             .attr('id', function (d: any) {
                 return 'id-' + d.id;
@@ -282,9 +282,9 @@ export class PortManager {
                     port.select('text.port-name')
                         .attr('y', self.offsetY(25))
                         .each(function (this: any, d: any) {
-                            var portName = d3.select(this);
-                            var name = d.component.name;
-                            var words = name.split(/\s+/);
+                            const portName = d3.select(this);
+                            const name = d.component.name;
+                            const words = name.split(/\s+/);
 
                             // reset the port name to handle any previous state
                             portName.text(null).selectAll('tspan, title').remove();
@@ -367,7 +367,7 @@ export class PortManager {
                 if (portData.permissions.canRead) {
                     // update the port name
                     port.select('text.port-name').text(function (d: any) {
-                        var name = d.component.name;
+                        const name = d.component.name;
                         if (name.length > PortManager.PREVIEW_NAME_LENGTH) {
                             return name.substring(0, PortManager.PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
                         } else {
@@ -400,7 +400,7 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('fill', function (d: any) {
-                var fill = '#728e9b';
+                let fill: string = '#728e9b';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     fill = '#cf9f5d';
@@ -413,7 +413,7 @@ export class PortManager {
                 return fill;
             })
             .attr('font-family', function (d: any) {
-                var family = 'FontAwesome';
+                let family: string = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -421,7 +421,7 @@ export class PortManager {
             })
             .attr('y', this.offsetY(25))
             .text(function (d: any) {
-                var img = '';
+                let img: string = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
@@ -452,7 +452,7 @@ export class PortManager {
 
                     // TODO - update the tip
                     // tip.html(function () {
-                    //     var list = nfCommon.formatUnorderedList(d.component.validationErrors);
+                    //     const list = nfCommon.formatUnorderedList(d.component.validationErrors);
                     //     if (list === null || list.length === 0) {
                     //         return '';
                     //     } else {
@@ -487,18 +487,10 @@ export class PortManager {
                 }
             })
             .classed('transmitting', function (d: any) {
-                if (d.status.transmitting === true) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return d.status.transmitting === true;
             })
             .classed('not-transmitting', function (d: any) {
-                if (d.status.transmitting !== true) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return d.status.transmitting !== true;
             });
 
         updated.each(function (this: any, d: any) {
@@ -540,6 +532,7 @@ export class PortManager {
         this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
 
         this.store.pipe(select(selectPorts)).subscribe((ports) => {
+            console.log('all ports', ports);
             this.set(ports);
         });
 
@@ -552,6 +545,7 @@ export class PortManager {
         });
 
         this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
+            console.log('trasition', transitionRequired);
             this.transitionRequired = transitionRequired;
         });
     }

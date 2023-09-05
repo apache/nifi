@@ -113,6 +113,9 @@ export const flowReducer = createReducer(
                 case ComponentType.ProcessGroup:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
                     break;
+                case ComponentType.RemoteProcessGroup:
+                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
+                    break;
                 case ComponentType.InputPort:
                     collection = draftState.flow.processGroupFlow.flow.inputPorts;
                     break;
@@ -145,6 +148,9 @@ export const flowReducer = createReducer(
                         break;
                     case ComponentType.ProcessGroup:
                         collection = draftState.flow.processGroupFlow.flow.processGroups;
+                        break;
+                    case ComponentType.RemoteProcessGroup:
+                        collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
                         break;
                     case ComponentType.InputPort:
                         collection = draftState.flow.processGroupFlow.flow.inputPorts;
@@ -182,6 +188,9 @@ export const flowReducer = createReducer(
                     break;
                 case ComponentType.ProcessGroup:
                     collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.RemoteProcessGroup:
+                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
                     break;
                 case ComponentType.InputPort:
                     collection = draftState.flow.processGroupFlow.flow.inputPorts;

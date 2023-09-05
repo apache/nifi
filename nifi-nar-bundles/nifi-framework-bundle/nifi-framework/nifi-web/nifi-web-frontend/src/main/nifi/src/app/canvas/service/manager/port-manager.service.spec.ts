@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { PortManager } from './port-manager.service';
 
-describe('PortManagerService', () => {
+describe('PortManager', () => {
     let service: PortManager;
 
     beforeEach(() => {

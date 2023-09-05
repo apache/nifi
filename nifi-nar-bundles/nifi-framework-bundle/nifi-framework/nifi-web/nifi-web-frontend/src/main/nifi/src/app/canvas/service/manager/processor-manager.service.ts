@@ -59,7 +59,7 @@ export class ProcessorManager {
             return entered;
         }
 
-        var processor = entered
+        const processor = entered
             .append('g')
             .attr('id', function (d: any) {
                 return 'id-' + d.id;
@@ -289,7 +289,7 @@ export class ProcessorManager {
                         .attr('fill', '#ffffff');
 
                     // stats label container
-                    var processorStatsLabel = details.append('g').attr('transform', 'translate(10, 55)');
+                    const processorStatsLabel = details.append('g').attr('transform', 'translate(10, 55)');
 
                     // in label
                     processorStatsLabel
@@ -328,10 +328,10 @@ export class ProcessorManager {
                         .text('Tasks/Time');
 
                     // stats value container
-                    var processorStatsValue = details.append('g').attr('transform', 'translate(85, 55)');
+                    const processorStatsValue = details.append('g').attr('transform', 'translate(85, 55)');
 
                     // in value
-                    var inText = processorStatsValue
+                    const inText = processorStatsValue
                         .append('text')
                         .attr('width', 180)
                         .attr('height', 9)
@@ -353,7 +353,7 @@ export class ProcessorManager {
                         .attr('class', 'processor-read-write stats-value');
 
                     // out value
-                    var outText = processorStatsValue
+                    const outText = processorStatsValue
                         .append('text')
                         .attr('width', 180)
                         .attr('height', 10)
@@ -470,7 +470,7 @@ export class ProcessorManager {
                     processor
                         .select('text.processor-name')
                         .each(function (this: any, d: any) {
-                            var processorName = d3.select(this);
+                            const processorName = d3.select(this);
 
                             // reset the processor name to handle any previous state
                             processorName.text(null).selectAll('title').remove();
@@ -487,7 +487,7 @@ export class ProcessorManager {
                     processor
                         .select('text.processor-type')
                         .each(function (this: any, d: any) {
-                            var processorType = d3.select(this);
+                            const processorType = d3.select(this);
 
                             // reset the processor type to handle any previous state
                             processorType.text(null).selectAll('title').remove();
@@ -508,7 +508,7 @@ export class ProcessorManager {
                     processor
                         .select('text.processor-bundle')
                         .each(function (this: any, d: any) {
-                            var processorBundle = d3.select(this);
+                            const processorBundle = d3.select(this);
 
                             // reset the processor type to handle any previous state
                             processorBundle.text(null).selectAll('title').remove();
@@ -584,7 +584,7 @@ export class ProcessorManager {
                 if (processorData.permissions.canRead) {
                     // update the processor name
                     processor.select('text.processor-name').text(function (d: any) {
-                        var name = d.component.name;
+                        const name = d.component.name;
                         if (name.length > ProcessorManager.PREVIEW_NAME_LENGTH) {
                             return name.substring(0, ProcessorManager.PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
                         } else {
@@ -683,7 +683,7 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('fill', function (d: any) {
-                var fill = '#728e9b';
+                let fill: string = '#728e9b';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
                     fill = '#a8a8a8';
@@ -698,7 +698,7 @@ export class ProcessorManager {
                 return fill;
             })
             .attr('font-family', function (d: any) {
-                var family = 'FontAwesome';
+                let family: string = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -708,7 +708,7 @@ export class ProcessorManager {
                 return d.status.aggregateSnapshot.runStatus === 'Validating';
             })
             .text(function (d: any) {
-                var img = '';
+                let img: string = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Validating') {
@@ -785,7 +785,7 @@ export class ProcessorManager {
         });
 
         updated.each(function (this: any, d: any) {
-            var processor = d3.select(this);
+            const processor = d3.select(this);
 
             // -------------------
             // active thread count
