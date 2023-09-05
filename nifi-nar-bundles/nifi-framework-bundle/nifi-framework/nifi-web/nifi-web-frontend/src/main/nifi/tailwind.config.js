@@ -21,11 +21,12 @@ module.exports = {
     "./src/**/*.{html,ts}",
   ],
   theme: {
-    colors: {
-      "nifi-primary": "#aabbc3",
-      "nifi-accent": "#e3e8eb"
+    extend: {
+      colors: {
+        "nifi-primary": "#aabbc3",
+        "nifi-accent": "#e3e8eb"
+      },
     },
-    extend: {},
   },
   plugins: [],
 }

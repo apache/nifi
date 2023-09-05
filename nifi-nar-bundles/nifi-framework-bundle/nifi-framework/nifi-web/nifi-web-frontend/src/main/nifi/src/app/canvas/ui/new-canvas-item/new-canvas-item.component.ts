@@ -15,14 +15,27 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { HeaderComponent } from './header.component';
-import { NewCanvasItemModule } from '../new-canvas-item/new-canvas-item.module';
+import { Component, Input } from '@angular/core';
+import { ComponentType } from '../../state';
 
-@NgModule({
-    declarations: [HeaderComponent],
-    exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, NewCanvasItemModule]
+@Component({
+    selector: 'new-canvas-item',
+    templateUrl: './new-canvas-item.component.html',
+    styleUrls: ['./new-canvas-item.component.scss']
 })
-export class HeaderModule {}
+export class NewCanvasItemComponent {
+
+    @Input() type: string = '';
+    @Input() iconClass: string = '';
+    @Input() iconHoverClass: string = '';
+
+    hovering: boolean = false;
+
+    mouseEnter() {
+        this.hovering = true;
+    }
+
+    mouseLeave() {
+        this.hovering = false;
+    }
+}

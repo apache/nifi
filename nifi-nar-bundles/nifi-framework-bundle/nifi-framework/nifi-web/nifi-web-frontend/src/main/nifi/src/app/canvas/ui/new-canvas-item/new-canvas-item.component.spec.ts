@@ -15,14 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { HeaderComponent } from './header.component';
-import { NewCanvasItemModule } from '../new-canvas-item/new-canvas-item.module';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [HeaderComponent],
-    exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, NewCanvasItemModule]
-})
-export class HeaderModule {}
+import { NewCanvasItemComponent } from './new-canvas-item.component';
+
+describe('NewCanvasItemComponent', () => {
+  let component: NewCanvasItemComponent;
+  let fixture: ComponentFixture<NewCanvasItemComponent>;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      declarations: [NewCanvasItemComponent]
+    });
+    fixture = TestBed.createComponent(NewCanvasItemComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});

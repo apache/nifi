@@ -16,13 +16,13 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { HeaderComponent } from './header.component';
-import { NewCanvasItemModule } from '../new-canvas-item/new-canvas-item.module';
+import { CommonModule } from '@angular/common';
+import { NewCanvasItemComponent } from './new-canvas-item.component';
+import { CdkDrag } from '@angular/cdk/drag-drop';
 
 @NgModule({
-    declarations: [HeaderComponent],
-    exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, NewCanvasItemModule]
+    declarations: [NewCanvasItemComponent],
+    exports: [NewCanvasItemComponent],
+    imports: [CommonModule, CdkDrag]
 })
-export class HeaderModule {}
+export class NewCanvasItemModule {}

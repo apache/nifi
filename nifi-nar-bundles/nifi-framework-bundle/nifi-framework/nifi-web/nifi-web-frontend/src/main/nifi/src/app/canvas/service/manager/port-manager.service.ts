@@ -532,7 +532,6 @@ export class PortManager {
         this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
 
         this.store.pipe(select(selectPorts)).subscribe((ports) => {
-            console.log('all ports', ports);
             this.set(ports);
         });
 
@@ -545,7 +544,6 @@ export class PortManager {
         });
 
         this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            console.log('trasition', transitionRequired);
             this.transitionRequired = transitionRequired;
         });
     }

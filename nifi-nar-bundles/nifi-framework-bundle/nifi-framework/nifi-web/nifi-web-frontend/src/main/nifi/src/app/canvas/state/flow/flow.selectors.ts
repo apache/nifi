@@ -67,7 +67,7 @@ export const selectOutputPorts = createSelector(
 export const selectPorts = createSelector(
   selectInputPorts,
   selectOutputPorts,
-  (inputPorts: any, outputPorts: any) => [
+  (inputPorts: any[], outputPorts: any[]) => [
     ...inputPorts,
     ...outputPorts
 ]);
