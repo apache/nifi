@@ -25,6 +25,10 @@ export class Client {
 
     constructor() {}
 
+    public getClientId(): string {
+        return this.clientId;
+    }
+
     /**
      * Builds the revision fof the specified component
      * @param d The component

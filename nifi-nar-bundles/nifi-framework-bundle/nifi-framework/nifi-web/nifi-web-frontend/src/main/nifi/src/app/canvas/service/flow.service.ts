@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { UpdateComponent, UpdateComponentPosition } from '../state';
+import { CreateComponent, UpdateComponent, UpdateComponentPosition } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 
@@ -44,7 +44,25 @@ export class FlowService {
     }
 
     getFlow(processGroupId: string = 'root'): Observable<any> {
-        return this.httpClient.get(FlowService.API + '/flow/process-groups/' + processGroupId);
+        return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
+    }
+
+    createFunnel(processGroupId: string = 'root', createFunnel: CreateComponent): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/funnels`, {
+            revision: createFunnel.revision,
+            component: {
+                position: createFunnel.position
+            }
+        });
+    }
+
+    createLabel(processGroupId: string = 'root', createLabel: CreateComponent): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/labels`, {
+            revision: createLabel.revision,
+            component: {
+                position: createLabel.position
+            }
+        });
     }
 
     updateComponent(updateComponent: UpdateComponent): Observable<any> {

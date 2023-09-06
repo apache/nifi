@@ -19,19 +19,24 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { catchError, from, map, of, switchMap } from 'rxjs';
+import { catchError, from, map, of, switchMap, withLatestFrom } from 'rxjs';
 import {
+    CanvasState,
+    ComponentType,
     EnterProcessGroupRequest,
     EnterProcessGroupResponse,
     UpdateComponentFailure,
     UpdateComponentPositionResponse,
     UpdateComponentResponse
 } from '../index';
+import { Store } from '@ngrx/store';
+import { selectCurrentProcessGroupId } from './flow.selectors';
 
 @Injectable()
 export class FlowEffects {
     constructor(
         private actions$: Actions,
+        private store: Store<CanvasState>,
         private flowService: FlowService
     ) {}
 
@@ -76,6 +81,65 @@ export class FlowEffects {
             switchMap(() => {
                 return of(FlowActions.setRenderRequired({ renderRequired: false }));
             })
+        )
+    );
+
+    createComponentRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createComponentRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                switch (request.type) {
+                    case ComponentType.Funnel:
+                        return of(FlowActions.createFunnel({ request }));
+                    case ComponentType.Label:
+                        return of(FlowActions.createLabel({ request }));
+                    default:
+                        return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
+                }
+            })
+        )
+    );
+
+    createFunnel$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createFunnel),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createFunnel(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
+        )
+    );
+
+    createLabel$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createLabel),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createLabel(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
         )
     );
 

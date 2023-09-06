@@ -60,8 +60,19 @@ export interface EnterProcessGroupResponse {
 }
 
 /*
-  Update Requests
+  Component Requests
  */
+
+export interface CreateComponent {
+    type: ComponentType;
+    position: Position;
+    revision: any;
+}
+
+export interface CreateComponentResponse {
+    type: ComponentType;
+    payload: any;
+}
 
 export interface UpdateComponent {
     id: string;
@@ -144,6 +155,7 @@ export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
     selection: string[];
+    dragging: boolean;
     transitionRequired: boolean;
     renderRequired: boolean;
     error: string | null;

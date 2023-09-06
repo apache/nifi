@@ -16,10 +16,13 @@
  */
 
 import { Component } from '@angular/core';
+import { ComponentType } from '../../state';
 
 @Component({
     selector: 'fd-header',
     templateUrl: './header.component.html',
     styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent {}
+export class HeaderComponent {
+    protected readonly ComponentType = ComponentType;
+}

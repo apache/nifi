@@ -18,11 +18,13 @@
 import { createReducer, on } from '@ngrx/store';
 import {
     addSelectedComponents,
+    createComponentSuccess,
     enterProcessGroup,
     enterProcessGroupComplete,
     enterProcessGroupSuccess,
     flowApiError,
     removeSelectedComponents,
+    setDragging,
     setRenderRequired,
     setSelectedComponents,
     setTransitionRequired,
@@ -59,6 +61,7 @@ export const initialState: FlowState = {
         }
     },
     selection: [],
+    dragging: false,
     renderRequired: false,
     transitionRequired: false,
     error: null,
@@ -74,7 +77,7 @@ export const flowReducer = createReducer(
     })),
     on(enterProcessGroupSuccess, (state, { response }) => ({
         ...state,
-        id: response.id,
+        id: response.flow.processGroupFlow.id,
         flow: response.flow,
         error: null,
         status: 'success' as const
@@ -87,6 +90,7 @@ export const flowReducer = createReducer(
     })),
     on(flowApiError, (state, { error }) => ({
         ...state,
+        dragging: false,
         transitionRequired: false,
         error: error,
         status: 'error' as const
@@ -103,8 +107,42 @@ export const flowReducer = createReducer(
         ...state,
         selection: state.selection.filter((id) => !ids.includes(id))
     })),
+    on(createComponentSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            let collection: any[] | null = null;
+            switch (response.type) {
+                case ComponentType.Processor:
+                    collection = draftState.flow.processGroupFlow.flow.processors;
+                    break;
+                case ComponentType.ProcessGroup:
+                    collection = draftState.flow.processGroupFlow.flow.processGroups;
+                    break;
+                case ComponentType.RemoteProcessGroup:
+                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
+                    break;
+                case ComponentType.InputPort:
+                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
+                    break;
+                case ComponentType.OutputPort:
+                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
+                    break;
+                case ComponentType.Label:
+                    collection = draftState.flow.processGroupFlow.flow.labels;
+                    break;
+                case ComponentType.Funnel:
+                    collection = draftState.flow.processGroupFlow.flow.funnels;
+                    break;
+            }
+
+            if (collection) {
+                collection.push(response.payload);
+            }
+        });
+    }),
     on(updateComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
+            draftState.dragging = false;
+
             let collection: any[] | null = null;
             switch (response.type) {
                 case ComponentType.Processor:
@@ -214,6 +252,10 @@ export const flowReducer = createReducer(
             }
         });
     }),
+    on(setDragging, (state, { dragging }) => ({
+        ...state,
+        dragging: dragging
+    })),
     on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
         transitionRequired: transitionRequired

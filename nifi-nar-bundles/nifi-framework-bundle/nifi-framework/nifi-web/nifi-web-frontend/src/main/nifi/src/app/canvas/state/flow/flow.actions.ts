@@ -17,6 +17,8 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    CreateComponent,
+    CreateComponentResponse,
     EnterProcessGroupRequest,
     EnterProcessGroupResponse,
     UpdateComponent,
@@ -58,7 +60,25 @@ export const setSelectedComponents = createAction('[Canvas] Set Selected Compone
 export const removeSelectedComponents = createAction('[Canvas] Remove Selected Components', props<{ ids: string[] }>());
 
 /*
-    Component Actions
+    Create Component Actions
+ */
+
+export const createComponentRequest = createAction(
+    '[Canvas] Create Component Request',
+    props<{ request: CreateComponent }>()
+);
+
+export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponent }>());
+
+export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponent }>());
+
+export const createComponentSuccess = createAction(
+    '[Canvas] Create Component Success',
+    props<{ response: CreateComponentResponse }>()
+);
+
+/*
+    Update Component Action
  */
 
 export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
@@ -90,6 +110,8 @@ export const updatePositionSuccess = createAction(
 /*
     Transition
  */
+
+export const setDragging = createAction('[Canvas] Set Dragging', props<{ dragging: boolean }>());
 
 export const setTransitionRequired = createAction(
     '[Canvas] Set Transition Required',

@@ -34,6 +34,8 @@ export const selectTransitionRequired = createSelector(selectFlowState, (state: 
 
 export const selectRenderRequired = createSelector(selectFlowState, (state: FlowState) => state.renderRequired);
 
+export const selectDragging = createSelector(selectFlowState, (state: FlowState) => state.dragging);
+
 export const selectFunnels = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
