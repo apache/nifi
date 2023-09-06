@@ -80,7 +80,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         int recordCount = 0;
         final ByteBuffer dataBuffer = kinesisRecord.data();
         byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
-        if (data != null) {
+        if (dataBuffer != null) {
             dataBuffer.get(data);
         }
 

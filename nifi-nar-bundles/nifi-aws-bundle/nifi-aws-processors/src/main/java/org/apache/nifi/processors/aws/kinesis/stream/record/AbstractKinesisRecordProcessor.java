@@ -241,7 +241,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
     @Override
     public void leaseLost(final LeaseLostInput leaseLostInput) {
-
+        log.debug("Lease lost");
     }
 
     @Override

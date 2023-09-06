@@ -17,20 +17,15 @@
 package org.apache.nifi.processors.aws.kinesis.stream;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
-import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
-import software.amazon.awssdk.services.kinesis.KinesisAsyncClientBuilder;
 
-/**
- * This class is the base class for kinesis stream processors that use the async KinesisClient
- */
-public abstract class AbstractKinesisAsyncStreamProcessor extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder>
-implements KinesisStreamProcessor {
+public interface KinesisStreamProcessor {
 
-    @Override
-    protected KinesisAsyncClientBuilder createClientBuilder(final ProcessContext context) {
-        return KinesisAsyncClient.builder();
-    }
+    PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 }

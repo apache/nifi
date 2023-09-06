@@ -391,7 +391,7 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
     private ValidationResult validateDynamicKCLConfigProperty(final String subject, final String input, final ValidationContext context) {
         final ValidationResult.Builder validationResult = new ValidationResult.Builder().subject(subject).input(input);
 
-        if (!subject.matches("^(?!with)[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)?$")) {
+        if (!subject.matches("^(?!with)[a-zA-Z]\\w*(\\.[a-zA-Z]\\w*)?$")) {
             return validationResult
                     .explanation("Property name must not have a prefix of \"with\", must start with a letter and contain only letters, numbers, periods, or underscores")
                     .valid(false).build();
@@ -403,12 +403,14 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
                     .valid(false).build();
         }
 
+        final Region region = Region.of(context.getProperty(REGION).getValue());
+        // This is a temporary builder that is not used outside of validation
         final ConfigsBuilder configsBuilderTemp = new ConfigsBuilder(
                 getStreamName(context),
                 getApplicationName(context),
-                KinesisAsyncClient.builder().region(Region.US_WEST_2).build(),
-                DynamoDbAsyncClient.builder().region(Region.US_WEST_2).build(),
-                CloudWatchAsyncClient.builder().region(Region.US_WEST_2).build(),
+                KinesisAsyncClient.builder().region(region).build(),
+                DynamoDbAsyncClient.builder().region(region).build(),
+                CloudWatchAsyncClient.builder().region(region).build(),
                 UUID.randomUUID().toString(),
                 () -> null
         );
@@ -642,7 +644,7 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
         getLogger().info("Kinesis Scheduler prepared for application {} to process stream {} as scheduler ID {}...",
                 getApplicationName(context), streamName, schedulerId);
 
-        final Scheduler scheduler = new Scheduler(
+        return new Scheduler(
                 (CheckpointConfig) configMap.get(CHECKPOINT_CONFIG),
                 (CoordinatorConfig) configMap.get(COORDINATOR_CONFIG),
                 (LeaseManagementConfig) configMap.get(LEASE_MANAGEMENT_CONFIG),
@@ -651,7 +653,6 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
                 (ProcessorConfig) configMap.get(PROCESSOR_CONFIG),
                 (RetrievalConfig) configMap.get(RETRIEVAL_CONFIG)
         );
-        return scheduler;
     }
 
     private ShardRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
@@ -683,8 +684,7 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
      */
     @VisibleForTesting
     ConfigsBuilder prepareConfigsBuilder(final ProcessContext context, final String workerId, final ProcessSessionFactory sessionFactory) {
-        @SuppressWarnings("deprecated")
-        final ConfigsBuilder configsBuilder = new ConfigsBuilder(
+        return new ConfigsBuilder(
                 getStreamName(context),
                 getApplicationName(context),
                 getClient(context),
@@ -693,8 +693,6 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
                 workerId,
                 prepareRecordProcessorFactory(context, sessionFactory)
         );
-
-        return configsBuilder;
     }
 
     private CloudWatchAsyncClient getCloudwatchClient(final ProcessContext context) {
@@ -773,12 +771,6 @@ public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
     private Optional<String> getKinesisEndpoint(final PropertyContext context) {
         return context.getProperty(ENDPOINT_OVERRIDE).isSet()
                 ? Optional.of(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
-                : Optional.empty();
-    }
-
-    private Optional<String> getDynamoDBOverride(final PropertyContext context) {
-        return context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).isSet()
-                ? Optional.of(StringUtils.trimToEmpty(context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
                 : Optional.empty();
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.v2;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -46,10 +47,23 @@ import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
+import software.amazon.awssdk.core.client.builder.SdkClientBuilder;
+import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
+import software.amazon.awssdk.http.TlsKeyManagersProvider;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 
+import javax.net.ssl.TrustManager;
 import java.io.File;
+import java.net.Proxy;
+import java.net.URI;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,6 +72,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for aws processors using the AWS v2 SDK.
@@ -181,6 +196,14 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
 
     private final AwsClientCache<T> awsClientCache = new AwsClientCache<>();
 
+    /**
+     * Configure the http client on the builder.
+     * @param <B> The builder type
+     * @param clientBuilder The client builder
+     * @param context The process context
+     */
+    protected abstract <B extends AwsClientBuilder> void configureHttpClient(B clientBuilder, ProcessContext context);
+
     /*
      * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
      *
@@ -273,8 +296,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
-        try {
-            createClient(context);
+        try (final T client = createClient(context)) {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client")
@@ -307,6 +329,66 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
         return getClient(context, awsClientDetails);
     }
 
+    protected <C extends SdkClient, B extends AwsClientBuilder<B, C>>
+    void configureClientBuilder(final B clientBuilder, final ProcessContext context) {
+        configureClientBuilder(clientBuilder, context, ENDPOINT_OVERRIDE);
+    }
+
+    protected <C extends SdkClient, B extends AwsClientBuilder<B, C>>
+    void configureClientBuilder(final B clientBuilder, final ProcessContext context, final PropertyDescriptor endpointOverrideDescriptor) {
+        clientBuilder.overrideConfiguration(builder -> builder.putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, DEFAULT_USER_AGENT));
+        clientBuilder.overrideConfiguration(builder -> builder.retryPolicy(RetryPolicy.none()));
+        this.configureHttpClient(clientBuilder, context);
+
+        final Region region = getRegion(context);
+        if (region != null) {
+            clientBuilder.region(region);
+        }
+        configureEndpoint(context, clientBuilder, endpointOverrideDescriptor);
+
+        final AwsCredentialsProvider credentialsProvider = getCredentialsProvider(context);
+        clientBuilder.credentialsProvider(credentialsProvider);
+    }
+
+    protected void configureSdkHttpClient(final ProcessContext context, final AwsHttpClientConfigurer httpClientConfigurer) {
+        final int communicationsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        httpClientConfigurer.configureBasicSettings(Duration.ofMillis(communicationsTimeout), context.getMaxConcurrentTasks());
+
+        if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService != null) {
+                final TrustManager[] trustManagers = new TrustManager[] { sslContextService.createTrustManager() };
+                final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
+                        .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                httpClientConfigurer.configureTls(trustManagers, keyManagersProvider);
+            }
+        }
+
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            if (context.getProperty(PROXY_HOST).isSet()) {
+                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+                final Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
+                final String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+                final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                componentProxyConfig.setProxyUserName(proxyUsername);
+                componentProxyConfig.setProxyUserPassword(proxyPassword);
+                return componentProxyConfig;
+            } else if (context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).isSet()) {
+                final ProxyConfigurationService configurationService = context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+                return configurationService.getConfiguration();
+            }
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
+
+        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+            httpClientConfigurer.configureProxy(proxyConfig);
+        }
+    }
+
     protected Region getRegion(final ProcessContext context) {
         final Region region;
         // if the processor supports REGION, get the configured region.
@@ -321,6 +403,24 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
             region = null;
         }
         return region;
+    }
+
+    protected  void configureEndpoint(final ProcessContext context, final SdkClientBuilder clientBuilder, final PropertyDescriptor endpointOverrideDescriptor) {
+        // if the endpoint override has been configured, set the endpoint.
+        // (per Amazon docs this should only be configured at client creation)
+        if (getSupportedPropertyDescriptors().contains(endpointOverrideDescriptor)) {
+            final String endpointOverride = StringUtils.trimToEmpty(context.getProperty(endpointOverrideDescriptor).evaluateAttributeExpressions().getValue());
+
+            if (!endpointOverride.isEmpty()) {
+                getLogger().info("Overriding endpoint with {}", endpointOverride);
+
+                clientBuilder.endpointOverride(URI.create(endpointOverride));
+            }
+        }
+    }
+
+    protected void configureEndpoint(final ProcessContext context, final SdkClientBuilder clientBuilder) {
+        configureEndpoint(context, clientBuilder, ENDPOINT_OVERRIDE);
     }
 
     /**

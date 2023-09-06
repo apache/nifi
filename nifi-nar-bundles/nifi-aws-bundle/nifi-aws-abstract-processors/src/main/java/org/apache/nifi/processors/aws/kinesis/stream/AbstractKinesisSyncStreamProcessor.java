@@ -26,14 +26,8 @@ import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
 /**
  * This class is the base class for kinesis stream processors that use the synchronized KinesisClient
  */
-public abstract class AbstractKinesisSyncStreamProcessor extends AbstractAwsSyncProcessor<KinesisClient, KinesisClientBuilder> {
-    public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("kinesis-stream-name")
-            .displayName("Amazon Kinesis Stream Name")
-            .description("The name of Kinesis Stream")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+public abstract class AbstractKinesisSyncStreamProcessor extends AbstractAwsSyncProcessor<KinesisClient, KinesisClientBuilder>
+implements KinesisStreamProcessor {
 
     @Override
     protected KinesisClientBuilder createClientBuilder(final ProcessContext context) {

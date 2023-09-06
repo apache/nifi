@@ -46,7 +46,7 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         final ByteBuffer dataBuffer = kinesisRecord.data();
         byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
-        if (data != null) {
+        if (dataBuffer != null) {
             dataBuffer.get(data);
         }
 

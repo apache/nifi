@@ -140,17 +140,15 @@ public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
             final List<FlowFile> successfulFlowFiles = new ArrayList<>();
 
             // Prepare batch of records
-            for (int i = 0; i < flowFiles.size(); i++) {
-                final FlowFile flowFile = flowFiles.get(i);
-
-                final String streamName = context.getProperty(KINESIS_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();;
+            for (final FlowFile flowFile : flowFiles) {
+                final String streamName = context.getProperty(KINESIS_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
                 final PutRecordsRequestEntry.Builder recordBuilder = PutRecordsRequestEntry.builder().data(SdkBytes.fromByteArray(baos.toByteArray()));
 
                 final String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
-                        .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
+                        .evaluateAttributeExpressions(flowFile).getValue();
 
                 recordBuilder.partitionKey(StringUtils.isBlank(partitionKey) ? Integer.toString(randomPartitionKeyGenerator.nextInt()) : partitionKey);
 
@@ -162,14 +160,14 @@ public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
                 final String streamName = entryRecord.getKey();
                 final List<PutRecordsRequestEntry> records = entryRecord.getValue();
 
-                if (records.size() > 0) {
+                if (!records.isEmpty()) {
                     final PutRecordsRequest putRecordRequest = PutRecordsRequest.builder()
                             .streamName(streamName)
                             .records(records)
                             .build();
                     final PutRecordsResponse response = client.putRecords(putRecordRequest);
 
-                    final List<software.amazon.awssdk.services.kinesis.model.PutRecordsResultEntry> responseEntries = response.records();
+                    final List<PutRecordsResultEntry> responseEntries = response.records();
                     for (int i = 0; i < responseEntries.size(); i++) {
                         final PutRecordsResultEntry entry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
@@ -178,7 +176,7 @@ public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
                         attributes.put(AWS_KINESIS_SHARD_ID, entry.shardId());
                         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.sequenceNumber());
 
-                        if (StringUtils.isBlank(entry.errorCode()) == false) {
+                        if (StringUtils.isNotBlank(entry.errorCode())) {
                             attributes.put(AWS_KINESIS_ERROR_CODE, entry.errorCode());
                             attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.errorMessage());
                             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -193,17 +191,17 @@ public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
                 records.clear();
             }
 
-            if ( failedFlowFiles.size() > 0 ) {
+            if (!failedFlowFiles.isEmpty()) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
-                getLogger().error("Failed to publish to kinesis records {}", new Object[]{failedFlowFiles});
+                getLogger().error("Failed to publish to kinesis records {}", failedFlowFiles);
             }
-            if ( successfulFlowFiles.size() > 0 ) {
+            if (!successfulFlowFiles.isEmpty()) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                getLogger().debug("Successfully published to kinesis records {}", new Object[]{successfulFlowFiles});
+                getLogger().debug("Successfully published to kinesis records {}", successfulFlowFiles);
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish due to exception {} flowfiles {} ", new Object[]{exception, flowFiles});
+            getLogger().error("Failed to publish due to exception {} flowfiles {} ", exception, flowFiles);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

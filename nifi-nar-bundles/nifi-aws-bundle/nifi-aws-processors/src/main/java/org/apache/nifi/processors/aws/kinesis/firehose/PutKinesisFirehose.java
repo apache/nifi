@@ -92,8 +92,8 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
         final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
 
         final List<FlowFile> flowFiles = KinesisProcessorUtils.filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, getLogger());
-        final HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
-        final HashMap<String, List<Record>> recordHash = new HashMap<>();
+        final Map<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
+        final Map<String, List<Record>> recordHash = new HashMap<>();
 
         final FirehoseClient client = getClient(context);
 
