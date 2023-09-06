@@ -17,17 +17,14 @@
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        "nifi-primary": "#aabbc3",
-        "nifi-accent": "#e3e8eb"
-      },
+    content: ['./src/**/*.{html,ts}'],
+    theme: {
+        extend: {
+            colors: {
+                'nifi-primary': '#aabbc3',
+                'nifi-accent': '#e3e8eb'
+            }
+        }
     },
-  },
-  plugins: [],
-}
-
+    plugins: []
+};

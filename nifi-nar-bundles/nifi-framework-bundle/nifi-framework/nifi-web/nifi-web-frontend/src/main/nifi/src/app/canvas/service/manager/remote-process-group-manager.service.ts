@@ -23,11 +23,7 @@ import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
-import {
-    selectRemoteProcessGroups,
-    selectSelected,
-    selectTransitionRequired
-} from '../../state/flow/flow.selectors';
+import { selectRemoteProcessGroups, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -736,10 +732,10 @@ export class RemoteProcessGroupManager {
 
     public init(): void {
         this.remoteProcessGroupContainer = d3
-          .select('#canvas')
-          .append('g')
-          .attr('pointer-events', 'all')
-          .attr('class', 'processors');
+            .select('#canvas')
+            .append('g')
+            .attr('pointer-events', 'all')
+            .attr('class', 'processors');
 
         this.store.pipe(select(selectRemoteProcessGroups)).subscribe((processors) => {
             this.set(processors);
@@ -747,9 +743,11 @@ export class RemoteProcessGroupManager {
 
         this.store.pipe(select(selectSelected)).subscribe((selected) => {
             if (selected && selected.length) {
-                this.remoteProcessGroupContainer.selectAll('g.remote-process-group').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
+                this.remoteProcessGroupContainer
+                    .selectAll('g.remote-process-group')
+                    .classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
             }
         });
 

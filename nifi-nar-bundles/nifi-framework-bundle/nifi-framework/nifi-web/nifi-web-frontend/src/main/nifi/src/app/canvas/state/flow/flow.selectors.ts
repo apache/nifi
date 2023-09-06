@@ -65,12 +65,10 @@ export const selectOutputPorts = createSelector(
 );
 
 export const selectPorts = createSelector(
-  selectInputPorts,
-  selectOutputPorts,
-  (inputPorts: any[], outputPorts: any[]) => [
-    ...inputPorts,
-    ...outputPorts
-]);
+    selectInputPorts,
+    selectOutputPorts,
+    (inputPorts: any[], outputPorts: any[]) => [...inputPorts, ...outputPorts]
+);
 
 export const selectLabels = createSelector(
     selectFlowState,

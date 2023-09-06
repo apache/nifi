@@ -20,19 +20,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NewCanvasItemComponent } from './new-canvas-item.component';
 
 describe('NewCanvasItemComponent', () => {
-  let component: NewCanvasItemComponent;
-  let fixture: ComponentFixture<NewCanvasItemComponent>;
+    let component: NewCanvasItemComponent;
+    let fixture: ComponentFixture<NewCanvasItemComponent>;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      declarations: [NewCanvasItemComponent]
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [NewCanvasItemComponent]
+        });
+        fixture = TestBed.createComponent(NewCanvasItemComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
     });
-    fixture = TestBed.createComponent(NewCanvasItemComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
 });

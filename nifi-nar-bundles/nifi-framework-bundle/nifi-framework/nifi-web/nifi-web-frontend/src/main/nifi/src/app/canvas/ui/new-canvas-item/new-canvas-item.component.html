@@ -15,10 +15,11 @@
   ~ limitations under the License.
   -->
 
-<button id="new-{{type}}"
-        class="h-16 w-16 pl-1.5 flex items-center justify-center relative icon"
-        [class]="hovering ? iconHoverClass : iconClass"
-        (mouseenter)="mouseEnter()"
-        (mouseleave)="mouseLeave()">
+<button
+    id="new-{{ type }}"
+    class="h-16 w-16 pl-1.5 flex items-center justify-center relative icon"
+    [class]="hovering ? iconHoverClass : iconClass"
+    (mouseenter)="mouseEnter()"
+    (mouseleave)="mouseLeave()">
     <span class="h-1 absolute left-[3px] right-[3px] bottom-0.5 component-button-grip"></span>
 </button>

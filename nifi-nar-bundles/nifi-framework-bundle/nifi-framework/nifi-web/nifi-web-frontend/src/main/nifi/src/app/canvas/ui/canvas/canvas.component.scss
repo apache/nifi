@@ -16,648 +16,668 @@
  */
 
 .canvas-background {
-  background-color: #f9fafb;
-  background-size: 14px 14px;
-  background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px), linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
-  z-index: 1;
-  overflow: hidden;
+    background-color: #f9fafb;
+    background-size: 14px 14px;
+    background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
+    z-index: 1;
+    overflow: hidden;
 }
 
 /* svg styles */
 
 :host ::ng-deep svg.canvas-svg {
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 
-  text.unset {
-    font-style: italic;
-    font-weight: normal;
-    fill: #aaa;
-  }
+    text.unset {
+        font-style: italic;
+        font-weight: normal;
+        fill: #aaa;
+    }
 
-  .moveable {
-    cursor: pointer;
-  }
+    .moveable {
+        cursor: pointer;
+    }
 
-  /*
+    /*
       All components
   */
 
-  g.component {
-    font-family: Roboto;
-  }
-
-  g.component rect.body {
-    fill: #ffffff;
-  }
-
-  g.component rect.body.unauthorized {
-    fill: #f4f6f7;
-  }
-
-  g.component rect.border {
-    stroke: rgba(0, 0, 0, 0.25);
-    stroke-width: 1;
-  }
-
-  g.component rect.border.unauthorized {
-    stroke-width: 3;
-    stroke: #ba554a !important;
-    stroke-dasharray: 4;
-  }
-
-  g.component rect.border.ghost {
-    stroke-width: 3;
-    stroke: #aaaaaa !important;
-    stroke-dasharray: 4;
-  }
-
-  g.component rect.processor-icon-container.unauthorized {
-    fill: #f4f6f7 !important;
-  }
-
-  g.component.selected rect.border {
-    stroke: #004849 !important;
-    stroke-width: 3;
-  }
-
-  text.stats-label {
-    fill: #262626;
-    font-size: 12px;
-    font-family: Roboto Slab;
-  }
-
-  text.stats-value {
-    fill: #775351;
-    font-size: 12px;
-    font-weight: bold;
-  }
-
-  text.stats-value tspan.size, text.stats-value tspan.size, text.stats-value tspan.public-ports {
-    font-weight: normal;
-  }
-
-  text.stats-info {
-    fill: #728E9B;
-    font-size: 12px;
-  }
-
-  text.bulletin-icon {
-    font-size: 13px;
-    font-family: FontAwesome;
-    fill: #ffffff;
-  }
-
-  rect.bulletin-background {
-    fill: #ba554a;
-  }
-
-  text.active-thread-count-icon {
-    font-family: flowfont;
-    font-size: 12px;
-    fill: #728e9b;
-    text-anchor: end;
-  }
-
-  text.active-thread-count {
-    fill: #775351;
-    font-size: 12px;
-    font-weight: bold;
-  }
-
-  path.component-comments {
-    fill: #000;
-    stroke: #000;
-  }
-
-  text.spin {
-    -webkit-animation-name: rotate;
-    -webkit-animation-duration: 2s;
-    -webkit-animation-iteration-count: infinite;
-    -webkit-animation-timing-function: linear;
-    -moz-animation-name: rotate;
-    -moz-animation-duration: 2s;
-    -moz-animation-iteration-count: infinite;
-    -moz-animation-timing-function: linear;
-    animation-name: rotate;
-    animation-duration: 2s;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-  }
-
-  @-webkit-keyframes rotate {
-    from {
-      -webkit-transform: rotate(0deg);
+    g.component {
+        font-family: Roboto;
     }
-    to {
-      -webkit-transform: rotate(360deg);
+
+    g.component rect.body {
+        fill: #ffffff;
     }
-  }
 
-  @-moz-keyframes rotate {
-    from {
-      -moz-transform: rotate(0deg);
+    g.component rect.body.unauthorized {
+        fill: #f4f6f7;
     }
-    to {
-      -moz-transform: rotate(360deg);
+
+    g.component rect.border {
+        stroke: rgba(0, 0, 0, 0.25);
+        stroke-width: 1;
     }
-  }
 
-  @keyframes rotate {
-    from {
-      transform: rotate(0deg);
+    g.component rect.border.unauthorized {
+        stroke-width: 3;
+        stroke: #ba554a !important;
+        stroke-dasharray: 4;
     }
-    to {
-      transform: rotate(360deg);
+
+    g.component rect.border.ghost {
+        stroke-width: 3;
+        stroke: #aaaaaa !important;
+        stroke-dasharray: 4;
     }
-  }
 
-  .disabled {
-    color: #728e9b !important;
-    fill: #728e9b !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    g.component rect.processor-icon-container.unauthorized {
+        fill: #f4f6f7 !important;
+    }
 
-  .enabled {
-    color: #44a3cf !important;
-    fill: #44a3cf !important;
-    margin-left: 3px;
-    margin-right: -3px;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    g.component.selected rect.border {
+        stroke: #004849 !important;
+        stroke-width: 3;
+    }
 
-  .stopped {
-    color: #d18686 !important;
-    fill: #d18686 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.stats-label {
+        fill: #262626;
+        font-size: 12px;
+        font-family: Roboto Slab;
+    }
 
-  .stopped:before {
-    content: "\f04d";
-    font-family: FontAwesome;
-  }
+    text.stats-value {
+        fill: #775351;
+        font-size: 12px;
+        font-weight: bold;
+    }
 
-  .running {
-    color: #7dc7a0 !important;
-    fill: #7dc7a0 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.stats-value tspan.size,
+    text.stats-value tspan.size,
+    text.stats-value tspan.public-ports {
+        font-weight: normal;
+    }
 
-  .running:before {
-    content: "\f04b";
-    font-family: FontAwesome;
-  }
+    text.stats-info {
+        fill: #728e9b;
+        font-size: 12px;
+    }
 
-  .has-errors, .invalid {
-    color: #cf9f5d !important;
-    fill: #cf9f5d !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.bulletin-icon {
+        font-size: 13px;
+        font-family: FontAwesome;
+        fill: #ffffff;
+    }
 
-  .has-errors:before, .invalid:before {
-    font-family: FontAwesome;
-    content: "\f071";
-    color: #cf9f5d;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    rect.bulletin-background {
+        fill: #ba554a;
+    }
 
-  .validating {
-    float: left;
-    width: 12px;
-    height: 12px;
-    line-height: 12px !important;
-    margin-top: 5px !important;
-    color: #a8a8a8 !important;
-    fill: #a8a8a8 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-    transform-origin: 6px 6px 0;
-  }
+    text.active-thread-count-icon {
+        font-family: flowfont;
+        font-size: 12px;
+        fill: #728e9b;
+        text-anchor: end;
+    }
 
-  .validating:before {
-    font-family: FontAwesome;
-    font-size: 12px;
-    content: "\f1ce";
-    color: #a8a8a8;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.active-thread-count {
+        fill: #775351;
+        font-size: 12px;
+        font-weight: bold;
+    }
 
-  .transmitting {
-    float: left;
-    color: #44a3cf !important;
-    fill: #44a3cf !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    path.component-comments {
+        fill: #000;
+        stroke: #000;
+    }
 
-  .not-transmitting {
-    float: left;
-    color: #728e9b !important;
-    fill: #728e9b !important;
-    margin-top: 0px !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.spin {
+        -webkit-animation-name: rotate;
+        -webkit-animation-duration: 2s;
+        -webkit-animation-iteration-count: infinite;
+        -webkit-animation-timing-function: linear;
+        -moz-animation-name: rotate;
+        -moz-animation-duration: 2s;
+        -moz-animation-iteration-count: infinite;
+        -moz-animation-timing-function: linear;
+        animation-name: rotate;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+    }
 
-  .up-to-date {
-    color: #3da67a !important;
-    fill: #3da67a !important;
-    margin-top: 0px !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    @-webkit-keyframes rotate {
+        from {
+            -webkit-transform: rotate(0deg);
+        }
+        to {
+            -webkit-transform: rotate(360deg);
+        }
+    }
 
-  .locally-modified, .sync-failure {
-    color: #747474 !important;
-    fill: #747474 !important;
-    margin-top: 0px !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    @-moz-keyframes rotate {
+        from {
+            -moz-transform: rotate(0deg);
+        }
+        to {
+            -moz-transform: rotate(360deg);
+        }
+    }
 
-  .stale, .locally-modified-and-stale {
-    color: #c7685d !important;
-    fill: #c7685d !important;
-    margin-top: 0px !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
 
-  .zero {
-    color: #aabec7 !important;
-    fill: #aabec7 !important;
-    text-shadow: none !important;
-  }
+    .disabled {
+        color: #728e9b !important;
+        fill: #728e9b !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
 
-  /*
+    .enabled {
+        color: #44a3cf !important;
+        fill: #44a3cf !important;
+        margin-left: 3px;
+        margin-right: -3px;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .stopped {
+        color: #d18686 !important;
+        fill: #d18686 !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .stopped:before {
+        content: '\f04d';
+        font-family: FontAwesome;
+    }
+
+    .running {
+        color: #7dc7a0 !important;
+        fill: #7dc7a0 !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .running:before {
+        content: '\f04b';
+        font-family: FontAwesome;
+    }
+
+    .has-errors,
+    .invalid {
+        color: #cf9f5d !important;
+        fill: #cf9f5d !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .has-errors:before,
+    .invalid:before {
+        font-family: FontAwesome;
+        content: '\f071';
+        color: #cf9f5d;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .validating {
+        float: left;
+        width: 12px;
+        height: 12px;
+        line-height: 12px !important;
+        margin-top: 5px !important;
+        color: #a8a8a8 !important;
+        fill: #a8a8a8 !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+        transform-origin: 6px 6px 0;
+    }
+
+    .validating:before {
+        font-family: FontAwesome;
+        font-size: 12px;
+        content: '\f1ce';
+        color: #a8a8a8;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .transmitting {
+        float: left;
+        color: #44a3cf !important;
+        fill: #44a3cf !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .not-transmitting {
+        float: left;
+        color: #728e9b !important;
+        fill: #728e9b !important;
+        margin-top: 0px !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .up-to-date {
+        color: #3da67a !important;
+        fill: #3da67a !important;
+        margin-top: 0px !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .locally-modified,
+    .sync-failure {
+        color: #747474 !important;
+        fill: #747474 !important;
+        margin-top: 0px !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .stale,
+    .locally-modified-and-stale {
+        color: #c7685d !important;
+        fill: #c7685d !important;
+        margin-top: 0px !important;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
+
+    .zero {
+        color: #aabec7 !important;
+        fill: #aabec7 !important;
+        text-shadow: none !important;
+    }
+
+    /*
       Selection
   */
 
-  g.component.connectable-destination rect.border {
-    stroke: #00ff00;
-    stroke-width: 3;
-  }
+    g.component.connectable-destination rect.border {
+        stroke: #00ff00;
+        stroke-width: 3;
+    }
 
-  rect.component-selection, rect.drag-selection, rect.label-drag {
-    stroke: #444444;
-    stroke-opacity: 0.5;
-    fill: transparent;
-  }
+    rect.component-selection,
+    rect.drag-selection,
+    rect.label-drag {
+        stroke: #444444;
+        stroke-opacity: 0.5;
+        fill: transparent;
+    }
 
-  text.add-connect {
-    cursor: pointer;
-    font-family: flowfont;
-    font-size: 28px;
-    fill: #004849;
-  }
+    text.add-connect {
+        cursor: pointer;
+        font-family: flowfont;
+        font-size: 28px;
+        fill: #004849;
+    }
 
-  /*
+    /*
       Processor
   */
 
-  text.processor-name {
-    fill: #262626;
-    font-size: 14px;
-  }
+    text.processor-name {
+        fill: #262626;
+        font-size: 14px;
+    }
 
-  text.processor-type {
-    fill: #728e9b;
-    font-size: 12px;
-  }
+    text.processor-type {
+        fill: #728e9b;
+        font-size: 12px;
+    }
 
-  text.processor-bundle {
-    fill: #666;
-    font-size: 10px;
-  }
+    text.processor-bundle {
+        fill: #666;
+        font-size: 10px;
+    }
 
-  rect.processor-icon-container {
-    fill: #ffffff;
-  }
+    rect.processor-icon-container {
+        fill: #ffffff;
+    }
 
-  text.processor-icon {
-    font-family: flowfont;
-    font-size: 30px;
-  }
+    text.processor-icon {
+        font-family: flowfont;
+        font-size: 30px;
+    }
 
-  circle.restricted-background, circle.is-primary-background {
-    visibility: hidden;
-    fill: rgba(255, 255, 255, 0.90);
-  }
+    circle.restricted-background,
+    circle.is-primary-background {
+        visibility: hidden;
+        fill: rgba(255, 255, 255, 0.9);
+    }
 
-  text.restricted {
-    visibility: hidden;
-    font-family: FontAwesome;
-    font-size: 12px;
-    fill: #ba554a;
-  }
+    text.restricted {
+        visibility: hidden;
+        font-family: FontAwesome;
+        font-size: 12px;
+        fill: #ba554a;
+    }
 
-  text.is-primary {
-    visibility: hidden;
-    font-size: 12px;
-    font-weight: bold;
-  }
+    text.is-primary {
+        visibility: hidden;
+        font-size: 12px;
+        font-weight: bold;
+    }
 
-  text.run-status-icon {
-    font-size: 14px;
-    transform-origin: 62px 18px 0;
-  }
+    text.run-status-icon {
+        font-size: 14px;
+        transform-origin: 62px 18px 0;
+    }
 
-  /*
+    /*
       Connection
   */
 
-  g.connection {
-    font-family: Roboto;
-  }
+    g.connection {
+        font-family: Roboto;
+    }
 
-  g.connection rect.body {
-    fill: #ffffff;
-  }
+    g.connection rect.body {
+        fill: #ffffff;
+    }
 
-  g.connection rect.body.unauthorized {
-    fill: #f4f6f7;
-  }
+    g.connection rect.body.unauthorized {
+        fill: #f4f6f7;
+    }
 
-  g.connection rect.border.unauthorized {
-    stroke-width: 1.5;
-    stroke: #ba554a;
-    stroke-dasharray: 3, 3;
-  }
+    g.connection rect.border.unauthorized {
+        stroke-width: 1.5;
+        stroke: #ba554a;
+        stroke-dasharray: 3, 3;
+    }
 
-  g.connection rect.border.full {
-    stroke: rgba(186, 85, 74, 0.65);
-    stroke-width: 1;
-  }
+    g.connection rect.border.full {
+        stroke: rgba(186, 85, 74, 0.65);
+        stroke-width: 1;
+    }
 
-  g.connection.selected rect.border {
-    /*stroke: #004849;*/
-    stroke: #ffcc00;
-    stroke-width: 3;
-  }
+    g.connection.selected rect.border {
+        /*stroke: #004849;*/
+        stroke: #ffcc00;
+        stroke-width: 3;
+    }
 
-  path.connector {
-    fill: none;
-    pointer-events: none;
-    stroke: #ff0000;
-    stroke-width: 3;
-    stroke-opacity: 0.5;
-    stroke-dasharray: 2;
-  }
+    path.connector {
+        fill: none;
+        pointer-events: none;
+        stroke: #ff0000;
+        stroke-width: 3;
+        stroke-opacity: 0.5;
+        stroke-dasharray: 2;
+    }
 
-  path.connector.connectable {
-    stroke: #00ff00;
-    stroke-width: 3;
-    stroke-dasharray: 4;
-  }
+    path.connector.connectable {
+        stroke: #00ff00;
+        stroke-width: 3;
+        stroke-dasharray: 4;
+    }
 
-  g.connection path.connection-path {
-    fill: none;
-    stroke: #000000;
-    stroke-width: 2;
-    cursor: pointer;
-  }
+    g.connection path.connection-path {
+        fill: none;
+        stroke: #000000;
+        stroke-width: 2;
+        cursor: pointer;
+    }
 
-  g.connection path.connection-path.full {
-    stroke: #ba554a;
-  }
+    g.connection path.connection-path.full {
+        stroke: #ba554a;
+    }
 
-  g.connection path.connection-path.unauthorized {
-    stroke: #ba554a;
-    stroke-dasharray: 3, 3;
-  }
+    g.connection path.connection-path.unauthorized {
+        stroke: #ba554a;
+        stroke-dasharray: 3, 3;
+    }
 
-  text.connection-from-run-status, text.connection-to-run-status, text.expiration-icon, text.load-balance-icon, text.penalized-icon {
-    fill: #728e9b;
-    font-family: FontAwesome;
-    font-size: 12px;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-  }
+    text.connection-from-run-status,
+    text.connection-to-run-status,
+    text.expiration-icon,
+    text.load-balance-icon,
+    text.penalized-icon {
+        fill: #728e9b;
+        font-family: FontAwesome;
+        font-size: 12px;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+    }
 
-  text.load-balance-icon-active {
-    fill: #44a3cf
-  }
+    text.load-balance-icon-active {
+        fill: #44a3cf;
+    }
 
-  text.load-balance-icon-184 {
-    transform-origin: 197px 10px 0;
-  }
+    text.load-balance-icon-184 {
+        transform-origin: 197px 10px 0;
+    }
 
-  text.load-balance-icon-200 {
-    transform-origin: 213px 10px 0;
-  }
+    text.load-balance-icon-200 {
+        transform-origin: 213px 10px 0;
+    }
 
-  text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
-    fill: #cf9f5d;
-  }
+    text.connection-from-run-status.is-missing-port,
+    text.connection-to-run-status.is-missing-port {
+        fill: #cf9f5d;
+    }
 
-  g.connection rect.backpressure-tick {
-    fill: transparent;
-  }
+    g.connection rect.backpressure-tick {
+        fill: transparent;
+    }
 
-  g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
-  g.connection rect.backpressure-tick.object-prediction.prediction-down {
-    fill: white;
-  }
+    g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
+    g.connection rect.backpressure-tick.object-prediction.prediction-down {
+        fill: white;
+    }
 
-  g.connection rect.backpressure-tick.data-size-prediction,
-  g.connection rect.backpressure-tick.object-prediction {
-    fill: black;
-  }
+    g.connection rect.backpressure-tick.data-size-prediction,
+    g.connection rect.backpressure-tick.object-prediction {
+        fill: black;
+    }
 
-  g.connection rect.backpressure-tick.data-size-prediction.not-configured,
-  g.connection rect.backpressure-tick.object-prediction.not-configured,
-  g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
-  g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
-    fill: transparent;
-  }
+    g.connection rect.backpressure-tick.data-size-prediction.not-configured,
+    g.connection rect.backpressure-tick.object-prediction.not-configured,
+    g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
+    g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
+        fill: transparent;
+    }
 
-  g.connection rect.backpressure-tick.not-configured {
-    fill: #acacac;
-  }
+    g.connection rect.backpressure-tick.not-configured {
+        fill: #acacac;
+    }
 
-  g.connection rect.backpressure-object, g.connection rect.backpressure-data-size {
-    fill: #d8d8d8;
-  }
+    g.connection rect.backpressure-object,
+    g.connection rect.backpressure-data-size {
+        fill: #d8d8d8;
+    }
 
-  /**/
-  g.connection rect.backpressure-object > title > tspan, g.connection rect.backpressure-data-size > title > tspan {
-    display: block;
-  }
+    /**/
+    g.connection rect.backpressure-object > title > tspan,
+    g.connection rect.backpressure-data-size > title > tspan {
+        display: block;
+    }
 
-  /**/
+    /**/
 
-  g.connection rect.backpressure-object.not-configured, g.connection rect.backpressure-data-size.not-configured {
-    fill: transparent;
-  }
+    g.connection rect.backpressure-object.not-configured,
+    g.connection rect.backpressure-data-size.not-configured {
+        fill: transparent;
+    }
 
-  g.connection rect.backpressure-percent {
-    fill: #67b796;
-    pointer-events: none;
-  }
+    g.connection rect.backpressure-percent {
+        fill: #67b796;
+        pointer-events: none;
+    }
 
-  g.connection rect.backpressure-percent.warning {
-    fill: #cea958;
-  }
+    g.connection rect.backpressure-percent.warning {
+        fill: #cea958;
+    }
 
-  g.connection rect.backpressure-percent.error {
-    fill: #ba554a;
-  }
+    g.connection rect.backpressure-percent.error {
+        fill: #ba554a;
+    }
 
-  /* grouped connection */
+    /* grouped connection */
 
-  g.connection.grouped path.connection-path, g.connection.grouped rect.connection-label {
-    stroke-width: 3;
-  }
+    g.connection.grouped path.connection-path,
+    g.connection.grouped rect.connection-label {
+        stroke-width: 3;
+    }
 
-  /* ghost connection */
+    /* ghost connection */
 
-  g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label {
-    stroke: #aaaaaa;
-    stroke-dasharray: 4;
-  }
+    g.connection.ghost path.connection-path,
+    g.connection.ghost rect.connection-label {
+        stroke: #aaaaaa;
+        stroke-dasharray: 4;
+    }
 
-  g.connection path.connection-selection-path {
-    visibility: hidden;
-    stroke-width: 1;
-    stroke: #ffcc00;
-    fill: none;
-  }
+    g.connection path.connection-selection-path {
+        visibility: hidden;
+        stroke-width: 1;
+        stroke: #ffcc00;
+        fill: none;
+    }
 
-  g.connection path.connection-path-selectable {
-    visibility: hidden;
-    stroke-width: 20;
-    fill: none;
-    cursor: pointer;
-  }
+    g.connection path.connection-path-selectable {
+        visibility: hidden;
+        stroke-width: 20;
+        fill: none;
+        cursor: pointer;
+    }
 
-  g.connection.selected path.connection-selection-path {
-    visibility: visible;
-  }
+    g.connection.selected path.connection-selection-path {
+        visibility: visible;
+    }
 
-  g.connection rect.linepoint {
-    visibility: hidden;
-    stroke-width: 1;
-  }
+    g.connection rect.linepoint {
+        visibility: hidden;
+        stroke-width: 1;
+    }
 
-  g.connection.selected rect.linepoint {
-    visibility: visible;
-  }
+    g.connection.selected rect.linepoint {
+        visibility: visible;
+    }
 
-  g.connection rect.startpoint {
-    stroke: #ff0000;
-    fill: #ff0000;
-  }
+    g.connection rect.startpoint {
+        stroke: #ff0000;
+        fill: #ff0000;
+    }
 
-  g.connection rect.midpoint {
-    stroke: #ffcc00;
-    fill: #ffcc00;
-    cursor: pointer;
-  }
+    g.connection rect.midpoint {
+        stroke: #ffcc00;
+        fill: #ffcc00;
+        cursor: pointer;
+    }
 
-  g.connection rect.endpoint {
-    stroke: #0000ff;
-    fill: #0000ff;
-    cursor: pointer;
-  }
+    g.connection rect.endpoint {
+        stroke: #0000ff;
+        fill: #0000ff;
+        cursor: pointer;
+    }
 
-  /* labels */
+    /* labels */
 
-  g.label rect.labelpoint {
-    display: none;
-    stroke-width: 1;
-    stroke: #ffcc00;
-    fill: #ffcc00;
-    cursor: se-resize;
-  }
+    g.label rect.labelpoint {
+        display: none;
+        stroke-width: 1;
+        stroke: #ffcc00;
+        fill: #ffcc00;
+        cursor: se-resize;
+    }
 
-  g.label.selected rect.labelpoint {
-    display: block;
-  }
+    g.label.selected rect.labelpoint {
+        display: block;
+    }
 
-  /* funnels */
+    /* funnels */
 
-  text.funnel-icon {
-    fill: #ad9897;
-    font-family: flowfont;
-    font-size: 30px;
-  }
+    text.funnel-icon {
+        fill: #ad9897;
+        font-family: flowfont;
+        font-size: 30px;
+    }
 
-  /* ports */
+    /* ports */
 
-  text.port-name {
-    fill: #262626;
-    font-size: 14px;
-  }
+    text.port-name {
+        fill: #262626;
+        font-size: 14px;
+    }
 
-  text.port-icon {
-    fill: #ad9897;
-    font-family: flowfont;
-    font-size: 30px;
-  }
+    text.port-icon {
+        fill: #ad9897;
+        font-family: flowfont;
+        font-size: 30px;
+    }
 
-  text.port-transmission-icon {
-    font-size: 15px;
-    fill: #728e9b
-  }
+    text.port-transmission-icon {
+        font-size: 15px;
+        fill: #728e9b;
+    }
 
-  /* active thread count */
+    /* active thread count */
 
-  text.active-thread-count {
-    font-size: 10px;
-  }
+    text.active-thread-count {
+        font-size: 10px;
+    }
 
-  /* process groups */
+    /* process groups */
 
-  text.process-group-name {
-    fill: #262626;
-    font-size: 14px;
-  }
+    text.process-group-name {
+        fill: #262626;
+        font-size: 14px;
+    }
 
-  text.version-control {
-    font-family: FontAwesome;
-    font-size: 18px;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-    visibility: hidden;
-  }
+    text.version-control {
+        font-family: FontAwesome;
+        font-size: 18px;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+        visibility: hidden;
+    }
 
-  text.process-group-contents-count {
-    fill: #775351;
-    font-size: 15px;
-    font-weight: 500;
-    font-family: Roboto, sans-serif;
-  }
+    text.process-group-contents-count {
+        fill: #775351;
+        font-size: 15px;
+        font-weight: 500;
+        font-family: Roboto, sans-serif;
+    }
 
-  g.process-group.drop rect.border {
-    stroke: #0000ff;
-    stroke-width: 3;
-  }
+    g.process-group.drop rect.border {
+        stroke: #0000ff;
+        stroke-width: 3;
+    }
 
-  text.process-group-contents-icon {
-    font-size: 15px;
-    fill: #728e9b;
-  }
+    text.process-group-contents-icon {
+        font-size: 15px;
+        fill: #728e9b;
+    }
 
-  /* remote process group */
+    /* remote process group */
 
-  text.remote-process-group-name {
-    fill: #262626;
-    font-size: 14px;
-  }
+    text.remote-process-group-name {
+        fill: #262626;
+        font-size: 14px;
+    }
 
-  text.remote-process-group-uri {
-    fill: #004849;
-    font-size: 12px;
-  }
+    text.remote-process-group-uri {
+        fill: #004849;
+        font-size: 12px;
+    }
 
-  text.remote-process-group-transmission-status {
-    font-size: 15px;
-    fill: #728e9b
-  }
+    text.remote-process-group-transmission-status {
+        font-size: 15px;
+        fill: #728e9b;
+    }
 
-  text.remote-process-group-transmission-secure {
-    font-family: FontAwesome;
-    font-size: 13px;
-    fill: #004849;
-  }
+    text.remote-process-group-transmission-secure {
+        font-family: FontAwesome;
+        font-size: 13px;
+        fill: #004849;
+    }
 
-  text.remote-process-group-last-refresh {
-    fill: #728e9b;
-    font-size: 10px;
-  }
+    text.remote-process-group-last-refresh {
+        fill: #728e9b;
+        font-size: 10px;
+    }
 }

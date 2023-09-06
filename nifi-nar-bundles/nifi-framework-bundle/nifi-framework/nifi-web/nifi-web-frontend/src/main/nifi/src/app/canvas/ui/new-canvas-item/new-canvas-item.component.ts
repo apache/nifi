@@ -24,7 +24,6 @@ import { ComponentType } from '../../state';
     styleUrls: ['./new-canvas-item.component.scss']
 })
 export class NewCanvasItemComponent {
-
     @Input() type: string = '';
     @Input() iconClass: string = '';
     @Input() iconHoverClass: string = '';
