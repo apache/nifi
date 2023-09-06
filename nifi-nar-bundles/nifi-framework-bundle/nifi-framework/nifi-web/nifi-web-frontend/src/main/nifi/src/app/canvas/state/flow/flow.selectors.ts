@@ -76,3 +76,8 @@ export const selectLabels = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.labels
 );
+
+export const selectConnections = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow?.flow.connections
+);

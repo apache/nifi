@@ -36,7 +36,7 @@ import { ComponentType, FlowState } from '../index';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {
-    id: '',
+    id: 'root',
     flow: {
         permissions: {
             canRead: false,
@@ -72,7 +72,6 @@ export const flowReducer = createReducer(
     initialState,
     on(enterProcessGroup, (state) => ({
         ...state,
-        transitionRequired: true,
         status: 'loading' as const
     })),
     on(enterProcessGroupSuccess, (state, { response }) => ({
@@ -84,14 +83,12 @@ export const flowReducer = createReducer(
     })),
     on(enterProcessGroupComplete, (state, { response }) => ({
         ...state,
-        transitionRequired: false,
         renderRequired: true,
         selection: response.selection
     })),
     on(flowApiError, (state, { error }) => ({
         ...state,
         dragging: false,
-        transitionRequired: false,
         error: error,
         status: 'error' as const
     })),
@@ -132,6 +129,9 @@ export const flowReducer = createReducer(
                 case ComponentType.Funnel:
                     collection = draftState.flow.processGroupFlow.flow.funnels;
                     break;
+                case ComponentType.Connection:
+                    collection = draftState.flow.processGroupFlow.flow.connections;
+                    break;
             }
 
             if (collection) {
@@ -165,6 +165,9 @@ export const flowReducer = createReducer(
                     break;
                 case ComponentType.Funnel:
                     collection = draftState.flow.processGroupFlow.flow.funnels;
+                    break;
+                case ComponentType.Connection:
+                    collection = draftState.flow.processGroupFlow.flow.connections;
                     break;
             }
 
@@ -201,6 +204,9 @@ export const flowReducer = createReducer(
                         break;
                     case ComponentType.Funnel:
                         collection = draftState.flow.processGroupFlow.flow.funnels;
+                        break;
+                    case ComponentType.Connection:
+                        collection = draftState.flow.processGroupFlow.flow.connections;
                         break;
                 }
 
@@ -241,6 +247,9 @@ export const flowReducer = createReducer(
                     break;
                 case ComponentType.Funnel:
                     collection = draftState.flow.processGroupFlow.flow.funnels;
+                    break;
+                case ComponentType.Connection:
+                    collection = draftState.flow.processGroupFlow.flow.connections;
                     break;
             }
 

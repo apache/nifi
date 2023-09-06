@@ -18,30 +18,139 @@
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { select, Store } from '@ngrx/store';
-import { CanvasState } from '../state';
+import { CanvasState, Position } from '../state';
 import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
+import { initialState } from '../state/flow/flow.reducer';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CanvasUtils {
+    private static readonly TWO_PI: number = 2 * Math.PI;
+
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
+    private currentProcessGroupId: string = initialState.id;
 
     constructor(private store: Store<CanvasState>) {
-        this.store.pipe(select(selectCurrentProcessGroupId)).subscribe(() => {
+        this.store.pipe(select(selectCurrentProcessGroupId)).subscribe((currentProcessGroupId) => {
+            this.currentProcessGroupId = currentProcessGroupId;
             this.trimLengthCaches.clear();
         });
     }
 
+    /**
+     * Determines whether the components in the specified selection are writable.
+     *
+     * @argument {selection} selection      The selection
+     * @return {boolean}            Whether the selection is writable
+     */
     public canModify(selection: any): boolean {
-        var selectionSize = selection.size();
-        var writableSize = selection
+        const selectionSize = selection.size();
+        const writableSize = selection
             .filter(function (d: any) {
                 return d.permissions.canWrite;
             })
             .size();
 
         return selectionSize === writableSize;
+    }
+
+    /**
+     * Determines whether the components in the specified selection are readable.
+     *
+     * @argument {selection} selection      The selection
+     * @return {boolean}            Whether the selection is readable
+     */
+    public canRead(selection: any): boolean {
+        const selectionSize = selection.size();
+        const readableSize = selection
+            .filter(function (d: any) {
+                return d.permissions.canRead;
+            })
+            .size();
+
+        return selectionSize === readableSize;
+    }
+
+    /**
+     * Determines if the specified selection is a connection.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isConnection(selection: any): boolean {
+        return selection.classed('connection');
+    }
+
+    /**
+     * Determines if the specified selection is a remote process group.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isRemoteProcessGroup(selection: any): boolean {
+        return selection.classed('remote-process-group');
+    }
+
+    /**
+     * Determines if the specified selection is a processor.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isProcessor(selection: any): boolean {
+        return selection.classed('processor');
+    }
+
+    /**
+     * Determines if the specified selection is a label.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isLabel(selection: any): boolean {
+        return selection.classed('label');
+    }
+
+    /**
+     * Determines if the specified selection is an input port.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isInputPort(selection: any): boolean {
+        return selection.classed('input-port');
+    }
+
+    /**
+     * Determines if the specified selection is an output port.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isOutputPort(selection: any): boolean {
+        return selection.classed('output-port');
+    }
+
+    /**
+     * Determines if the specified selection is a process group.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isProcessGroup(selection: any): boolean {
+        return selection.classed('process-group');
+    }
+
+    /**
+     * Determines if the specified selection is a funnel.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public isFunnel(selection: any): boolean {
+        return selection.classed('funnel');
+    }
+
+    /**
+     * Gets the currently selected components and connections.
+     *
+     * @returns {selection}     The currently selected components and connections
+     */
+    public getSelection(): any {
+        return d3.selectAll('g.component.selected, g.connection.selected');
     }
 
     /**
@@ -108,7 +217,7 @@ export class CanvasUtils {
      */
     public isBlank(str: string) {
         if (str) {
-            return str.trim().length > 0;
+            return str.trim().length === 0;
         }
 
         return true;
@@ -157,6 +266,173 @@ export class CanvasUtils {
             groupString = bundle.group + ' - ';
         }
         return groupString + bundle.artifact;
+    }
+
+    /**
+     * Returns the component id of the source of this processor. If the connection is attached
+     * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
+     * it is the component itself.
+     *
+     * @param {object} connection   The connection in question
+     */
+    public getConnectionSourceComponentId(connection: any): string {
+        let sourceId: string = connection.sourceId;
+        if (connection.sourceGroupId !== this.currentProcessGroupId) {
+            sourceId = connection.sourceGroupId;
+        }
+        return sourceId;
+    }
+
+    /**
+     * Returns the component id of the source of this processor. If the connection is attached
+     * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
+     * it is the component itself.
+     *
+     * @param {object} connection   The connection in question
+     */
+    public getConnectionDestinationComponentId(connection: any): string {
+        let destinationId: string = connection.destinationId;
+        if (connection.destinationGroupId !== this.currentProcessGroupId) {
+            destinationId = connection.destinationGroupId;
+        }
+        return destinationId;
+    }
+
+    /**
+     * Gets the name for this connection.
+     *
+     * @param {object} connection
+     */
+    public formatConnectionName(connection: any): string {
+        if (!this.isBlank(connection.name)) {
+            return connection.name;
+        } else if (connection.selectedRelationships) {
+            return connection.selectedRelationships.join(', ');
+        }
+        return '';
+    }
+
+    /**
+     * Calculates the point on the specified bounding box that is closest to the
+     * specified point.
+     *
+     * @param {object} p            The point
+     * @param {object} bBox         The bounding box
+     */
+    public getPerimeterPoint(p: Position, bBox: any): Position {
+        // calculate theta
+        const theta: number = Math.atan2(bBox.height, bBox.width);
+
+        // get the rectangle radius
+        const xRadius: number = bBox.width / 2;
+        const yRadius: number = bBox.height / 2;
+
+        // get the center point
+        const cx: number = bBox.x + xRadius;
+        const cy: number = bBox.y + yRadius;
+
+        // calculate alpha
+        const dx: number = p.x - cx;
+        const dy: number = p.y - cy;
+        let alpha: number = Math.atan2(dy, dx);
+
+        // normalize aphla into 0 <= alpha < 2 PI
+        alpha = alpha % CanvasUtils.TWO_PI;
+        if (alpha < 0) {
+            alpha += CanvasUtils.TWO_PI;
+        }
+
+        // calculate beta
+        const beta: number = Math.PI / 2 - alpha;
+
+        // detect the appropriate quadrant and return the point on the perimeter
+        if ((alpha >= 0 && alpha < theta) || (alpha >= CanvasUtils.TWO_PI - theta && alpha < CanvasUtils.TWO_PI)) {
+            // right quadrant
+            return {
+                x: bBox.x + bBox.width,
+                y: cy + Math.tan(alpha) * xRadius
+            };
+        } else if (alpha >= theta && alpha < Math.PI - theta) {
+            // bottom quadrant
+            return {
+                x: cx + Math.tan(beta) * yRadius,
+                y: bBox.y + bBox.height
+            };
+        } else if (alpha >= Math.PI - theta && alpha < Math.PI + theta) {
+            // left quadrant
+            return {
+                x: bBox.x,
+                y: cy - Math.tan(alpha) * xRadius
+            };
+        } else {
+            // top quadrant
+            return {
+                x: cx - Math.tan(beta) * yRadius,
+                y: bBox.y
+            };
+        }
+    }
+
+    /**
+     * Determines if the component in the specified selection is a valid connection source.
+     *
+     * @param {selection} selection         The selection
+     * @return {boolean} Whether the selection is a valid connection source
+     */
+    public isValidConnectionSource(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        // always allow connections from process groups
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+
+        // require read and write for a connection source since we'll need to read the source to obtain valid relationships, etc
+        if (!this.canRead(selection) || !this.canModify(selection)) {
+            return false;
+        }
+
+        return (
+            this.isProcessor(selection) ||
+            this.isRemoteProcessGroup(selection) ||
+            this.isInputPort(selection) ||
+            this.isFunnel(selection)
+        );
+    }
+
+    /**
+     * Determines if the component in the specified selection is a valid connection destination.
+     *
+     * @param {selection} selection         The selection
+     * @return {boolean} Whether the selection is a valid connection destination
+     */
+    public isValidConnectionDestination(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+
+        // require write for a connection destination
+        if (!this.canModify(selection)) {
+            return false;
+        }
+
+        if (this.isRemoteProcessGroup(selection) || this.isOutputPort(selection) || this.isFunnel(selection)) {
+            return true;
+        }
+
+        // if processor, ensure it supports input
+        if (this.isProcessor(selection)) {
+            const destinationData: any = selection.datum();
+            return destinationData.inputRequirement !== 'INPUT_FORBIDDEN';
+        }
+
+        return false;
     }
 
     private binarySearch(length: number, comparator: Function): number {

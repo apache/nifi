@@ -29,6 +29,7 @@ import { LabelManager } from './manager/label-manager.service';
 import { ProcessorManager } from './manager/processor-manager.service';
 import { PortManager } from './manager/port-manager.service';
 import { RemoteProcessGroupManager } from './manager/remote-process-group-manager.service';
+import { ConnectionManager } from './manager/connection-manager.service';
 
 @Injectable({
     providedIn: 'root'
@@ -55,7 +56,8 @@ export class CanvasView {
         private remoteProcessGroupManager: RemoteProcessGroupManager,
         private portManager: PortManager,
         private funnelManager: FunnelManager,
-        private labelManager: LabelManager
+        private labelManager: LabelManager,
+        private connectionManager: ConnectionManager
     ) {
         this.store.pipe(select(selectRenderRequired)).subscribe((renderRequired) => {
             if (renderRequired) {
@@ -78,18 +80,20 @@ export class CanvasView {
                 self.portManager.render();
                 self.labelManager.render();
                 self.funnelManager.render();
+                self.connectionManager.render();
             }
         });
 
         this.svg = svg;
         this.canvas = canvas;
 
-        this.processorManager.init();
-        this.processGroupManager.init();
-        this.remoteProcessGroupManager.init();
-        this.portManager.init();
         this.labelManager.init();
         this.funnelManager.init();
+        this.portManager.init();
+        this.remoteProcessGroupManager.init();
+        this.processGroupManager.init();
+        this.processorManager.init();
+        this.connectionManager.init();
 
         const self: CanvasView = this;
         let refreshed: Promise<void> | null;
@@ -231,10 +235,10 @@ export class CanvasView {
                 return false;
             }
 
-            var left = d.position.x;
-            var top = d.position.y;
-            var right = left + d.dimensions.width;
-            var bottom = top + d.dimensions.height;
+            const left: number = d.position.x;
+            const top: number = d.position.y;
+            const right: number = left + d.dimensions.width;
+            const bottom: number = top + d.dimensions.height;
 
             // determine if the component is now visible
             return screenLeft < right && screenRight > left && screenTop < bottom && screenBottom > top;
@@ -246,9 +250,9 @@ export class CanvasView {
                 return false;
             }
 
-            var x, y;
+            let x, y;
             if (d.bends.length > 0) {
-                var i = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+                const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
                 x = d.bends[i].x;
                 y = d.bends[i].y;
             } else {
@@ -261,8 +265,8 @@ export class CanvasView {
 
         // marks the specific component as visible and determines if its entering or leaving visibility
         const updateVisibility = function (selection: any, d: any, isVisible: Function) {
-            var visible = isVisible(d);
-            var wasVisible = selection.classed('visible');
+            const visible: boolean = isVisible(d);
+            const wasVisible: boolean = selection.classed('visible');
 
             // mark the selection as appropriate
             selection
@@ -294,6 +298,9 @@ export class CanvasView {
         this.funnelManager.selectAll().each(function (this: any, d: any) {
             updateVisibility(d3.select(this), d, isComponentVisible);
         });
+        this.connectionManager.selectAll().each(function (this: any, d: any) {
+            updateVisibility(d3.select(this), d, isConnectionVisible);
+        });
 
         // trigger pan
         this.processorManager.pan();
@@ -302,6 +309,7 @@ export class CanvasView {
         this.portManager.pan();
         this.labelManager.pan();
         this.funnelManager.pan();
+        this.connectionManager.pan();
     }
 
     /**

@@ -26,7 +26,8 @@ export enum ComponentType {
     InputPort = 'InputPort',
     OutputPort = 'OutputPort',
     Label = 'Label',
-    Funnel = 'Funnel'
+    Funnel = 'Funnel',
+    Connection = 'Connection'
 }
 
 export interface Dimension {
