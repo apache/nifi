@@ -23,9 +23,8 @@ import {
     EnterProcessGroupResponse,
     UpdateComponent,
     UpdateComponentFailure,
-    UpdateComponentPosition,
-    UpdateComponentPositionResponse,
-    UpdateComponentResponse
+    UpdateComponentResponse,
+    UpdatePositions
 } from '../index';
 
 /*
@@ -93,18 +92,11 @@ export const updateComponentFailure = createAction(
     props<{ response: UpdateComponentFailure }>()
 );
 
-/*
-    Draggable Behavior
- */
+export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositions }>());
 
-export const updatePosition = createAction(
-    '[Canvas] Update Positions',
-    props<{ positionUpdate: UpdateComponentPosition }>()
-);
-
-export const updatePositionSuccess = createAction(
-    '[Canvas] Update Positions Success',
-    props<{ positionUpdateResponse: UpdateComponentPositionResponse }>()
+export const updatePositionComplete = createAction(
+    '[Canvas] Update Position Complete',
+    props<{ response: UpdateComponentResponse }>()
 );
 
 /*

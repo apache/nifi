@@ -29,8 +29,7 @@ import {
     setSelectedComponents,
     setTransitionRequired,
     updateComponentFailure,
-    updateComponentSuccess,
-    updatePositionSuccess
+    updateComponentSuccess
 } from './flow.actions';
 import { ComponentType, FlowState } from '../index';
 import { produce } from 'immer';
@@ -219,44 +218,6 @@ export const flowReducer = createReducer(
                             ...response.restoreOnFailure
                         };
                     }
-                }
-            }
-        });
-    }),
-    on(updatePositionSuccess, (state, { positionUpdateResponse }) => {
-        return produce(state, (draftState) => {
-            let collection: any[] | null = null;
-            switch (positionUpdateResponse.type) {
-                case ComponentType.Processor:
-                    collection = draftState.flow.processGroupFlow.flow.processors;
-                    break;
-                case ComponentType.ProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.processGroups;
-                    break;
-                case ComponentType.RemoteProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
-                    break;
-                case ComponentType.InputPort:
-                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
-                    break;
-                case ComponentType.OutputPort:
-                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
-                    break;
-                case ComponentType.Label:
-                    collection = draftState.flow.processGroupFlow.flow.labels;
-                    break;
-                case ComponentType.Funnel:
-                    collection = draftState.flow.processGroupFlow.flow.funnels;
-                    break;
-                case ComponentType.Connection:
-                    collection = draftState.flow.processGroupFlow.flow.connections;
-                    break;
-            }
-
-            if (collection) {
-                const componentIndex: number = collection.findIndex((f: any) => positionUpdateResponse.id === f.id);
-                if (componentIndex > -1) {
-                    collection[componentIndex] = positionUpdateResponse.response;
                 }
             }
         });

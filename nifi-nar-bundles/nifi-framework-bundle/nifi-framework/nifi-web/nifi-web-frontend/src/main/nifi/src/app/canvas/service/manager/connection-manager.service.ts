@@ -34,6 +34,11 @@ import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
 
+export class ConnectionRenderOptions {
+    updatePath?: boolean;
+    updateLabel?: boolean;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -502,16 +507,7 @@ export class ConnectionManager {
         return connection;
     }
 
-    private updateConnections(
-        updated: any,
-        {
-            updatePath = true,
-            updateLabel = true
-        }: {
-            updatePath?: boolean;
-            updateLabel?: boolean;
-        } = {}
-    ) {
+    private updateConnections(updated: any, { updatePath = true, updateLabel = true }: ConnectionRenderOptions = {}) {
         if (updated.empty()) {
             return;
         }
@@ -2225,10 +2221,10 @@ export class ConnectionManager {
         this.connections = connections.map((connection: any) => {
             return {
                 ...connection,
+                type: ComponentType.Connection,
                 bends: connection.bends.map((bend: Position) => {
                     return { ...bend };
-                }),
-                type: ComponentType.Connection
+                })
             };
         });
 
@@ -2251,10 +2247,29 @@ export class ConnectionManager {
         return this.connectionContainer.selectAll('g.connection');
     }
 
-    public render(): void {
+    public render({ updatePath = false, updateLabel = true }: ConnectionRenderOptions = {}): void {
         this.updateConnections(this.selectAll(), {
-            updatePath: false,
-            updateLabel: true
+            updatePath: updatePath,
+            updateLabel: updateLabel
+        });
+    }
+
+    public renderConnectionForComponent(
+        componentId: string,
+        { updatePath = false, updateLabel = true }: ConnectionRenderOptions = {}
+    ): void {
+        const componentConnections: any[] = this.connections.filter((connection) => {
+            return (
+                this.canvasUtils.getConnectionSourceComponentId(connection) === componentId ||
+                this.canvasUtils.getConnectionDestinationComponentId(connection) === componentId
+            );
+        });
+
+        componentConnections.forEach((componentConnection) => {
+            this.updateConnections(d3.select('#id-' + componentConnection.id), {
+                updatePath: updatePath,
+                updateLabel: updateLabel
+            });
         });
     }
 

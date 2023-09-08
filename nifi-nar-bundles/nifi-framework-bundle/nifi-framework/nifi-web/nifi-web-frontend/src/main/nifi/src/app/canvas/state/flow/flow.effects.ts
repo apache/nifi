@@ -19,25 +19,26 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { catchError, from, map, of, switchMap, withLatestFrom } from 'rxjs';
+import { catchError, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
 import {
     CanvasState,
     ComponentType,
     EnterProcessGroupRequest,
     EnterProcessGroupResponse,
     UpdateComponentFailure,
-    UpdateComponentPositionResponse,
     UpdateComponentResponse
 } from '../index';
 import { Store } from '@ngrx/store';
 import { selectCurrentProcessGroupId } from './flow.selectors';
+import { ConnectionManager } from '../../service/manager/connection-manager.service';
 
 @Injectable()
 export class FlowEffects {
     constructor(
         private actions$: Actions,
         private store: Store<CanvasState>,
-        private flowService: FlowService
+        private flowService: FlowService,
+        private connectionManager: ConnectionManager
     ) {}
 
     loadFlow$ = createEffect(() =>
@@ -147,10 +148,11 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.updateComponent),
             map((action) => action.request),
-            switchMap((request) =>
+            mergeMap((request) =>
                 from(this.flowService.updateComponent(request)).pipe(
                     map((response) => {
                         const updateComponentResponse: UpdateComponentResponse = {
+                            requestId: request.requestId,
                             id: request.id,
                             type: request.type,
                             response: response
@@ -173,31 +175,54 @@ export class FlowEffects {
 
     updatePositions$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.updatePosition),
-            map((action) => action.positionUpdate),
-            switchMap((positionUpdate) =>
-                from(this.flowService.updateComponentPosition(positionUpdate)).pipe(
-                    map((updatePositionResponse) => {
-                        const response: UpdateComponentPositionResponse = {
-                            id: positionUpdate.id,
-                            type: positionUpdate.type,
-                            response: updatePositionResponse
-                        };
-                        return FlowActions.updatePositionSuccess({ positionUpdateResponse: response });
-                    }),
-                    catchError((error) => of(FlowActions.flowApiError({ error })))
+            ofType(FlowActions.updatePositions),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.componentUpdates.map((componentUpdate) => {
+                    return FlowActions.updateComponent({
+                        request: {
+                            ...componentUpdate,
+                            requestId: request.requestId
+                        }
+                    });
+                }),
+                ...request.connectionUpdates.map((connectionUpdate) => {
+                    return FlowActions.updateComponent({
+                        request: {
+                            ...connectionUpdate,
+                            requestId: request.requestId
+                        }
+                    });
+                })
+            ])
+        )
+    );
+
+    awaitUpdatePositions$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updatePositions),
+            map((action) => action.request),
+            mergeMap((request) =>
+                this.actions$.pipe(
+                    ofType(FlowActions.updateComponentSuccess),
+                    filter((updateSuccess) => ComponentType.Connection !== updateSuccess.response.type),
+                    filter((updateSuccess) => request.requestId === updateSuccess.response.requestId),
+                    map((response) => FlowActions.updatePositionComplete(response))
                 )
             )
         )
     );
 
-    updatePositionsSuccess$ = createEffect(
+    updatePositionSuccess$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(FlowActions.updatePositionSuccess),
-                switchMap((positionUpdates) => {
-                    // TODO - refresh connections
-                    return of(positionUpdates);
+                ofType(FlowActions.updatePositionComplete),
+                map((action) => action.response),
+                tap((response) => {
+                    this.connectionManager.renderConnectionForComponent(response.id, {
+                        updatePath: true,
+                        updateLabel: true
+                    });
                 })
             ),
         { dispatch: false }

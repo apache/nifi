@@ -76,6 +76,7 @@ export interface CreateComponentResponse {
 }
 
 export interface UpdateComponent {
+    requestId?: number;
     id: string;
     type: ComponentType;
     uri: string;
@@ -84,6 +85,7 @@ export interface UpdateComponent {
 }
 
 export interface UpdateComponentResponse {
+    requestId?: number;
     id: string;
     type: ComponentType;
     response: any;
@@ -96,20 +98,10 @@ export interface UpdateComponentFailure {
     restoreOnFailure?: any;
 }
 
-export interface UpdateComponentPosition {
-    id: string;
-    type: ComponentType;
-    uri: string;
-    revision: any;
-    position: Position;
-}
-
-export interface UpdateConnectionPosition {}
-
-export interface UpdateComponentPositionResponse {
-    id: string;
-    type: ComponentType;
-    response: any;
+export interface UpdatePositions {
+    requestId: number;
+    componentUpdates: UpdateComponent[];
+    connectionUpdates: UpdateComponent[];
 }
 
 /*

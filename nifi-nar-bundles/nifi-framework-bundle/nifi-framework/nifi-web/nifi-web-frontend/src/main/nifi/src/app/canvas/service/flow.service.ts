@@ -16,8 +16,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { CreateComponent, UpdateComponent, UpdateComponentPosition } from '../state';
+import { Observable, throwError } from 'rxjs';
+import { CreateComponent, UpdateComponent } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 
@@ -66,16 +66,7 @@ export class FlowService {
     }
 
     updateComponent(updateComponent: UpdateComponent): Observable<any> {
+        // return throwError('API Error');
         return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
-    }
-
-    updateComponentPosition(updateComponentPosition: UpdateComponentPosition): Observable<any> {
-        return this.httpClient.put(this.stripProtocol(updateComponentPosition.uri), {
-            revision: updateComponentPosition.revision,
-            component: {
-                id: updateComponentPosition.id,
-                position: updateComponentPosition.position
-            }
-        });
     }
 }

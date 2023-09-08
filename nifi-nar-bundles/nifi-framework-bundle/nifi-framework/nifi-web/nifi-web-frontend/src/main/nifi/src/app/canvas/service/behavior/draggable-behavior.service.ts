@@ -18,12 +18,13 @@
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { select, Store } from '@ngrx/store';
-import { CanvasState, Position, UpdateComponentPosition } from '../../state';
+import { CanvasState, ComponentType, Position, UpdateComponent } from '../../state';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
-import { updatePosition } from '../../state/flow/flow.actions';
+import { updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../client.service';
+import { selectConnections } from '../../state/flow/flow.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -35,6 +36,9 @@ export class DraggableBehavior {
 
     private scale: number = INITIAL_SCALE;
 
+    private connections: any[] = [];
+    private updateConnectionRequestId: number = 0;
+
     constructor(
         private store: Store<CanvasState>,
         private client: Client,
@@ -45,6 +49,9 @@ export class DraggableBehavior {
         // subscribe to scale updates
         this.store.pipe(select(selectTransform)).subscribe((transform) => {
             this.scale = transform.scale;
+        });
+        this.store.pipe(select(selectConnections)).subscribe((connections) => {
+            this.connections = connections;
         });
 
         // handle component drag events
@@ -136,7 +143,7 @@ export class DraggableBehavior {
                 event.sourceEvent.stopPropagation();
 
                 // get the drag selection
-                var dragSelection = d3.select('rect.drag-selection');
+                const dragSelection: any = d3.select('rect.drag-selection');
 
                 // ensure we found a drag selection
                 if (dragSelection.empty()) {
@@ -145,7 +152,7 @@ export class DraggableBehavior {
 
                 // get the destination group if applicable... remove the drop flag if necessary to prevent
                 // subsequent drop events from triggering prior to this move's completion
-                var group = d3.select('g.drop').classed('drop', false);
+                const group: any = d3.select('g.drop').classed('drop', false);
 
                 // either move or update the selections group as appropriate
                 if (group.empty()) {
@@ -167,7 +174,8 @@ export class DraggableBehavior {
      */
     private updateComponentsPosition(dragSelection: any): void {
         const self: DraggableBehavior = this;
-        const componentUpdates: UpdateComponentPosition[] = [];
+        const componentUpdates: Map<string, UpdateComponent> = new Map();
+        const connectionUpdates: Map<string, UpdateComponent> = new Map();
 
         // determine the drag delta
         const dragData = dragSelection.datum();
@@ -181,11 +189,12 @@ export class DraggableBehavior {
             return;
         }
 
-        const selectedConnections = d3.selectAll('g.connection.selected');
-        const selectedComponents = d3.selectAll('g.component.selected');
+        const selectedConnections: any = d3.selectAll('g.connection.selected');
+        const selectedComponents: any = d3.selectAll('g.component.selected');
 
         // ensure every component is writable
         if (!this.canvasUtils.canModify(selectedConnections) || !this.canvasUtils.canModify(selectedComponents)) {
+            // TODO
             // nfDialog.showOkDialog({
             //   headerText: 'Component Position',
             //   dialogContent: 'Must be authorized to modify every component selected.'
@@ -193,45 +202,47 @@ export class DraggableBehavior {
             return;
         }
 
-        // TODO
         // go through each selected connection
-        // selectedConnections.each(function (d) {
-        //   const connectionUpdate = self.updateConnectionPosition(d, delta);
-        //   if (connectionUpdate !== null) {
-        //     updates.set(d.id, connectionUpdate);
-        //   }
-        // });
+        selectedConnections.each(function (d: any) {
+            const connectionUpdate = self.updateConnectionPosition(d, delta);
+            if (connectionUpdate !== null) {
+                connectionUpdates.set(d.id, connectionUpdate);
+            }
+        });
 
         // go through each selected component
         selectedComponents.each(function (d: any) {
-            // TODO
             // consider any self looping connections
-            // var connections = nfConnection.getComponentConnections(d.id);
-            // $.each(connections, function (_, connection) {
-            //   if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
-            //     var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
-            //     if (connectionUpdate !== null) {
-            //       updates.set(connection.id, connectionUpdate);
-            //     }
-            //   }
-            // });
+            const componentConnections = self.connections.filter((connection) => {
+                return (
+                    self.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
+                    self.canvasUtils.getConnectionDestinationComponentId(connection) === d.id
+                );
+            });
+
+            componentConnections.forEach((componentConnection) => {
+                if (!connectionUpdates.has(componentConnection.id)) {
+                    const connectionUpdate = self.updateConnectionPosition(componentConnection, delta);
+                    if (connectionUpdate !== null) {
+                        connectionUpdates.set(componentConnection.id, connectionUpdate);
+                    }
+                }
+            });
 
             // consider the component itself
-            componentUpdates.push(self.updateComponentPosition(d, delta));
-            // updates.set(d.id, self.updateComponentPosition(d, delta));
+            componentUpdates.set(d.id, self.updateComponentPosition(d, delta));
         });
 
         // dispatch the position updates
-        componentUpdates.forEach((componentUpdate) => {
-            // TODO - update back end to accept a batch of position updates
-            this.store.dispatch(
-                updatePosition({
-                    positionUpdate: componentUpdate
-                })
-            );
-        });
-
-        // this.refreshConnections(updates);
+        this.store.dispatch(
+            updatePositions({
+                request: {
+                    requestId: this.updateConnectionRequestId++,
+                    componentUpdates: Array.from(componentUpdates.values()),
+                    connectionUpdates: Array.from(connectionUpdates.values())
+                }
+            })
+        );
     }
 
     // /**
@@ -262,7 +273,7 @@ export class DraggableBehavior {
     //   nfCanvasUtils.moveComponents(selection, group);
     // };
 
-    public updateComponentPosition(d: any, delta: Position): UpdateComponentPosition {
+    private updateComponentPosition(d: any, delta: Position): UpdateComponent {
         const newPosition = {
             x: this.snapEnabled
                 ? Math.round((d.position.x + delta.x) / this.snapAlignmentPixels) * this.snapAlignmentPixels
@@ -275,15 +286,57 @@ export class DraggableBehavior {
         return {
             id: d.id,
             type: d.type,
-            revision: this.client.getRevision(d),
             uri: d.uri,
-            position: newPosition
+            payload: {
+                revision: this.client.getRevision(d),
+                component: {
+                    id: d.id,
+                    position: newPosition
+                }
+            },
+            restoreOnFailure: {
+                position: d.position
+            }
         };
     }
 
-    // public refreshConnections(updates: any): void {
-    //
-    // }
+    /**
+     * Update the connection's position
+     *
+     * @param connection     The connection
+     * @param delta The change in position
+     * @returns {*}
+     */
+    private updateConnectionPosition(connection: any, delta: any): UpdateComponent | null {
+        // only update if necessary
+        if (connection.bends.length === 0) {
+            return null;
+        }
+
+        // calculate the new bend points
+        const newBends: Position[] = connection.bends.map((bend: any) => {
+            return {
+                x: bend.x + delta.x,
+                y: bend.y + delta.y
+            };
+        });
+
+        return {
+            id: connection.id,
+            type: ComponentType.Connection,
+            uri: connection.uri,
+            payload: {
+                revision: this.client.getRevision(connection),
+                component: {
+                    id: connection.id,
+                    bends: newBends
+                }
+            },
+            restoreOnFailure: {
+                bends: connection.bends
+            }
+        };
+    }
 
     public activate(components: any): void {
         components.classed('moveable', true).call(this.drag);
