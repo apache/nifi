@@ -31,6 +31,9 @@ import {
 import { Store } from '@ngrx/store';
 import { selectCurrentProcessGroupId } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
+import { MatDialog } from '@angular/material/dialog';
+import { CreatePort } from '../../ui/port/create-port/create-port.component';
+import { EditPort } from '../../ui/port/edit-port/edit-port.component';
 
 @Injectable()
 export class FlowEffects {
@@ -38,7 +41,8 @@ export class FlowEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private flowService: FlowService,
-        private connectionManager: ConnectionManager
+        private connectionManager: ConnectionManager,
+        private dialog: MatDialog
     ) {}
 
     loadFlow$ = createEffect(() =>
@@ -56,7 +60,7 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
         )
@@ -95,10 +99,55 @@ export class FlowEffects {
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:
                         return of(FlowActions.createLabel({ request }));
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                        return of(FlowActions.openNewPortDialog({ request }));
                     default:
                         return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
                 }
             })
+        )
+    );
+
+    openNewPortDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewPortDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(CreatePort, {
+                            data: request,
+                            panelClass: 'small-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                            this.store.dispatch(FlowActions.clearFlowApiError());
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createPort$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createPort),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createPort(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
         )
     );
 
@@ -117,7 +166,7 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
         )
@@ -138,10 +187,72 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
         )
+    );
+
+    createComponentSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createComponentSuccess),
+            map((action) => action.response),
+            switchMap((response) => {
+                this.dialog.closeAll();
+                return of(FlowActions.createComponentComplete({ response }));
+            })
+        )
+    );
+
+    createComponentComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createComponentComplete),
+            map((action) => action.response),
+            switchMap((response) =>
+                of(
+                    FlowActions.setSelectedComponents({
+                        ids: [response.payload.id]
+                    }),
+                    FlowActions.setRenderRequired({ renderRequired: false })
+                )
+            )
+        )
+    );
+
+    editComponentRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.editComponentRequest),
+            map((action) => action.request),
+            switchMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                        return of(FlowActions.openEditPortDialog({ request }));
+                    default:
+                        return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
+                }
+            })
+        )
+    );
+
+    openEditPortDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditPortDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(EditPort, {
+                            data: request,
+                            panelClass: 'medium-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.clearFlowApiError());
+                        });
+                })
+            ),
+        { dispatch: false }
     );
 
     updateComponent$ = createEffect(() =>
@@ -164,12 +275,32 @@ export class FlowEffects {
                             id: request.id,
                             type: request.type,
                             restoreOnFailure: request.restoreOnFailure,
-                            error: error
+                            error: error.error
                         };
                         return of(FlowActions.updateComponentFailure({ response: updateComponentFailure }));
                     })
                 )
             )
+        )
+    );
+
+    updateComponentSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.updateComponentSuccess),
+                map((action) => action.response),
+                tap(() => {
+                    this.dialog.closeAll();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    updateComponentFailure$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateComponentFailure),
+            map((action) => action.response),
+            switchMap((response) => of(FlowActions.flowApiError({ error: response.error })))
         )
     );
 

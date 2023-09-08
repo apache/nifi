@@ -24,9 +24,14 @@ export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: F
 
 export const selectFlow = createSelector(selectFlowState, (state: FlowState) => state.flow);
 
-export const selectFlowLoadingError = createSelector(selectFlowState, (state: FlowState) => state.error);
+export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
+
+export const selectParentProcessGroupId = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.parentGroupId
+);
 
 export const selectSelected = createSelector(selectFlowState, (state: FlowState) => state.selection);
 
@@ -61,10 +66,16 @@ export const selectInputPorts = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.inputPorts
 );
 
+export const selectInputPort = (id: string) =>
+    createSelector(selectInputPorts, (inputPorts: any[]) => inputPorts.find((inputPort) => id == inputPort.id));
+
 export const selectOutputPorts = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.outputPorts
 );
+
+export const selectOutputPort = (id: string) =>
+    createSelector(selectOutputPorts, (outputPorts: any[]) => outputPorts.find((outputPort) => id == outputPort.id));
 
 export const selectPorts = createSelector(
     selectInputPorts,

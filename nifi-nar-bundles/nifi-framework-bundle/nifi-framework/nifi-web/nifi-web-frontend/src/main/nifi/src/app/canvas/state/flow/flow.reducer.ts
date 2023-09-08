@@ -18,6 +18,8 @@
 import { createReducer, on } from '@ngrx/store';
 import {
     addSelectedComponents,
+    clearFlowApiError,
+    createComponentComplete,
     createComponentSuccess,
     enterProcessGroup,
     enterProcessGroupComplete,
@@ -91,6 +93,11 @@ export const flowReducer = createReducer(
         error: error,
         status: 'error' as const
     })),
+    on(clearFlowApiError, (state) => ({
+        ...state,
+        error: null,
+        status: 'pending' as const
+    })),
     on(addSelectedComponents, (state, { ids }) => ({
         ...state,
         selection: [...state.selection, ...ids]
@@ -138,10 +145,13 @@ export const flowReducer = createReducer(
             }
         });
     }),
+    on(createComponentComplete, (state) => ({
+        ...state,
+        renderRequired: true,
+        dragging: false
+    })),
     on(updateComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
-            draftState.dragging = false;
-
             let collection: any[] | null = null;
             switch (response.type) {
                 case ComponentType.Processor:

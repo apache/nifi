@@ -19,6 +19,8 @@ import { createAction, props } from '@ngrx/store';
 import {
     CreateComponent,
     CreateComponentResponse,
+    CreatePort,
+    EditComponent,
     EnterProcessGroupRequest,
     EnterProcessGroupResponse,
     UpdateComponent,
@@ -48,6 +50,8 @@ export const enterProcessGroupComplete = createAction(
 
 export const flowApiError = createAction('[Canvas] Flow Api Error', props<{ error: string }>());
 
+export const clearFlowApiError = createAction('[Canvas] Clear Flow Api Error');
+
 /*
     Selectable Behavior
  */
@@ -71,14 +75,30 @@ export const createFunnel = createAction('[Canvas] Create Funnel', props<{ reque
 
 export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponent }>());
 
+export const openNewPortDialog = createAction('[Canvas] Open New Port Dialog', props<{ request: CreateComponent }>());
+
+export const createPort = createAction('[Canvas] Create Port', props<{ request: CreatePort }>());
+
 export const createComponentSuccess = createAction(
     '[Canvas] Create Component Success',
+    props<{ response: CreateComponentResponse }>()
+);
+
+export const createComponentComplete = createAction(
+    '[Canvas] Create Component Complete',
     props<{ response: CreateComponentResponse }>()
 );
 
 /*
     Update Component Action
  */
+
+export const editComponentRequest = createAction(
+    '[Canvas] Edit Component Request',
+    props<{ request: EditComponent }>()
+);
+
+export const openEditPortDialog = createAction('[Canvas] Open Edit Port Dialog', props<{ request: EditComponent }>());
 
 export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
 

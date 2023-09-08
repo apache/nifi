@@ -28,9 +28,21 @@ import { EffectsModule } from '@ngrx/effects';
 import { FlowEffects } from '../state/flow/flow.effects';
 import { transformReducer } from '../state/transform/transform.reducer';
 import { TransformEffects } from '../state/transform/transform.effects';
+import { CreatePort } from '../ui/port/create-port/create-port.component';
+import { EditPort } from '../ui/port/edit-port/edit-port.component';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCardModule } from '@angular/material/card';
+import { Banner } from '../ui/banner/banner.component';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @NgModule({
-    declarations: [FlowDesignerComponent],
+    declarations: [FlowDesignerComponent, Banner, CreatePort, EditPort],
     exports: [FlowDesignerComponent],
     imports: [
         CommonModule,
@@ -40,7 +52,16 @@ import { TransformEffects } from '../state/transform/transform.effects';
         FlowDesignerRoutingModule,
         StoreModule.forFeature('flowState', flowReducer),
         StoreModule.forFeature('transform', transformReducer),
-        EffectsModule.forFeature([FlowEffects, TransformEffects])
+        EffectsModule.forFeature([FlowEffects, TransformEffects]),
+        MatFormFieldModule,
+        MatDialogModule,
+        MatButtonModule,
+        MatInputModule,
+        MatSelectModule,
+        MatCheckboxModule,
+        MatCardModule,
+        ReactiveFormsModule,
+        MatTooltipModule
     ]
 })
 export class FlowDesignerModule {}

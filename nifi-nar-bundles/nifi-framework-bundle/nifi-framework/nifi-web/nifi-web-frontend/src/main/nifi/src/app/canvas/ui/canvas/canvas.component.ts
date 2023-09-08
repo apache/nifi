@@ -17,12 +17,13 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CanvasState, Position } from '../../state';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { enterProcessGroup, setSelectedComponents } from '../../state/flow/flow.actions';
 import * as d3 from 'd3';
 import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'fd-canvas',
@@ -40,9 +41,12 @@ export class CanvasComponent implements OnInit {
         private store: Store<CanvasState>,
         private canvasView: CanvasView
     ) {
-        this.store.pipe(select(selectTransform)).subscribe((transform) => {
-            this.scale = transform.scale;
-        });
+        this.store
+            .select(selectTransform)
+            .pipe(takeUntilDestroyed())
+            .subscribe((transform) => {
+                this.scale = transform.scale;
+            });
     }
 
     ngOnInit(): void {

@@ -120,11 +120,81 @@ $appFontPath: '~roboto-fontface/fonts';
 @tailwind components;
 @tailwind utilities;
 
+$nifi-primary-palette: (
+    50: #eef1f3,
+    100: #d5dde1,
+    200: #b9c7cd,
+    300: #9cb0b9,
+    400: #879faa,
+    500: #728e9b,
+    600: #6a8693,
+    700: #5f7b89,
+    800: #55717f,
+    900: #425f6d,
+    A100: #c7ecff,
+    A200: #94daff,
+    A400: #61c9ff,
+    A700: #47c0ff,
+    contrast: (
+        50: #000000,
+        100: #000000,
+        200: #000000,
+        300: #000000,
+        400: #000000,
+        500: #000000,
+        600: #ffffff,
+        700: #ffffff,
+        800: #ffffff,
+        900: #ffffff,
+        A100: #000000,
+        A200: #000000,
+        A400: #000000,
+        A700: #000000
+    )
+);
+
+$nifi-accent-palette: (
+    50: #fcfcfd,
+    100: #f7f8f9,
+    200: #f1f4f5,
+    300: #ebeff1,
+    400: #e7ebee,
+    500: #e3e8eb,
+    600: #e0e5e9,
+    700: #dce2e5,
+    800: #d8dee2,
+    900: #d0d8dd,
+    A100: #ffffff,
+    A200: #ffffff,
+    A400: #ffffff,
+    A700: #ffffff,
+    contrast: (
+        50: #000000,
+        100: #000000,
+        200: #000000,
+        300: #000000,
+        400: #000000,
+        500: #000000,
+        600: #000000,
+        700: #000000,
+        800: #000000,
+        900: #000000,
+        A100: #000000,
+        A200: #000000,
+        A400: #000000,
+        A700: #000000
+    )
+);
+
 // Define the palettes for your theme using the Material Design palettes available in palette.scss
 // (imported above). For each palette, you can optionally specify a default, lighter, and darker
 // hue. Available color palettes: https://material.io/design/color/
-$nifi-primary: mat.define-palette(mat.$indigo-palette);
-$nifi-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+$nifi-primary: mat.define-palette($nifi-primary-palette);
+$nifi-accent: mat.define-palette($nifi-accent-palette);
+
+//#728e9b
+//#aabbc3
+//#e3e8eb
 
 // The warn palette is optional (defaults to red).
 $nifi-warn: mat.define-palette(mat.$red-palette);
@@ -156,4 +226,27 @@ body {
 body {
     margin: 0;
     font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.small-dialog {
+    min-width: 320px;
+}
+
+.medium-dialog {
+    min-width: 470px;
+}
+
+.medium-short-dialog {
+    max-height: 32%;
+    max-width: 34%;
+    min-height: 250px;
+    min-width: 440px;
+    font-size: 13px;
+}
+
+.large-dialog {
+    max-height: 72%;
+    max-width: 55%;
+    min-height: 560px;
+    min-width: 760px;
 }

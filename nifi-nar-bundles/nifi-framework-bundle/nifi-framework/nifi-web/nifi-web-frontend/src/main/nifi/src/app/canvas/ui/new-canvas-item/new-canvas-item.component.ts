@@ -17,13 +17,14 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 import { CdkDragEnd, CdkDragStart } from '@angular/cdk/drag-drop';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Position } from '../../state';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { createComponentRequest, setDragging } from '../../state/flow/flow.actions';
 import { Client } from '../../service/client.service';
 import { selectDragging } from '../../state/flow/flow.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'new-canvas-item',
@@ -47,14 +48,20 @@ export class NewCanvasItemComponent implements OnInit {
         private client: Client,
         private store: Store<CanvasState>
     ) {
-        this.store.pipe(select(selectTransform)).subscribe((transform) => {
-            this.scale = transform.scale;
-            this.translate = transform.translate;
-        });
+        this.store
+            .select(selectTransform)
+            .pipe(takeUntilDestroyed())
+            .subscribe((transform) => {
+                this.scale = transform.scale;
+                this.translate = transform.translate;
+            });
 
-        this.store.pipe(select(selectDragging)).subscribe((dragging) => {
-            this.dragging = dragging;
-        });
+        this.store
+            .select(selectDragging)
+            .pipe(takeUntilDestroyed())
+            .subscribe((dragging) => {
+                this.dragging = dragging;
+            });
     }
 
     ngOnInit(): void {}

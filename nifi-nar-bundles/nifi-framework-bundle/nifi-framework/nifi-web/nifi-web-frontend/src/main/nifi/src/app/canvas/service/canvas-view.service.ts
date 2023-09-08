@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import * as WebFont from 'webfontloader';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import { setTransform } from '../state/transform/transform.actions';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../state/transform/transform.reducer';
@@ -30,6 +30,7 @@ import { ProcessorManager } from './manager/processor-manager.service';
 import { PortManager } from './manager/port-manager.service';
 import { RemoteProcessGroupManager } from './manager/remote-process-group-manager.service';
 import { ConnectionManager } from './manager/connection-manager.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
     providedIn: 'root'
@@ -59,11 +60,14 @@ export class CanvasView {
         private labelManager: LabelManager,
         private connectionManager: ConnectionManager
     ) {
-        this.store.pipe(select(selectRenderRequired)).subscribe((renderRequired) => {
-            if (renderRequired) {
-                this.updateCanvasVisibility();
-            }
-        });
+        this.store
+            .select(selectRenderRequired)
+            .pipe(takeUntilDestroyed())
+            .subscribe((renderRequired) => {
+                if (renderRequired) {
+                    this.updateCanvasVisibility();
+                }
+            });
     }
 
     public init(svg: any, canvas: any): void {

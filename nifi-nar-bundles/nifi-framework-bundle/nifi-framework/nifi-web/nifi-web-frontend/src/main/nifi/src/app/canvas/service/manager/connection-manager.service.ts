@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { Store, select } from '@ngrx/store';
+import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Dimension, Position, UpdateComponent } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Client } from '../client.service';
@@ -33,6 +33,7 @@ import { TransitionBehavior } from '../behavior/transition-behavior.service';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -43,6 +44,8 @@ export class ConnectionRenderOptions {
     providedIn: 'root'
 })
 export class ConnectionManager {
+    private destroyRef = inject(DestroyRef);
+
     private static readonly DIMENSIONS: Dimension = {
         width: 224,
         height: 0
@@ -2191,29 +2194,44 @@ export class ConnectionManager {
                 event.sourceEvent.stopPropagation();
             });
 
-        this.store.pipe(select(selectConnections)).subscribe((connections) => {
-            this.set(connections);
-        });
+        this.store
+            .select(selectConnections)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((connections) => {
+                this.set(connections);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
 
-        this.store.pipe(select(selectCurrentProcessGroupId)).subscribe((currentProcessGroupId) => {
-            this.currentProcessGroupId = currentProcessGroupId;
-        });
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((currentProcessGroupId) => {
+                this.currentProcessGroupId = currentProcessGroupId;
+            });
 
-        this.store.pipe(select(selectTransform)).subscribe((transform) => {
-            this.scale = transform.scale;
-        });
+        this.store
+            .select(selectTransform)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transform) => {
+                this.scale = transform.scale;
+            });
     }
 
     private set(connections: any): void {

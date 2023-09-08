@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Position, UpdateComponent } from '../../state';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
@@ -25,6 +25,7 @@ import { CanvasUtils } from '../canvas-utils.service';
 import { updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../client.service';
 import { selectConnections } from '../../state/flow/flow.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
     providedIn: 'root'
@@ -47,12 +48,18 @@ export class DraggableBehavior {
         const self: DraggableBehavior = this;
 
         // subscribe to scale updates
-        this.store.pipe(select(selectTransform)).subscribe((transform) => {
-            this.scale = transform.scale;
-        });
-        this.store.pipe(select(selectConnections)).subscribe((connections) => {
-            this.connections = connections;
-        });
+        this.store
+            .select(selectTransform)
+            .pipe(takeUntilDestroyed())
+            .subscribe((transform) => {
+                this.scale = transform.scale;
+            });
+        this.store
+            .select(selectConnections)
+            .pipe(takeUntilDestroyed())
+            .subscribe((connections) => {
+                this.connections = connections;
+            });
 
         // handle component drag events
         this.drag = d3

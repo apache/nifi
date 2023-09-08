@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { select, Store } from '@ngrx/store';
+import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, UpdateComponent } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -26,11 +26,15 @@ import * as d3 from 'd3';
 import { selectLabels, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 import { Client } from '../client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class LabelManager {
+    private destroyRef = inject(DestroyRef);
+
     public static readonly INITIAL_WIDTH: number = 148;
     public static readonly INITIAL_HEIGHT: number = 148;
     private static readonly MIN_HEIGHT: number = 24;
@@ -50,6 +54,7 @@ export class LabelManager {
         private client: Client,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
+        private quickSelectBehavior: QuickSelectBehavior,
         private editableBehavior: EditableBehavior
     ) {}
 
@@ -91,11 +96,10 @@ export class LabelManager {
 
         // always support selection
         this.selectableBehavior.activate(label);
+        this.quickSelectBehavior.activate(label);
 
         // TODO
         // .call(nfContextMenu.activate)
-        // TODO
-        // .call(nfQuickSelect.activate);
 
         return label;
     }
@@ -249,21 +253,30 @@ export class LabelManager {
     public init(): void {
         this.labelContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'labels');
 
-        this.store.pipe(select(selectLabels)).subscribe((labels) => {
-            this.set(labels);
-        });
+        this.store
+            .select(selectLabels)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((labels) => {
+                this.set(labels);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.labelContainer.selectAll('g.label').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.labelContainer.selectAll('g.label').classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
 
         const self: LabelManager = this;
 

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { Store, select } from '@ngrx/store';
+import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -24,11 +24,15 @@ import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
 import { selectRemoteProcessGroups, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class RemoteProcessGroupManager {
+    private destroyRef = inject(DestroyRef);
+
     private dimensions: Dimension = {
         width: 384,
         height: 176
@@ -45,6 +49,7 @@ export class RemoteProcessGroupManager {
         private canvasUtils: CanvasUtils,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
+        private quickSelectBehavior: QuickSelectBehavior,
         private editableBehavior: EditableBehavior
     ) {}
 
@@ -118,11 +123,11 @@ export class RemoteProcessGroupManager {
 
         // always support selection
         this.selectableBehavior.activate(remoteProcessGroup);
+        this.quickSelectBehavior.activate(remoteProcessGroup);
 
         // TODO
         // remoteProcessGroup
         //   .call(nfContextMenu.activate)
-        //   .call(nfQuickSelect.activate);
 
         return remoteProcessGroup;
     }
@@ -737,23 +742,32 @@ export class RemoteProcessGroupManager {
             .attr('pointer-events', 'all')
             .attr('class', 'processors');
 
-        this.store.pipe(select(selectRemoteProcessGroups)).subscribe((processors) => {
-            this.set(processors);
-        });
+        this.store
+            .select(selectRemoteProcessGroups)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((processors) => {
+                this.set(processors);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.remoteProcessGroupContainer
-                    .selectAll('g.remote-process-group')
-                    .classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.remoteProcessGroupContainer
+                        .selectAll('g.remote-process-group')
+                        .classed('selected', function (d: any) {
+                            return selected.includes(d.id);
+                        });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
     }
 
     private set(remoteProcessGroups: any): void {

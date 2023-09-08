@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { CanvasState, ComponentType, Dimension } from '../../state';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
@@ -25,11 +25,14 @@ import * as d3 from 'd3';
 import { selectProcessGroups, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ProcessGroupManager {
+    private destroyRef = inject(DestroyRef);
+
     private dimensions: Dimension = {
         width: 384,
         height: 176
@@ -1370,21 +1373,30 @@ export class ProcessGroupManager {
             .attr('pointer-events', 'all')
             .attr('class', 'process-groups');
 
-        this.store.pipe(select(selectProcessGroups)).subscribe((processGroups) => {
-            this.set(processGroups);
-        });
+        this.store
+            .select(selectProcessGroups)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((processGroups) => {
+                this.set(processGroups);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.processGroupContainer.selectAll('g.process-group').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.processGroupContainer.selectAll('g.process-group').classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
     }
 
     private set(processGroups: any): void {

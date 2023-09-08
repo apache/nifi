@@ -15,20 +15,24 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { CanvasState, ComponentType, Dimension } from '../../state';
-import { Store, select } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { CanvasUtils } from '../canvas-utils.service';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
 import { selectPorts, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PortManager {
+    private destroyRef = inject(DestroyRef);
+
     private portDimensions: Dimension = {
         width: 240,
         height: 48
@@ -50,6 +54,7 @@ export class PortManager {
         private canvasUtils: CanvasUtils,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
+        private quickSelectBehavior: QuickSelectBehavior,
         private editableBehavior: EditableBehavior
     ) {}
 
@@ -157,11 +162,10 @@ export class PortManager {
 
         // always support selection
         this.selectableBehavior.activate(port);
+        this.quickSelectBehavior.activate(port);
 
         // TODO
         // .call(nfContextMenu.activate)
-        // TODO
-        // .call(nfQuickSelect.activate);
 
         return port;
     }
@@ -531,21 +535,30 @@ export class PortManager {
     public init(): void {
         this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
 
-        this.store.pipe(select(selectPorts)).subscribe((ports) => {
-            this.set(ports);
-        });
+        this.store
+            .select(selectPorts)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((ports) => {
+                this.set(ports);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
     }
 
     private set(ports: any): void {

@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { CreateComponent, UpdateComponent } from '../state';
+import { ComponentType, CreateComponent, CreatePort, UpdateComponent } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 
@@ -61,6 +61,18 @@ export class FlowService {
             revision: createLabel.revision,
             component: {
                 position: createLabel.position
+            }
+        });
+    }
+
+    createPort(processGroupId: string = 'root', createPort: CreatePort): Observable<any> {
+        const portType: string = ComponentType.InputPort == createPort.type ? 'input-ports' : 'output-ports';
+        return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/${portType}`, {
+            revision: createPort.revision,
+            component: {
+                position: createPort.position,
+                name: createPort.name,
+                allowRemoteAccess: createPort.allowRemoteAccess
             }
         });
     }

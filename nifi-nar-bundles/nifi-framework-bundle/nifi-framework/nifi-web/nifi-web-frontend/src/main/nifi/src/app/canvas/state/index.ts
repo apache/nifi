@@ -75,6 +75,17 @@ export interface CreateComponentResponse {
     payload: any;
 }
 
+export interface CreatePort extends CreateComponent {
+    name: string;
+    allowRemoteAccess: boolean;
+}
+
+export interface EditComponent {
+    type: ComponentType;
+    uri: string;
+    entity: any;
+}
+
 export interface UpdateComponent {
     requestId?: number;
     id: string;

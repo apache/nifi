@@ -17,10 +17,11 @@
 
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { CanvasState, Position } from '../state';
 import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
     providedIn: 'root'
@@ -32,10 +33,13 @@ export class CanvasUtils {
     private currentProcessGroupId: string = initialState.id;
 
     constructor(private store: Store<CanvasState>) {
-        this.store.pipe(select(selectCurrentProcessGroupId)).subscribe((currentProcessGroupId) => {
-            this.currentProcessGroupId = currentProcessGroupId;
-            this.trimLengthCaches.clear();
-        });
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(takeUntilDestroyed())
+            .subscribe((currentProcessGroupId) => {
+                this.currentProcessGroupId = currentProcessGroupId;
+                this.trimLengthCaches.clear();
+            });
     }
 
     /**
@@ -70,6 +74,126 @@ export class CanvasUtils {
             .size();
 
         return selectionSize === readableSize;
+    }
+
+    /**
+     * Determines whether the specified selection is in a state to support modification.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public supportsModification(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        // get the selection data
+        const selectionData: any = selection.datum();
+
+        let supportsModification: boolean = false;
+        if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
+            supportsModification = !(
+                selectionData.status.aggregateSnapshot.runStatus === 'Running' ||
+                selectionData.status.aggregateSnapshot.activeThreadCount > 0
+            );
+        } else if (this.isRemoteProcessGroup(selection)) {
+            supportsModification = !(
+                selectionData.status.transmissionStatus === 'Transmitting' ||
+                selectionData.status.aggregateSnapshot.activeThreadCount > 0
+            );
+        } else if (this.isProcessGroup(selection)) {
+            supportsModification = true;
+        } else if (this.isFunnel(selection)) {
+            supportsModification = true;
+        } else if (this.isLabel(selection)) {
+            supportsModification = true;
+        } else if (this.isConnection(selection)) {
+            let isSourceConfigurable: boolean = false;
+            let isDestinationConfigurable: boolean = false;
+
+            const sourceComponentId: string = this.getConnectionSourceComponentId(selectionData);
+            const source: any = d3.select('#id-' + sourceComponentId);
+            if (!source.empty()) {
+                if (this.isRemoteProcessGroup(source) || this.isProcessGroup(source)) {
+                    isSourceConfigurable = true;
+                } else {
+                    isSourceConfigurable = this.supportsModification(source);
+                }
+            }
+
+            const destinationComponentId: string = this.getConnectionDestinationComponentId(selectionData);
+            const destination: any = d3.select('#id-' + destinationComponentId);
+            if (!destination.empty()) {
+                if (this.isRemoteProcessGroup(destination) || this.isProcessGroup(destination)) {
+                    isDestinationConfigurable = true;
+                } else {
+                    isDestinationConfigurable = this.supportsModification(destination);
+                }
+            }
+
+            supportsModification = isSourceConfigurable && isDestinationConfigurable;
+        }
+        return supportsModification;
+    }
+
+    /**
+     * Determines whether the specified selection is configurable.
+     *
+     * @param selection
+     */
+    public isConfigurable(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return selection.empty();
+        }
+
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+        if (!this.canRead(selection) || !this.canModify(selection)) {
+            return false;
+        }
+        if (this.isFunnel(selection)) {
+            return false;
+        }
+
+        return this.supportsModification(selection);
+    }
+
+    /**
+     * Determines whether the specified selection has details.
+     *
+     * @param selection
+     */
+    public hasDetails(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if (!this.canRead(selection)) {
+            return false;
+        }
+        if (this.canModify(selection)) {
+            if (
+                this.isProcessor(selection) ||
+                this.isInputPort(selection) ||
+                this.isOutputPort(selection) ||
+                this.isRemoteProcessGroup(selection) ||
+                this.isConnection(selection)
+            ) {
+                return !this.isConfigurable(selection);
+            }
+        } else {
+            return (
+                this.isProcessor(selection) ||
+                this.isConnection(selection) ||
+                this.isInputPort(selection) ||
+                this.isOutputPort(selection) ||
+                this.isRemoteProcessGroup(selection)
+            );
+        }
+
+        return false;
     }
 
     /**

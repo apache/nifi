@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { selectFunnels, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({ providedIn: 'root' })
 export class FunnelManager {
+    private destroyRef = inject(DestroyRef);
+
     private dimensions: Dimension = {
         width: 48,
         height: 48
@@ -129,21 +132,30 @@ export class FunnelManager {
     public init(): void {
         this.funnelContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'funnels');
 
-        this.store.pipe(select(selectFunnels)).subscribe((funnels) => {
-            this.set(funnels);
-        });
+        this.store
+            .select(selectFunnels)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((funnels) => {
+                this.set(funnels);
+            });
 
-        this.store.pipe(select(selectSelected)).subscribe((selected) => {
-            if (selected && selected.length) {
-                this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
-            }
-        });
+        this.store
+            .select(selectSelected)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((selected) => {
+                if (selected && selected.length) {
+                    this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
+                }
+            });
 
-        this.store.pipe(select(selectTransitionRequired)).subscribe((transitionRequired) => {
-            this.transitionRequired = transitionRequired;
-        });
+        this.store
+            .select(selectTransitionRequired)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((transitionRequired) => {
+                this.transitionRequired = transitionRequired;
+            });
     }
 
     private set(funnels: any): void {
