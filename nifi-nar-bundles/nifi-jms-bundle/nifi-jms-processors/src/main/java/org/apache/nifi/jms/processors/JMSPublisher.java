@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -28,6 +29,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,8 +81,25 @@ class JMSPublisher extends JMSWorker {
                         this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                        this.jmsTemplate.setTimeToLive(Integer.parseInt(entry.getValue()));
-                        this.jmsTemplate.setExplicitQosEnabled(true);
+                        if(NumberUtils.isCreatable(entry.getValue())) { //ignore any non-numeric values
+                            long expiration = Long.parseLong(entry.getValue());
+                            long ttl = 0L;
+
+                            // if expiration was set to a positive non-zero value, then calculate the ttl
+                            // jmsTemplate does not have an expiration field, and can only accept a ttl value
+                            // which is then used to set jms_expiration header
+                            // ttl is in epoch millis
+                            if(expiration > 0) {
+                                ttl = expiration - Instant.now().toEpochMilli();
+                                if(ttl > 0) {
+                                    this.jmsTemplate.setTimeToLive(ttl);
+                                    this.jmsTemplate.setExplicitQosEnabled(true);
+                                } // else, use default ttl
+                            } else if (expiration == 0) { // expiration == 0 means no expiration in jms
+                                this.jmsTemplate.setTimeToLive(0); //ttl must be explicitly set to 0 to indicate no expiration
+                                this.jmsTemplate.setExplicitQosEnabled(true);
+                            } // else, use default ttl
+                        }
                     } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
                         this.jmsTemplate.setPriority(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
