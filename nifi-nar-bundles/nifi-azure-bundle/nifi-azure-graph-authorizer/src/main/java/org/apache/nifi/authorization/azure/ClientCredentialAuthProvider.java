@@ -43,9 +43,9 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
     private final String tenantId;
     private final String clientId;
     private final String clientSecret;
+    private final String graphScope;
     private LocalDateTime tokenExpiresOnDate;
-    private String lastAcessToken;
-    private static final String GRAPH_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
+    private String lastAccessToken;
     private static final Logger logger = LoggerFactory.getLogger(ClientCredentialAuthProvider.class);
 
     private ClientCredentialAuthProvider(final Builder builder){
@@ -53,11 +53,12 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         this.tenantId = builder.getTenantId();
         this.clientId = builder.getClientId();
         this.clientSecret = builder.getClientSecret();
+        this.graphScope = builder.getGraphScope();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authorityEndpoint, tenantId, clientId, clientSecret);
+        return Objects.hash(authorityEndpoint, tenantId, clientId, clientSecret, graphScope);
     }
 
     @Override
@@ -67,6 +68,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             ", tenantId='" + tenantId + "'" +
             ", clientId='" + clientId + "'" +
             ", clientSecret='" + clientSecret + "'" +
+            ", graphScope='" + graphScope + "'" +
             "}";
     }
 
@@ -79,7 +81,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
                 .authority(String.format("%s/%s", authorityEndpoint, tenantId))
                 .build();
         ClientCredentialParameters clientCredentialParam = ClientCredentialParameters.builder(
-                Collections.singleton(GRAPH_DEFAULT_SCOPE))
+                Collections.singleton(graphScope))
                 .build();
 
         CompletableFuture<IAuthenticationResult> future = app.acquireToken(clientCredentialParam);
@@ -93,18 +95,16 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
     }
 
     private String getAccessToken() {
-        if ((lastAcessToken != null) && (tokenExpiresOnDate != null) && (tokenExpiresOnDate.isAfter(LocalDateTime.now().plusMinutes(1)))) {
-            return lastAcessToken;
-        } else {
+        if ((lastAccessToken == null) || (tokenExpiresOnDate == null) || (!tokenExpiresOnDate.isAfter(LocalDateTime.now().plusMinutes(1)))) {
             try {
                 IAuthenticationResult result = getAccessTokenByClientCredentialGrant();
                 tokenExpiresOnDate = convertToLocalDateTime(result.expiresOnDate());
-                lastAcessToken = result.accessToken();
-            } catch(final Exception e) {
+                lastAccessToken = result.accessToken();
+            } catch (final Exception e) {
                 logger.error("Failed to get access token due to {}", e.getMessage(), e);
             }
-            return lastAcessToken;
         }
+        return lastAccessToken;
     }
 
     @Override
@@ -121,6 +121,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         private String tenantId = "";
         private String clientId = "";
         private String clientSecret = "";
+        private String graphScope = "";
 
         public Builder authorityEndpoint(final String authorityEndpoint){
             this.authorityEndpoint = authorityEndpoint;
@@ -129,6 +130,15 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
 
         public String getAuthorityEndpoint() {
             return this.authorityEndpoint;
+        }
+
+        public Builder graphScope(final String graphDefaultScope){
+            this.graphScope = graphDefaultScope;
+            return this;
+        }
+
+        public String getGraphScope() {
+            return this.graphScope;
         }
 
         public Builder tenantId(final String tenantId){
@@ -160,7 +170,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
 
         @Override
         public int hashCode() {
-            return Objects.hash(authorityEndpoint, tenantId, clientId, clientSecret);
+            return Objects.hash(authorityEndpoint, tenantId, clientId, clientSecret, graphScope);
         }
 
         @Override
@@ -170,6 +180,7 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
                 ", tenantId='" + getTenantId() + "'" +
                 ", clientId='" + getClientId() + "'" +
                 ", clientSecret='" + getClientSecret() + "'" +
+                ", graphScope='" + getGraphScope() + "'" +
                 "}";
         }
         public ClientCredentialAuthProvider build() {
@@ -177,3 +188,4 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         }
     }
 }
+
