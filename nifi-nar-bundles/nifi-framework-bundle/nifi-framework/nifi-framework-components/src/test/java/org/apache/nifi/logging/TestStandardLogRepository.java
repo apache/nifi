@@ -66,9 +66,25 @@ public class TestStandardLogRepository {
         MockFlowFile mockFlowFile1 = new MockFlowFile(1L);
         MockFlowFile mockFlowFile2 = new MockFlowFile(2L);
 
-        repo.addLogMessage(LogLevel.INFO, "Testing {} {} flowfiles are not being shown in exception message", new Object[]{mockFlowFile1, mockFlowFile2});
+        repo.addLogMessage(LogLevel.INFO, "Testing {} {} FlowFiles are not being shown in exception message", new Object[]{mockFlowFile1, mockFlowFile2});
 
         assertNull(observer.getMessages().get(0).getFlowFileUuid());
+    }
+
+    @Test
+    public void testLogRepositoryAfterLogLevelChange() {
+        StandardLogRepository repo = new StandardLogRepository();
+        MockLogObserver observer = new MockLogObserver();
+        repo.addObserver(LogLevel.ERROR, observer);
+
+        repo.setObservationLevel(LogLevel.ERROR);
+
+        IOException exception = new IOException("exception");
+
+        repo.addLogMessage(LogLevel.ERROR, "Testing {} to get exception message <{}>", new Object[]{observer.getClass().getName(), exception});
+
+        assertEquals(1, observer.getMessages().size());
+        assertEquals("Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message <exception>", observer.getMessages().get(0).getMessage());
     }
 
     private static class MockLogObserver implements LogObserver {
