@@ -116,6 +116,7 @@ public class TestListS3 {
         MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("filename", "a");
         ff0.assertAttributeEquals("s3.bucket", "test-bucket");
+        ff0.assertAttributeEquals("s3.region", "eu-west-1");
         String lastModifiedTimestamp = String.valueOf(lastModified.getTime());
         ff0.assertAttributeEquals("s3.lastModified", lastModifiedTimestamp);
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
@@ -174,6 +175,7 @@ public class TestListS3 {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "3");
+        flowFile.assertAttributeEquals("s3.region", "eu-west-1");
         flowFile.assertContentEquals("a,test-bucket,,," + lastModifiedString + ",0,,true,,,\n"
             + "b/c,test-bucket,,," + lastModifiedString + ",0,,true,,,\n"
             + "d/e,test-bucket,,," + lastModifiedString + ",0,,true,,,\n");
