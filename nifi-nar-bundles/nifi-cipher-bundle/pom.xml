@@ -29,4 +29,16 @@
         <module>nifi-cipher-processors</module>
         <module>nifi-cipher-nar</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.exceptionfactory.jagged</groupId>
+                <artifactId>jagged-bom</artifactId>
+                <version>0.2.0</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

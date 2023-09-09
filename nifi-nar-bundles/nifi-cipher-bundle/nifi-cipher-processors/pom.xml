@@ -44,6 +44,18 @@
             <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.exceptionfactory.jagged</groupId>
+            <artifactId>jagged-x25519</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.exceptionfactory.jagged</groupId>
+            <artifactId>jagged-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.exceptionfactory.jagged</groupId>
+            <artifactId>jagged-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
         </dependency>
