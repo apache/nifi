@@ -21,6 +21,7 @@ import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,12 +44,12 @@ import java.util.stream.Stream;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.REL_SUCCESS_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.REL_SUCCESS_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUESTS;
 import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
@@ -256,7 +257,7 @@ public class GetZendeskTest {
 
     class TestGetZendesk extends GetZendesk {
         @Override
-        HttpUriBuilder uriBuilder(String subDomain, String resourcePath) {
+        HttpUriBuilder uriBuilder(String resourcePath) {
             HttpUrl url = server.url(resourcePath);
             return new StandardHttpUriBuilder()
                 .scheme(url.scheme())

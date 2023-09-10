@@ -24,6 +24,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import okio.Buffer;
+import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -40,18 +41,18 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.CONTENT_TYPE_APPLICATION_JSON;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
-import static org.apache.nifi.commons.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.APPLICATION_JSON;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_SUCCESS;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.ZENDESK_RECORD_READER_NAME;
@@ -63,6 +64,7 @@ public class PutZendeskTicketTest {
     private static final int HTTP_OK = 200;
     private static final int HTTP_BAD_REQUEST = 400;
     private static final String EMPTY_RESPONSE = "{}";
+    private static final String ERROR_RESPONSE = "{\"error\": {\"message\": \"This is an error message\"}}";
 
     private MockWebServer server;
     private TestRunner testRunner;
@@ -316,7 +318,7 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(ERROR_RESPONSE));
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
 
         // when
@@ -327,11 +329,10 @@ public class PutZendeskTicketTest {
         testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
     }
 
-
     @NotNull
     private Buffer getBuffer(String url, String body) throws IOException {
         Request request = new Request.Builder()
-                .post(RequestBody.create(body, MediaType.parse(CONTENT_TYPE_APPLICATION_JSON)))
+                .post(RequestBody.create(body, MediaType.parse(APPLICATION_JSON)))
                 .url(server.url(url))
                 .build();
 
@@ -342,7 +343,7 @@ public class PutZendeskTicketTest {
 
     class TestPutZendeskTicket extends PutZendeskTicket {
         @Override
-        HttpUriBuilder uriBuilder(String subDomain, String resourcePath) {
+        HttpUriBuilder uriBuilder(String resourcePath) {
             HttpUrl url = server.url(resourcePath);
             return new StandardHttpUriBuilder()
                     .scheme(url.scheme())
