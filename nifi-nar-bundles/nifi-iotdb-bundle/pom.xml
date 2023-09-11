@@ -31,7 +31,7 @@
     </modules>
 
     <properties>
-        <iotdb.sdk.version>1.1.2</iotdb.sdk.version>
+        <iotdb.sdk.version>1.2.0</iotdb.sdk.version>
     </properties>
 
     <dependencyManagement>
