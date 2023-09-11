@@ -350,7 +350,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
     public static final String DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "conf/login-identity-providers.xml";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
-    private static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "http/1.1";
+    private static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "h2 http/1.1";
     public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
@@ -725,7 +725,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     /**
-     * Get Web HTTPS Application Protocols defaults to HTTP/1.1
+     * Get Web HTTPS Application Protocols defaults to HTTP/2 and HTTP/1.1
      *
      * @return Set of configured HTTPS Application Protocols
      */
