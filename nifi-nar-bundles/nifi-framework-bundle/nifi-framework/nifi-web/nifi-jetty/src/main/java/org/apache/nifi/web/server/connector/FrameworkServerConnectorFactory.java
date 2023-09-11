@@ -28,6 +28,7 @@ import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.util.StoreScanner;
+import org.eclipse.jetty.server.HostHeaderCustomizer;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -123,6 +124,9 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
         httpConfiguration.setIdleTimeout(idleTimeout);
+
+        // Add HostHeaderCustomizer to set Host Header for HTTP/2 and HostHeaderHandler
+        httpConfiguration.addCustomizer(new HostHeaderCustomizer());
 
         return httpConfiguration;
     }
