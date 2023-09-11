@@ -486,7 +486,7 @@ public class JoltTransformRecord extends AbstractProcessor {
     private String readTransform(final PropertyValue propertyValue) {
         final ResourceReference resourceReference = propertyValue.asResource();
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
-            return reader.lines().collect(Collectors.joining());
+            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
             throw new UncheckedIOException("Read JOLT Transform failed", e);
         }
