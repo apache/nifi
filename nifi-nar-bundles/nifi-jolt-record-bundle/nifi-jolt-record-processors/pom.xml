@@ -104,6 +104,7 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/TestJoltTransformRecord/input.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/chainrSpecWithSingleLineComment.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/customChainrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/chainrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/cardrSpec.json</exclude>
