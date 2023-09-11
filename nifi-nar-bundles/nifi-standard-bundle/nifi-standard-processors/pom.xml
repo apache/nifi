@@ -604,6 +604,7 @@
                         <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrSpecWithSingleLineComment.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/customChainrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrELOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrELSpec.json</exclude>

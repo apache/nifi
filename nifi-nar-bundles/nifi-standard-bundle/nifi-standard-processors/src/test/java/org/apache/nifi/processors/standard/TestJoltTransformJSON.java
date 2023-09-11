@@ -26,6 +26,9 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -205,10 +209,12 @@ public class TestJoltTransformJSON {
         runner.assertNotValid();
     }
 
-    @Test
-    public void testTransformInputWithChainr() throws IOException {
+    @ParameterizedTest(name = "{index} {1}")
+    @MethodSource("getChainrArguments")
+    /*NOTE: Even though description is not used in the actual test, it needs to be declared in order to use it in the ParameterizedTest name argument*/
+    public void testTransformInputWithChainr(Path specPath, String description) throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
+        final String spec = new String(Files.readAllBytes(specPath));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -528,4 +534,9 @@ public class TestJoltTransformJSON {
         runner.assertNotValid();
     }
 
+    private static Stream<Arguments> getChainrArguments() {
+        return Stream.of(
+                Arguments.of(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json"), "has no single line comments"),
+                Arguments.of(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
+    }
 }
