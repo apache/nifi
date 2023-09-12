@@ -69,7 +69,7 @@
                             }
                         </pre>
 
-                        We are going to provide record path values for the <em>Comment Body, Subject, Priority</em> and <em>Type</em> processor attributes:
+                        We are going to provide Record Path values for the <em>Comment Body, Subject, Priority</em> and <em>Type</em> processor attributes:
                         <pre>
                             Comment Body : %{/record/description}
                             Subject : %{/record/issue/name}
@@ -93,7 +93,7 @@
                 </dd>
             <dt><b>Constant:</b></dt>
                 <dd>
-                    <p>The property value is going to be treated as a constant if the provided value doesn't match with the record path format.</p>
+                    <p>The property value is going to be treated as a constant if the provided value doesn't match with the Record Path format.</p>
 
                     <p><u>Example:</u></p>
                     <p>
@@ -126,7 +126,7 @@
 
         <p>
             The processor offers a set of frequently used Zendesk ticket attributes within its property list. However, users have the flexibility to include any desired number of additional properties using dynamic properties.
-            These dynamic properties utilize their keys as record paths, which denote the paths within the request object. Correspondingly, the values of these dynamic properties align with the predefined property attributes.
+            These dynamic properties utilize their keys as Json Pointer, which denote the paths within the request object. Correspondingly, the values of these dynamic properties align with the predefined property attributes.
             The possible Zendesk request attributes can be found in the <a target="blank" href="https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/">Zendesk API documentation</a>
         </p>
         <p><u>Example:</u></p>

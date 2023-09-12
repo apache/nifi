@@ -69,7 +69,7 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTIC
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
-import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getErrorMessageFromResponse;
+import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_LONG_VALIDATOR;
@@ -187,7 +187,7 @@ public class GetZendesk extends AbstractZendesk {
             getLogger().error("Rate limit exceeded for uri={}, yielding before retrying request.", uri);
             context.yield();
         } else {
-            getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, getErrorMessageFromResponse(response));
+            getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, getResponseBody(response));
             context.yield();
         }
     }

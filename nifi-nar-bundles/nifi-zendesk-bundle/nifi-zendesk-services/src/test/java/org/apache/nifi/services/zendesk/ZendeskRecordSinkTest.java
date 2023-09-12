@@ -152,6 +152,23 @@ public class ZendeskRecordSinkTest {
         recordSet = RecordSet.of(schema, record1, record2);
     }
 
+    private void initDuplicateRecords() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("description", RecordFieldType.STRING.getDataType()));
+
+        RecordSchema schema = new SimpleRecordSchema(fields);
+
+        Map<String, Object> valueMap1 = new HashMap<>();
+        valueMap1.put("description", "This is a test comment body.");
+        Record record1 = new MapRecord(schema, valueMap1);
+
+        Map<String, Object> valueMap2 = new HashMap<>();
+        valueMap2.put("description", "This is a test comment body.");
+        Record record2 = new MapRecord(schema, valueMap2);
+
+        recordSet = RecordSet.of(schema, record1, record2);
+    }
+
     @Test
     public void testSendMessageWithFixPropertiesAndSingleTicket() throws IOException, InterruptedException {
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
@@ -178,15 +195,15 @@ public class ZendeskRecordSinkTest {
 
         String expectedBody =
                 "{\n" +
-                        "  \"ticket\" : {\n" +
-                        "    \"comment\" : {\n" +
-                        "      \"body\" : \"This is a test comment body.\"\n" +
-                        "    },\n" +
-                        "    \"subject\" : \"Test subject\",\n" +
-                        "    \"priority\" : \"High\",\n" +
-                        "    \"type\" : \"Development\"\n" +
-                        "  }\n" +
-                        "}";
+                "  \"ticket\" : {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is a test comment body.\"\n" +
+                "    },\n" +
+                "    \"subject\" : \"Test subject\",\n" +
+                "    \"priority\" : \"High\",\n" +
+                "    \"type\" : \"Development\"\n" +
+                "  }\n" +
+                "}";
 
         Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
         assertEquals(buffer, recordedRequest.getBody());
@@ -215,18 +232,18 @@ public class ZendeskRecordSinkTest {
 
         String expectedBody =
                 "{\n" +
-                        "  \"tickets\" : [ {\n" +
-                        "    \"comment\" : {\n" +
-                        "      \"body\" : \"This is a test comment body.\"\n" +
-                        "    },\n" +
-                        "    \"priority\" : \"High\"\n" +
-                        "  }, {\n" +
-                        "    \"comment\" : {\n" +
-                        "      \"body\" : \"This is another test comment body.\"\n" +
-                        "    },\n" +
-                        "    \"priority\" : \"Low\"\n" +
-                        "  } ]\n" +
-                        "}";
+                "  \"tickets\" : [ {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is a test comment body.\"\n" +
+                "    },\n" +
+                "    \"priority\" : \"High\"\n" +
+                "  }, {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is another test comment body.\"\n" +
+                "    },\n" +
+                "    \"priority\" : \"Low\"\n" +
+                "  } ]\n" +
+                "}";
 
         Buffer buffer = getBuffer(ZENDESK_CREATE_TICKETS_RESOURCE, expectedBody);
         assertEquals(buffer, recordedRequest.getBody());
@@ -257,20 +274,20 @@ public class ZendeskRecordSinkTest {
 
         String expectedBody =
                 "{\n" +
-                        "  \"ticket\" : {\n" +
-                        "    \"comment\" : {\n" +
-                        "      \"body\" : \"This is a test comment body.\"\n" +
-                        "    },\n" +
-                        "    \"dp1\" : {\n" +
-                        "      \"dp2\" : {\n" +
-                        "        \"dp3\" : {\n" +
-                        "          \"dynamicPropertyTarget2\" : \"This is a dynamic property 2\"\n" +
-                        "        }\n" +
-                        "      },\n" +
-                        "      \"dynamicPropertyTarget1\" : \"This is a dynamic property 1\"\n" +
-                        "    }\n" +
-                        "  }\n" +
-                        "}";
+                "  \"ticket\" : {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is a test comment body.\"\n" +
+                "    },\n" +
+                "    \"dp1\" : {\n" +
+                "      \"dp2\" : {\n" +
+                "        \"dp3\" : {\n" +
+                "          \"dynamicPropertyTarget2\" : \"This is a dynamic property 2\"\n" +
+                "        }\n" +
+                "      },\n" +
+                "      \"dynamicPropertyTarget1\" : \"This is a dynamic property 1\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
 
         Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
         assertEquals(buffer, recordedRequest.getBody());
@@ -301,20 +318,53 @@ public class ZendeskRecordSinkTest {
 
         String expectedBody =
                 "{\n" +
-                        "  \"ticket\" : {\n" +
-                        "    \"comment\" : {\n" +
-                        "      \"body\" : \"This is a test comment body.\"\n" +
-                        "    },\n" +
-                        "    \"dp1\" : {\n" +
-                        "      \"dp2\" : {\n" +
-                        "        \"dp3\" : {\n" +
-                        "          \"dynamicPropertyTarget2\" : \"Constant 2\"\n" +
-                        "        }\n" +
-                        "      },\n" +
-                        "      \"dynamicPropertyTarget1\" : \"Constant 1\"\n" +
-                        "    }\n" +
-                        "  }\n" +
-                        "}";
+                "  \"ticket\" : {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is a test comment body.\"\n" +
+                "    },\n" +
+                "    \"dp1\" : {\n" +
+                "      \"dp2\" : {\n" +
+                "        \"dp3\" : {\n" +
+                "          \"dynamicPropertyTarget2\" : \"Constant 2\"\n" +
+                "        }\n" +
+                "      },\n" +
+                "      \"dynamicPropertyTarget1\" : \"Constant 1\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+
+        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
+        assertEquals(buffer, recordedRequest.getBody());
+    }
+
+    @Test
+    public void testRecordCache() throws IOException, InterruptedException {
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.enableControllerService(writerFactory);
+        testRunner.assertValid(sinkZendeskTicket);
+        testRunner.enableControllerService(sinkZendeskTicket);
+
+        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+
+        initDuplicateRecords();
+        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+
+        // then
+        RecordedRequest recordedRequest = server.takeRequest();
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+
+        assertNotNull(writeResult);
+        assertEquals(1, writeResult.getRecordCount());
+        assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
+
+        String expectedBody =
+                "{\n" +
+                "  \"ticket\" : {\n" +
+                "    \"comment\" : {\n" +
+                "      \"body\" : \"This is a test comment body.\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
 
         Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
         assertEquals(buffer, recordedRequest.getBody());

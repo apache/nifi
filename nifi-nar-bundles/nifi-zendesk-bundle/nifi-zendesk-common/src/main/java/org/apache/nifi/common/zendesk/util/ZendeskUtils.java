@@ -47,21 +47,15 @@ public final class ZendeskUtils {
     }
 
     /**
-     * Gets the error message from the Http response.
-     * If the message is not present on the expected path then the method will return with the whole response.
+     * Gets the body from the Http response.
      *
      * @param response Http response
-     * @return error message or the whole response
+     * @return response body
      */
-    public static String getErrorMessageFromResponse(HttpResponseEntity response) {
+    public static String getResponseBody(HttpResponseEntity response) {
         try (InputStream responseBodyStream = response.body()) {
             JsonNode jsonNode = OBJECT_MAPPER.readTree(responseBodyStream);
-            try {
-                return jsonNode.get("error").get("message").asText();
-            } catch (Exception e) {
-                logger.warn("Failed to get error message, logging whole response", e);
-            }
-            return jsonNode.asText();
+            return jsonNode.toString();
         } catch (IOException e) {
             throw new UncheckedIOException("Reading response body has failed", e);
         }

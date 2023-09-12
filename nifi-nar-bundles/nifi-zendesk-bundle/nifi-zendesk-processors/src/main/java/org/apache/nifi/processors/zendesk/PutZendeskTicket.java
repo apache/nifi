@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.common.zendesk.validation.JsonPointerPropertyNameValidator;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -31,7 +32,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.path.validation.RecordPathPropertyNameValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -69,7 +69,7 @@ import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addDyna
 import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolveFieldValue;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.createRequestObject;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getDynamicProperties;
-import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getErrorMessageFromResponse;
+import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
@@ -81,7 +81,7 @@ import static org.apache.nifi.web.client.api.HttpResponseStatus.OK;
 @Tags({"zendesk, ticket"})
 @CapabilityDescription("Create Zendesk tickets using the Zendesk API.")
 @DynamicProperty(
-        name = "The path in the request object to add.",
+        name = "The path in the request object to add. The value needs be a valid JsonPointer.",
         value = "The path in the incoming record to get the value from.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Additional property to be added to the Zendesk request object.")
@@ -164,7 +164,7 @@ public class PutZendeskTicket extends AbstractZendesk {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(new RecordPathPropertyNameValidator())
+                .addValidator(new JsonPointerPropertyNameValidator())
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
@@ -268,7 +268,7 @@ public class PutZendeskTicket extends AbstractZendesk {
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, uri.toString(), transferMillis);
         } else {
-            String errorMessage = getErrorMessageFromResponse(response);
+            String errorMessage = getResponseBody(response);
             getLogger().error("Zendesk ticket creation returned with error, HTTP status={}, response={}", response.statusCode(), errorMessage);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE_NAME, String.valueOf(response.statusCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE_NAME, errorMessage);

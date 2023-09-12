@@ -64,7 +64,6 @@ public class PutZendeskTicketTest {
     private static final int HTTP_OK = 200;
     private static final int HTTP_BAD_REQUEST = 400;
     private static final String EMPTY_RESPONSE = "{}";
-    private static final String ERROR_RESPONSE = "{\"error\": {\"message\": \"This is an error message\"}}";
 
     private MockWebServer server;
     private TestRunner testRunner;
@@ -318,7 +317,7 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(ERROR_RESPONSE));
+        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(EMPTY_RESPONSE));
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
 
         // when

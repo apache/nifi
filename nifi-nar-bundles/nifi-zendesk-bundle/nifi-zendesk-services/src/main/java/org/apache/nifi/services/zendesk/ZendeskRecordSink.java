@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationContext;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.common.zendesk.ZendeskClient;
+import org.apache.nifi.common.zendesk.validation.JsonPointerPropertyNameValidator;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -49,11 +50,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
@@ -71,7 +74,7 @@ import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addDyna
 import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolveFieldValue;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.createRequestObject;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getDynamicProperties;
-import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getErrorMessageFromResponse;
+import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
 
 @Tags({"zendesk", "record", "sink"})
 @CapabilityDescription("Create Zendesk tickets using the Zendesk API." +
@@ -82,7 +85,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     private Map<String, String> dynamicProperties;
     private volatile RecordSetWriterFactory writerFactory;
     private Cache<String, ObjectNode> recordCache;
-    ZendeskClient zendeskClient;
+    private ZendeskClient zendeskClient;
 
     private String commentBody;
     private String subject;
@@ -122,6 +125,24 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("cache-size")
+            .displayName("Cache Size")
+            .description("Specifies how many Zendesk ticket should be cached.")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("1000")
+            .required(true)
+            .build();
+
+    static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
+            .name("cache-expiration")
+            .displayName("Cache Expiration")
+            .description("Specifies how long a Zendesk ticket that is cached should remain in the cache.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 hour")
+            .required(true)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             RecordSinkService.RECORD_WRITER_FACTORY,
             WEB_CLIENT_SERVICE_PROVIDER,
@@ -132,7 +153,9 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             ZENDESK_TICKET_COMMENT_BODY,
             ZENDESK_TICKET_SUBJECT,
             ZENDESK_TICKET_PRIORITY,
-            ZENDESK_TICKET_TYPE
+            ZENDESK_TICKET_TYPE,
+            CACHE_SIZE,
+            CACHE_EXPIRATION
     ));
 
     @Override
@@ -140,7 +163,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(new JsonPointerPropertyNameValidator())
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
@@ -205,7 +228,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                 final HttpResponseEntity response = zendeskClient.performPostRequest(uri, inputStream);
 
                 if (response.statusCode() != HttpResponseStatus.CREATED.getCode() && response.statusCode() != HttpResponseStatus.OK.getCode()) {
-                    getLogger().error("Failed to create zendesk ticket, HTTP status={}, response={}", response.statusCode(), getErrorMessageFromResponse(response));
+                    getLogger().error("Failed to create zendesk ticket, HTTP status={}, response={}", response.statusCode(), getResponseBody(response));
                 }
             } catch (IOException e) {
                 throw new IOException("Failed to post request to Zendesk", e);
@@ -233,7 +256,12 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
         zendeskClient = new ZendeskClient(webClientServiceProvider, authenticationContext);
 
-        recordCache = Caffeine.newBuilder().build();
+        final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
+        final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
+        recordCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(cacheExpiration))
+                .build();
     }
 
     @OnDisabled

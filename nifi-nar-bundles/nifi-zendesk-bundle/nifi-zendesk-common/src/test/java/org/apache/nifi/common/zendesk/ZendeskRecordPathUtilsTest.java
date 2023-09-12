@@ -55,6 +55,10 @@ public class ZendeskRecordPathUtilsTest {
         resolveFieldValue("/a/b/c", "constant", testNode, record);
         Assertions.assertEquals("{\"a\":{\"b\":{\"c\":\"constant\"}}}", testNode.toString());
 
+        testNode = mapper.createObjectNode();
+        resolveFieldValue("/a/0", "array_element", testNode, record);
+        Assertions.assertEquals("{\"a\":[\"array_element\"]}", testNode.toString());
+
         ProcessException e1 = assertThrows(ProcessException.class, () -> resolveFieldValue("/a", "%{/field2}", mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field2] points to a [ARRAY] type value", e1.getMessage());
 
