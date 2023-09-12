@@ -161,7 +161,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments. Sensitive properties will be masked"),
         @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
         @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command"),
-        @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Mime Type' property is set and 'Output Destination Attribute' is not set")})
+        @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Output MIME Type' property is set and 'Output Destination Attribute' is not set")})
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -277,8 +277,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
-            .name("mime-type")
-            .displayName("Mime Type")
+            .name("Output MIME Type")
+            .displayName("Output MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Output Destination Attribute' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

@@ -85,7 +85,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @WritesAttributes({
     @WritesAttribute(attribute = "command", description = "Executed command"),
     @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command"),
-    @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Mime Type' property is set and 'Batch Duration' is not set")
+    @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Output MIME Type' property is set and 'Batch Duration' is not set")
 })
 public class ExecuteProcess extends AbstractProcessor {
 
@@ -149,8 +149,8 @@ public class ExecuteProcess extends AbstractProcessor {
       .build();
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
-            .name("mime-type")
-            .displayName("Mime Type")
+            .name("Output MIME type")
+            .displayName("Output MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Batch Duration' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -303,7 +303,7 @@ public class ExecuteProcess extends AbstractProcessor {
             getLogger().error("Failed to read data from Process, so will not generate FlowFile");
         } else {
             // add command, arguments, and MIME type as attributes
-            HashMap<String,String> attributes = new HashMap<>();
+            Map<String,String> attributes = new HashMap<>();
             attributes.put(ATTRIBUTE_COMMAND, command);
             if(arguments != null) {
                 attributes.put(ATTRIBUTE_COMMAND_ARGS, arguments);
