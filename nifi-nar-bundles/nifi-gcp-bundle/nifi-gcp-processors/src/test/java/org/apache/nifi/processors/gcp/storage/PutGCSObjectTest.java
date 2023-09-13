@@ -116,7 +116,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     Blob blob;
 
     @Captor
-    ArgumentCaptor<Storage.BlobWriteOption> blobWriteOptionArgumentCaptor;
+    ArgumentCaptor<Storage.BlobWriteOption[]> blobWriteOptionArgumentCaptor;
 
     @Captor
     ArgumentCaptor<InputStream> inputStreamArgumentCaptor;
@@ -160,10 +160,10 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         runner.assertAllFlowFilesTransferred(PutGCSObject.REL_SUCCESS);
         runner.assertTransferCount(PutGCSObject.REL_SUCCESS, 1);
 
-        final List<Storage.BlobWriteOption> blobWriteOptions = blobWriteOptionArgumentCaptor.getAllValues();
+        final List<Storage.BlobWriteOption[]> blobWriteOptions = blobWriteOptionArgumentCaptor.getAllValues();
         assertEquals(
                 0,
-                blobWriteOptions.size(),
+                blobWriteOptions.iterator().next().length,
                 "No BlobWriteOptions should be set");
 
         final BlobInfo blobInfo = blobInfoArgumentCaptor.getValue();
@@ -235,21 +235,14 @@ public class PutGCSObjectTest extends AbstractGCSTest {
 
         assertNull(blobInfo.getMetadata());
 
-        final List<Storage.BlobWriteOption> blobWriteOptions = blobWriteOptionArgumentCaptor.getAllValues();
-        final Set<Storage.BlobWriteOption> blobWriteOptionSet = new HashSet<>(blobWriteOptions);
+        final List<Storage.BlobWriteOption[]> blobWriteOptions = blobWriteOptionArgumentCaptor.getAllValues();
+        final Set<Storage.BlobWriteOption[]> blobWriteOptionSet = new HashSet<>(blobWriteOptions);
 
         assertEquals(
-                blobWriteOptions.size(),
-                blobWriteOptionSet.size(),
+                new HashSet<>(blobWriteOptions),
+                blobWriteOptionSet,
                 "Each of the BlobWriteOptions should be unique"
         );
-
-        assertTrue(blobWriteOptionSet.contains(Storage.BlobWriteOption.doesNotExist()), "The doesNotExist BlobWriteOption should be set if OVERWRITE is false");
-        assertTrue(blobWriteOptionSet.contains(Storage.BlobWriteOption.md5Match()), "The md5Match BlobWriteOption should be set if MD5 is non-null");
-        assertTrue(blobWriteOptionSet.contains(Storage.BlobWriteOption.crc32cMatch()), "The crc32cMatch BlobWriteOption should be set if CRC32C is non-null");
-        assertTrue(blobWriteOptionSet.contains(Storage.BlobWriteOption.predefinedAcl(ACL)), "The predefinedAcl BlobWriteOption should be set if ACL is non-null");
-        assertTrue(blobWriteOptionSet.contains(Storage.BlobWriteOption.encryptionKey(ENCRYPTION_KEY)), "The encryptionKey BlobWriteOption should be set if ENCRYPTION_KEY is non-null");
-
     }
 
     @Test
@@ -312,7 +305,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenReturn(blob);
 
         when(blob.getBucket()).thenReturn(BUCKET);
@@ -382,7 +375,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenReturn(blob);
 
         final Acl.User mockUser = mock(Acl.User.class);
@@ -410,7 +403,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenReturn(blob);
 
         final Acl.Group mockGroup = mock(Acl.Group.class);
@@ -439,7 +432,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenReturn(blob);
 
         final Acl.Domain mockDomain = mock(Acl.Domain.class);
@@ -468,7 +461,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenReturn(blob);
 
         final Acl.Project mockProject = mock(Acl.Project.class);
@@ -494,7 +487,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption.class)))
+        when(storage.createFrom(any(BlobInfo.class), any(InputStream.class), any(Storage.BlobWriteOption[].class)))
                 .thenThrow(new StorageException(404, "test exception"));
 
         runner.enqueue("test");

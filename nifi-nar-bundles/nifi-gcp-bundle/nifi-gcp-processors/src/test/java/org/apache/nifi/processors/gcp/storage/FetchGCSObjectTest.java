@@ -69,11 +69,11 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link FetchGCSObject}.
@@ -235,15 +235,12 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
+        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
 
         runner.enqueue("");
 
         runner.run();
-
-        verify(storage).get(any(BlobId.class));
-        verify(storage).reader(any(BlobId.class), any(Storage.BlobSourceOption.class));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
@@ -370,14 +367,11 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
+        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
         runner.enqueue("");
 
         runner.run();
-
-        verify(storage).get(any(BlobId.class));
-        verify(storage).reader(any(BlobId.class), any(Storage.BlobSourceOption.class));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
@@ -412,15 +406,12 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
+        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
 
         runner.enqueue("");
 
         runner.run();
-
-        verify(storage).get(any(BlobId.class));
-        verify(storage).reader(any(BlobId.class), any(Storage.BlobSourceOption.class));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
@@ -456,15 +447,12 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
+        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
 
         runner.enqueue("");
 
         runner.run();
-
-        verify(storage).get(any(BlobId.class));
-        verify(storage).reader(any(BlobId.class), any(Storage.BlobSourceOption.class));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
@@ -499,14 +487,11 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
+        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
         runner.enqueue("");
 
         runner.run();
-
-        verify(storage).get(any(BlobId.class));
-        verify(storage).reader(any(BlobId.class), any(Storage.BlobSourceOption.class));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);

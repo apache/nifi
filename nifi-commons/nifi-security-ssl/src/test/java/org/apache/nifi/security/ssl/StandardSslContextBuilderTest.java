@@ -22,10 +22,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
-
+import java.util.Enumeration;
 import java.security.KeyStore;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StandardSslContextBuilderTest {
@@ -67,7 +68,18 @@ class StandardSslContextBuilderTest {
     }
 
     @Test
-    void testBuildTrustStore() {
+    void testBuildTrustStore() throws Exception {
+        when(trustStore.aliases()).thenReturn(new Enumeration<String>() {
+            @Override
+            public boolean hasMoreElements() {
+                return false;
+            }
+
+            @Override
+            public String nextElement() {
+                return null;
+            }
+        });
         final StandardSslContextBuilder builder = new StandardSslContextBuilder();
         builder.trustStore(trustStore);
 

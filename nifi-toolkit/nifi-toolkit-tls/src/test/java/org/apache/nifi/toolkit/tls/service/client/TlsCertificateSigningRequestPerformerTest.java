@@ -38,6 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.security.auth.x500.X500Principal;
@@ -66,7 +67,7 @@ public class TlsCertificateSigningRequestPerformerTest {
     @Mock
     Supplier<HttpClientBuilder> httpClientBuilderSupplier;
 
-    @Mock
+    @Spy
     HttpClientBuilder httpClientBuilder;
 
     @Mock
@@ -114,9 +115,11 @@ public class TlsCertificateSigningRequestPerformerTest {
             Field sslSocketFactory = HttpClientBuilder.class.getDeclaredField("sslSocketFactory");
             sslSocketFactory.setAccessible(true);
             Object o = sslSocketFactory.get(httpClientBuilder);
-            Field field = TlsCertificateAuthorityClientSocketFactory.class.getDeclaredField("certificates");
-            field.setAccessible(true);
-            ((List<X509Certificate>) field.get(o)).addAll(certificates);
+            if( o != null) {
+                Field field = TlsCertificateAuthorityClientSocketFactory.class.getDeclaredField("certificates");
+                field.setAccessible(true);
+                ((List<X509Certificate>) field.get(o)).addAll(certificates);
+            }
             return closeableHttpClient;
         });
         StatusLine statusLine = mock(StatusLine.class);
