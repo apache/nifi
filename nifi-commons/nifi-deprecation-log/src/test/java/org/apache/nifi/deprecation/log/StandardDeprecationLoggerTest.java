@@ -54,7 +54,7 @@ class StandardDeprecationLoggerTest {
 
             deprecationLogger.warn(MESSAGE);
 
-            verify(logger).warn(eq(MESSAGE), ArgumentMatchers.<Object[]>any());
+            verify(logger).warn(eq(MESSAGE), ArgumentMatchers.any(Object[].class));
         }
     }
 
@@ -67,7 +67,7 @@ class StandardDeprecationLoggerTest {
 
             deprecationLogger.warn(MESSAGE_PLACEHOLDER, PLACEHOLDER);
 
-            verify(logger).warn(eq(MESSAGE_PLACEHOLDER), ArgumentMatchers.<Object[]>any());
+            verify(logger).warn(eq(MESSAGE_PLACEHOLDER), ArgumentMatchers.any(Object[].class));
         }
     }
 }
