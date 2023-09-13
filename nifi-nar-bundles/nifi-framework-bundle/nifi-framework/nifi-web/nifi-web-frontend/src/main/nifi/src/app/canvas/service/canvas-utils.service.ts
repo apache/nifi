@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { ComponentRef, Injectable, Type, ViewContainerRef } from '@angular/core';
 import * as d3 from 'd3';
+import { Humanizer, humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
 import { CanvasState, Position } from '../state';
 import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 
 @Injectable({
     providedIn: 'root'
@@ -32,7 +34,11 @@ export class CanvasUtils {
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
     private currentProcessGroupId: string = initialState.id;
 
+    private humanizeDuration: Humanizer;
+
     constructor(private store: Store<CanvasState>) {
+        this.humanizeDuration = humanizer();
+
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(takeUntilDestroyed())
@@ -437,6 +443,22 @@ export class CanvasUtils {
     }
 
     /**
+     * Formats a number (in milliseconds) to a human-readable textual description.
+     *
+     * @param duration number of milliseconds representing the duration
+     * @return {string|*} a human-readable string
+     */
+    public formatPredictedDuration(duration: number): string {
+        if (duration === 0) {
+            return 'now';
+        }
+
+        return this.humanizeDuration(duration, {
+            round: true
+        });
+    }
+
+    /**
      * Calculates the point on the specified bounding box that is closest to the
      * specified point.
      *
@@ -581,6 +603,73 @@ export class CanvasUtils {
     }
 
     /**
+     * Creates tooltip for the specified selection.
+     *
+     * @param viewContainerRef
+     * @param type
+     * @param selection
+     * @param tooltipData
+     */
+    public canvasTooltip<C>(viewContainerRef: ViewContainerRef, type: Type<C>, selection: any, tooltipData: any): void {
+        let closeTimer: number = -1;
+        let tooltipRef: ComponentRef<C> | undefined;
+
+        selection
+            .on('mouseenter', function (this: any) {
+                const { x, y, width, height } = d3.select(this).node().getBoundingClientRect();
+
+                // clear any existing tooltips
+                viewContainerRef.clear();
+
+                // create and configure the tooltip
+                tooltipRef = viewContainerRef.createComponent(type);
+                tooltipRef.setInput('top', y + height + 5);
+                tooltipRef.setInput('left', x + width + 5);
+                tooltipRef.setInput('data', tooltipData);
+
+                // register mouse events
+                tooltipRef.location.nativeElement.addEventListener('mouseenter', () => {
+                    if (closeTimer > 0) {
+                        clearTimeout(closeTimer);
+                        closeTimer = -1;
+                    }
+                });
+                tooltipRef.location.nativeElement.addEventListener('mouseleave', () => {
+                    tooltipRef?.destroy();
+                });
+            })
+            .on('mouseleave', function () {
+                closeTimer = setTimeout(() => {
+                    tooltipRef?.destroy();
+                }, 400);
+            });
+    }
+
+    /**
+     * Sets the bulletin visibility and applies a tooltip if necessary.
+     *
+     * @param viewContainerRef
+     * @param selection
+     * @param bulletins
+     */
+    public bulletins(viewContainerRef: ViewContainerRef, selection: any, bulletins: string[]): void {
+        if (this.isEmpty(bulletins)) {
+            // reset the bulletin icon/background
+            selection.select('text.bulletin-icon').style('visibility', 'hidden');
+            selection.select('rect.bulletin-background').style('visibility', 'hidden');
+        } else {
+            // show the bulletin icon/background
+            const bulletinIcon: any = selection.select('text.bulletin-icon').style('visibility', 'visible');
+            selection.select('rect.bulletin-background').style('visibility', 'visible');
+
+            // add the tooltip
+            this.canvasTooltip(viewContainerRef, BulletinsTip, bulletinIcon, {
+                bulletins: bulletins
+            });
+        }
+    }
+
+    /**
      * Applies single line ellipsis to the component in the specified selection if necessary.
      *
      * @param {selection} selection
@@ -722,10 +811,9 @@ export class CanvasUtils {
      *
      * @param {selection} selection         The selection
      * @param {object} d                    The data
-     * @param {function} setOffset          Optional function to handle the width of the active thread count component
      * @return
      */
-    public activeThreadCount(selection: any, d: any, setOffset: Function) {
+    public activeThreadCount(selection: any, d: any) {
         const activeThreads = d.status.aggregateSnapshot.activeThreadCount;
         const terminatedThreads = d.status.aggregateSnapshot.terminatedThreadCount;
 
@@ -771,12 +859,6 @@ export class CanvasUtils {
                 .select('text.active-thread-count-icon')
                 .attr('x', function () {
                     const bBox = activeThreadCount.node().getBBox();
-
-                    // update the offset
-                    if (typeof setOffset === 'function') {
-                        setOffset(bBox.width + 6);
-                    }
-
                     return d.dimensions.width - bBox.width - 20;
                 })
                 .style('fill', function () {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { Store } from '@ngrx/store';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -26,6 +26,8 @@ import * as d3 from 'd3';
 import { selectPorts, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
+import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 
 @Injectable({
     providedIn: 'root'
@@ -48,6 +50,8 @@ export class PortManager {
     private ports: [] = [];
     private portContainer: any;
     private transitionRequired: boolean = false;
+
+    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -320,33 +324,11 @@ export class PortManager {
                                 (portData.dimensions.height - 10) +
                                 ')'
                         )
-                        .each(function () {
-                            // get the tip
-                            let tip: any = d3.select('#comments-tip-' + portData.id);
-
-                            // if there are validation errors generate a tooltip
-                            if (self.canvasUtils.isBlank(portData.component.comments)) {
-                                // remove the tip if necessary
-                                if (!tip.empty()) {
-                                    tip.remove();
-                                }
-                            } else {
-                                // create the tip if necessary
-                                if (tip.empty()) {
-                                    tip = d3
-                                        .select('#port-tooltips')
-                                        .append('div')
-                                        .attr('id', function () {
-                                            return 'comments-tip-' + portData.id;
-                                        })
-                                        .attr('class', 'tooltip nifi-tooltip');
-                                }
-
-                                // update the tip
-                                tip.text(portData.component.comments);
-
-                                // TODO - add the tooltip
-                                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                        .each(function (this: any) {
+                            if (self.viewContainerRef) {
+                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                                    text: portData.component.comments
+                                });
                             }
                         });
                 } else {
@@ -355,9 +337,6 @@ export class PortManager {
 
                     // clear the port comments
                     port.select('path.component-comments').style('visibility', 'hidden');
-
-                    // TODO clear tooltips
-                    // port.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -382,9 +361,6 @@ export class PortManager {
                     // clear the port name
                     port.select('text.port-name').text(null);
                 }
-
-                // TODO - remove tooltips if necessary
-                // port.call(removeTooltips);
 
                 // remove the details if necessary
                 if (!details.empty()) {
@@ -437,40 +413,17 @@ export class PortManager {
                 }
                 return img;
             })
-            .each(function (d: any) {
-                // get the tip
-                let tip: any = d3.select('#run-status-tip-' + d.id);
-
+            .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !self.canvasUtils.isEmpty(d.component.validationErrors)) {
-                    // create the tip if necessary
-                    if (tip.empty()) {
-                        tip = d3
-                            .select('#port-tooltips')
-                            .append('div')
-                            .attr('id', function () {
-                                return 'run-status-tip-' + d.id;
-                            })
-                            .attr('class', 'tooltip nifi-tooltip');
-                    }
-
-                    // TODO - update the tip
-                    // tip.html(function () {
-                    //     const list = nfCommon.formatUnorderedList(d.component.validationErrors);
-                    //     if (list === null || list.length === 0) {
-                    //         return '';
-                    //     } else {
-                    //         return $('<div></div>').append(list).html();
-                    //     }
-                    // });
-
-                    // TODO - add the tooltip
-                    // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
-                } else {
-                    // remove if necessary
-                    if (!tip.empty()) {
-                        tip.remove();
-                    }
+                if (
+                    d.permissions.canRead &&
+                    !self.canvasUtils.isEmpty(d.component.validationErrors) &&
+                    self.viewContainerRef
+                ) {
+                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                        isValidating: false,
+                        validationErrors: d.component.validationErrors
+                    });
                 }
             });
 
@@ -499,30 +452,23 @@ export class PortManager {
 
         updated.each(function (this: any, d: any) {
             const port: any = d3.select(this);
-            let offset: number = 0;
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(port, d, function (off: any) {
-                offset = off;
-            });
+            self.canvasUtils.activeThreadCount(port, d);
 
             port.select('text.active-thread-count-icon').attr('y', self.offsetY(43));
             port.select('text.active-thread-count').attr('y', self.offsetY(43));
 
             // ---------
-            // TODO bulletins
+            // bulletins
             // ---------
 
-            port.select('rect.bulletin-background').classed('has-bulletins', function () {
-                return !self.canvasUtils.isEmpty(d.status.aggregateSnapshot.bulletins);
-            });
-
-            // nfCanvasUtils.bulletins(port, d, function () {
-            //     return d3.select('#port-tooltips');
-            // }, offset);
+            if (self.viewContainerRef) {
+                self.canvasUtils.bulletins(self.viewContainerRef, port, d.bulletins);
+            }
         });
     }
 
@@ -532,7 +478,9 @@ export class PortManager {
         removed.remove();
     }
 
-    public init(): void {
+    public init(viewContainerRef: ViewContainerRef): void {
+        this.viewContainerRef = viewContainerRef;
+
         this.portContainer = d3.select('#canvas').append('g').attr('pointer-events', 'all').attr('class', 'ports');
 
         this.store

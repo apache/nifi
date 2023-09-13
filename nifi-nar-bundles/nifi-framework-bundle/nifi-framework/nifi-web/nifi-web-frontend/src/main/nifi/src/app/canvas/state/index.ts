@@ -116,6 +116,66 @@ export interface UpdatePositions {
 }
 
 /*
+    Tooltips
+ */
+
+export interface TextTipInput {
+    text: string;
+}
+
+export interface UnorderedListTipInput {
+    items: string[];
+}
+
+export interface ValidationErrorsTipInput {
+    isValidating: boolean;
+    validationErrors: string[];
+}
+
+export interface BulletinEntity {
+    canRead: boolean;
+    id: number;
+    sourceId: string;
+    groupId: string;
+    timestamp: string;
+    nodeAddress: string;
+    bulletin: {
+        id: number;
+        sourceId: string;
+        groupId: string;
+        category: string;
+        level: string;
+        message: string;
+        sourceName: string;
+        timestamp: string;
+        nodeAddress: string;
+    };
+}
+
+export interface BulletinsTipInput {
+    bulletins: BulletinEntity[];
+}
+
+export interface VersionControlInformation {
+    groupId: string;
+    registryId: string;
+    registryName: string;
+    bucketId: string;
+    bucketName: string;
+    flowId: string;
+    flowName: string;
+    flowDescription: string;
+    version: number;
+    storageLocation: string;
+    state: string;
+    stateExplanation: string;
+}
+
+export interface VersionControlTipInput {
+    versionControlInformation: VersionControlInformation;
+}
+
+/*
   Application State
  */
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -26,6 +26,8 @@ import * as d3 from 'd3';
 import { selectProcessors, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
+import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
 
 @Injectable({
     providedIn: 'root'
@@ -43,6 +45,8 @@ export class ProcessorManager {
     private processors: [] = [];
     private processorContainer: any;
     private transitionRequired: boolean = false;
+
+    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -537,33 +541,11 @@ export class ProcessorManager {
                             'visibility',
                             self.canvasUtils.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function () {
-                            // get the tip
-                            let tip: any = d3.select('#comments-tip-' + processorData.id);
-
-                            // if there are validation errors generate a tooltip
-                            if (self.canvasUtils.isBlank(processorData.component.config.comments)) {
-                                // remove the tip if necessary
-                                if (!tip.empty()) {
-                                    tip.remove();
-                                }
-                            } else {
-                                // create the tip if necessary
-                                if (tip.empty()) {
-                                    tip = d3
-                                        .select('#processor-tooltips')
-                                        .append('div')
-                                        .attr('id', function () {
-                                            return 'comments-tip-' + processorData.id;
-                                        })
-                                        .attr('class', 'tooltip nifi-tooltip');
-                                }
-
-                                // update the tip
-                                tip.text(processorData.component.config.comments);
-
-                                // TODO - add the tooltip
-                                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                        .each(function (this: any) {
+                            if (self.viewContainerRef) {
+                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                                    text: processorData.component.config.comments
+                                });
                             }
                         });
                 } else {
@@ -578,9 +560,6 @@ export class ProcessorManager {
 
                     // clear the processor comments
                     processor.select('path.component-comments').style('visibility', 'hidden');
-
-                    // TODO - clear tooltips
-                    // processor.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -600,9 +579,6 @@ export class ProcessorManager {
                     // clear the processor name
                     processor.select('text.processor-name').text(null);
                 }
-
-                // TODO - remove the tooltips
-                // processor.call(removeTooltips);
 
                 // remove the details if necessary
                 if (!details.empty()) {
@@ -727,35 +703,13 @@ export class ProcessorManager {
                 }
                 return img;
             })
-            .each(function (d: any) {
-                // get the tip
-                let tip: any = d3.select('#run-status-tip-' + d.id);
-
+            .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (self.needsTip(d)) {
-                    // create the tip if necessary
-                    if (tip.empty()) {
-                        tip = d3
-                            .select('#processor-tooltips')
-                            .append('div')
-                            .attr('id', function () {
-                                return 'run-status-tip-' + d.id;
-                            })
-                            .attr('class', 'tooltip nifi-tooltip');
-                    }
-
-                    // TODO - update the tip
-                    // tip.html(function () {
-                    //   return $('<div></div>').append(getTip(d)).html();
-                    // });
-
-                    // TODO - add the tooltip
-                    // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
-                } else {
-                    // remove the tip if necessary
-                    if (!tip.empty()) {
-                        tip.remove();
-                    }
+                if (self.needsTip(d) && self.viewContainerRef) {
+                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                        isValidating: d.status.aggregateSnapshot.runStatus === 'Validating',
+                        validationErrors: d.component.validationErrors
+                    });
                 }
             });
 
@@ -796,24 +750,19 @@ export class ProcessorManager {
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(processor, d, function () {});
+            self.canvasUtils.activeThreadCount(processor, d);
 
             // ---------
-            // TODO bulletins
+            // bulletins
             // ---------
 
-            // processor.select('rect.bulletin-background').classed('has-bulletins', function () {
-            //   return !self.canvasUtils.isEmpty(d.status.aggregateSnapshot.bulletins);
-            // });
-            //
-            // nfCanvasUtils.bulletins(processor, d, function () {
-            //   return d3.select('#processor-tooltips');
-            // }, 286);
+            if (self.viewContainerRef) {
+                self.canvasUtils.bulletins(self.viewContainerRef, processor, d.bulletins);
+            }
         });
     }
 
     private removeProcessors(removed: any) {
-        // removed.call(removeTooltips).remove();
         removed.remove();
     }
 
@@ -858,7 +807,9 @@ export class ProcessorManager {
         return d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
     }
 
-    public init(): void {
+    public init(viewContainerRef: ViewContainerRef): void {
+        this.viewContainerRef = viewContainerRef;
+
         this.processorContainer = d3
             .select('#canvas')
             .append('g')

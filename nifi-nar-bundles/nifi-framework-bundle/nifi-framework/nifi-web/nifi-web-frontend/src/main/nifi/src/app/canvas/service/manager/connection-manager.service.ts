@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Dimension, Position, UpdateComponent } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -34,6 +34,7 @@ import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { UnorderedListTip } from '../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -72,10 +73,11 @@ export class ConnectionManager {
 
     private bendPointDrag: any;
     private endpointDrag: any;
-
     private labelDrag: any;
 
     private snapEnabled: boolean = true;
+
+    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -354,10 +356,10 @@ export class ConnectionManager {
         );
     }
 
-    private isAtBackPressure(d: any): any {
+    private isAtBackPressure(d: any): boolean {
         // TODO - optional chaining default ?? 0
-        var percentUseCount = d.status.aggregateSnapshot.percentUseCount;
-        var percentUseBytes = d.status.aggregateSnapshot.percentUseBytes;
+        const percentUseCount: number = d.status.aggregateSnapshot.percentUseCount;
+        const percentUseBytes: number = d.status.aggregateSnapshot.percentUseBytes;
         return Math.max(percentUseCount, percentUseBytes) >= 100;
     }
 
@@ -366,103 +368,89 @@ export class ConnectionManager {
      * @param d
      */
     private getBackPressureCountTip(d: any) {
-        return 'BackPressure Count Tooltip';
-        // var tooltipContent;
-        // var percentUseCount = _.get(d, 'status.aggregateSnapshot.percentUseCount');
-        // if (_.isNumber(percentUseCount)) {
-        //     var objectThreshold = _.get(d, 'component.backPressureObjectThreshold');
-        //
-        //     var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
-        //
-        //     var tooltipLines = ['Queue: ' + _.clamp(percentUseCount, 0, 100) + '% full (based on ' + objectThreshold + ' object threshold)'];
-        //
-        //     if (!_.isNil(predictions)) {
-        //         var predictedPercentCount = _.get(predictions, 'predictedPercentCount', -1);
-        //         var timeToBackPressure = _.get(predictions, 'predictedMillisUntilCountBackpressure', -1);
-        //
-        //         // only show predicted percent if it is non-negative
-        //         var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
-        //         if (_.isNumber(predictedPercentCount) && predictedPercentCount > -1) {
-        //             tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): ' + _.clamp(predictedPercentCount, 0, 100) + '%');
-        //         } else {
-        //             tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): NA');
-        //         }
-        //
-        //         // only show an estimate if it is valid (non-negative but less than the max number supported)
-        //         if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
-        //             var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
-        //             tooltipLines.push('Estimated time to back pressure: ' + duration);
-        //         } else {
-        //             tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
-        //         }
-        //     } else {
-        //         tooltipLines.push('Queue Prediction is not configured');
-        //     }
-        //
-        //     if (_.isEmpty(tooltipLines)) {
-        //         return '';
-        //     } else if (_.size(tooltipLines) === 1) {
-        //         return tooltipLines[0];
-        //     } else {
-        //         tooltipContent = nfCommon.formatUnorderedList(tooltipLines);
-        //     }
-        // } else {
-        //     tooltipContent = 'Back Pressure Object Threshold is not configured';
-        // }
-        //
-        // return tooltipContent;
+        const tooltipLines: string[] = [];
+        const percentUseCount: number = d.status.aggregateSnapshot.percentUseCount;
+
+        if (percentUseCount != null) {
+            const objectThreshold: number = d.component.backPressureObjectThreshold;
+            const predictions: any = d.status.aggregateSnapshot.predictions;
+
+            const percentUseCountClamped: number = Math.min(Math.max(percentUseCount, 0), 100);
+            tooltipLines.push(`Queue: ${percentUseCountClamped}% full (based on ${objectThreshold} object threshold)`);
+
+            if (predictions != null) {
+                const predictedPercentCount: number = predictions.predictedPercentCount;
+                const timeToBackPressure: number = predictions.predictedMillisUntilCountBackpressure;
+
+                // only show predicted percent if it is non-negative
+                const predictionIntervalSeconds: number = predictions.predictionIntervalSeconds;
+                const predictedPercentCountClamped: number = Math.min(Math.max(predictedPercentCount, 0), 100);
+                tooltipLines.push(
+                    `Predicted queue (next ${predictionIntervalSeconds / 60} mins): ${predictedPercentCountClamped}%`
+                );
+
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                const isAtBackPressure: boolean = this.isAtBackPressure(d);
+                if (timeToBackPressure >= 0 && timeToBackPressure < Number.MAX_SAFE_INTEGER && !isAtBackPressure) {
+                    const duration: string = this.canvasUtils.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push(`Estimated time to back pressure: ${duration}`);
+                } else {
+                    tooltipLines.push(`Estimated time to back pressure: ${isAtBackPressure ? 'now' : 'NA'}`);
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured');
+            }
+        } else {
+            tooltipLines.push('Back Pressure Object Threshold is not configured');
+        }
+
+        return tooltipLines;
     }
 
     /**
      * Gets the tooltip content for the back pressure size metric
      * @param d
      */
-    private getBackPressureSizeTip(d: any) {
-        return 'BackPressure Size Tooltip';
-        // var tooltipContent;
-        // var percentUseBytes = _.get(d, 'status.aggregateSnapshot.percentUseBytes');
-        //
-        // if (_.isNumber(percentUseBytes)) {
-        //     var dataSizeThreshold = _.get(d, 'component.backPressureDataSizeThreshold');
-        //     var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
-        //
-        //     var tooltipLines = ['Queue: ' + _.clamp(percentUseBytes, 0, 100) + '% full (based on ' + dataSizeThreshold + ' data size threshold)'];
-        //
-        //     if (!_.isNil(predictions)) {
-        //         var predictedPercentBytes = _.get(predictions, 'predictedPercentBytes', -1);
-        //         var timeToBackPressure = _.get(predictions, 'predictedMillisUntilBytesBackpressure', -1);
-        //
-        //         // only show predicted percent if it is non-negative
-        //         var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
-        //         if (_.isNumber(predictedPercentBytes) && predictedPercentBytes > -1) {
-        //             tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): ' + _.clamp(predictedPercentBytes, 0, 100) + '%');
-        //         } else {
-        //             tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): NA');
-        //         }
-        //
-        //         // only show an estimate if it is valid (non-negative but less than the max number supported)
-        //         if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
-        //             var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
-        //             tooltipLines.push('Estimated time to back pressure: ' + duration);
-        //         } else {
-        //             tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
-        //         }
-        //     } else {
-        //         tooltipLines.push('Queue Prediction is not configured');
-        //     }
-        //
-        //     if (_.isEmpty(tooltipLines)) {
-        //         return '';
-        //     } else if (_.size(tooltipLines) === 1) {
-        //         return tooltipLines[0];
-        //     } else {
-        //         tooltipContent = nfCommon.formatUnorderedList(tooltipLines);
-        //     }
-        // } else {
-        //     tooltipContent = 'Back Pressure Data Size Threshold is not configured';
-        // }
-        //
-        // return tooltipContent;
+    private getBackPressureSizeTip(d: any): string[] {
+        const tooltipLines: string[] = [];
+        const percentUseBytes: number = d.status.aggregateSnapshot.percentUseBytes;
+
+        if (percentUseBytes != null) {
+            const dataSizeThreshold: string = d.component.backPressureDataSizeThreshold;
+            const predictions: any = d.status.aggregateSnapshot.predictions;
+
+            const percentUseBytesClamped: number = Math.min(Math.max(percentUseBytes, 0), 100);
+            tooltipLines.push(
+                `Queue: ${percentUseBytesClamped}% full (based on ${dataSizeThreshold} data size threshold)`
+            );
+
+            if (predictions != null) {
+                const predictedPercentBytes: number = predictions.predictedPercentBytes;
+                const timeToBackPressure: number = predictions.predictedMillisUntilBytesBackpressure;
+
+                // only show predicted percent if it is non-negative
+                const predictionIntervalSeconds: number = predictions.predictionIntervalSeconds;
+                const predictedPercentBytesClamped: number = Math.min(Math.max(predictedPercentBytes, 0), 100);
+                tooltipLines.push(
+                    `Predicted queue (next ${predictionIntervalSeconds / 60} mins): ${predictedPercentBytesClamped}%`
+                );
+
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                const isAtBackPressure: boolean = this.isAtBackPressure(d);
+                if (timeToBackPressure >= 0 && timeToBackPressure < Number.MAX_SAFE_INTEGER && !isAtBackPressure) {
+                    const duration = this.canvasUtils.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push(`Estimated time to back pressure: ${duration}`);
+                } else {
+                    tooltipLines.push(`Estimated time to back pressure: ${isAtBackPressure ? 'now' : 'NA'}`);
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured');
+            }
+        } else {
+            tooltipLines.push('Back Pressure Data Size Threshold is not configured');
+        }
+
+        return tooltipLines;
     }
 
     private select() {
@@ -1617,11 +1605,11 @@ export class ConnectionManager {
             .select('text.penalized-icon')
             .classed('hidden', function (d: any) {
                 // TODO - optional chaining
-                var flowFileAvailability = d.status.aggregateSnapshot.flowFileAvailability;
+                const flowFileAvailability: string = d.status.aggregateSnapshot.flowFileAvailability;
                 return flowFileAvailability !== 'HEAD_OF_QUEUE_PENALIZED';
             })
             .attr('x', function () {
-                var offset = 0;
+                let offset: number = 0;
                 if (!connectionLabelContainer.select('text.expiration-icon').classed('hidden')) {
                     offset += 16;
                 }
@@ -1684,7 +1672,7 @@ export class ConnectionManager {
                 return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
-            var backpressurePercentDataSize = updated.select('rect.backpressure-percent.data-size');
+            const backpressurePercentDataSize: any = updated.select('rect.backpressure-percent.data-size');
             backpressurePercentDataSize
                 .transition()
                 .duration(400)
@@ -1732,32 +1720,18 @@ export class ConnectionManager {
                 })
                 .on('end', function () {
                     backpressurePercentDataSizePrediction.classed('prediction-down', function (d: any) {
-                        var actual = d.status.aggregateSnapshot.predictions?.percentUseBytes ?? 0;
-                        var predicted = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? 0;
+                        const actual: number = d.status.aggregateSnapshot.predictions?.percentUseBytes ?? 0;
+                        const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? 0;
                         return predicted < actual;
                     });
                 });
 
-            updated.select('g.backpressure-data-size-container').each(function (d: any) {
-                // TODO
-                // var tip = d3.select('#back-pressure-size-tip-' + d.id);
-                //
-                // // create a DOM element for the tooltip if ones does not already exist
-                // if (tip.empty()) {
-                //     tip = d3.select('#connection-tooltips')
-                //       .append('div')
-                //       .attr('id', function () {
-                //           return 'back-pressure-size-tip-' + d.id;
-                //       })
-                //       .attr('class', 'tooltip nifi-tooltip');
-                // }
-                //
-                // // update the tooltip
-                // tip.html(function () {
-                //     return $('<div></div>').append(getBackPressureSizeTip(d)).html();
-                // });
-                //
-                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+            updated.select('g.backpressure-data-size-container').each(function (this: any, d: any) {
+                if (self.viewContainerRef) {
+                    self.canvasUtils.canvasTooltip(self.viewContainerRef, UnorderedListTip, d3.select(this), {
+                        items: self.getBackPressureSizeTip(d)
+                    });
+                }
             });
         });
     }
@@ -1796,13 +1770,13 @@ export class ConnectionManager {
                     resolve();
                 });
 
-            var backpressurePercentObjectPrediction = updated.select('rect.backpressure-tick.object-prediction');
+            const backpressurePercentObjectPrediction: any = updated.select('rect.backpressure-tick.object-prediction');
             backpressurePercentObjectPrediction
                 .transition()
                 .duration(400)
                 .attr('x', function (d: any) {
                     // clamp the prediction between 0 and 100 percent
-                    var predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? 0;
+                    const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? 0;
                     return (ConnectionManager.BACKPRESSURE_BAR_WIDTH * Math.min(Math.max(predicted, 0), 100)) / 100;
                 })
                 .attr('display', function (d: any) {
@@ -1823,26 +1797,12 @@ export class ConnectionManager {
                     });
                 });
 
-            updated.select('g.backpressure-object-container').each(function (d: any) {
-                // TODO
-                // var tip = d3.select('#back-pressure-count-tip-' + d.id);
-                //
-                // // create a DOM element for the tooltip if ones does not already exist
-                // if (tip.empty()) {
-                //     tip = d3.select('#connection-tooltips')
-                //       .append('div')
-                //       .attr('id', function () {
-                //           return 'back-pressure-count-tip-' + d.id;
-                //       })
-                //       .attr('class', 'tooltip nifi-tooltip');
-                // }
-                //
-                // // update the tooltip
-                // tip.html(function () {
-                //     return $('<div></div>').append(getBackPressureCountTip(d)).html();
-                // });
-                //
-                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+            updated.select('g.backpressure-object-container').each(function (this: any, d: any) {
+                if (self.viewContainerRef) {
+                    self.canvasUtils.canvasTooltip(self.viewContainerRef, UnorderedListTip, d3.select(this), {
+                        items: self.getBackPressureCountTip(d)
+                    });
+                }
             });
         });
     }
@@ -1856,8 +1816,9 @@ export class ConnectionManager {
         removed.remove();
     }
 
-    public init(): void {
+    public init(viewContainerRef: ViewContainerRef): void {
         const self: ConnectionManager = this;
+        this.viewContainerRef = viewContainerRef;
 
         this.connectionContainer = d3
             .select('#canvas')
@@ -2091,11 +2052,11 @@ export class ConnectionManager {
 
                     // lazily create the drag selection box
                     if (drag.empty()) {
-                        var connectionLabel = d3.select(this).select('rect.body');
+                        const connectionLabel: any = d3.select(this).select('rect.body');
 
-                        var position = self.getLabelPosition(connectionLabel);
-                        var width = ConnectionManager.DIMENSIONS.width;
-                        var height = connectionLabel.attr('height');
+                        const position: Position = self.getLabelPosition(connectionLabel);
+                        const width: number = ConnectionManager.DIMENSIONS.width;
+                        const height: number = connectionLabel.attr('height');
 
                         // create a selection box for the move
                         drag = d3
@@ -2130,8 +2091,8 @@ export class ConnectionManager {
                     }
 
                     // calculate the current point
-                    var datum: any = drag.datum();
-                    var currentPoint: Position = {
+                    const datum: any = drag.datum();
+                    const currentPoint: Position = {
                         x: datum.x + datum.width / 2,
                         y: datum.y + datum.height / 2
                     };

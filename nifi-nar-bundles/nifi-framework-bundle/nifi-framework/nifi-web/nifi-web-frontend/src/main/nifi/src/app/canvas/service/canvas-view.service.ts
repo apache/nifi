@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, ViewContainerRef } from '@angular/core';
 import * as d3 from 'd3';
 import * as WebFont from 'webfontloader';
 import { Store } from '@ngrx/store';
@@ -70,7 +70,7 @@ export class CanvasView {
             });
     }
 
-    public init(svg: any, canvas: any): void {
+    public init(viewContainerRef: ViewContainerRef, svg: any, canvas: any): void {
         WebFont.load({
             custom: {
                 families: ['Roboto', 'Roboto Slab', 'flowfont', 'FontAwesome']
@@ -93,11 +93,11 @@ export class CanvasView {
 
         this.labelManager.init();
         this.funnelManager.init();
-        this.portManager.init();
-        this.remoteProcessGroupManager.init();
-        this.processGroupManager.init();
-        this.processorManager.init();
-        this.connectionManager.init();
+        this.portManager.init(viewContainerRef);
+        this.remoteProcessGroupManager.init(viewContainerRef);
+        this.processGroupManager.init(viewContainerRef);
+        this.processorManager.init(viewContainerRef);
+        this.connectionManager.init(viewContainerRef);
 
         const self: CanvasView = this;
         let refreshed: Promise<void> | null;

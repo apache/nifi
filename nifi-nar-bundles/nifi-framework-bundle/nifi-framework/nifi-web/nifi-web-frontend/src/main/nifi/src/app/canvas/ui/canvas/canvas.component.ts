@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewContainerRef } from '@angular/core';
 import { CanvasState, Position } from '../../state';
 import { Store } from '@ngrx/store';
 import { enterProcessGroup, setSelectedComponents } from '../../state/flow/flow.actions';
@@ -38,6 +38,7 @@ export class CanvasComponent implements OnInit {
     private canvasClicked: boolean = false;
 
     constructor(
+        private viewContainerRef: ViewContainerRef,
         private store: Store<CanvasState>,
         private canvasView: CanvasView
     ) {
@@ -52,7 +53,7 @@ export class CanvasComponent implements OnInit {
     ngOnInit(): void {
         // initialize the canvas svg
         this.createSvg();
-        this.canvasView.init(this.svg, this.canvas);
+        this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
 
         // enter the root process group
         this.store.dispatch(

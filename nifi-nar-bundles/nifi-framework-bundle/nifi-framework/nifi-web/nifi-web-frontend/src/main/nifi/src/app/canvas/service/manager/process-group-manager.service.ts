@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { Store } from '@ngrx/store';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -26,6 +26,8 @@ import { selectProcessGroups, selectSelected, selectTransitionRequired } from '.
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
+import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
 @Injectable({
     providedIn: 'root'
@@ -46,6 +48,8 @@ export class ProcessGroupManager {
     private processGroups: [] = [];
     private processGroupContainer: any;
     private transitionRequired: boolean = false;
+
+    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -1110,38 +1114,11 @@ export class ProcessGroupManager {
 
                 if (processGroupData.permissions.canRead) {
                     // version control tooltip
-                    versionControl.each(function () {
-                        // get the tip
-                        let tip: any = d3.select('#version-control-tip-' + processGroupData.id);
-
-                        // if there are validation errors generate a tooltip
-                        if (self.isUnderVersionControl(processGroupData)) {
-                            // create the tip if necessary
-                            if (tip.empty()) {
-                                tip = d3
-                                    .select('#process-group-tooltips')
-                                    .append('div')
-                                    .attr('id', function () {
-                                        return 'version-control-tip-' + processGroupData.id;
-                                    })
-                                    .attr('class', 'tooltip nifi-tooltip');
-                            }
-
-                            // update the tip
-                            // tip.html(function () {
-                            //     const vci = processGroupData.component.versionControlInformation;
-                            //     const versionControlTip = $('<div></div>').text('Tracking to "' + vci.flowName + '" Version ' + vci.version + ' in "' + vci.registryName + ' - ' + vci.bucketName + '"');
-                            //     const versionControlStateTip = $('<div></div>').text(nfCommon.getVersionControlTooltip(vci));
-                            //     return $('<div></div>').append(versionControlTip).append('<br/>').append(versionControlStateTip).html();
-                            // });
-
-                            // TODO - add the tooltip
-                            // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
-                        } else {
-                            // remove the tip if necessary
-                            if (!tip.empty()) {
-                                tip.remove();
-                            }
+                    versionControl.each(function (this: any) {
+                        if (self.isUnderVersionControl(processGroupData) && self.viewContainerRef) {
+                            self.canvasUtils.canvasTooltip(self.viewContainerRef, VersionControlTip, d3.select(this), {
+                                versionControlInformation: processGroupData.component.versionControlInformation
+                            });
                         }
                     });
 
@@ -1152,33 +1129,11 @@ export class ProcessGroupManager {
                             'visibility',
                             self.canvasUtils.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function () {
-                            // get the tip
-                            let tip: any = d3.select('#comments-tip-' + processGroupData.id);
-
-                            // if there are validation errors generate a tooltip
-                            if (self.canvasUtils.isBlank(processGroupData.component.comments)) {
-                                // remove the tip if necessary
-                                if (!tip.empty()) {
-                                    tip.remove();
-                                }
-                            } else {
-                                // create the tip if necessary
-                                if (tip.empty()) {
-                                    tip = d3
-                                        .select('#process-group-tooltips')
-                                        .append('div')
-                                        .attr('id', function () {
-                                            return 'comments-tip-' + processGroupData.id;
-                                        })
-                                        .attr('class', 'tooltip nifi-tooltip');
-                                }
-
-                                // update the tip
-                                tip.text(processGroupData.component.comments);
-
-                                // TODO - add the tooltip
-                                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                        .each(function (this: any) {
+                            if (self.viewContainerRef) {
+                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                                    text: processGroupData.component.comments
+                                });
                             }
                         });
 
@@ -1225,9 +1180,6 @@ export class ProcessGroupManager {
 
                     // clear the process group name
                     processGroup.select('text.process-group-name').attr('x', 10).attr('width', 316).text(null);
-
-                    // TODO - clear tooltips
-                    // processGroup.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -1249,9 +1201,6 @@ export class ProcessGroupManager {
                     // clear the process group name
                     processGroup.select('text.process-group-name').text(null);
                 }
-
-                // TODO - remove the tooltips
-                // processGroup.call(removeTooltips);
 
                 // remove the details if necessary
                 if (!details.empty()) {
@@ -1329,27 +1278,20 @@ export class ProcessGroupManager {
 
         updated.each(function (this: any, d: any) {
             const processGroup = d3.select(this);
-            let offset = 0;
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(processGroup, d, function (off: number) {
-                offset = off;
-            });
+            self.canvasUtils.activeThreadCount(processGroup, d);
 
             // ---------
-            // TODO bulletins
+            // bulletins
             // ---------
 
-            // processGroup.select('rect.bulletin-background').classed('has-bulletins', function () {
-            //     return !nfCommon.isEmpty(d.status.aggregateSnapshot.bulletins);
-            // });
-            //
-            // nfCanvasUtils.bulletins(processGroup, d, function () {
-            //     return d3.select('#process-group-tooltips');
-            // }, offset);
+            if (self.viewContainerRef) {
+                self.canvasUtils.bulletins(self.viewContainerRef, processGroup, d.bulletins);
+            }
         });
     }
 
@@ -1366,7 +1308,9 @@ export class ProcessGroupManager {
         return !!d.versionedFlowState;
     }
 
-    public init(): void {
+    public init(viewContainerRef: ViewContainerRef): void {
+        this.viewContainerRef = viewContainerRef;
+
         this.processGroupContainer = d3
             .select('#canvas')
             .append('g')

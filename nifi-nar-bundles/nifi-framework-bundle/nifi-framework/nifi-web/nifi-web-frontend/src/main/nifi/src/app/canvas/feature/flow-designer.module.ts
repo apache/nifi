@@ -16,7 +16,7 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FlowDesignerComponent } from './flow-designer.component';
 import { FlowDesignerRoutingModule } from './flow-designer-routing.module';
 import { HeaderModule } from '../ui/header/header.module';
@@ -38,11 +38,26 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
-import { Banner } from '../ui/banner/banner.component';
+import { Banner } from '../ui/common/banner/banner.component';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { ValidationErrorsTip } from '../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
+import { TextTip } from '../ui/common/tooltips/text-tip/text-tip.component';
+import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/version-control-tip.component';
+import { UnorderedListTip } from '../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 
 @NgModule({
-    declarations: [FlowDesignerComponent, Banner, CreatePort, EditPort],
+    declarations: [
+        FlowDesignerComponent,
+        Banner,
+        CreatePort,
+        EditPort,
+        ValidationErrorsTip,
+        TextTip,
+        UnorderedListTip,
+        BulletinsTip,
+        VersionControlTip
+    ],
     exports: [FlowDesignerComponent],
     imports: [
         CommonModule,
@@ -61,7 +76,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
         MatCheckboxModule,
         MatCardModule,
         ReactiveFormsModule,
-        MatTooltipModule
+        MatTooltipModule,
+        NgOptimizedImage
     ]
 })
 export class FlowDesignerModule {}

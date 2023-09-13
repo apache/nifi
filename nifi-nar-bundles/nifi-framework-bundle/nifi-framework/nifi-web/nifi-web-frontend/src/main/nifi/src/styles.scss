@@ -250,3 +250,25 @@ body {
     min-height: 560px;
     min-width: 760px;
 }
+
+.tooltip {
+    position: fixed;
+    max-width: 500px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 2px;
+    border-width: 1px;
+    border-color: #000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    margin-top: 5px;
+    font-size: 13px;
+    font-family: Roboto;
+    font-weight: 400;
+    word-wrap: break-word;
+    color: #000;
+
+    ul {
+        list-style: disc outside;
+        margin-left: 1em;
+    }
+}

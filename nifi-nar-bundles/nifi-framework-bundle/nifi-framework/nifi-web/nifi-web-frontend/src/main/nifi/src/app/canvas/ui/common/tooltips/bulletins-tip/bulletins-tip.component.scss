@@ -14,28 +14,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { Component } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../state';
-import { selectApiError } from '../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
-@Component({
-    selector: 'banner',
-    templateUrl: './banner.component.html',
-    styleUrls: ['./banner.component.scss']
-})
-export class Banner {
-    message: string | null = '';
-    severity: string = 'alert';
-
-    constructor(private store: Store<CanvasState>) {
-        this.store
-            .select(selectApiError)
-            .pipe(takeUntilDestroyed())
-            .subscribe((message) => {
-                this.message = message;
-            });
-    }
-}

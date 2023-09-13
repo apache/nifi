@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState, ComponentType, Dimension } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -26,6 +26,8 @@ import * as d3 from 'd3';
 import { selectRemoteProcessGroups, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
+import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 
 @Injectable({
     providedIn: 'root'
@@ -43,6 +45,8 @@ export class RemoteProcessGroupManager {
     private remoteProcessGroups: [] = [];
     private remoteProcessGroupContainer: any;
     private transitionRequired: boolean = false;
+
+    private viewContainerRef: ViewContainerRef | undefined;
 
     constructor(
         private store: Store<CanvasState>,
@@ -432,32 +436,14 @@ export class RemoteProcessGroupManager {
                             }
                             return icon;
                         })
-                        .each(function (d: any) {
-                            // get the tip
-                            let tip: any = d3.select('#transmission-secure-' + d.id);
-
-                            // remove the tip if necessary
-                            if (tip.empty()) {
-                                tip = d3
-                                    .select('#remote-process-group-tooltips')
-                                    .append('div')
-                                    .attr('id', function () {
-                                        return 'transmission-secure-' + d.id;
-                                    })
-                                    .attr('class', 'tooltip nifi-tooltip');
+                        .each(function (this: any, d: any) {
+                            if (self.viewContainerRef) {
+                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                                    text: d.component.targetSecure
+                                        ? 'Site-to-Site is secure.'
+                                        : 'Site-to-Site is NOT secure.'
+                                });
                             }
-
-                            // update the tip
-                            tip.text(function () {
-                                if (d.component.targetSecure === true) {
-                                    return 'Site-to-Site is secure.';
-                                } else {
-                                    return 'Site-to-Site is NOT secure.';
-                                }
-                            });
-
-                            // TODO - add the tooltip
-                            // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
 
                     // ---------------
@@ -471,33 +457,11 @@ export class RemoteProcessGroupManager {
                             'visibility',
                             self.canvasUtils.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function () {
-                            // get the tip
-                            let tip: any = d3.select('#comments-tip-' + remoteProcessGroupData.id);
-
-                            // if there are validation errors generate a tooltip
-                            if (self.canvasUtils.isBlank(remoteProcessGroupData.component.comments)) {
-                                // remove the tip if necessary
-                                if (!tip.empty()) {
-                                    tip.remove();
-                                }
-                            } else {
-                                // create the tip if necessary
-                                if (tip.empty()) {
-                                    tip = d3
-                                        .select('#remote-process-group-tooltips')
-                                        .append('div')
-                                        .attr('id', function () {
-                                            return 'comments-tip-' + remoteProcessGroupData.id;
-                                        })
-                                        .attr('class', 'tooltip nifi-tooltip');
-                                }
-
-                                // update the tip
-                                tip.text(remoteProcessGroupData.component.comments);
-
-                                // TODO - add the tooltip
-                                // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                        .each(function (this: any) {
+                            if (self.viewContainerRef) {
+                                self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
+                                    text: remoteProcessGroupData.component.comments
+                                });
                             }
                         });
 
@@ -544,9 +508,6 @@ export class RemoteProcessGroupManager {
 
                     // clear the name
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
-
-                    // TODO - clear tooltips
-                    // remoteProcessGroup.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -569,9 +530,6 @@ export class RemoteProcessGroupManager {
                     // clear the name
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
                 }
-
-                // TODO - remove the tooltips
-                // remoteProcessGroup.call(removeTooltips);
 
                 // remove the details if necessary
                 if (!details.empty()) {
@@ -653,65 +611,33 @@ export class RemoteProcessGroupManager {
             .classed('not-transmitting', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
-            .each(function (d: any) {
-                // get the tip
-                let tip: any = d3.select('#authorization-issues-' + d.id);
-
+            .each(function (this: any, d: any) {
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && self.hasIssues(d)) {
-                    // create the tip if necessary
-                    if (tip.empty()) {
-                        tip = d3
-                            .select('#remote-process-group-tooltips')
-                            .append('div')
-                            .attr('id', function () {
-                                return 'authorization-issues-' + d.id;
-                            })
-                            .attr('class', 'tooltip nifi-tooltip');
-                    }
-
-                    // TODO - update the tip
-                    // tip.html(function () {
-                    //     const list = nfCommon.formatUnorderedList(getIssues(d));
-                    //     if (list === null || list.length === 0) {
-                    //         return '';
-                    //     } else {
-                    //         return $('<div></div>').append(list).html();
-                    //     }
-                    // });
-
-                    // TODO - add the tooltip
-                    // nfCanvasUtils.canvasTooltip(tip, d3.select(this));
-                } else {
-                    if (!tip.empty()) {
-                        tip.remove();
-                    }
+                if (d.permissions.canRead && self.hasIssues(d) && self.viewContainerRef) {
+                    // remote process groups combine validation errors and authorization issues into a single listing
+                    self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {
+                        isValidating: false,
+                        validationErrors: self.getIssues(d)
+                    });
                 }
             });
 
         updated.each(function (this: any, d: any) {
             const remoteProcessGroup: any = d3.select(this);
-            let offset: any = 0;
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(remoteProcessGroup, d, function (off: any) {
-                offset = off;
-            });
+            self.canvasUtils.activeThreadCount(remoteProcessGroup, d);
 
             // ---------
-            // TODO bulletins
+            // bulletins
             // ---------
 
-            // remoteProcessGroup.select('rect.bulletin-background').classed('has-bulletins', function () {
-            //     return !self.canvasUtils.isEmpty(d.status.aggregateSnapshot.bulletins);
-            // });
-
-            // nfCanvasUtils.bulletins(remoteProcessGroup, d, function () {
-            //     return d3.select('#remote-process-group-tooltips');
-            // }, offset);
+            if (self.viewContainerRef) {
+                self.canvasUtils.bulletins(self.viewContainerRef, remoteProcessGroup, d.bulletins);
+            }
         });
     }
 
@@ -735,18 +661,20 @@ export class RemoteProcessGroupManager {
         removed.remove();
     }
 
-    public init(): void {
+    public init(viewContainerRef: ViewContainerRef): void {
+        this.viewContainerRef = viewContainerRef;
+
         this.remoteProcessGroupContainer = d3
             .select('#canvas')
             .append('g')
             .attr('pointer-events', 'all')
-            .attr('class', 'processors');
+            .attr('class', 'remote-process-groups');
 
         this.store
             .select(selectRemoteProcessGroups)
             .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((processors) => {
-                this.set(processors);
+            .subscribe((remoteProcessGroups) => {
+                this.set(remoteProcessGroups);
             });
 
         this.store
@@ -771,7 +699,7 @@ export class RemoteProcessGroupManager {
     }
 
     private set(remoteProcessGroups: any): void {
-        // update the processors
+        // update the remote process groups
         this.remoteProcessGroups = remoteProcessGroups.map((remoteProcessGroup: any) => {
             return {
                 ...remoteProcessGroup,
