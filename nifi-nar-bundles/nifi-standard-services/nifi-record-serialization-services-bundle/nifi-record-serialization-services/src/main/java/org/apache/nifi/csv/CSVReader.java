@@ -68,6 +68,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     public static final AllowableValue JACKSON_CSV = new AllowableValue("jackson-csv", "Jackson CSV",
             "The CSV parser implementation from the Jackson Dataformats library.");
 
+    public static final AllowableValue FAST_CSV = new AllowableValue("fast-csv", "FastCSV",
+            "The CSV parser implementation from the FastCSV library. NOTE: This parser only officially supports RFC-4180, so it recommended to "
+                    + "set the 'CSV Format' property to 'RFC 4180'. It does handle some non-compliant CSV data, for that case set the 'CSV Format' property to "
+                    + "'CUSTOM' and the other custom format properties (such as 'Trim Fields', 'Trim double quote', etc.) as appropriate. Be aware that this "
+                    + "may cause errors if FastCSV doesn't handle the property settings correctly (such as 'Ignore Header'), but otherwise may process the input as expected even "
+                    + "if the data is not fully RFC-4180 compliant.");
 
     public static final PropertyDescriptor CSV_PARSER = new PropertyDescriptor.Builder()
             .name("csv-reader-csv-parser")
@@ -75,7 +81,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality "
                     + "and may also exhibit different levels of performance.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(APACHE_COMMONS_CSV, JACKSON_CSV)
+            .allowableValues(APACHE_COMMONS_CSV, JACKSON_CSV, FAST_CSV)
             .defaultValue(APACHE_COMMONS_CSV.getValue())
             .required(true)
             .build();
@@ -175,6 +181,8 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else if (JACKSON_CSV.getValue().equals(csvParser)) {
             return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
+        } else if (FAST_CSV.getValue().equals(csvParser)) {
+            return new FastCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else {
             throw new IOException("Parser not supported");
         }

@@ -76,6 +76,11 @@
             <artifactId>jackson-dataformat-csv</artifactId>
         </dependency>
         <dependency>
+            <groupId>de.siegmar</groupId>
+            <artifactId>fastcsv</artifactId>
+            <version>2.2.2</version>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
@@ -183,8 +188,11 @@
 
                         <exclude>src/test/resources/csv/extra-white-space.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account.csv</exclude>
+                        <exclude>src/test/resources/csv/multi-bank-account_RFC4180.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>
+                        <exclude>src/test/resources/csv/single-bank-account_RFC4180.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_escapechar.csv</exclude>
+                        <exclude>src/test/resources/csv/multi-bank-account_escapechar_RFC4180.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_spec_delimiter.csv</exclude>
                         <exclude>src/test/resources/csv/prov-events.csv</exclude>
                         <exclude>src/test/resources/grok/error-with-stack-trace.log</exclude>

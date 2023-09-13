@@ -151,6 +151,8 @@ public class CSVUtils {
                 "* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields " +
                 "created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n" +
                 "* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most " +
+                "duplicate CSV column\n" +
+                "* FastCSV - duplicate headers will be de-duplicated with the field value being that of the left-most " +
                 "duplicate CSV column")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
