@@ -73,7 +73,9 @@ import java.util.Set;
         value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
-                "These parameters will override any matching parameters in the query request body")
+                "These parameters will override any matching parameters in the query request body. " +
+                "For SCROLL type queries, these parameters are only used in the initial (first page) query as the " +
+                "Elasticsearch Scroll API does not support the same query parameters for subsequent pages of data.")
 @Stateful(scopes = Scope.LOCAL, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, pageExpirationTimestamp) " +
         "is retained in between invocations of this processor until the Scroll/PiT has expired " +
         "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")

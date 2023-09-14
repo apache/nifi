@@ -22,9 +22,9 @@ import org.apache.nifi.components.DescribedValue;
 import java.util.Arrays;
 
 public enum PaginationType implements DescribedValue {
-    SCROLL("pagination-scroll", "Use Elasticsearch \"scroll\" to page results."),
-    SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" to page sorted results."),
-    POINT_IN_TIME("pagination-pit", "Use Elasticsearch (7.10+ with XPack) \"point in time\" to page sorted results.");
+    SCROLL("pagination-scroll", "Use Elasticsearch \"_scroll\" API to page results. Does not accept additional query parameters."),
+    SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" _search API to page sorted results."),
+    POINT_IN_TIME("pagination-pit", "Use Elasticsearch (7.10+ with XPack) \"point in time\" _search API to page sorted results.");
 
     private final String value;
     private final String description;

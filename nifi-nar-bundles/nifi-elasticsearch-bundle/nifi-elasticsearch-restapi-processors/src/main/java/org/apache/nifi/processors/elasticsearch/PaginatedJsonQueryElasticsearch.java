@@ -56,7 +56,9 @@ import java.util.List;
         value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
-                "These parameters will override any matching parameters in the query request body")
+                "These parameters will override any matching parameters in the query request body. " +
+                "For SCROLL type queries, these parameters are only used in the initial (first page) query as the " +
+                "Elasticsearch Scroll API does not support the same query parameters for subsequent pages of data.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
 public class PaginatedJsonQueryElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
