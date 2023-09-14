@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.processors.zendesk;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import okio.Buffer;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -34,14 +31,12 @@ import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.apache.nifi.common.zendesk.ZendeskProperties.APPLICATION_JSON;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
@@ -64,6 +59,8 @@ public class PutZendeskTicketTest {
     private static final int HTTP_OK = 200;
     private static final int HTTP_BAD_REQUEST = 400;
     private static final String EMPTY_RESPONSE = "{}";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private MockWebServer server;
     private TestRunner testRunner;
@@ -118,9 +115,7 @@ public class PutZendeskTicketTest {
         // then
         RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
-
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, flowFileContent);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(flowFileContent), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -164,8 +159,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -205,8 +199,7 @@ public class PutZendeskTicketTest {
                 "  } ]\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKETS_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -253,8 +246,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -301,8 +293,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -326,18 +317,6 @@ public class PutZendeskTicketTest {
 
         // then
         testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
-    }
-
-    @NotNull
-    private Buffer getBuffer(String url, String body) throws IOException {
-        Request request = new Request.Builder()
-                .post(RequestBody.create(body, MediaType.parse(APPLICATION_JSON)))
-                .url(server.url(url))
-                .build();
-
-        Buffer buffer = new Buffer();
-        request.body().writeTo(buffer);
-        return buffer;
     }
 
     class TestPutZendeskTicket extends PutZendeskTicket {

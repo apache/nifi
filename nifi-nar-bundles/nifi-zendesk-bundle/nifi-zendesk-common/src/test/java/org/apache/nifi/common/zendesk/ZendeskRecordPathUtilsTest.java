@@ -70,11 +70,11 @@ public class ZendeskRecordPathUtilsTest {
     }
 
     private Record initRecord() {
-        List<RecordField> nestedFields2 = new ArrayList<>();
-        nestedFields2.add(new RecordField("nestedField1", RecordFieldType.STRING.getDataType()));
-        nestedFields2.add(new RecordField("nestedField2", RecordFieldType.STRING.getDataType()));
+        List<RecordField> recordFields = new ArrayList<>();
+        recordFields.add(new RecordField("nestedField1", RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField("nestedField2", RecordFieldType.STRING.getDataType()));
 
-        RecordSchema nestedRecordSchema = new SimpleRecordSchema(nestedFields2);
+        RecordSchema nestedRecordSchema = new SimpleRecordSchema(recordFields);
 
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("field1", RecordFieldType.STRING.getDataType()));

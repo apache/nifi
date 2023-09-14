@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.services.zendesk;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import okio.Buffer;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -42,7 +39,6 @@ import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +50,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.common.zendesk.ZendeskProperties.APPLICATION_JSON;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
@@ -73,6 +68,8 @@ public class ZendeskRecordSinkTest {
 
     private static final int HTTP_OK = 200;
     private static final String EMPTY_RESPONSE = "{}";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private MockWebServer server;
     private TestRunner testRunner;
@@ -205,8 +202,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
     }
 
     @Test
@@ -245,8 +241,7 @@ public class ZendeskRecordSinkTest {
                 "  } ]\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKETS_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
     }
 
     @Test
@@ -289,8 +284,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
     }
 
     @Test
@@ -333,8 +327,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
     }
 
     @Test
@@ -366,20 +359,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        Buffer buffer = getBuffer(ZENDESK_CREATE_TICKET_RESOURCE, expectedBody);
-        assertEquals(buffer, recordedRequest.getBody());
-    }
-
-    @NotNull
-    private Buffer getBuffer(String url, String body) throws IOException {
-        Request request = new Request.Builder()
-                .post(RequestBody.create(body, MediaType.parse(APPLICATION_JSON)))
-                .url(server.url(url))
-                .build();
-
-        Buffer buffer = new Buffer();
-        request.body().writeTo(buffer);
-        return buffer;
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
     }
 
     class TestZendeskRecordSink extends ZendeskRecordSink {

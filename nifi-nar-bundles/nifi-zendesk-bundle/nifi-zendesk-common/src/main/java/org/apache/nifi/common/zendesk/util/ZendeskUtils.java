@@ -27,8 +27,6 @@ import org.apache.nifi.common.zendesk.ZendeskProperties;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -40,7 +38,6 @@ import java.util.stream.Collectors;
 
 public final class ZendeskUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZendeskUtils.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private ZendeskUtils() {

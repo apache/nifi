@@ -17,7 +17,7 @@
 
     <head>
         <meta charset="utf-8"/>
-        <title>PutZendeskTicket</title>
+        <title>ZendeskRecordSink</title>
         <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
         <style>
             h2 {margin-top: 4em}
@@ -26,12 +26,12 @@
     </head>
 
     <body>
-        <h1>PutZendeskTicket</h1>
+        <h1>ZendeskRecordSink</h1>
 
         <h3>Description</h3>
 
         <p>
-            The processor uses the Zendesk API to ingest tickets into Zendesk. The processor is capable to send requests directly from the FlowFile content or construct the request objects from the incoming records using a RecordReader.
+            The sink uses the Zendesk API to ingest tickets into Zendesk, using the incoming records to construct request objects.
         </p>
 
         <h3>Authentication</h3>
@@ -133,25 +133,25 @@
         <p><u>Property Key values:</u></p>
         <p>
             The dynamic property key must be a valid Json Pointer value which has the following syntax rules:
-        <ul>
-            <li>The path starts with <b>/</b>.</li>
-            <li>Each segment is separated by <b>/</b>.</li>
-            <li>Each segment can be interpreted as either an array index or an object key.</li>
-        </ul>
+            <ul>
+                <li>The path starts with <b>/</b>.</li>
+                <li>Each segment is separated by <b>/</b>.</li>
+                <li>Each segment can be interpreted as either an array index or an object key.</li>
+            </ul>
         </p>
 
 
         <p><u>Example:</u></p>
         <p>
             We are going to add a new dynamic property to the processor:
-        <pre>
+            <pre>
                 /request/new_object : This is a new property
                 /request/new_array/0 : This is a new array element
             </pre>
 
-        The constructed request object will look like this:
+            The constructed request object will look like this:
 
-        <pre>
+            <pre>
                 {
                    "request":{
                       "new_object":"This is a new property",
@@ -161,6 +161,12 @@
                    }
                 }
             </pre>
+        </p>
+
+        <h3>Caching</h3>
+        <p>
+            The sink caches Zendesk tickets with the same content in order to avoid duplicate issues.
+            The cache size and expiration date can be set on the sink service.
         </p>
     </body>
 </html>

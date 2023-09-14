@@ -143,27 +143,37 @@ public final class ZendeskRecordPathUtils {
      * @param path path of the new node
      * @param value value of the new node
      */
-    public static void addNewNodeAtPath(ObjectNode baseNode, JsonPointer path, JsonNode value) {
-        JsonNode parentNode = baseNode.at(path.head());
-        String fieldName = path.last().toString().substring(1);
+    public static void addNewNodeAtPath(final ObjectNode baseNode, final JsonPointer path, final JsonNode value) {
+        final JsonPointer parentPointer = path.head();
+        final String fieldName = path.last().toString().substring(1);
+        JsonNode parentNode = getOrCreateParentNode(baseNode, parentPointer, fieldName);
 
-        if (parentNode.isMissingNode() || parentNode.isNull()) {
-            parentNode = StringUtils.isNumeric(fieldName) ? OBJECT_MAPPER.createArrayNode() : OBJECT_MAPPER.createObjectNode();
-            addNewNodeAtPath(baseNode, path.head(), parentNode);
-        }
+        setNodeValue(value, parentPointer, fieldName, parentNode);
+    }
 
-        if (parentNode.isObject()) {
-            ObjectNode objectNode = (ObjectNode) parentNode;
-            objectNode.set(fieldName, value);
-        } else if (parentNode.isArray()) {
+    private static void setNodeValue(JsonNode value, JsonPointer parentPointer, String fieldName, JsonNode parentNode) {
+        if (parentNode.isArray()) {
             ArrayNode arrayNode = (ArrayNode) parentNode;
             int index = Integer.parseInt(fieldName);
             for (int i = arrayNode.size(); i <= index; i++) {
                 arrayNode.addNull();
             }
             arrayNode.set(index, value);
+        } else if (parentNode.isObject()) {
+            ((ObjectNode) parentNode).set(fieldName, value);
         } else {
-            throw new IllegalArgumentException("Unsupported node type" + parentNode.getNodeType().name());
+            throw new IllegalArgumentException("'" + fieldName + "' can't be set for parent node '"
+                    + parentPointer + "' because the parent is not a container but " + parentNode.getNodeType().name());
         }
+    }
+
+    private static JsonNode getOrCreateParentNode(ObjectNode rootNode, JsonPointer parentPointer, String fieldName) {
+        JsonNode parentNode = rootNode.at(parentPointer);
+
+        if (parentNode.isMissingNode() || parentNode.isNull()) {
+            parentNode = StringUtils.isNumeric(fieldName) ? OBJECT_MAPPER.createArrayNode() : OBJECT_MAPPER.createObjectNode();
+            addNewNodeAtPath(rootNode, parentPointer, parentNode);
+        }
+        return parentNode;
     }
 }

@@ -221,7 +221,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             throw new ProcessException(errorMessage, e);
         }
 
-        if (zendeskTickets.size() > 0) {
+        if (!zendeskTickets.isEmpty()) {
             try {
                 final InputStream inputStream = createRequestObject(zendeskTickets);
                 final URI uri = createUri(zendeskTickets.size());
