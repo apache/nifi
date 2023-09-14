@@ -94,6 +94,12 @@
             <artifactId>kudu-test-utils</artifactId>
             <version>${kudu.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
