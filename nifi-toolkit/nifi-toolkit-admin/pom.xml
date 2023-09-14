@@ -136,24 +136,6 @@ language governing permissions and limitations under the License. -->
             <artifactId>commons-compress</artifactId>
             <version>1.23.0</version>
         </dependency>
-        <!-- Spock testing dependencies-->
-        <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
-            <version>1.19.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.spockframework</groupId>
-            <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib-nodep</artifactId>
-            <version>3.3.0</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
@@ -204,28 +186,7 @@ language governing permissions and limitations under the License. -->
                             </sources>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>add-test-source</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/groovy</source>
-                            </sources>
-                        </configuration>
-                    </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/filemanager/myid</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -77,11 +77,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.spockframework</groupId>
-            <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
             <version>${curator.version}</version>
