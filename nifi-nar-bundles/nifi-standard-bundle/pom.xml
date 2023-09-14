@@ -36,7 +36,7 @@
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.8</jolt.version>
         <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
-        <tika.version>2.8.0</tika.version>
+        <tika.version>2.9.0</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -286,7 +286,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>
