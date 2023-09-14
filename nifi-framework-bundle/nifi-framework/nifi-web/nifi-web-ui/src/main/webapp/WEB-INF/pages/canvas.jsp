@@ -109,6 +109,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/search-users-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/disable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/enable-controller-service-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/move-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fetch-parameters-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-reporting-task-dialog.jsp"/>

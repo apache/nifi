@@ -217,20 +217,55 @@ div.controller-service-canceling {
     white-space: nowrap;
 }
 
+/*
+    Move dialog
+*/
+
+#move-controller-service-scope-container {
+    height: 48px;
+}
+
+#move-controller-service-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#move-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+#move-controller-service-scope {
+    float: left;
+    width: 225px;
+}
+
+#move-controller-service-referencing-components {
+    border: 0 solid #ccc;
+    padding: 2px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
 /* enable, disable progress */
 
-div.disable-referencing-components, div.enable-referencing-components {
+div.disable-referencing-components, div.enable-referencing-components, div.move-referencing-components {
     width: 16px;
     height: 16px;
     background-color: transparent;
     float: right;
 }
 
-#enable-controller-service-progress, #disable-controller-service-progress {
+#enable-controller-service-progress, #disable-controller-service-progress, #move-controller-service-progress {
     margin-top: 2px;
 }
 
-#enable-controller-service-progress li, #disable-controller-service-progress li {
+#enable-controller-service-progress li, #disable-controller-service-progress li, #move-controller-service-progress li {
     line-height: 16px;
 }
 
