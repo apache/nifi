@@ -23,7 +23,6 @@
     <artifactId>nifi-external</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>nifi-spark-receiver</module>
         <module>nifi-example-bundle</module>
         <module>nifi-kafka-connect</module>
     </modules>
