@@ -234,6 +234,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
     @Override
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
+        final long startNanos = System.nanoTime();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
@@ -281,6 +282,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
+        final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        session.getProvenanceReporter().send(flowFile, table.location(), transferMillis);
         session.transfer(flowFile, REL_SUCCESS);
     }
 
