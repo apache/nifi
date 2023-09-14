@@ -48,8 +48,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -182,16 +180,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
-    }
-
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        super.onScheduled(context);
-    }
-
-    @OnStopped
-    public void onStopped() {
-        super.onStopped();
     }
 
     private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(ProcessContext context) {

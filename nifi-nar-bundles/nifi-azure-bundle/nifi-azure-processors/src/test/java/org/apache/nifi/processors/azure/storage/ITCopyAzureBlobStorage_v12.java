@@ -18,7 +18,6 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobErrorCode;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -33,7 +32,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.azure.storage.CopyAzureBlobStorage_v12.SOURCE_STORAGE_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_ERROR_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,20 +85,13 @@ public class ITCopyAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.run();
     }
 
-    private MockFlowFile assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
-        MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
+    private void assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
+        assertFlowFile(containerName, blobName, blobData);
         assertAzureBlob(containerName, blobName, blobData);
         assertProvenanceEvents();
-        return flowFile;
     }
 
-    private MockFlowFile assertIgnored(String containerName, String blobName) throws Exception {
-        MockFlowFile flowFile = assertFlowFile(containerName, blobName, null);
-        assertProvenanceEvents();
-        return flowFile;
-    }
-
-    private MockFlowFile assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
+    private void assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
         runner.assertAllFlowFilesTransferred(CopyAzureBlobStorage_v12.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CopyAzureBlobStorage_v12.REL_SUCCESS).get(0);
@@ -110,7 +101,6 @@ public class ITCopyAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
             assertFlowFileResultBlobAttributes(flowFile, blobData.length);
             flowFile.assertContentEquals(blobData);
         }
-        return flowFile;
     }
 
     private void assertAzureBlob(String containerName, String blobName, byte[] blobData) {
@@ -128,14 +118,5 @@ public class ITCopyAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(Collectors.toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
-    }
-
-    private MockFlowFile assertFailure(byte[] blobData, BlobErrorCode errorCode) throws Exception {
-        runner.assertAllFlowFilesTransferred(CopyAzureBlobStorage_v12.REL_FAILURE, 1);
-
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureBlobStorage_v12.REL_FAILURE).get(0);
-        flowFile.assertContentEquals(blobData);
-        flowFile.assertAttributeEquals(ATTR_NAME_ERROR_CODE, errorCode.toString());
-        return flowFile;
     }
 }
