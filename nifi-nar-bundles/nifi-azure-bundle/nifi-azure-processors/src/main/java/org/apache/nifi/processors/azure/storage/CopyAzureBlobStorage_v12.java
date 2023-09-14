@@ -339,7 +339,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             blockBlobStageBlockFromUrlOptions.setSourceRequestConditions(sourceRequestConditions);
             final int statusCode = blockBlobClient.stageBlockFromUrlWithResponse(blockBlobStageBlockFromUrlOptions, null, Context.NONE).getStatusCode();
             if (statusCode != 201) {
-                throw new ProcessException(String.format("Failed staging one or more blocks (status: %d)", statusCode));
+                throw new ProcessException(String.format("Failed staging one or more blocks: HTTP %d", statusCode));
             }
             blockIds.add(base64BlockId);
             offset += count;
