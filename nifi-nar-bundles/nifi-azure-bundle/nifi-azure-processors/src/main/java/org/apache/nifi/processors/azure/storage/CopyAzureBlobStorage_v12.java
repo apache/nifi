@@ -79,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_STAGE_BLOCK_BYTES_LONG;
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_UPLOAD_BLOB_BYTES_LONG;
+import static java.net.HttpURLConnection.HTTP_ACCEPTED;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -326,7 +327,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             }
             blockBlobStageBlockFromUrlOptions.setSourceRequestConditions(sourceRequestConditions);
             final int statusCode = blockBlobClient.stageBlockFromUrlWithResponse(blockBlobStageBlockFromUrlOptions, null, Context.NONE).getStatusCode();
-            if (statusCode != 201) {
+            if (statusCode != HTTP_ACCEPTED) {
                 throw new ProcessException(String.format("Failed staging one or more blocks: HTTP %d", statusCode));
             }
             blockIds.add(base64BlockId);
@@ -338,7 +339,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         options.setRequestConditions(destinationRequestConditions);
         final Response<BlockBlobItem> response = blockBlobClient.commitBlockListWithResponse(options, null, Context.NONE);
         final int statusCode = response.getStatusCode();
-        if (statusCode != 201) {
+        if (statusCode != HTTP_ACCEPTED) {
             throw new ProcessException(String.format("Failed committing block list: HTTP %d", statusCode));
         }
     }
