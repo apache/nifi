@@ -197,7 +197,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(ProcessContext context) {
         return context.getProperty(SOURCE_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
     }
-
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
