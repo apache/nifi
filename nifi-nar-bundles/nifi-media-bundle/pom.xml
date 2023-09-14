@@ -40,12 +40,6 @@
         <dependencies>
             <!-- Override version from tika-parsers -->
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-            <!-- Override version from tika-parsers -->
-            <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
             </dependency>

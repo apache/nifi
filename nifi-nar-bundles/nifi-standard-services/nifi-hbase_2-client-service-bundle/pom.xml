@@ -55,12 +55,6 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.3.version}</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
                 <groupId>commons-beanutils</groupId>

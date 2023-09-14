@@ -22,16 +22,6 @@
     </parent>
     <artifactId>nifi-hadoop-record-utils</artifactId>
     <packaging>jar</packaging>
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-compress:1.19 -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
