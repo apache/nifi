@@ -38,6 +38,7 @@ public class TestPackageUnpackageV3 {
         final byte[] data = "Hello, World!".getBytes(StandardCharsets.UTF_8);
         final Map<String, String> map = new HashMap<>();
         map.put("abc", "cba");
+        map.put("123", null);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final ByteArrayInputStream in = new ByteArrayInputStream(data);
@@ -49,6 +50,7 @@ public class TestPackageUnpackageV3 {
         final Map<String, String> unpackagedAttributes = unpackager.unpackageFlowFile(encodedIn, decodedOut);
         final byte[] decoded = decodedOut.toByteArray();
 
+        map.put("123", ""); // replace null attribute for verification, because it is packaged as empty string
         assertEquals(map, unpackagedAttributes);
         assertArrayEquals(data, decoded);
     }

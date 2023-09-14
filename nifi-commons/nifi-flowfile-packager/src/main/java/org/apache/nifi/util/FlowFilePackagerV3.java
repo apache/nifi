@@ -36,8 +36,8 @@ public class FlowFilePackagerV3 implements FlowFilePackager {
         } else {
             writeFieldLength(out, attributes.size()); //write out the number of attributes
             for (final Map.Entry<String, String> entry : attributes.entrySet()) { //write out each attribute key/value pair
-                writeString(entry.getKey(), out);
-                writeString(entry.getValue(), out);
+                writeString(entry.getKey() == null ? "" : entry.getKey(), out);
+                writeString(entry.getValue() == null ? "" : entry.getValue(), out);
             }
         }
 
