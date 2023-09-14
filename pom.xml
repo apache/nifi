@@ -96,7 +96,7 @@
         <!-- Disable maven-site-plugin from parent POM -->
         <maven.site.skip>true</maven.site.skip>
         <node.version>v16.13.2</node.version>
-        <frontend.mvn.plugin.version>1.13.4</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>1.14.0</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.5.1</nifi.nar.maven.plugin.version>
         <project.build.outputTimestamp>1675980972</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -875,17 +875,17 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.43.3</version>
+                    <version>0.43.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>rpm-maven-plugin</artifactId>
-                    <version>2.2.0</version>
+                    <version>2.3.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.antlr</groupId>
@@ -929,7 +929,6 @@
                         </goals>
                         <configuration>
                             <compilerId>groovy-eclipse-compiler</compilerId>
-
                         </configuration>
                     </execution>
                 </executions>
@@ -973,7 +972,7 @@
             <plugin>
                 <groupId>org.jvnet.jaxb2.maven2</groupId>
                 <artifactId>maven-jaxb2-plugin</artifactId>
-                <version>0.14.0</version>
+                <version>0.15.3</version>
                 <configuration>
                     <noFileHeader>true</noFileHeader>
                 </configuration>
@@ -981,7 +980,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.4.1</version>
                 <executions>
                     <execution>
                         <id>enforce-maven-version</id>
@@ -1147,7 +1146,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>8.3.1</version>
+                        <version>8.4.0</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
