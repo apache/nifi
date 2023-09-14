@@ -19,6 +19,8 @@ package org.apache.nifi.shared.azure.eventhubs;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 
 /**
  * Azure Event Hub Component interface with shared properties
@@ -33,5 +35,11 @@ public interface AzureEventHubComponent {
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+    ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
+    PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS))
+            .dependsOn(TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue())
             .build();
 }

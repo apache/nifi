@@ -19,6 +19,9 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -30,14 +33,18 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.net.Proxy;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class PutAzureEventHubTest {
@@ -63,7 +70,7 @@ public class PutAzureEventHubTest {
     }
 
     @Test
-    public void testProperties() {
+    public void testProperties() throws InitializationException {
         testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
@@ -74,6 +81,20 @@ public class PutAzureEventHubTest {
         testRunner.assertValid();
         testRunner.setProperty(PutAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
         testRunner.assertValid();
+        configureProxyControllerService();
+        testRunner.assertValid();
+    }
+
+    private void configureProxyControllerService() throws InitializationException {
+        final String serviceId = "proxyConfigurationService";
+        final ProxyConfiguration proxyConfiguration = mock(ProxyConfiguration.class);
+        when(proxyConfiguration.getProxyType()).thenReturn(Proxy.Type.HTTP);
+        final ProxyConfigurationService service = mock(ProxyConfigurationService.class);
+        when(service.getIdentifier()).thenReturn(serviceId);
+        when(service.getConfiguration()).thenReturn(proxyConfiguration);
+        testRunner.addControllerService(serviceId, service);
+        testRunner.enableControllerService(service);
+        testRunner.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
     }
 
     @Test
