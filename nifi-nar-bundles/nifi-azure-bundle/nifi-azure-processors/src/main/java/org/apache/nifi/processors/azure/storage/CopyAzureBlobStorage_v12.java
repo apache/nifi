@@ -216,7 +216,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         final boolean createContainer = context.getProperty(AzureStorageUtils.CREATE_CONTAINER).asBoolean();
         final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).getValue());
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
         try {
             BlobServiceClient storageClient = getStorageClient(context, DESTINATION_STORAGE_CREDENTIALS_SERVICE, flowFile);
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(destinationContainerName);
