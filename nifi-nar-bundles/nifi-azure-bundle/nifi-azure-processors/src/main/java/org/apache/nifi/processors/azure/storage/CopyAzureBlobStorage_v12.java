@@ -225,7 +225,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             }
 
             BlobClient blobClient = containerClient.getBlobClient(destinationBlobName);
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             applyStandardBlobAttributes(attributes, blobClient);
             final boolean ignore = conflictResolution == AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION;
 
