@@ -32,6 +32,8 @@ import org.apache.nifi.hive.metastore.ThriftMetastore;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHiveCatalogService;
 import org.apache.nifi.processors.iceberg.util.IcebergTestUtils;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
@@ -60,6 +62,8 @@ import static org.apache.nifi.processors.iceberg.PutIceberg.ICEBERG_RECORD_COUNT
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateData;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateNumberOfDataFiles;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 @DisabledOnOs(WINDOWS)
@@ -174,6 +178,7 @@ public class TestPutIcebergWithHiveCatalog {
         validateNumberOfDataFiles(tableLocation, 3);
         validatePartitionFolders(tableLocation, Arrays.asList(
                 "department_bucket=0", "department_bucket=1", "department_bucket=2"));
+        assertProvenanceEvents();
     }
 
     @ParameterizedTest
@@ -211,6 +216,7 @@ public class TestPutIcebergWithHiveCatalog {
         validateNumberOfDataFiles(tableLocation, 3);
         validatePartitionFolders(tableLocation, Arrays.asList(
                 "department=Finance", "department=Marketing", "department=Sales"));
+        assertProvenanceEvents();
     }
 
     @ParameterizedTest
@@ -253,6 +259,7 @@ public class TestPutIcebergWithHiveCatalog {
                 "name=Joana/department=Sales/",
                 "name=John/department=Finance/"
         ));
+        assertProvenanceEvents();
     }
 
     @ParameterizedTest
@@ -287,5 +294,14 @@ public class TestPutIcebergWithHiveCatalog {
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
         validateData(table, expectedRecords, 0);
         validateNumberOfDataFiles(new URI(table.location()).getPath(), 1);
+        assertProvenanceEvents();
+    }
+
+    private void assertProvenanceEvents() {
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
+        assertTrue(sendEvent.getTransitUri().endsWith(CATALOG_NAME + ".db/" + TABLE_NAME));
     }
 }
