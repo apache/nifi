@@ -226,22 +226,22 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                     destinationRequestConditions.setIfNoneMatch("*");
                 }
 
-                final AzureStorageCredentialsService_v12 fromCredentialsService = getCopyFromCredentialsService(context);
-                BlobServiceClient fromStorageClient = getStorageClient(context, SOURCE_STORAGE_CREDENTIALS_SERVICE, flowFile);
-                BlobContainerClient fromContainerClient = fromStorageClient.getBlobContainerClient(sourceContainerName);
-                BlobClient fromBlobClient = fromContainerClient.getBlobClient(sourceBlobName);
+                final AzureStorageCredentialsService_v12 sourceCredentialsService = getCopyFromCredentialsService(context);
+                BlobServiceClient sourceStorageClient = getStorageClient(context, SOURCE_STORAGE_CREDENTIALS_SERVICE, flowFile);
+                BlobContainerClient sourceContainerClient = sourceStorageClient.getBlobContainerClient(sourceContainerName);
+                BlobClient sourceBlobClient = sourceContainerClient.getBlobClient(sourceBlobName);
 
-                AzureStorageCredentialsDetails_v12 credentialsDetails = fromCredentialsService.getCredentialsDetails(flowFile.getAttributes());
-                String sourceUrl = fromBlobClient.getBlobUrl();
-                final BlobProperties fromBlobProperties = fromBlobClient.getProperties();
-                final long blobSize = fromBlobProperties.getBlobSize();
+                AzureStorageCredentialsDetails_v12 credentialsDetails = sourceCredentialsService.getCredentialsDetails(flowFile.getAttributes());
+                String sourceUrl = sourceBlobClient.getBlobUrl();
+                final BlobProperties sourceBlobProperties = sourceBlobClient.getProperties();
+                final long blobSize = sourceBlobProperties.getBlobSize();
 
                 final BlobRequestConditions sourceRequestConditions = new BlobRequestConditions();
-                sourceRequestConditions.setIfMatch(fromBlobProperties.getETag());
+                sourceRequestConditions.setIfMatch(sourceBlobProperties.getETag());
 
                 HttpAuthorization httpAuthorization;
                 final String sasToken = (credentialsDetails.getCredentialsType() == AzureStorageCredentialsType.ACCOUNT_KEY)
-                        ? generateSas(fromContainerClient)
+                        ? generateSas(sourceContainerClient)
                         : credentialsDetails.getSasToken();
                 if (sasToken != null) {
                     sourceUrl += "?" + sasToken;
@@ -281,12 +281,12 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         }
     }
 
-    private static String generateSas(final BlobContainerClient fromContainerClient) {
+    private static String generateSas(final BlobContainerClient sourceContainerClient) {
         BlobContainerSasPermission permissions = new BlobContainerSasPermission().setCreatePermission(true).setWritePermission(true).setAddPermission(true).setReadPermission(true);
         OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime expiryTime = utc.plus(CopyAzureBlobStorage_v12.GENERATE_SAS_EXPIRY_HOURS, ChronoUnit.HOURS);
         BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
-        return fromContainerClient.generateSas(signatureValues);
+        return sourceContainerClient.generateSas(signatureValues);
     }
 
     private void copy(final BlobClient blobClient,
