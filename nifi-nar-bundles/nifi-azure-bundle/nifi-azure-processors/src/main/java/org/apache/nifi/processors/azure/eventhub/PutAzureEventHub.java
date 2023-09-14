@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -135,6 +136,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         configuredDescriptors.add(USE_MANAGED_IDENTITY);
         configuredDescriptors.add(PARTITIONING_KEY_ATTRIBUTE_NAME);
         configuredDescriptors.add(MAX_BATCH_SIZE);
+        configuredDescriptors.add(PROXY_CONFIGURATION_SERVICE);
         propertyDescriptors = Collections.unmodifiableList(configuredDescriptors);
 
         final Set<Relationship> configuredRelationships = new HashSet<>();
@@ -214,7 +216,10 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
                 final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
             }
-
+            final ProxyOptions proxyOptions = AzureEventHubUtils.getProxyOptions(context);
+            if (proxyOptions != null) {
+                eventHubClientBuilder.proxyOptions(proxyOptions);
+            }
             return eventHubClientBuilder.buildProducerClient();
         } catch (final Exception e) {
             throw new ProcessException("EventHubClient creation failed", e);

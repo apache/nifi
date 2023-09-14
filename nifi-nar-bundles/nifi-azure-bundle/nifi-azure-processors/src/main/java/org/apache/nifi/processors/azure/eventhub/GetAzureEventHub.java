@@ -27,6 +27,7 @@ import com.azure.messaging.eventhubs.EventHubConsumerClient;
 import com.azure.messaging.eventhubs.models.EventPosition;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
+import com.azure.core.amqp.ProxyOptions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -173,7 +174,8 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
                 CONSUMER_GROUP,
                 ENQUEUE_TIME,
                 RECEIVER_FETCH_SIZE,
-                RECEIVER_FETCH_TIMEOUT
+                RECEIVER_FETCH_TIMEOUT,
+                PROXY_CONFIGURATION_SERVICE
         );
         relationships = Collections.singleton(REL_SUCCESS);
     }
@@ -388,6 +390,11 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         clientOptions.setIdentifier(clientIdentifier);
         eventHubClientBuilder.clientOptions(clientOptions);
 
+        final ProxyOptions proxyOptions = AzureEventHubUtils.getProxyOptions(context);
+        if (proxyOptions != null) {
+            eventHubClientBuilder.proxyOptions(proxyOptions);
+        }
+
         return eventHubClientBuilder;
     }
 
@@ -434,7 +441,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         attributes.put("eventhub.name", partitionContext.getEventHubName());
         attributes.put("eventhub.partition", partitionContext.getPartitionId());
 
-        final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
+        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
         attributes.putAll(applicationProperties);
 
         return attributes;

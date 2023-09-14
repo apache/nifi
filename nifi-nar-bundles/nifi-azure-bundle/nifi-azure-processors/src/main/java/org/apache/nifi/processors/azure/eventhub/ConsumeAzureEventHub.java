@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -301,7 +302,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 STORAGE_ACCOUNT_NAME,
                 STORAGE_ACCOUNT_KEY,
                 STORAGE_SAS_TOKEN,
-                STORAGE_CONTAINER_NAME
+                STORAGE_CONTAINER_NAME,
+                PROXY_CONFIGURATION_SERVICE
         ));
 
         Set<Relationship> relationships = new HashSet<>();
@@ -467,6 +469,10 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             }
         } else {
             eventProcessorClientBuilder.initialPartitionEventPosition(legacyPartitionEventPosition);
+        }
+        final ProxyOptions proxyOptions = AzureEventHubUtils.getProxyOptions(context);
+        if (proxyOptions != null) {
+            eventProcessorClientBuilder.proxyOptions(proxyOptions);
         }
 
         return eventProcessorClientBuilder.buildEventProcessorClient();
