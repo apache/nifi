@@ -319,7 +319,10 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             long count = Math.min(blobSize - offset, MAX_STAGE_BLOCK_BYTES_LONG);
             if (count == 0) break;
 
-            final String base64BlockId = Base64.getEncoder().encodeToString(df.format(blockId).getBytes());
+            // The zero-padded block ID must be base64-encoded as per the protocol.
+            final String zeroPadded = df.format(blockId);
+            final String base64BlockId = Base64.getEncoder().encodeToString(zeroPadded.getBytes());
+
             BlockBlobStageBlockFromUrlOptions blockBlobStageBlockFromUrlOptions = new BlockBlobStageBlockFromUrlOptions(base64BlockId, sourceUrl);
             blockBlobStageBlockFromUrlOptions.setSourceRange(new BlobRange(offset, count));
 
