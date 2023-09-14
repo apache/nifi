@@ -361,20 +361,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.spockframework</groupId>
-                <artifactId>spock-core</artifactId>
-                <version>2.3-groovy-3.0</version>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <!-- exclude transitive groovy dependencies to force spock to use the the managed groovy dependencies
-                        inherited from the parent pom -->
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest-all</artifactId>
                 <version>1.3</version>
@@ -1046,6 +1032,8 @@
                                         <exclude>org.bouncycastle:bcmail-jdk15on</exclude>
                                         <!-- Exclude SSHD 2.9.1 and earlier due to CVE-2022-45047 -->
                                         <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
+                                        <!-- The Spock Framework should not be used for testing -->
+                                        <exclude>org.spockframework:*</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
