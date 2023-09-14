@@ -54,13 +54,6 @@ language governing permissions and limitations under the License. -->
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-client</artifactId>

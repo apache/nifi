@@ -109,15 +109,6 @@
                 <version>${yammer.metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-            </dependency>
-            <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
                 <version>0.35.0</version>

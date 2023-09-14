@@ -111,6 +111,7 @@
         <okio.version>3.5.0</okio.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
+        <org.apache.commons.compress.version>1.24.0</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.9.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.13.0</org.apache.commons.io.version>
@@ -264,6 +265,11 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${org.apache.commons.codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${org.apache.commons.compress.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
