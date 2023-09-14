@@ -32,12 +32,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override commons-compress:1.19 from ranger -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override jetty-server:9.4.20 -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>

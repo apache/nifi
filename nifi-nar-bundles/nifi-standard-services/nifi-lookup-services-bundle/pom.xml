@@ -25,14 +25,4 @@
         <module>nifi-lookup-services</module>
         <module>nifi-lookup-services-nar</module>
     </modules>
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

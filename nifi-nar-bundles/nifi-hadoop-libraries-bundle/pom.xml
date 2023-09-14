@@ -32,12 +32,6 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.3.version}</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
             <dependency>
                 <groupId>com.nimbusds</groupId>

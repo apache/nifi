@@ -26,14 +26,4 @@
         <module>nifi-hadoop-dbcp-service</module>
         <module>nifi-hadoop-dbcp-service-nar</module>
     </modules>
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-compress:1.19 -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

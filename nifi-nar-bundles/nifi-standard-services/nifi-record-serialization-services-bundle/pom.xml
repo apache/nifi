@@ -28,15 +28,4 @@
         <module>nifi-record-serialization-services-nar</module>
         <module>nifi-record-serialization-services-shared</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>
