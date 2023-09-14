@@ -351,7 +351,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         final Response<BlockBlobItem> response = blockBlobClient.commitBlockListWithResponse(options, null, Context.NONE);
         final int statusCode = response.getStatusCode();
         if (statusCode != 201) {
-            throw new ProcessException(String.format("Failed committing block list (status: %d)", statusCode));
+            throw new ProcessException(String.format("Failed committing block list: HTTP %d", statusCode));
         }
     }
 
