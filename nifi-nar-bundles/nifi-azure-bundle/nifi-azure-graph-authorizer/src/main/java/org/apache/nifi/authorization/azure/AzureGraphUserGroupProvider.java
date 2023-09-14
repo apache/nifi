@@ -297,7 +297,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         IGroupCollectionPage filterResults;
         if (prefix != null && !prefix.isEmpty()) {
             // build a $filter query option and create a graph request if prefix is given
-            final List<Option> requestOptions = List.of(new QueryOption("$filter", String.format("startswith(displayName, '%s')", prefix)));
+            final List<Option> requestOptions = Collections.singletonList(new QueryOption("$filter", String.format("startswith(displayName, '%s')", prefix)));
             gRequest = graphClient.groups().buildRequest(requestOptions).select("displayName");
         } else {
             // default group graph request
@@ -342,7 +342,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private UserGroupQueryResult getUsersFrom(String groupName, int pageSize) throws IOException, ClientException {
         final Set<User> users = new HashSet<>();
 
-        final List<Option> requestOptions = List.of(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
+        final List<Option> requestOptions = Collections.singletonList(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
         final IGroupCollectionPage results = graphClient.groups().buildRequest(requestOptions).get();
         final List<com.microsoft.graph.models.extensions.Group> currentPage = results.getCurrentPage();
 
