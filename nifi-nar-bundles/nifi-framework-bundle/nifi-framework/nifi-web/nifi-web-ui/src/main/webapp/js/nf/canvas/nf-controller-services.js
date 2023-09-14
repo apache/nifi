@@ -946,6 +946,9 @@
                 if (canRead) {
                     if (canWrite && isDisabled) {
                         markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
+                        if (canWriteControllerServiceParent(dataContext)) {
+                            markup += '<div class="pointer move-controller-service fa  fa-arrows" title="Move to Parent/Child"></div>';
+                        }
                     } else {
                         markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
                     }
@@ -1093,6 +1096,8 @@
                     nfComponentState.showState(controllerServiceEntity, controllerServiceEntity.component.state === 'DISABLED');
                 } else if (target.hasClass('change-version-controller-service')) {
                     nfComponentVersion.promptForVersionChange(controllerServiceEntity);
+                } else if (target.hasClass('move-controller-service')) {
+                    nfControllerService.move(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
                     nfPolicyManagement.showControllerServicePolicy(controllerServiceEntity);

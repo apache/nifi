@@ -1545,6 +1545,127 @@
     };
 
     /**
+     * Shows the dialog for moving a controller service.
+     *
+     * @param {object} serviceTable
+     * @param {object} controllerServiceEntity
+     */
+    var showMoveControllerServiceDialog = function (serviceTable, controllerServiceEntity) {
+        // populate the move controller service dialog
+        $('#move-controller-service-id').text(controllerServiceEntity.id);
+        $('#move-controller-service-name').text(nfCommon.getComponentName(controllerServiceEntity));
+
+        // load the controller referencing components list
+        var referencingComponentsContainer = $('#move-controller-service-referencing-components');
+        createReferencingComponents(serviceTable, referencingComponentsContainer, controllerServiceEntity);
+
+        // load the available process groups combo
+        processGroupsUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(controllerServiceEntity.parentGroupId);
+        var processGroups = [];
+        $.ajax({
+            type: 'GET',
+            url: processGroupsUri,
+            dataType: 'json'
+        }).done(function (response, controllerServiceEntity) {
+            var flow = response.processGroupFlow;
+            if(nfCommon.isDefinedAndNotNull(flow.breadcrumb.parentBreadcrumb)) {
+                if(flow.breadcrumb.parentBreadcrumb.permissions.canRead
+                    && flow.breadcrumb.parentBreadcrumb.permissions.canWrite){
+                    processGroups.push({
+                        text: 'Parent(' + flow.breadcrumb.parentBreadcrumb.breadcrumb.name + ')',
+                        value: flow.breadcrumb.parentBreadcrumb.breadcrumb.id
+                    });
+                }
+            }
+
+            flow.flow.processGroups.forEach(function(pGroup) {
+                if(pGroup.component.id != controllerServiceEntity.parentGroupId
+                    && pGroup.permissions.canRead && pGroup.permissions.canWrite) {
+                    processGroups.push({
+                        text: pGroup.component.name,
+                        value: pGroup.component.id
+                    });
+                }
+            });
+
+            $('#move-controller-service-scope').combo('destroy');
+            $('#move-controller-service-scope').combo({ options: processGroups });
+            $('#move-controller-service-scope').combo('setSelectedOption' , processGroups[0]);
+        }).fail(nfErrorHandler.handleAjaxError);
+
+
+       // build the button model
+       var buttons = [{
+           buttonText: 'Move',
+           color: {
+               base: '#728E9B',
+               hover: '#004849',
+               text: '#ffffff'
+           },
+           handler: {
+               click: function () {
+                    nfControllerService.promptToMoveController(serviceTable, controllerServiceEntity);
+               }
+           }
+       }, {
+           buttonText: 'Cancel',
+           color: {
+               base: '#E3E8EB',
+               hover: '#C7D2D7',
+               text: '#004849'
+           },
+           handler: {
+               click: closeModal
+           }
+       }];
+
+        // show the dialog
+        $('#move-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
+
+        // load the bulletins
+        nfCanvasUtils.queryBulletins([controllerServiceEntity.id]).done(function (response) {
+            updateBulletins(response.bulletinBoard.bulletins, $('#move-controller-service-bulletins'));
+        });
+
+        // update the border if necessary
+        updateReferencingComponentsBorder(referencingComponentsContainer);
+    };
+
+    /**
+     * Moves the controller service to the specified process group
+     *
+     * @param {object} serviceTable
+     * @param {object} controllerServiceEntity
+     * @param {int} processGroupId
+     */
+    var moveToProcessGroup = function (serviceTable, controllerServiceEntity, processGroupId) {
+        var controllerServiceRequest = {
+            parentGroupId: processGroupId,
+            revision: nfClient.getRevision(controllerServiceEntity)
+        };
+
+        $.ajax({
+            type: 'PUT',
+            url: controllerServiceEntity.uri + '/move',
+            data: JSON.stringify(controllerServiceRequest),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (newControllerServiceEntity) {
+           var controllerServicesUri;
+           if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.parentGroupId)) {
+               controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(controllerServiceEntity.parentGroupId) + '/controller-services';
+           } else {
+               controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+           }
+
+           // load the controller services grid
+           nfControllerServices.loadControllerServices(controllerServicesUri, serviceTable);
+           $('#move-controller-service-dialog').modal('hide');
+        });
+
+    };
+
+    /**
      * Determines if any of the specified referencing components are not authorized to enable/disable.
      *
      * @param {object} ControllerServiceEntity having referencingComponents referencing components
@@ -2131,6 +2252,39 @@
                     }
                 }
             });
+
+             // initialize the move service dialog
+            $('#move-controller-service-dialog').modal({
+                headerText: 'Move Controller Service',
+                scrollableContentStyle: 'scrollable',
+                handler: {
+                    close: function () {
+                        var enableDialog = $(this);
+
+                        // reset visibility
+                        $('#move-controller-service-scope-container').show();
+                        $('#move-controller-service-progress-container').hide();
+                        $('#move-controller-service-progress li.referencing-component').show();
+
+                        // clear the dialog
+                        $('#move-controller-service-id').text('');
+                        $('#move-controller-service-name').text('');
+
+                        // bulletins
+                        $('#move-controller-service-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
+                        nfCommon.cleanUpTooltips($('#move-controller-service-service-container'), '#move-controller-service-bulletins');
+
+                        // reset progress
+                        $('div.move-referencing-components').removeClass('ajax-loading ajax-complete ajax-error');
+
+                        // referencing components
+                        var referencingComponents = $('#move-controller-service-referencing-components');
+                        nfCommon.cleanUpTooltips(referencingComponents, 'div.referencing-component-state');
+                        nfCommon.cleanUpTooltips(referencingComponents, 'div.referencing-component-bulletins');
+                        referencingComponents.css('border-width', '0').empty();
+                    }
+                }
+            });
         },
 
         /**
@@ -2611,6 +2765,16 @@
         },
 
         /**
+         * Moves the specified controller service.
+         *
+         * @param {jQuery} serviceTable
+         * @param {object} controllerServiceEntity
+         */
+        move: function (serviceTable, controllerServiceEntity) {
+            showMoveControllerServiceDialog(serviceTable, controllerServiceEntity);
+        },
+
+        /**
          * Reloads the services that the specified comonent references. This is
          * necessary because the specified component state is reflected in the
          * referenced service referencing components.
@@ -2621,6 +2785,26 @@
         reloadReferencedServices: function (serviceTable, component) {
             $.each(getReferencedServices(component), function (_, referencedServiceId) {
                 reloadControllerService(serviceTable, referencedServiceId);
+            });
+        },
+
+        /**
+         * Prompts the user before attempting to move the specified controller service.
+         *
+         * @param {jQuery} serviceTable
+         * @param {object} controllerServiceEntity
+         */
+        promptToMoveController: function (serviceTable, controllerServiceEntity) {
+            // prompt for move
+            nfDialog.showYesNoDialog({
+                headerText: 'Move Controller Service',
+                dialogContent: 'Move controller service \'' + nfCommon.escapeHtml(controllerServiceEntity.component.name) + '\' '
+                                + 'to \'' + nfCommon.escapeHtml($('#move-controller-service-scope').combo('getSelectedOption').text) + '\'?'
+                                + '<br /><br /><i class="invalid"></i> &nbsp'
+                                + 'Any reference to this controller service by processors outside the new scope will be removed.',
+                yesHandler: function () {
+                    moveToProcessGroup(serviceTable, controllerServiceEntity, $('#move-controller-service-scope').combo('getSelectedOption').value);
+                }
             });
         },
 
