@@ -92,7 +92,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.31</version>
+                <version>9.33</version>
             </dependency>
             <!-- Override Hadoop 3.1.0 -->
             <dependency>
@@ -114,7 +114,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
