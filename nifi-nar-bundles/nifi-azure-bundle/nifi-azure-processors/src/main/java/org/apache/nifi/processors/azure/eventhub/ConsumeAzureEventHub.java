@@ -301,7 +301,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 STORAGE_ACCOUNT_NAME,
                 STORAGE_ACCOUNT_KEY,
                 STORAGE_SAS_TOKEN,
-                STORAGE_CONTAINER_NAME
+                STORAGE_CONTAINER_NAME,
+                PROXY_CONFIGURATION_SERVICE
         ));
 
         Set<Relationship> relationships = new HashSet<>();
@@ -468,6 +469,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         } else {
             eventProcessorClientBuilder.initialPartitionEventPosition(legacyPartitionEventPosition);
         }
+
+        AzureEventHubUtils.getProxyOptions(context).ifPresent(eventProcessorClientBuilder::proxyOptions);
 
         return eventProcessorClientBuilder.buildEventProcessorClient();
     }
