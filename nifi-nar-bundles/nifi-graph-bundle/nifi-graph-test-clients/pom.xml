@@ -48,11 +48,6 @@
                 <artifactId>gremlin-driver</artifactId>
                 <version>${gremlin.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.tinkerpop</groupId>
-                <artifactId>gremlin-groovy</artifactId>
-                <version>${gremlin.version}</version>
-            </dependency>
             <!-- Override Guava 29.0 from JanusGraph 0.6.3 -->
             <dependency>
                 <groupId>com.google.guava</groupId>

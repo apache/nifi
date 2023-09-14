@@ -172,7 +172,7 @@
                     <artifactId>guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>
@@ -217,7 +217,7 @@
                     <artifactId>woodstox-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>

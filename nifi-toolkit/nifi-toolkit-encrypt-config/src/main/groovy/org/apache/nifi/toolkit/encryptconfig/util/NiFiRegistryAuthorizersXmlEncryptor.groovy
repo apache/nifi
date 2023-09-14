@@ -85,7 +85,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
 
         // Find & replace the userGroupProvider element of the updated content in the original contents
         try {
-            def parsedXml = new XmlSlurper().parseText(updatedXmlContent)
+            def parsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
             def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)

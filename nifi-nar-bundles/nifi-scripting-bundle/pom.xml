@@ -30,10 +30,6 @@
         <module>nifi-scripting-nar</module>
     </modules>
 
-    <properties>
-        <scripting.groovy.version>3.0.19</scripting.groovy.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -78,9 +74,9 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${scripting.groovy.version}</version>
+                <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>provided</scope>
             </dependency>

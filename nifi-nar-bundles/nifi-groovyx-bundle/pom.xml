@@ -29,11 +29,6 @@
         <module>nifi-groovyx-processors</module>
         <module>nifi-groovyx-nar</module>
     </modules>
-
-    <properties>
-        <groovyx.groovy.version>${nifi.groovy.version}</groovyx.groovy.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -42,9 +37,9 @@
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${groovyx.groovy.version}</version>
+                <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>provided</scope>
             </dependency>
