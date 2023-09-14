@@ -22,6 +22,7 @@ import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
 import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
 import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
+import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
 import com.amazonaws.services.secretsmanager.model.SecretListEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -90,18 +91,29 @@ public class TestAwsSecretsManagerParameterProvider {
     @Test
     public void testFetchParametersWithNoSecrets() throws InitializationException {
         final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
-        runProviderTest(mockSecretsManager(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
+        runProviderTest(mockSecretsManager(expectedGroups), 0, null, ConfigVerificationResult.Outcome.SUCCESSFUL);
     }
 
     @Test
     public void testFetchParameters() throws InitializationException {
-        runProviderTest(mockSecretsManager(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL);
+        runProviderTest(mockSecretsManager(mockParameterGroups), 8, null, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchSpecificSecret() throws InitializationException {
+        runProviderTest(mockSecretsManagerNoList(mockParameterGroups, "MySecret"), 6, "MySecret", ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchNonExistentSecret() throws InitializationException {
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecretDoesNotExist")))).thenThrow(new ResourceNotFoundException("Fake exception"));
+        runProviderTest(defaultSecretsManager, 0, "MySecretDoesNotExist", ConfigVerificationResult.Outcome.FAILED);
     }
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
         when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+        runProviderTest(defaultSecretsManager, 0, null, ConfigVerificationResult.Outcome.FAILED);
     }
 
     @Test
@@ -111,13 +123,35 @@ public class TestAwsSecretsManagerParameterProvider {
         when(listSecretsResult.getSecretList()).thenReturn(secretList);
         when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResult);
         when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+        runProviderTest(defaultSecretsManager, 0, null, ConfigVerificationResult.Outcome.FAILED);
     }
 
     private AwsSecretsManagerParameterProvider getParameterProvider() {
         return spy(new AwsSecretsManagerParameterProvider());
     }
 
+    private AWSSecretsManager mockSecretsManagerNoList(final List<ParameterGroup> mockParameterGroups, final String secretName) {
+        final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
+
+        mockParameterGroups.forEach(group -> {
+            final String groupName = group.getGroupName();
+            if(groupName.equalsIgnoreCase(secretName)) {
+                final Map<String, String> keyValues = group.getParameters().stream().collect(Collectors.toMap(
+                        param -> param.getDescriptor().getName(),
+                        Parameter::getValue));
+                final String secretString;
+                try {
+                    secretString = objectMapper.writeValueAsString(keyValues);
+                    final GetSecretValueResult result = new GetSecretValueResult().withName(groupName).withSecretString(secretString);
+                    when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(groupName))))
+                            .thenReturn(result);
+                } catch (final JsonProcessingException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+        return secretsManager;
+    }
     private AWSSecretsManager mockSecretsManager(final List<ParameterGroup> mockParameterGroups) {
         final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
         when(emptyListSecretsResult.getSecretList()).thenReturn(Collections.emptyList());
@@ -153,7 +187,8 @@ public class TestAwsSecretsManagerParameterProvider {
         return secretsManager;
     }
 
-    private List<ParameterGroup> runProviderTest(final AWSSecretsManager secretsManager, final int expectedCount,
+    private List<ParameterGroup> runProviderTest(final AWSSecretsManager secretsManager,
+                                                 final int expectedCount, final String secretName,
                                                  final ConfigVerificationResult.Outcome expectedOutcome) throws InitializationException {
 
         final AwsSecretsManagerParameterProvider parameterProvider = getParameterProvider();
@@ -161,8 +196,10 @@ public class TestAwsSecretsManagerParameterProvider {
         final MockParameterProviderInitializationContext initContext = new MockParameterProviderInitializationContext("id", "name",
                 new MockComponentLog("providerId", parameterProvider));
         parameterProvider.initialize(initContext);
-
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        if(secretName != null) {
+            properties.put(AwsSecretsManagerParameterProvider.SECRET_NAME, secretName);
+        }
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
         List<ParameterGroup> parameterGroups = new ArrayList<>();

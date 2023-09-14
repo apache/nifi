@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
@@ -71,11 +72,20 @@ import java.util.regex.Pattern;
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
 
+    public static final PropertyDescriptor SECRET_NAME = new PropertyDescriptor.Builder()
+            .name("secret-name")
+            .displayName("Secret Name")
+            .description("The name of the secret to fetch parameters from. Will be used instead of the Secret Name Pattern property if set." +
+                    "Use this parameter instead of Secret Name Pattern if your AWS Account does not have permission to list secrets.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
             .displayName("Secret Name Pattern")
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
-                    "Any secrets whose names do not match this pattern will not be fetched.")
+                    "Any secrets whose names do not match this pattern will not be fetched. Using this parameter requires the ListSecrets permission." +
+                    "This parameter is ignored if the Secret Name parameter is set.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(true)
             .defaultValue(".*")
@@ -120,6 +130,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     private static final String DEFAULT_USER_AGENT = "NiFi";
     private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            SECRET_NAME,
             SECRET_NAME_PATTERN,
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -139,19 +150,33 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         AWSSecretsManager secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
-        ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
-        ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-        while(!listSecretsResult.getSecretList().isEmpty()) {
-            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
-            }
-            final String nextToken = listSecretsResult.getNextToken();
-            if (nextToken == null) {
-                break;
-            }
 
-            listSecretsRequest.setNextToken(nextToken);
-            listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+        // Check if secret-name is set and return the single secret if it is
+        final PropertyValue secretNameProp = context.getProperty(SECRET_NAME);
+        if (secretNameProp.isSet()) {
+            groups.addAll(fetchSecret(secretsManager, secretNameProp.getValue()));
+        } else {
+            // if secret-name is not set, list all secrets and fetch the ones that match the pattern
+            final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
+            ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
+            ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+            while(!listSecretsResult.getSecretList().isEmpty()) {
+                for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
+                    String secretName = entry.getName();
+                    if (!secretNamePattern.matcher(secretName).matches()) {
+                        getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
+                        continue;
+                    }
+                    groups.addAll(fetchSecret(secretsManager, secretName));
+                }
+                final String nextToken = listSecretsResult.getNextToken();
+                if (nextToken == null) {
+                    break;
+                }
+
+                listSecretsRequest.setNextToken(nextToken);
+                listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+            }
         }
 
         return groups;
@@ -184,18 +209,13 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         return results;
     }
 
-    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final ConfigurationContext context, final String secretName) {
+    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
-        final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
 
         final List<Parameter> parameters = new ArrayList<>();
 
-        if (!secretNamePattern.matcher(secretName).matches()) {
-            getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
-            return groups;
-        }
-
         final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretName);
+
         try {
             final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
 
