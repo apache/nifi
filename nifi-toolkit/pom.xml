@@ -30,15 +30,11 @@
         <module>nifi-toolkit-cli</module>
         <module>nifi-toolkit-api</module>
     </modules>
-    <properties>
-        <toolkit.groovy.version>3.0.19</toolkit.groovy.version>
-    </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${toolkit.groovy.version}</version>
                 <type>pom</type>
                 <scope>compile</scope>
                 <exclusions>
@@ -47,16 +43,12 @@
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
+                        <groupId>org.apache.groovy</groupId>
                         <artifactId>groovy-test</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
+                        <groupId>org.apache.groovy</groupId>
                         <artifactId>groovy-test-junit5</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-testng</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.ant</groupId>

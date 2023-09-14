@@ -38,7 +38,7 @@ class GroovyXmlRecordReader implements RecordReader {
 
     GroovyXmlRecordReader(final String recordTag, final RecordSchema schema, final InputStream inputStream) {
         recordSchema = schema
-        def xml = new XmlSlurper().parse(inputStream)
+        def xml = new groovy.xml.XmlSlurper().parse(inputStream)
         // Change the XML fields to a MapRecord for each incoming record
         recordIterator = xml[recordTag].collect {r ->
             // Create a map of field names to values, using the field names from the schema as keys into the XML object

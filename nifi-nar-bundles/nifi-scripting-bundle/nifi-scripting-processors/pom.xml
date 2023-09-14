@@ -120,28 +120,28 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-json</artifactId>
-            <version>${scripting.groovy.version}</version>
+            <version>${nifi.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-jsr223</artifactId>
-            <version>${scripting.groovy.version}</version>
+            <version>${nifi.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-xml</artifactId>
-            <version>${scripting.groovy.version}</version>
+            <version>${nifi.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- groovy-all does not include groovy-dateutil by default, so must explicitly include it here -->
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-dateutil</artifactId>
-            <version>${scripting.groovy.version}</version>
+            <version>${nifi.groovy.version}</version>
         </dependency>
     </dependencies>
     <build>

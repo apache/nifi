@@ -2080,8 +2080,8 @@ class ConfigEncryptionToolTest {
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                def originalParsedXml = new groovy.xml.XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
                 assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
                     it.@encryption
@@ -2164,8 +2164,8 @@ class ConfigEncryptionToolTest {
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                def originalParsedXml = new groovy.xml.XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
 
                 def encryptedValues = updatedParsedXml.provider.find {
@@ -2908,8 +2908,8 @@ class ConfigEncryptionToolTest {
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                def originalParsedXml = new groovy.xml.XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
                 assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
                     it.@encryption
@@ -2992,8 +2992,8 @@ class ConfigEncryptionToolTest {
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                def originalParsedXml = new groovy.xml.XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
 
                 def encryptedValues = updatedParsedXml.userGroupProvider.find {
@@ -3070,8 +3070,8 @@ class ConfigEncryptionToolTest {
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                def originalParsedXml = new groovy.xml.XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
                 assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
                     it.@encryption
@@ -3200,8 +3200,8 @@ class ConfigEncryptionToolTest {
                 final String updatedLipXmlContent = outputLIPFile.text
                 logger.info("Updated LIP XML content: ${updatedLipXmlContent}")
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalLipParsedXml = new XmlSlurper().parseText(originalLipXmlContent)
-                def updatedLipParsedXml = new XmlSlurper().parseText(updatedLipXmlContent)
+                def originalLipParsedXml = new groovy.xml.XmlSlurper().parseText(originalLipXmlContent)
+                def updatedLipParsedXml = new groovy.xml.XmlSlurper().parseText(updatedLipXmlContent)
                 assert originalLipParsedXml != updatedLipParsedXml
                 assert originalLipParsedXml.'**'.findAll { it.@encryption } != updatedLipParsedXml.'**'.findAll {
                     it.@encryption
@@ -3224,8 +3224,8 @@ class ConfigEncryptionToolTest {
                 final String updatedAuthorizersXmlContent = outputAuthorizersFile.text
                 logger.info("Updated Authorizers XML content: ${updatedAuthorizersXmlContent}")
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalAuthorizersParsedXml = new XmlSlurper().parseText(originalAuthorizersXmlContent)
-                def updatedAuthorizersParsedXml = new XmlSlurper().parseText(updatedAuthorizersXmlContent)
+                def originalAuthorizersParsedXml = new groovy.xml.XmlSlurper().parseText(originalAuthorizersXmlContent)
+                def updatedAuthorizersParsedXml = new groovy.xml.XmlSlurper().parseText(updatedAuthorizersXmlContent)
                 assert originalAuthorizersParsedXml != updatedAuthorizersParsedXml
                 assert originalAuthorizersParsedXml.'**'.findAll {
                     it.@encryption

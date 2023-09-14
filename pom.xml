@@ -119,7 +119,7 @@
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.76</org.bouncycastle.version>
-        <testcontainers.version>1.18.3</testcontainers.version>
+        <testcontainers.version>1.19.0</testcontainers.version>
         <org.slf4j.version>2.0.7</org.slf4j.version>
         <derby.version>10.16.1.1</derby.version>
         <ranger.version>2.4.0</ranger.version>
@@ -130,9 +130,9 @@
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <json.smart.version>2.4.11</json.smart.version>
-        <nifi.groovy.version>3.0.19</nifi.groovy.version>
+        <nifi.groovy.version>4.0.15</nifi.groovy.version>
         <groovy.eclipse.compiler.version>3.9.0</groovy.eclipse.compiler.version>
-        <groovy.eclipse.batch.version>3.0.9-03</groovy.eclipse.batch.version>
+        <groovy.eclipse.batch.version>4.0.15-03</groovy.eclipse.batch.version>
         <surefire.version>3.1.2</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
@@ -336,23 +336,19 @@
                 <version>${mockito.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
                 <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>test</scope>
                 <exclusions>
                     <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
+                        <groupId>org.apache.groovy</groupId>
                         <artifactId>groovy-test</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
+                        <groupId>org.apache.groovy</groupId>
                         <artifactId>groovy-test-junit5</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-testng</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.ant</groupId>
@@ -361,7 +357,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-test</artifactId>
                 <version>${nifi.groovy.version}</version>
                 <scope>test</scope>
@@ -933,8 +929,9 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <source>${maven.compiler.release}</source>
+                    <target>${maven.compiler.release}</target>
+                    <release>${maven.compiler.release}</release>
                 </configuration>
                 <dependencies>
                     <dependency>
