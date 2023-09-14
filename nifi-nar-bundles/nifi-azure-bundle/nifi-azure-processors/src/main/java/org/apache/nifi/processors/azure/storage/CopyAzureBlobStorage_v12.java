@@ -79,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_STAGE_BLOCK_BYTES_LONG;
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_UPLOAD_BLOB_BYTES_LONG;
+import static com.azure.storage.common.implementation.Constants.STORAGE_SCOPE;
 import static java.net.HttpURLConnection.HTTP_ACCEPTED;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
@@ -369,7 +370,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     private static HttpAuthorization getHttpAuthorizationFromTokenCredential(final TokenCredential credential) {
         final TokenRequestContext tokenRequestContext = new TokenRequestContext();
-        tokenRequestContext.setScopes(Collections.singletonList("https://storage.azure.com/.default"));
+        tokenRequestContext.setScopes(Collections.singletonList(STORAGE_SCOPE));
         final AccessToken accessToken = credential.getToken(tokenRequestContext).block();
         final String authorization = accessToken.getToken();
         return new HttpAuthorization("Bearer", authorization);
