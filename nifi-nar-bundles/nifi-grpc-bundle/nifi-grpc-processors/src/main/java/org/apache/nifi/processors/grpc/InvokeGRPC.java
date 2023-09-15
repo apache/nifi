@@ -45,6 +45,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.grpc.ssl.SslContextProvider;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -74,6 +75,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "invokegrpc.java.exception.class", description = "The Java exception class raised when the processor fails"),
         @WritesAttribute(attribute = "invokegrpc.java.exception.message", description = "The Java exception message raised when the processor fails"),
 })
+@DeprecationNotice(reason = "No planned alternatives to be offered. Use custom processors instead.")
 public class InvokeGRPC extends AbstractProcessor {
     public static final String RESPONSE_CODE = "invokegrpc.response.code";
     public static final String RESPONSE_BODY = "invokegrpc.response.body";
