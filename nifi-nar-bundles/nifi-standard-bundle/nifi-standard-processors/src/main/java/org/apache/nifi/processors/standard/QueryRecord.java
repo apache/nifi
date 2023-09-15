@@ -35,6 +35,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -113,6 +114,46 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
     @WritesAttribute(attribute = "record.count", description = "The number of records selected by the query"),
     @WritesAttribute(attribute = QueryRecord.ROUTE_ATTRIBUTE_KEY, description = "The relation to which the FlowFile was routed")
 })
+@UseCase(
+    description = "Filter out records based on the values of the records' fields",
+    keywords = {"filter out", "remove", "drop", "strip out", "record field", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep.
+        Its value is a SQL statement that selects all columns from a table named `FLOW_FILE` for relevant rows.
+        The WHERE clause selects the data to keep. I.e., it is the exact opposite of what we want to remove.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to remove records where either the name is George OR the age is less than 18, we would add a \
+          property named "adults not george" with a value that selects records where the name is not George AND the age is greater than or equal to 18. \
+          So the value would be `SELECT * FROM FLOWFILE WHERE "name" <> 'George' AND "age" >= 18`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the "adults not george" Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
+@UseCase(
+    description = "Keep only specific records",
+    keywords = {"keep", "filter", "retain", "select", "include", "record", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep.
+        Its value is a SQL statement that selects all columns from a table named `FLOW_FILE` for relevant rows.
+        The WHERE clause selects the data to keep.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to keep only records where the person is an adult (aged 18 or older), add a property named "adults" \
+          with a value that is a SQL statement that selects records where the age is at least 18. \
+          So the value would be `SELECT * FROM FLOWFILE WHERE "age" >= 18`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the "adults" Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
 public class QueryRecord extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "QueryRecord.Route";
