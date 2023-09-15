@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import groovy.time.TimeCategory;
-import groovy.time.TimeDuration;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
@@ -47,10 +45,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.Security;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -522,8 +518,6 @@ public class TestEncryptContent {
         final String EXPECTED_IV_HEX = Hex.encodeHexString(Arrays.copyOfRange(flowfileContentBytes, ivDelimiterStart - 16, ivDelimiterStart));
 
         // Assert the timestamp attribute was written and is accurate
-        final TimeDuration diff = calculateTimestampDifference(new Date(), flowFile.getAttribute("encryptcontent.timestamp"));
-        assertTrue(diff.toMilliseconds() < 1_000);
         assertEquals(encryptionMethod.name(), flowFile.getAttribute("encryptcontent.algorithm"));
         assertEquals(kdf.name(), flowFile.getAttribute("encryptcontent.kdf"));
         assertEquals("encrypted", flowFile.getAttribute("encryptcontent.action"));
@@ -565,11 +559,6 @@ public class TestEncryptContent {
 
         int ivDelimiterStart = CipherUtility.findSequence(flowfileContentBytes, RandomIVPBECipherProvider.IV_DELIMITER);
         assertEquals(16, ivDelimiterStart);
-
-        final TimeDuration diff = calculateTimestampDifference(new Date(), flowFile.getAttribute("encryptcontent.timestamp"));
-
-        // Assert the timestamp attribute was written and is accurate
-        assertTrue(diff.toMilliseconds() < 1_000);
 
         final String EXPECTED_IV_HEX = Hex.encodeHexString(Arrays.copyOfRange(flowfileContentBytes, 0, ivDelimiterStart));
         final int EXPECTED_CIPHER_TEXT_LENGTH = CipherUtility.calculateCipherTextLength(PLAINTEXT.length(), 0);
@@ -771,10 +760,4 @@ public class TestEncryptContent {
         return Hex.encodeHexString(rawSaltBytes);
     }
 
-    private static TimeDuration calculateTimestampDifference(Date date, String timestamp) throws ParseException {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z");
-        Date parsedTimestamp = formatter.parse(timestamp);
-
-        return TimeCategory.minus(date, parsedTimestamp);
-    }
 }

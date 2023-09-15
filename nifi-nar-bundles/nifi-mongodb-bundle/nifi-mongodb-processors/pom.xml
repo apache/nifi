@@ -108,17 +108,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy-json</artifactId>
-            <version>${nifi.groovy.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mongodb</artifactId>
