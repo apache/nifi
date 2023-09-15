@@ -1122,12 +1122,6 @@ language governing permissions and limitations under the License. -->
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-easyrules-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-rules-action-handler-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
@@ -1147,12 +1141,6 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-sql-reporting-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-easyrules-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
