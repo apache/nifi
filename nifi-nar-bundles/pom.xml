@@ -95,7 +95,6 @@
         <module>nifi-jolt-record-bundle</module>
         <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
-        <module>nifi-easyrules-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
         <module>nifi-rules-action-handler-bundle</module>
         <module>nifi-hazelcast-bundle</module>
