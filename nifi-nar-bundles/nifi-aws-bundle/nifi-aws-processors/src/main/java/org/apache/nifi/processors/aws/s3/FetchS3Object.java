@@ -30,8 +30,11 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -47,6 +50,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.sqs.GetSQS;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -84,6 +88,88 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),
     @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy that was used to store the S3 object (if it is encrypted)"),})
+@UseCase(
+    description = "Fetch a specific file from S3",
+    configuration = """
+        The "Bucket" property should be set to the name of the S3 bucket that contains the file. Typically this is defined as an attribute on an incoming FlowFile, \
+        so this property is set to `${s3.bucket}`.
+        The "Object Key" property denotes the fully qualified filename of the file to fetch. Typically, the FlowFile's `filename` attribute is used, so this property is \
+        set to `${filename}`.
+        The "Region" property must be set to denote the S3 region that the Bucket resides in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+        this property by setting it to something like `#{S3_REGION}`.
+
+        The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the file.
+        """
+)
+@MultiProcessorUseCase(
+    description = "Retrieve all files in an S3 bucket",
+    keywords = {"s3", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListS3.class,
+            configuration = """
+                The "Bucket" property should be set to the name of the S3 bucket that files reside in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{S3_SOURCE_BUCKET}`.
+                The "Region" property must be set to denote the S3 region that the Bucket resides in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{S3_SOURCE_REGION}`.
+
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+
+                The 'success' Relationship of this Processor is then connected to FetchS3Object.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchS3Object.class,
+            configuration = """
+                "Bucket" = "${s3.bucket}"
+                "Object Key" = "${filename}"
+
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+
+                The "Region" property must be set to the same value as the "Region" property of the ListS3 Processor.
+                """
+        )
+    }
+)
+@MultiProcessorUseCase(
+    description = "Retrieve new files as they arrive in an S3 bucket",
+    notes = "This method of retrieving files from S3 is more efficient than using ListS3 and more cost effective. It is the pattern recommended by AWS. " +
+        "However, it does require that the S3 bucket be configured to place notifications on an SQS queue when new files arrive. For more information, see " +
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/ways-to-add-notification-config-to-bucket.html",
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = GetSQS.class,
+            configuration = """
+                The "Queue URL" must be set to the appropriate URL for the SQS queue. It is recommended that this property be parameterized, using a value such as `#{SQS_QUEUE_URL}`.
+                The "Region" property must be set to denote the SQS region that the queue resides in. It's a good idea to parameterize this property by setting it to something like `#{SQS_REGION}`.
+
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+
+                The 'success' relationship is connected to EvaluateJsonPath.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClassName = "org.apache.nifi.processors.standard.EvaluateJsonPath",
+            configuration = """
+                "Destination" = "flowfile-attribute"
+                "s3.bucket" = "$.Records[0].s3.bucket.name"
+                "filename" = "$.Records[0].s3.object.key"
+
+                The 'success' relationship is connected to FetchS3Object.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass =  FetchS3Object.class,
+            configuration = """
+                "Bucket" = "${s3.bucket}"
+                "Object Key" = "${filename}"
+
+                The "Region" property must be set to the same value as the "Region" property of the GetSQS Processor.
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+                """
+        )
+    }
+)
 public class FetchS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()

@@ -27,8 +27,11 @@ import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
@@ -58,6 +61,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -166,6 +171,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeRestrictedInfo(configurableComponent, xmlStreamWriter);
         writeInputRequirementInfo(configurableComponent, xmlStreamWriter);
+        writeUseCases(configurableComponent, xmlStreamWriter);
+        writeMultiComponentUseCases(configurableComponent, xmlStreamWriter);
         writeSystemResourceConsiderationInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
         xmlStreamWriter.writeEndElement();
@@ -446,6 +453,135 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         }
 
         return description;
+    }
+
+    protected void writeUseCases(final ConfigurableComponent component, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        final UseCase[] useCases = component.getClass().getAnnotationsByType(UseCase.class);
+        if (useCases.length == 0) {
+            return;
+        }
+
+        writeSimpleElement(xmlStreamWriter, "h2", "Example Use Cases:");
+
+        for (final UseCase useCase : useCases) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Use Case:");
+            writeSimpleElement(xmlStreamWriter, "p",  useCase.description());
+
+            final String notes = useCase.notes();
+            if (!StringUtils.isEmpty(notes)) {
+                writeSimpleElement(xmlStreamWriter, "h4", "Notes:");
+
+                final String[] splits = notes.split("\\n");
+                for (final String split : splits) {
+                    writeSimpleElement(xmlStreamWriter, "p", split);
+                }
+            }
+
+            final String[] keywords = useCase.keywords();
+            if (keywords.length > 0) {
+                writeSimpleElement(xmlStreamWriter, "h4", "Keywords:");
+                xmlStreamWriter.writeCharacters(String.join(", ", keywords));
+            }
+
+            final Requirement inputRequirement = useCase.inputRequirement();
+            if (inputRequirement != Requirement.INPUT_ALLOWED) {
+                writeSimpleElement(xmlStreamWriter, "h4", "Input Requirement:");
+                xmlStreamWriter.writeCharacters(inputRequirement.toString());
+            }
+
+            final String configuration = useCase.configuration();
+            writeUseCaseConfiguration(configuration, xmlStreamWriter);
+
+            writeSimpleElement(xmlStreamWriter, "br", null);
+        }
+    }
+
+    protected void writeMultiComponentUseCases(final ConfigurableComponent component, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        final MultiProcessorUseCase[] useCases = component.getClass().getAnnotationsByType(MultiProcessorUseCase.class);
+        if (useCases.length == 0) {
+            return;
+        }
+
+        writeSimpleElement(xmlStreamWriter, "h2", "Example Use Cases Involving Other Components:");
+
+        for (final MultiProcessorUseCase useCase : useCases) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Use Case:");
+            writeSimpleElement(xmlStreamWriter, "p",  useCase.description());
+
+            final String notes = useCase.notes();
+            if (!StringUtils.isEmpty(notes)) {
+                writeSimpleElement(xmlStreamWriter, "h4", "Notes:");
+
+                final String[] splits = notes.split("\\n");
+                for (final String split : splits) {
+                    writeSimpleElement(xmlStreamWriter, "p", split);
+                }
+            }
+
+            final String[] keywords = useCase.keywords();
+            if (keywords.length > 0) {
+                writeSimpleElement(xmlStreamWriter, "h4", "Keywords:");
+                xmlStreamWriter.writeCharacters(String.join(", ", keywords));
+            }
+
+            writeSimpleElement(xmlStreamWriter, "h4", "Components involved:");
+            final ProcessorConfiguration[] processorConfigurations = useCase.configurations();
+            for (final ProcessorConfiguration processorConfiguration : processorConfigurations) {
+                writeSimpleElement(xmlStreamWriter, "strong", "Component Type: ");
+
+                final String extensionClassName;
+                if (processorConfiguration.processorClassName().isEmpty()) {
+                    extensionClassName = processorConfiguration.processorClass().getName();
+                } else {
+                    extensionClassName = processorConfiguration.processorClassName();
+                }
+
+                writeSimpleElement(xmlStreamWriter, "span", extensionClassName);
+
+                final String configuration = processorConfiguration.configuration();
+                writeUseCaseConfiguration(configuration, xmlStreamWriter);
+
+                writeSimpleElement(xmlStreamWriter, "br", null);
+            }
+
+
+            writeSimpleElement(xmlStreamWriter, "br", null);
+        }
+    }
+
+    private void writeUseCaseConfiguration(final String configuration, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        if (StringUtils.isEmpty(configuration)) {
+            return;
+        }
+
+        writeSimpleElement(xmlStreamWriter, "h4", "Configuration:");
+
+        final String[] splits = configuration.split("\\n");
+        for (final String split : splits) {
+            xmlStreamWriter.writeStartElement("p");
+
+            final Matcher matcher = Pattern.compile("`(.*?)`").matcher(split);
+            int startIndex = 0;
+            while (matcher.find()) {
+                final int start = matcher.start();
+                if (start > 0) {
+                    xmlStreamWriter.writeCharacters(split.substring(startIndex, start));
+                }
+
+                writeSimpleElement(xmlStreamWriter, "code", matcher.group(1));
+
+                startIndex = matcher.end();
+            }
+            if (split.length() > startIndex) {
+                if (startIndex == 0) {
+                    xmlStreamWriter.writeCharacters(split);
+                } else {
+                    xmlStreamWriter.writeCharacters(split.substring(startIndex));
+                }
+            }
+
+            xmlStreamWriter.writeEndElement();
+        }
     }
 
     /**

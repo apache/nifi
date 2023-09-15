@@ -38,8 +38,10 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
@@ -167,6 +169,8 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         writeRestrictedInfo(component.getClass().getAnnotation(Restricted.class));
         writeInputRequirementInfo(getInputRequirement(component));
         writeSystemResourceConsiderationInfo(getSystemResourceConsiderations(component));
+        writeUseCases(getUseCases(component));
+        writeMultiProcessorUseCases(getMultiProcessorUseCases(component));
         writeSeeAlso(component.getClass().getAnnotation(SeeAlso.class));
         writeDefaultSchedule(component.getClass().getAnnotation(DefaultSchedule.class));
     }
@@ -251,11 +255,29 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     private List<SystemResourceConsideration> getSystemResourceConsiderations(final ConfigurableComponent component) {
         SystemResourceConsideration[] systemResourceConsiderations = component.getClass().getAnnotationsByType(SystemResourceConsideration.class);
-        if (systemResourceConsiderations == null) {
+        if (systemResourceConsiderations.length == 0) {
             return Collections.emptyList();
         }
 
         return Arrays.asList(systemResourceConsiderations);
+    }
+
+    private List<UseCase> getUseCases(final ConfigurableComponent component) {
+        UseCase[] useCases = component.getClass().getAnnotationsByType(UseCase.class);
+        if (useCases.length == 0) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.asList(useCases);
+    }
+
+    private List<MultiProcessorUseCase> getMultiProcessorUseCases(final ConfigurableComponent component) {
+        MultiProcessorUseCase[] useCases = component.getClass().getAnnotationsByType(MultiProcessorUseCase.class);
+        if (useCases.length == 0) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.asList(useCases);
     }
 
     protected ExtensionType getExtensionType(final ConfigurableComponent component) {
@@ -268,7 +290,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         if (component instanceof ReportingTask) {
             return ExtensionType.REPORTING_TASK;
         }
-        if (component instanceof ReportingTask) {
+        if (component instanceof FlowAnalysisRule) {
             return ExtensionType.FLOW_ANALYSIS_RULE;
         }
         if (component instanceof ParameterProvider) {
@@ -304,6 +326,10 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
     protected abstract void writeSystemResourceConsiderationInfo(List<SystemResourceConsideration> considerations) throws IOException;
 
     protected abstract void writeSeeAlso(SeeAlso seeAlso) throws IOException;
+
+    protected abstract void writeUseCases(List<UseCase> useCases) throws IOException;
+
+    protected abstract void writeMultiProcessorUseCases(List<MultiProcessorUseCase> useCases) throws IOException;
 
     protected abstract void writeDefaultSchedule(DefaultSchedule defaultSchedule) throws IOException;
 

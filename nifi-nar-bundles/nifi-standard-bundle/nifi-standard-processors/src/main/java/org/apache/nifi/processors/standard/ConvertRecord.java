@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -48,6 +49,11 @@ import java.util.List;
     + "the output schema can have a field named \"balance\" with a type of string, double, or float. If any field is present in the input that is not present in the output, "
     + "the field will be left out of the output. If any field is specified in the output schema but is not present in the input data/schema, then the field will not be "
     + "present in the output or will have a null value, depending on the writer.")
+@UseCase(description = "Convert data from one record-oriented format to another",
+    configuration = """
+        The Record Reader should be configured according to the incoming data format.
+        The Record Writer should be configured according to the desired output format."""
+)
 public class ConvertRecord extends AbstractRecordProcessor {
 
     @Override
