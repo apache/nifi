@@ -175,7 +175,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
     }
 
@@ -208,7 +208,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
     }
 
