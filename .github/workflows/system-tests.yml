@@ -67,18 +67,18 @@ permissions:
   contents: read
 
 jobs:
-  ubuntu-17:
+  ubuntu:
     timeout-minutes: 120
     runs-on: ubuntu-latest
-    name: Ubuntu Java 17
+    name: Ubuntu Java 21
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 17
+          java-version: 21
           cache: 'maven'
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -104,7 +104,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@v3
         with:
-          name: ubuntu-17-troubleshooting-logs
+          name: ubuntu-21-troubleshooting-logs
           path: |
             nifi-system-tests/nifi-system-test-suite/target/failsafe-reports/**/*.txt
             nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
@@ -114,15 +114,15 @@ jobs:
   macos:
     timeout-minutes: 120
     runs-on: macos-latest
-    name: MacOS Java 17
+    name: MacOS Java 21
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v3
         with:
-          distribution: zulu
-          java-version: 17
+          distribution: corretto
+          java-version: 21
           cache: 'maven'
       - name: Set up Python 3.9
         uses: actions/setup-python@v4

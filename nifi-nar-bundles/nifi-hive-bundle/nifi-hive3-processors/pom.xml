@@ -413,6 +413,18 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <environmentVariables>
+			<!-- This env variable entry is because Hive3 related code uses reflective access 
+			     which is no longer allowed by default in the JDK.  Once this no longer
+			     acceptible use is remove we can remove this entry. -->
+                        <JDK_JAVA_OPTIONS>--add-opens java.base/java.net=ALL-UNNAMED</JDK_JAVA_OPTIONS>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
