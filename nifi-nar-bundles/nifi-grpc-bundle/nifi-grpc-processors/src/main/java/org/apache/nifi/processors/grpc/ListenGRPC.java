@@ -45,6 +45,7 @@ import org.apache.nifi.processors.grpc.ssl.SslContextProvider;
 import org.apache.nifi.processors.grpc.util.BackpressureChecker;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,6 +66,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = GRPCAttributeNames.REMOTE_USER_DN, description = "The DN of the user who sent the FlowFile to this NiFi"),
         @WritesAttribute(attribute = GRPCAttributeNames.REMOTE_HOST, description = "The IP of the client who sent the FlowFile to this NiFi")
 })
+@DeprecationNotice(reason = "No planned alternatives to be offered. Use custom processors instead.")
 public class ListenGRPC extends AbstractSessionFactoryProcessor {
 
     // properties
