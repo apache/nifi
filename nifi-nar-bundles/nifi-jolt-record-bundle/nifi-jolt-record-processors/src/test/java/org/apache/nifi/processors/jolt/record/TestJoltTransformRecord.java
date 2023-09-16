@@ -18,9 +18,11 @@ package org.apache.nifi.processors.jolt.record;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -690,6 +692,34 @@ public class TestJoltTransformRecord {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testJoltComplexChoiceField() throws Exception {
+        final JsonTreeReader reader = new JsonTreeReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        runner.enableControllerService(reader);
+        runner.setProperty(JoltTransformRecord.RECORD_READER, "reader");
+
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+
+        final String flattenSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/flattenSpec.json")));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CHAINR);
+
+        final String inputJson = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/input.json")));
+        runner.enqueue(inputJson);
+
+        runner.run();
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
+        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"))),
+                new String(transformed.toByteArray()));
+    }
+
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(
                 Arguments.of(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json"), "has no single line comments"),
@@ -697,7 +727,6 @@ public class TestJoltTransformRecord {
     }
 
     private void generateTestData(int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
-
         if (recordGenerator == null) {
             final RecordSchema primarySchema = new SimpleRecordSchema(Arrays.asList(
                     new RecordField("value", RecordFieldType.INT.getDataType())));
@@ -734,8 +763,6 @@ public class TestJoltTransformRecord {
 
                 parser.addRecord(ratingRecord);
             }
-
-
         } else {
             recordGenerator.apply(numRecords, parser);
         }
