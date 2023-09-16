@@ -111,6 +111,8 @@
                         <exclude>src/test/resources/TestJoltTransformRecord/cardrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/flattenSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/flattenedOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</exclude>

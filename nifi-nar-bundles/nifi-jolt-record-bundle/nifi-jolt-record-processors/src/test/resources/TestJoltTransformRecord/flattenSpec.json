@@ -1,0 +1,21 @@
+[
+  {
+    "operation": "shift",
+    "spec": { "*": "record.&" }
+  },
+  {
+    "operation": "shift",
+    "spec": {
+      "record": {
+        "*": {
+          "$": "TValue[#2].name",
+          "@": "TValue[#2].value"
+        }
+      }
+    }
+  },
+  {
+    "operation": "default",
+    "spec": { "TValue[]": { "*": { "class": "unclass" } } }
+  }
+]

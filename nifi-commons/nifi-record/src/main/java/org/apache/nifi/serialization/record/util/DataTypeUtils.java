@@ -806,6 +806,7 @@ public class DataTypeUtils {
             for (final Object key : original.keySet()) {
                 if (!(key instanceof String)) {
                     keysAreStrings = false;
+                    break;
                 }
             }
 
@@ -854,79 +855,82 @@ public class DataTypeUtils {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object convertRecordFieldtoObject(final Object value, final DataType dataType) {
-
         if (value == null) {
             return null;
         }
 
+        DataType chosenDataType;
+        if (dataType instanceof ChoiceDataType) {
+            final DataType chosen = chooseDataType(value, (ChoiceDataType) dataType);
+            chosenDataType = chosen != null ? chosen : dataType;
+        } else {
+            chosenDataType = dataType;
+        }
+
         if (value instanceof Record) {
-            Record record = (Record) value;
-            RecordSchema recordSchema = record.getSchema();
+            final Record record = (Record) value;
+            final RecordSchema recordSchema = record.getSchema();
             if (recordSchema == null) {
                 throw new IllegalTypeConversionException("Cannot convert value of type Record to Map because Record does not have an associated Schema");
             }
 
-            final Map<String, Object> recordMap = new LinkedHashMap<>();
-            for (RecordField field : recordSchema.getFields()) {
-                final DataType fieldDataType = field.getDataType();
+            final Map<String, Object> recordMap = new LinkedHashMap<>(record.getRawFieldNames().size(), 1);
+            for (final RecordField field : recordSchema.getFields()) {
                 final String fieldName = field.getFieldName();
-                Object fieldValue = record.getValue(fieldName);
+                final Object fieldValue = record.getValue(fieldName);
+                if (field.getDataType() instanceof ChoiceDataType) {
+                    final DataType chosen = chooseDataType(fieldValue, (ChoiceDataType) field.getDataType());
+                    chosenDataType = chosen != null ? chosen : field.getDataType();
+                } else {
+                    chosenDataType = field.getDataType();
+                }
 
                 if (fieldValue == null) {
                     recordMap.put(fieldName, null);
-                } else if (isScalarValue(fieldDataType, fieldValue)) {
+                } else if (isScalarValue(chosenDataType, fieldValue)) {
                     recordMap.put(fieldName, fieldValue);
-                } else if (fieldDataType instanceof RecordDataType) {
+                } else if (chosenDataType instanceof RecordDataType) {
                     Record nestedRecord = (Record) fieldValue;
-                    recordMap.put(fieldName, convertRecordFieldtoObject(nestedRecord, fieldDataType));
-                } else if (fieldDataType instanceof MapDataType) {
-                    recordMap.put(fieldName, convertRecordMapToJavaMap((Map) fieldValue, ((MapDataType)fieldDataType).getValueType()));
-
-                } else if (fieldDataType instanceof ArrayDataType) {
-                    recordMap.put(fieldName, convertRecordArrayToJavaArray((Object[])fieldValue, ((ArrayDataType) fieldDataType).getElementType()));
+                    recordMap.put(fieldName, convertRecordFieldtoObject(nestedRecord, chosenDataType));
+                } else if (chosenDataType instanceof MapDataType) {
+                    recordMap.put(fieldName, convertRecordMapToJavaMap((Map) fieldValue, ((MapDataType) chosenDataType).getValueType()));
+                } else if (chosenDataType instanceof ArrayDataType) {
+                    recordMap.put(fieldName, convertRecordArrayToJavaArray((Object[]) fieldValue, ((ArrayDataType) chosenDataType).getElementType()));
                 } else {
-                    throw new IllegalTypeConversionException("Cannot convert value [" + fieldValue + "] of type " + fieldDataType.toString()
+                    throw new IllegalTypeConversionException("Cannot convert value [" + fieldValue + "] of type " + chosenDataType
                             + " to Map for field " + fieldName + " because the type is not supported");
                 }
             }
             return recordMap;
         } else if (value instanceof Map) {
-            return convertRecordMapToJavaMap((Map) value, ((MapDataType) dataType).getValueType());
-        } else if (dataType != null && isScalarValue(dataType, value)) {
+            return convertRecordMapToJavaMap((Map) value, ((MapDataType) chosenDataType).getValueType());
+        } else if (chosenDataType != null && isScalarValue(chosenDataType, value)) {
             return value;
-        } else if (value instanceof Object[] && dataType instanceof ArrayDataType) {
+        } else if (value instanceof Object[] && chosenDataType instanceof ArrayDataType) {
             // This is likely a Map whose values are represented as an array. Return a new array with each element converted to a Java object
-            return convertRecordArrayToJavaArray((Object[]) value, ((ArrayDataType) dataType).getElementType());
+            return convertRecordArrayToJavaArray((Object[]) value, ((ArrayDataType) chosenDataType).getElementType());
         }
 
         throw new IllegalTypeConversionException("Cannot convert value of class " + value.getClass().getName() + " because the type is not supported");
     }
 
-
-    public static Map<String, Object> convertRecordMapToJavaMap(final Map<String, Object> map, DataType valueDataType) {
-
+    public static Map<String, Object> convertRecordMapToJavaMap(final Map<String, Object> map, final DataType valueDataType) {
         if (map == null) {
             return null;
         }
 
-        Map<String, Object> resultMap = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
+        final Map<String, Object> resultMap = new LinkedHashMap<>();
+        for (final Map.Entry<String, Object> entry : map.entrySet()) {
             resultMap.put(entry.getKey(), convertRecordFieldtoObject(entry.getValue(), valueDataType));
         }
         return resultMap;
     }
 
-    public static Object[] convertRecordArrayToJavaArray(final Object[] array, DataType elementDataType) {
-
-        if (array == null || array.length == 0 || isScalarValue(elementDataType, array[0])) {
+    public static Object[] convertRecordArrayToJavaArray(final Object[] array, final DataType elementDataType) {
+        if (array == null || array.length == 0 || Arrays.stream(array).allMatch(o -> isScalarValue(elementDataType, o))) {
             return array;
         } else {
-            // Must be an array of complex types, build an array of converted values
-            Object[] resultArray = new Object[array.length];
-            for (int i = 0; i < array.length; i++) {
-                resultArray[i] = convertRecordFieldtoObject(array[i], elementDataType);
-            }
-            return resultArray;
+            return Arrays.stream(array).map(o -> convertRecordFieldtoObject(o, elementDataType)).toArray();
         }
     }
 
@@ -1089,7 +1093,7 @@ public class DataTypeUtils {
         if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
             return value.toString();
         }
-        throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType.toString() + " for field " + fieldName);
+        throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType + " for field " + fieldName);
     }
 
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
@@ -1933,11 +1937,7 @@ public class DataTypeUtils {
             return true;
         }
 
-        if (!Objects.equals(thisField.getDefaultValue(), otherField.getDefaultValue())) {
-            return true;
-        }
-
-        return false;
+        return !Objects.equals(thisField.getDefaultValue(), otherField.getDefaultValue());
     }
 
     public static RecordField merge(final RecordField thisField, final RecordField otherField) {
