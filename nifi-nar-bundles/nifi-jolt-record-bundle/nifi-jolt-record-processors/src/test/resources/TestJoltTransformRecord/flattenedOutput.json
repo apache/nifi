@@ -1,0 +1,21 @@
+[ {
+  "TValue" : [ {
+    "name" : "datetime",
+    "value" : "2023-10-06 20:36:09.937019+00:00",
+    "class" : "unclass"
+  }, {
+    "name" : "Eta",
+    "value" : "",
+    "class" : "unclass"
+  } ]
+}, {
+  "TValue" : [ {
+    "name" : "datetime",
+    "value" : "2023-08-24 17:07:03.334170+00:00",
+    "class" : "unclass"
+  }, {
+    "name" : "Eta",
+    "value" : "{Day=15, Hour=6, Minute=0, Month=8}",
+    "class" : "unclass"
+  } ]
+} ]
