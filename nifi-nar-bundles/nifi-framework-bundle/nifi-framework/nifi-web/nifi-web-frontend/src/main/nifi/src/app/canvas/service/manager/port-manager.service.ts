@@ -164,12 +164,8 @@ export class PortManager {
             .attr('height', 30)
             .attr('class', 'port-name');
 
-        // always support selection
         this.selectableBehavior.activate(port);
         this.quickSelectBehavior.activate(port);
-
-        // TODO
-        // .call(nfContextMenu.activate)
 
         return port;
     }
@@ -494,11 +490,9 @@ export class PortManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

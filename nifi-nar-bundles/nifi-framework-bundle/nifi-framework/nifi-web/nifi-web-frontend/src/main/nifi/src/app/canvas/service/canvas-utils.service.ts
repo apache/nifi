@@ -17,10 +17,10 @@
 
 import { ComponentRef, Injectable, Type, ViewContainerRef } from '@angular/core';
 import * as d3 from 'd3';
-import { Humanizer, humanizer } from 'humanize-duration';
+import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
 import { CanvasState, Position } from '../state';
-import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
+import { selectCurrentProcessGroupId, selectParentProcessGroupId } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -33,8 +33,9 @@ export class CanvasUtils {
 
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
     private currentProcessGroupId: string = initialState.id;
+    private parentProcessGroupId: string | null = initialState.flow.processGroupFlow.parentGroupId;
 
-    private humanizeDuration: Humanizer;
+    private readonly humanizeDuration: Humanizer;
 
     constructor(private store: Store<CanvasState>) {
         this.humanizeDuration = humanizer();
@@ -46,6 +47,31 @@ export class CanvasUtils {
                 this.currentProcessGroupId = currentProcessGroupId;
                 this.trimLengthCaches.clear();
             });
+
+        this.store
+            .select(selectParentProcessGroupId)
+            .pipe(takeUntilDestroyed())
+            .subscribe((parentProcessGroupId) => {
+                this.parentProcessGroupId = parentProcessGroupId;
+            });
+    }
+
+    /**
+     * Determines whether the specified selection is empty.
+     *
+     * @param selection     The selection
+     */
+    public emptySelection(selection: any): boolean {
+        return selection.empty();
+    }
+
+    /**
+     * Returns whether the current group is not the root group.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    public isNotRootGroup(selection: any) {
+        return this.parentProcessGroupId != null && selection.empty();
     }
 
     /**
@@ -208,7 +234,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isConnection(selection: any): boolean {
-        return selection.classed('connection');
+        return selection.size() === 1 && selection.classed('connection');
     }
 
     /**
@@ -217,7 +243,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isRemoteProcessGroup(selection: any): boolean {
-        return selection.classed('remote-process-group');
+        return selection.size() === 1 && selection.classed('remote-process-group');
     }
 
     /**
@@ -226,7 +252,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isProcessor(selection: any): boolean {
-        return selection.classed('processor');
+        return selection.size() === 1 && selection.classed('processor');
     }
 
     /**
@@ -235,7 +261,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isLabel(selection: any): boolean {
-        return selection.classed('label');
+        return selection.size() === 1 && selection.classed('label');
     }
 
     /**
@@ -244,7 +270,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isInputPort(selection: any): boolean {
-        return selection.classed('input-port');
+        return selection.size() === 1 && selection.classed('input-port');
     }
 
     /**
@@ -253,7 +279,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isOutputPort(selection: any): boolean {
-        return selection.classed('output-port');
+        return selection.size() === 1 && selection.classed('output-port');
     }
 
     /**
@@ -262,7 +288,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isProcessGroup(selection: any): boolean {
-        return selection.classed('process-group');
+        return selection.size() === 1 && selection.classed('process-group');
     }
 
     /**
@@ -271,7 +297,7 @@ export class CanvasUtils {
      * @argument {selection} selection      The selection
      */
     public isFunnel(selection: any): boolean {
-        return selection.classed('funnel');
+        return selection.size() === 1 && selection.classed('funnel');
     }
 
     /**

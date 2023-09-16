@@ -77,17 +77,18 @@ export class CanvasComponent implements OnInit {
                 // reset the canvas click flag
                 self.canvasClicked = false;
 
-                // since the context menu event propagated back to the canvas, clear the selection
-                // nfCanvasUtils.getSelection().classed('selected', false);
+                // if this context menu click was on the canvas (and not a nested
+                // element) we need to clear the selection
+                if (event.target === self.svg.node()) {
+                    self.store.dispatch(
+                        setSelectedComponents({
+                            ids: []
+                        })
+                    );
+                }
 
                 // update URL deep linking params
                 // nfCanvasUtils.setURLParameters();
-
-                // show the context menu on the canvas
-                // nfContextMenu.show(event);
-
-                // prevent default browser behavior
-                event.preventDefault();
             });
 
         this.createDefs();

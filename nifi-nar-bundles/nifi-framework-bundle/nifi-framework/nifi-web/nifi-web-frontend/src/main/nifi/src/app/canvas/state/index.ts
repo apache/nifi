@@ -204,7 +204,7 @@ export interface Flow {
 export interface ProcessGroupFlow {
     id: string;
     uri: string;
-    parentGroupId: string;
+    parentGroupId: string | null;
     breadcrumb: any;
     flow: Flow;
     lastRefreshed: string;

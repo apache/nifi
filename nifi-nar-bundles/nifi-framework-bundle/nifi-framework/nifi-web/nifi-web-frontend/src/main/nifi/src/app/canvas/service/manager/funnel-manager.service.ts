@@ -98,11 +98,7 @@ export class FunnelManager {
         // funnel icon
         funnel.append('text').attr('class', 'funnel-icon').attr('x', 9).attr('y', 34).text('\ue803');
 
-        // always support selection
         this.selectableBehavior.activate(funnel);
-
-        // funnel
-        // .call(nfContextMenu.activate);
 
         return funnel;
     }
@@ -143,11 +139,9 @@ export class FunnelManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

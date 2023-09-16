@@ -1,0 +1,95 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+div.context-menu {
+    font-size: 13px;
+    padding: 3px;
+    background-color: rgba(249, 250, 251, 0.97);
+    border: 1px solid #004849;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    width: 215px;
+    color: #004849;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    row-gap: 5px;
+    box-sizing: content-box;
+
+    fd-context-menu {
+        margin-top: -5px;
+    }
+
+    .context-menu-item {
+        cursor: pointer;
+        height: 25px;
+        border: none;
+        display: flex;
+        align-items: center;
+        column-gap: 3px;
+
+        .context-menu-item-img {
+            float: left;
+            width: 16px;
+            height: 16px;
+            background-size: cover;
+        }
+
+        .context-menu-item-img.fa {
+            position: relative;
+            top: 2px;
+            left: 2px;
+        }
+
+        .context-menu-item-img.icon {
+            position: relative;
+            top: 1px;
+            left: 3px;
+        }
+
+        .context-menu-item-text {
+            margin-left: 4px;
+            line-height: 16px;
+            color: #262626;
+        }
+
+        .context-menu-group-item-img {
+            width: 16px;
+            height: 16px;
+            background-size: cover;
+            font-size: 14px;
+            margin-left: auto;
+        }
+    }
+
+    .context-menu-item:hover {
+        background-color: rgb(208, 208, 208);
+    }
+
+    .context-menu-item:active {
+        background-color: rgb(170, 170, 170);
+    }
+
+    .context-menu-item:focus {
+        outline: none;
+    }
+
+    &.show-focused {
+        .context-menu-item:focus {
+            outline: blue solid 1px;
+        }
+    }
+}

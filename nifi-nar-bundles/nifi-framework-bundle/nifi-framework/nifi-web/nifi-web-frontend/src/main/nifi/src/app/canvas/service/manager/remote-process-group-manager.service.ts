@@ -125,13 +125,8 @@ export class RemoteProcessGroupManager {
             .attr('height', 16)
             .attr('class', 'remote-process-group-name');
 
-        // always support selection
         this.selectableBehavior.activate(remoteProcessGroup);
         this.quickSelectBehavior.activate(remoteProcessGroup);
-
-        // TODO
-        // remoteProcessGroup
-        //   .call(nfContextMenu.activate)
 
         return remoteProcessGroup;
     }
@@ -681,13 +676,11 @@ export class RemoteProcessGroupManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.remoteProcessGroupContainer
-                        .selectAll('g.remote-process-group')
-                        .classed('selected', function (d: any) {
-                            return selected.includes(d.id);
-                        });
-                }
+                this.remoteProcessGroupContainer
+                    .selectAll('g.remote-process-group')
+                    .classed('selected', function (d: any) {
+                        return selected.includes(d.id);
+                    });
             });
 
         this.store

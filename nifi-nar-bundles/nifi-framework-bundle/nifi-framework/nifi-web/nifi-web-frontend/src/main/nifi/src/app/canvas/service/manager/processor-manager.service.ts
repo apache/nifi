@@ -143,13 +143,8 @@ export class ProcessorManager {
                 return 'This component is only scheduled to execute on the Primary Node';
             });
 
-        // always support selection
         this.selectableBehavior.activate(processor);
         this.quickSelectBehavior.activate(processor);
-
-        // TODO
-        // processor
-        //   .call(nfContextMenu.activate)
 
         return processor;
     }
@@ -827,11 +822,9 @@ export class ProcessorManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.processorContainer.selectAll('g.processor').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.processorContainer.selectAll('g.processor').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

@@ -29,7 +29,7 @@ import {
     UpdateComponentResponse
 } from '../index';
 import { Store } from '@ngrx/store';
-import { selectCurrentProcessGroupId } from './flow.selectors';
+import { selectCurrentProcessGroupId, selectSelected } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
@@ -45,7 +45,42 @@ export class FlowEffects {
         private dialog: MatDialog
     ) {}
 
-    loadFlow$ = createEffect(() =>
+    reloadFlow$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.reloadFlow),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId), this.store.select(selectSelected)),
+            switchMap(([action, processGroupId, selection]) => {
+                return of(
+                    FlowActions.enterProcessGroup({
+                        request: {
+                            id: processGroupId,
+                            selection: selection
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    leaveProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.leaveProcessGroup),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
+            switchMap(([action, parentProcessGroupId]) => {
+                return of(
+                    FlowActions.enterProcessGroup({
+                        request: {
+                            id: parentProcessGroupId,
+                            selection: []
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    enterProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.enterProcessGroup),
             map((action) => action.request),

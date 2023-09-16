@@ -94,12 +94,8 @@ export class LabelManager {
             .attr('fill', 'black')
             .attr('class', 'label-value');
 
-        // always support selection
         this.selectableBehavior.activate(label);
         this.quickSelectBehavior.activate(label);
-
-        // TODO
-        // .call(nfContextMenu.activate)
 
         return label;
     }
@@ -264,11 +260,9 @@ export class LabelManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.labelContainer.selectAll('g.label').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.labelContainer.selectAll('g.label').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

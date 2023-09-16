@@ -491,10 +491,6 @@ export class ConnectionManager {
                 // nfCanvasUtils.setURLParameters();
             });
 
-        // TODO
-        // connection
-        //     .call(nfContextMenu.activate);
-
         return connection;
     }
 
@@ -711,9 +707,6 @@ export class ConnectionManager {
                             // nfCanvasUtils.setURLParameters();
                         });
 
-                    // TODO
-                    // .call(nfContextMenu.activate);
-
                     // update the start point
                     self.transitionBehavior
                         .transition(startpoints.merge(startpointsEntered), self.transitionRequired)
@@ -746,9 +739,6 @@ export class ConnectionManager {
                             // nfCanvasUtils.setURLParameters();
                         })
                         .call(self.endpointDrag);
-
-                    // TODO
-                    // .call(nfContextMenu.activate);
 
                     // update the end point
                     self.transitionBehavior
@@ -835,9 +825,6 @@ export class ConnectionManager {
                         })
                         .call(self.bendPointDrag);
 
-                    // TODO
-                    //   .call(nfContextMenu.activate);
-
                     // update the midpoints
                     self.transitionBehavior
                         .transition(midpoints.merge(midpointsEntered), self.transitionRequired)
@@ -877,7 +864,6 @@ export class ConnectionManager {
                             });
 
                         // TODO
-                        //   .call(nfContextMenu.activate)
                         //   .call(nfQuickSelect.activate);
 
                         // connection label
@@ -2166,11 +2152,9 @@ export class ConnectionManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

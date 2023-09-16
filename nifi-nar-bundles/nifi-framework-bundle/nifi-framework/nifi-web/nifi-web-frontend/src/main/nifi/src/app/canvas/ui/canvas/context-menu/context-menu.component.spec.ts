@@ -15,15 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { CanvasComponent } from './canvas.component';
-import { ContextMenu } from './context-menu/context-menu.component';
-import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [CanvasComponent, ContextMenu],
-    exports: [CanvasComponent],
-    imports: [CommonModule, CdkMenu, CdkMenuItem, CdkMenuTrigger, CdkContextMenuTrigger]
-})
-export class CanvasModule {}
+import { ContextMenu } from './context-menu.component';
+
+describe('ContextMenu', () => {
+    let component: ContextMenu;
+    let fixture: ComponentFixture<ContextMenu>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ContextMenu]
+        });
+        fixture = TestBed.createComponent(ContextMenu);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

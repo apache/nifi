@@ -33,6 +33,10 @@ import {
     Loading Flow
  */
 
+export const reloadFlow = createAction('[Canvas] Reload Flow');
+
+export const leaveProcessGroup = createAction('[Canvas] Leave Process Group');
+
 export const enterProcessGroup = createAction(
     '[Canvas] Enter Process Group',
     props<{ request: EnterProcessGroupRequest }>()

@@ -46,7 +46,7 @@ export const initialState: FlowState = {
         processGroupFlow: {
             id: '',
             uri: '',
-            parentGroupId: '',
+            parentGroupId: null,
             breadcrumb: {},
             flow: {
                 processGroups: [],

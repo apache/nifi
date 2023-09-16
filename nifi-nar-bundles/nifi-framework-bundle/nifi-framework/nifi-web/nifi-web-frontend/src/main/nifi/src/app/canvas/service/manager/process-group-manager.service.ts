@@ -143,11 +143,7 @@ export class ProcessGroupManager {
             );
         });
 
-        // always support selection
         this.selectableBehavior.activate(processGroup);
-
-        // TODO
-        // call(nfContextMenu.activate);
 
         // only support dragging, connection, and drag and drop if appropriate
         processGroup
@@ -1328,11 +1324,9 @@ export class ProcessGroupManager {
             .select(selectSelected)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selected) => {
-                if (selected && selected.length) {
-                    this.processGroupContainer.selectAll('g.process-group').classed('selected', function (d: any) {
-                        return selected.includes(d.id);
-                    });
-                }
+                this.processGroupContainer.selectAll('g.process-group').classed('selected', function (d: any) {
+                    return selected.includes(d.id);
+                });
             });
 
         this.store

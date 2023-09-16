@@ -1,8 +1,11 @@
 {
     "/nifi-api/*": {
-        "target": "http://localhost:8080",
+        "target": "https://localhost:8443",
         "secure": false,
         "logLevel": "debug",
-        "changeOrigin": false
+        "changeOrigin": true,
+        "headers": {
+            "X-ProxyPort": 4200
+        }
     }
 }
