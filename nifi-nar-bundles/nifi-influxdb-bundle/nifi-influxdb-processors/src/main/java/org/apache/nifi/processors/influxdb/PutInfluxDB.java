@@ -180,17 +180,17 @@ public class PutInfluxDB extends AbstractInfluxDBProcessor {
             flowFile = session.putAttribute(flowFile, INFLUX_DB_ERROR_MESSAGE, String.valueOf(exception.getMessage()));
             if ( exception.getCause() instanceof SocketTimeoutException ) {
                 getLogger().error("Failed to insert into influxDB due SocketTimeoutException to {} and retrying",
-                        new Object[]{exception.getLocalizedMessage()}, exception);
+                        exception.getLocalizedMessage(), exception);
                 session.transfer(flowFile, REL_RETRY);
             } else {
                 getLogger().error("Failed to insert into influxDB due to {}",
-                        new Object[]{exception.getLocalizedMessage()}, exception);
+                        exception.getLocalizedMessage(), exception);
                 session.transfer(flowFile, REL_FAILURE);
             }
             context.yield();
         } catch (Exception exception) {
             getLogger().error("Failed to insert into influxDB due to {}",
-                    new Object[]{exception.getLocalizedMessage()}, exception);
+                    exception.getLocalizedMessage(), exception);
             flowFile = session.putAttribute(flowFile, INFLUX_DB_ERROR_MESSAGE, String.valueOf(exception.getMessage()));
             session.transfer(flowFile, REL_FAILURE);
             context.yield();

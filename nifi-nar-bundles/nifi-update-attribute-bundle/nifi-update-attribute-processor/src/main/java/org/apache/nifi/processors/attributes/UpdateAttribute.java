@@ -463,7 +463,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 stateWorkingAttributes = null;
             }
         } catch (IOException e) {
-            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{incomingFlowFile}, e);
+            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", incomingFlowFile, e);
             session.transfer(incomingFlowFile);
             context.yield();
             return;
@@ -527,7 +527,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
             } catch (IOException e) {
                 logger.error("Failed to set the state after successfully processing {} due a failure when setting the state. This is normally due to multiple threads running at " +
-                        "once; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILED_SET_STATE.getName()}, e);
+                        "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
 
                 flowFilesToTransfer.remove(incomingFlowFile);
                 if (flowFilesToTransfer.size() > 0){

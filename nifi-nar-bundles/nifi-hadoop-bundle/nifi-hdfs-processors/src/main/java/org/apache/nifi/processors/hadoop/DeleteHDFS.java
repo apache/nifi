@@ -201,7 +201,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     session.remove(flowFile);
                 }
             } catch (IOException e) {
-                getLogger().error("Error processing delete for flowfile {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
+                getLogger().error("Error processing delete for flowfile {} due to {}", flowFile, e.getMessage(), e);
                 session.transfer(flowFile, getFailureRelationship());
             }
 

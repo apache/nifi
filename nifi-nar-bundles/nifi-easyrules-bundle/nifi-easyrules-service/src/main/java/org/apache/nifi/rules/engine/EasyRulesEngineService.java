@@ -93,7 +93,7 @@ public class EasyRulesEngineService  extends EasyRulesEngineProvider implements 
 
         @Override
         public void onFailure(org.jeasy.rules.api.Rule rule, Facts facts, Exception e) {
-            logger.warn("Rule execution failed for: {}", new Object[]{rule.getName()}, e);
+            logger.warn("Rule execution failed for: {}", rule.getName(), e);
         }
     }
 

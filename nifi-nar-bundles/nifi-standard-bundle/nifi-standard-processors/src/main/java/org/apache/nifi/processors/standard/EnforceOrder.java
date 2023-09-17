@@ -523,7 +523,7 @@ public class EnforceOrder extends AbstractProcessor {
 
         private void transferToFailure(final FlowFile flowFile, final String message, final Throwable cause) {
             if (cause != null) {
-                getLogger().warn(message + " {}", new Object[]{flowFile}, cause);
+                getLogger().warn(message + " {}", flowFile, cause);
             } else {
                 getLogger().warn(message + " {}", new Object[]{flowFile});
             }

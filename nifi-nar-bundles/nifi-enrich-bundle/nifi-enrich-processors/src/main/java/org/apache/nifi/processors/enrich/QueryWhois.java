@@ -329,7 +329,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
                 if (whoisClient.isConnected()) whoisClient.disconnect();
             }
         } catch ( IOException e) {
-            getLogger().error("Query failed due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Query failed due to {}", e.getMessage(), e);
             throw new ProcessException("Error performing Whois Lookup", e);
         }
         return result;

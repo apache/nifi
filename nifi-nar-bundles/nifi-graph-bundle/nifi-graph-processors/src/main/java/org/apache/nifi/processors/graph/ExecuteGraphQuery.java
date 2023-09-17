@@ -144,8 +144,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
             }
 
         } catch (Exception exception) {
-            getLogger().error("Failed to execute graph statement due to {}",
-                    new Object[]{exception.getLocalizedMessage()}, exception);
+            getLogger().error("Failed to execute graph statement due to {}", exception.getLocalizedMessage(), exception);
             session.remove(output);
             if (flowFile != null) {
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, String.valueOf(exception.getMessage()));

@@ -90,7 +90,7 @@ public class HBase_2_ListLookupService extends AbstractHBaseLookupService implem
                 return Optional.empty();
             }
         } catch (IOException e) {
-            getLogger().error("Error occurred loading {}", new Object[] { coordinates.get("rowKey") }, e);
+            getLogger().error("Error occurred loading {}", coordinates.get("rowKey"), e);
             throw new LookupFailureException(e);
         }
     }

@@ -229,7 +229,7 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
             igniteDataStreamer.allowOverwrite(allowOverride);
 
         } catch (Exception e) {
-            getLogger().error("Failed to schedule PutIgnite due to {}", new Object[] { e }, e);
+            getLogger().error("Failed to schedule PutIgnite due to {}", e, e);
             throw new ProcessException(e);
         }
     }
@@ -274,7 +274,7 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
                     successfulFlowFiles.add(flowFile);
 
                 } catch (Exception e) {
-                    getLogger().error("Failed to insert {} into IgniteDB due to {}", new Object[] { flowFile, e }, e);
+                    getLogger().error("Failed to insert {} into IgniteDB due to {}", flowFile, e, e);
                     session.transfer(flowFile, REL_FAILURE);
                     context.yield();
                 }

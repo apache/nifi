@@ -1647,7 +1647,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             return scheduler.runProcessorOnce(processor, stopCallback);
         } catch (Exception e) {
-            processor.getLogger().error("Error while running processor {} once.", new Object[]{processor}, e);
+            processor.getLogger().error("Error while running processor {} once.", processor, e);
             return stopProcessor(processor);
         } finally {
             readLock.unlock();

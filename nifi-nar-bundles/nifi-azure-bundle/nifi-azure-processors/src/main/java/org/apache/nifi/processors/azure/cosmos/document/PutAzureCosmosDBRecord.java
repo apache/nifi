@@ -197,7 +197,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 bulkInsert(batch);
             }
         } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
-            logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[]{e.getMessage()}, e);
+            logger.error("PutAzureCosmoDBRecord failed with error: {}", e.getMessage(), e);
             error = true;
         } finally {
             if (!error) {

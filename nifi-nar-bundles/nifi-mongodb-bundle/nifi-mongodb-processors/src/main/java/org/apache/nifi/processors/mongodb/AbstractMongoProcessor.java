@@ -258,7 +258,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             final MongoClientSettings clientSettings = builder.build();
             mongoClient = MongoClients.create(clientSettings);
         } catch (Exception e) {
-            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
+            getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
         }
     }

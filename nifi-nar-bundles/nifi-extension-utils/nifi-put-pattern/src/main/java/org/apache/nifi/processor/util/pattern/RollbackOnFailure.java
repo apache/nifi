@@ -190,7 +190,7 @@ public class RollbackOnFailure {
             // However, keeping failed FlowFile in the incoming relationship would retry it too often.
             // So, administratively yield the process.
             if (functionContext.isRollbackOnFailure()) {
-                logger.warn("Administratively yielding {} after rolling back due to {}", new Object[]{context.getName(), t}, t);
+                logger.warn("Administratively yielding {} after rolling back due to {}", context.getName(), t, t);
                 context.yield();
             }
         });

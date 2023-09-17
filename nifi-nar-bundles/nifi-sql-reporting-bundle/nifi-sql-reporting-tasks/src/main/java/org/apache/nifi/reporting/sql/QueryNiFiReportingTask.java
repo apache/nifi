@@ -103,7 +103,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
             try {
                 recordSet = metricsQueryService.getResultSetRecordSet(queryResult);
             } catch (final Exception e) {
-                getLogger().error("Error creating record set from query results due to {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Error creating record set from query results due to {}", e.getMessage(), e);
                 return;
             }
 
@@ -116,7 +116,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
                 attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 recordSinkService.sendData(recordSet, attributes, context.getProperty(QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS).asBoolean());
             } catch (Exception e) {
-                getLogger().error("Error during transmission of query results due to {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Error during transmission of query results due to {}", e.getMessage(), e);
                 return;
             } finally {
                 metricsQueryService.closeQuietly(queryResult);
@@ -124,7 +124,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
             final long elapsedMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
             getLogger().debug("Successfully queried and sent in {} millis", elapsedMillis);
         } catch (Exception e) {
-            getLogger().error("Error processing the query due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error processing the query due to {}", e.getMessage(), e);
         }
     }
 }

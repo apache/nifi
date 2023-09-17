@@ -247,7 +247,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
                                         row[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema), o);
                                     } catch (ArrayIndexOutOfBoundsException aioobe) {
                                         getLogger().error("Index out of bounds at record {} for column {}, type {}, and object {}",
-                                                new Object[]{recordCount, i, fieldSchema.getType().getName(), o.toString()},
+                                                recordCount, i, fieldSchema.getType().getName(), o.toString(),
                                                 aioobe);
                                         throw new IOException(aioobe);
                                     }

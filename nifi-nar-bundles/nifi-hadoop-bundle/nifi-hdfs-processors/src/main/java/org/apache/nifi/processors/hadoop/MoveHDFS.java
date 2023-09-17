@@ -284,7 +284,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         }
                     }
                 } catch (Exception e) {
-                    getLogger().warn("Could not add to processing queue due to {}", new Object[]{e.getMessage()}, e);
+                    getLogger().warn("Could not add to processing queue due to {}", e.getMessage(), e);
                 } finally {
                     queueLock.unlock();
                 }
@@ -470,7 +470,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 hdfs.setOwner(name, owner, group);
             }
         } catch (Exception e) {
-            getLogger().warn("Could not change owner or group of {} on HDFS due to {}", new Object[]{name, e.getMessage()}, e);
+            getLogger().warn("Could not change owner or group of {} on HDFS due to {}", name, e.getMessage(), e);
         }
     }
 

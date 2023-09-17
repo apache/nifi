@@ -503,12 +503,12 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 } catch (final IOException e) {
                     context.yield();
                     session.rollback();
-                    logger.error("Failed to retrieve file from {} due to {}; rolling back session", new Object[]{url, e.getMessage()}, e);
+                    logger.error("Failed to retrieve file from {} due to {}; rolling back session", url, e.getMessage(), e);
                     throw new ProcessException(e);
                 } catch (final Throwable t) {
                     context.yield();
                     session.rollback();
-                    logger.error("Failed to process due to {}; rolling back session", new Object[]{t.getMessage()}, t);
+                    logger.error("Failed to process due to {}; rolling back session", t.getMessage(), t);
                     throw t;
                 }
             } catch (final IOException e) {

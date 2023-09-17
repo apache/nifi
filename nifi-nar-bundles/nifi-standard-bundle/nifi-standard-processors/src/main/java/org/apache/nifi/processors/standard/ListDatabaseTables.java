@@ -468,7 +468,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             try {
                 recordWriter.close();
             } catch (IOException e) {
-                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+                logger.error("Failed to write listing as Records due to {}", e, e);
             }
 
             session.remove(flowFile);

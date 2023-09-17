@@ -229,10 +229,10 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
             final long millis = System.currentTimeMillis() - startMillis;
             session.getProvenanceReporter().modifyContent(flowFile, "Transformed " + transformCount + " Records, Dropped " + counts.getDroppedCount() + " Records", millis);
         } catch (final ProcessException e) {
-            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", new Object[] {counts.getRecordCount(), flowFile}, e.getCause());
+            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", counts.getRecordCount(), flowFile, e.getCause());
             session.transfer(flowFile, REL_FAILURE);
         } catch (final Exception e) {
-            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", new Object[] {counts.getRecordCount(), flowFile}, e);
+            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", counts.getRecordCount(), flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

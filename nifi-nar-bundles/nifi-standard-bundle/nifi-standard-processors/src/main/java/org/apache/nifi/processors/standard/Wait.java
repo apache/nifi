@@ -475,14 +475,14 @@ public class Wait extends AbstractProcessor {
                     targetCount = Long.valueOf(context.getProperty(TARGET_SIGNAL_COUNT).evaluateAttributeExpressions(flowFile).getValue());
                 } catch (final NumberFormatException e) {
                     transferToFailure.accept(flowFile);
-                    logger.error("Failed to parse targetCount when processing {} due to {}", new Object[] {flowFile, e}, e);
+                    logger.error("Failed to parse targetCount when processing {} due to {}", flowFile, e, e);
                     continue;
                 }
                 try {
                     releasableFlowFileCount = Integer.valueOf(context.getProperty(RELEASABLE_FLOWFILE_COUNT).evaluateAttributeExpressions(flowFile).getValue());
                 } catch (final NumberFormatException e) {
                     transferToFailure.accept(flowFile);
-                    logger.error("Failed to parse releasableFlowFileCount when processing {} due to {}", new Object[] {flowFile, e}, e);
+                    logger.error("Failed to parse releasableFlowFileCount when processing {} due to {}", flowFile, e, e);
                     continue;
                 }
             }

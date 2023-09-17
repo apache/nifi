@@ -163,27 +163,27 @@ public class PutRecord extends AbstractProcessor {
             }
 
         } catch (RetryableIOException rioe) {
-            getLogger().warn("Error during transmission of records due to {}, routing to retry", new Object[]{rioe.getMessage()}, rioe);
+            getLogger().warn("Error during transmission of records due to {}, routing to retry", rioe.getMessage(), rioe);
             session.transfer(flowFile, REL_RETRY);
             return;
         } catch (SchemaNotFoundException snfe) {
             throw new ProcessException("Error determining schema of flowfile records: " + snfe.getMessage(), snfe);
         } catch (MalformedRecordException e) {
-            getLogger().error("Error reading records from {} due to {}, routing to failure", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Error reading records from {} due to {}, routing to failure", flowFile, e.getMessage(), e);
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IOException ioe) {
             // The cause might be a MalformedRecordException (RecordReader wraps it in an IOException), send to failure in that case
             if (ioe.getCause() instanceof MalformedRecordException) {
-                getLogger().error("Error reading records from {} due to {}, routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
+                getLogger().error("Error reading records from {} due to {}, routing to failure", flowFile, ioe.getMessage(), ioe);
                 session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
             throw new ProcessException("Error reading from flowfile input stream: " + ioe.getMessage(), ioe);
         } catch (Exception e) {
-            getLogger().error("Error during transmission of records due to {}, routing to failure", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error during transmission of records due to {}, routing to failure", e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

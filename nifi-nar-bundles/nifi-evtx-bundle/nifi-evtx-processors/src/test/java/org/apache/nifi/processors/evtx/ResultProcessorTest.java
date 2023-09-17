@@ -81,6 +81,6 @@ public class ResultProcessorTest {
         verify(processSession).putAttribute(flowFile, CoreAttributes.FILENAME.key(), name);
         verify(processSession).putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), MediaType.APPLICATION_XML_UTF_8.toString());
         verify(processSession).transfer(flowFile, failureRelationship);
-        verify(componentLog).error(eq(ResultProcessor.UNABLE_TO_PROCESS_DUE_TO), any(Object[].class), eq(exception));
+        verify(componentLog).error(eq(ResultProcessor.UNABLE_TO_PROCESS_DUE_TO), any(Object[].class));
     }
 }

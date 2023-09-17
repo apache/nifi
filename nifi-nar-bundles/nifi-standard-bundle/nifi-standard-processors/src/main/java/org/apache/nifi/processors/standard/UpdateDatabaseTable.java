@@ -353,7 +353,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             } catch (ProcessException rrfe) {
                 log.error(
                         "Failed to create {} for {} - routing to failure",
-                        new Object[]{RecordReader.class.getSimpleName(), flowFile},
+                        RecordReader.class.getSimpleName(), flowFile,
                         rrfe
                 );
                 // Since we are wrapping the exceptions above there should always be a cause
@@ -447,11 +447,11 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             }
         } catch (IOException | SQLException e) {
             flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
-            log.error("Exception while processing {} - routing to failure", new Object[]{flowFile}, e);
+            log.error("Exception while processing {} - routing to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         } catch (DiscontinuedException e) {
             // The input FlowFile processing is discontinued. Keep it in the input queue.
-            getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
+            getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
             session.transfer(flowFile, Relationship.SELF);
         } catch (Throwable t) {
             throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);

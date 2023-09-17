@@ -304,7 +304,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 } catch (final PathNotFoundException e) {
                     if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
                         logger.warn("FlowFile {} could not find path {} for attribute key {}.",
-                                new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+                                flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey, e);
                     }
 
                     if (destinationIsAttribute) {

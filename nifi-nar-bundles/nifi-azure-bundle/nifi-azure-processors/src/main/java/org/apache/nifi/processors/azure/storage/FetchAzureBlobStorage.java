@@ -158,7 +158,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
                 throw (ProcessException) e;
             } else {
                 Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
-                getLogger().error("Failure to fetch Azure blob {}",  new Object[]{blobPath}, failureException);
+                getLogger().error("Failure to fetch Azure blob {}", blobPath, failureException);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }

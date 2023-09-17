@@ -240,11 +240,11 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, exception.getMessage());
             if ( exception.getCause() instanceof SocketTimeoutException ) {
                 getLogger().error("Failed to read from InfluxDB due SocketTimeoutException to {} and retrying",
-                        new Object[]{exception.getCause().getLocalizedMessage()}, exception.getCause());
+                        exception.getCause().getLocalizedMessage(), exception.getCause());
                 session.transfer(outgoingFlowFile, REL_RETRY);
             } else {
                 getLogger().error("Failed to read from InfluxDB due to {}",
-                        new Object[]{exception.getLocalizedMessage()}, exception);
+                        exception.getLocalizedMessage(), exception);
                 session.transfer(outgoingFlowFile, REL_FAILURE);
             }
             context.yield();
