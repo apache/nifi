@@ -559,7 +559,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         } catch (final ProcessException pe) {
             // Log the cause of the ProcessException if it is available
             Throwable t = (pe.getCause() == null ? pe : pe.getCause());
-            logger.error("Error during processing: {}", new Object[]{t.getMessage()}, t);
+            logger.error("Error during processing: {}", t.getMessage(), t);
             session.rollback();
             context.yield();
         }

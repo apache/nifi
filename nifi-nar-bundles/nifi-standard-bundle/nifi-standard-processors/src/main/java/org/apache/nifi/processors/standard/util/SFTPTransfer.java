@@ -658,7 +658,7 @@ public class SFTPTransfer implements FileTransfer {
                 sftpClient.close();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SFTPClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SFTPClient due to {}", ex.toString(), ex);
         }
         sftpClient = null;
 
@@ -667,7 +667,7 @@ public class SFTPTransfer implements FileTransfer {
                 sshClient.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SSHClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SSHClient due to {}", ex.toString(), ex);
         }
         sshClient = null;
     }

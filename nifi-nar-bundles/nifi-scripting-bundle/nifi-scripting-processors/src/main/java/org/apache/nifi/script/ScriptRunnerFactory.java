@@ -96,7 +96,7 @@ public class ScriptRunnerFactory {
                 try {
                     additionalClasspath.add(modulePath.toURI().toURL());
                 } catch (MalformedURLException mue) {
-                    log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
+                    log.warn("{} is not a valid file/folder, ignoring", modulePath.getAbsolutePath(), mue);
                 }
 
                 // If the path is a directory, we need to scan for JARs and add them to the classpath
@@ -114,7 +114,7 @@ public class ScriptRunnerFactory {
                         additionalClasspath.add(jarFile.toURI().toURL());
 
                     } catch (MalformedURLException mue) {
-                        log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
+                        log.warn("{} is not a valid file/folder, ignoring", modulePath.getAbsolutePath(), mue);
                     }
                 }
             } else {

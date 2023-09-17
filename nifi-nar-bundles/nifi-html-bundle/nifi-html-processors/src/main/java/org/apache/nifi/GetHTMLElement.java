@@ -168,7 +168,7 @@ public class GetHTMLElement
             doc = parseHTMLDocumentFromFlowfile(flowFile, context, session);
             eles = doc.select(context.getProperty(CSS_SELECTOR).evaluateAttributeExpressions(flowFile).getValue());
         } catch (final Exception ex) {
-            getLogger().error("Failed to extract HTML from {} due to {}; routing to {}", new Object[] {flowFile, ex, REL_INVALID_HTML}, ex);
+            getLogger().error("Failed to extract HTML from {} due to {}; routing to {}", flowFile, ex, REL_INVALID_HTML, ex);
             session.transfer(flowFile, REL_INVALID_HTML);
             return;
         }

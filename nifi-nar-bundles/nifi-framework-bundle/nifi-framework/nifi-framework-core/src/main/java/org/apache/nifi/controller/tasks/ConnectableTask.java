@@ -294,7 +294,7 @@ public class ConnectableTask {
 
                     try {
                         rawSession.commitAsync(null, t -> {
-                            procLog.error("Failed to commit session {} due to {}; rolling back", new Object[]{rawSession, t.toString()}, t);
+                            procLog.error("Failed to commit session {} due to {}; rolling back", rawSession, t.toString(), t);
                         });
                     } catch (final TerminatedTaskException tte) {
                         procLog.debug("Cannot commit Batch Process Session because the Task was forcefully terminated", tte);

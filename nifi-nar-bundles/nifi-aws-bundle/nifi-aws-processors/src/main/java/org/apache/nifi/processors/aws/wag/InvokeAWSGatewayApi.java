@@ -330,8 +330,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
-                logger.error("Routing to {} due to exception: {}",
-                             new Object[]{REL_FAILURE.getName(), e}, e);
+                logger.error("Routing to {} due to exception: {}", REL_FAILURE.getName(), e, e);
                 requestFlowFile = session.penalize(requestFlowFile);
                 requestFlowFile = session
                     .putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
@@ -351,8 +350,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     session.remove(responseFlowFile);
                 }
             } catch (final Exception e1) {
-                logger.error("Could not cleanup response flowfile due to exception: {}",
-                             new Object[]{e1}, e1);
+                logger.error("Could not cleanup response flowfile due to exception: {}", e1, e1);
             }
         }
     }

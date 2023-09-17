@@ -259,8 +259,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
         } catch (final QueryValidationException qve) {
             logger.error("The CQL statement {} is invalid due to syntax error, authorization issue, or another "
-                            + "validation problem; routing {} to failure",
-                    new Object[]{cql, flowFile}, qve);
+                            + "validation problem; routing {} to failure", cql, flowFile, qve);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
 

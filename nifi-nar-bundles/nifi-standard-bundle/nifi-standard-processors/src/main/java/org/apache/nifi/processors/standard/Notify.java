@@ -232,7 +232,7 @@ public class Notify extends AbstractProcessor {
                 try {
                     delta = Integer.parseInt(deltaStr);
                 } catch (final NumberFormatException e) {
-                    logger.error("Failed to calculate delta for FlowFile {} due to {}", new Object[] {flowFile, e}, e);
+                    logger.error("Failed to calculate delta for FlowFile {} due to {}", flowFile, e, e);
                     session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                     continue;
                 }

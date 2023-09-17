@@ -287,7 +287,7 @@ public class SampleRecord extends AbstractProcessor {
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
             attributes.putAll(writeResult.getAttributes());
         } catch (Exception e) {
-            getLogger().error("Error during transmission of records due to {}, routing to failure", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error during transmission of records due to {}, routing to failure", e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
             session.remove(sampledFlowFile);
             return;

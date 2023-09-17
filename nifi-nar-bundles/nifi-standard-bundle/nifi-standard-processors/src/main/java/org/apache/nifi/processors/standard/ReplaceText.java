@@ -370,7 +370,7 @@ public class ReplaceText extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
-            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() }, e);
+            logger.warn("Transferred {} to 'failure' due to {}", flowFile, e.toString(), e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

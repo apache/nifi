@@ -555,7 +555,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             context.getStateManager().clear(getStateScope(context));
 
         } catch (final IOException re) {
-            getLogger().error("Failed to remove previous state from the State Manager.", new Object[]{re.getMessage()}, re);
+            getLogger().error("Failed to remove previous state from the State Manager.", re.getMessage(), re);
             context.yield();
             return;
         }
@@ -565,7 +565,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // comparision in lastModifiedMap to the same entity.
             entityList = performListing(context, IGNORE_MIN_TIMESTAMP_VALUE, ListingMode.EXECUTION);
         } catch (final IOException pe) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{pe.getMessage()}, pe);
+            getLogger().error("Failed to perform listing on remote host due to {}", pe.getMessage(), pe);
             context.yield();
             return;
         }
@@ -670,7 +670,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 );
             }
         } catch (final IOException e) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
             context.yield();
             return;
         }
@@ -757,7 +757,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestampToListMillis, ListingMode.EXECUTION);
         } catch (final IOException e) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
             context.yield();
             return;
         }
@@ -1125,7 +1125,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             try {
                 return performListing(context, minTimestampToList, ListingMode.EXECUTION);
             } catch (final IOException e) {
-                getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
                 return Collections.emptyList();
             }
         }, entity -> createAttributes(entity, context));

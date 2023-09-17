@@ -179,7 +179,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             }
 
         } catch (Exception e) {
-            getLogger().error("Ran into an error while processing {}.", new Object[] { flowFile}, e);
+            getLogger().error("Ran into an error while processing {}.", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -189,7 +189,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
@@ -237,7 +237,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             session.setState(state, SCOPE);
         } catch (IOException e) {
             getLogger().error("Failed to set the state after successfully processing {} due a failure when setting the state. Transferring to '{}'",
-                    new Object[]{flowFile, REL_FAILED_SET_STATE.getName()}, e);
+                    flowFile, REL_FAILED_SET_STATE.getName(), e);
 
             session.transfer(flowFile, REL_FAILED_SET_STATE);
             context.yield();
@@ -261,7 +261,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
@@ -353,7 +353,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             session.setState(state, SCOPE);
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;

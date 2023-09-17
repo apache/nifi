@@ -263,7 +263,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             final Map<String, String> attributes = StorageAttributes.createAttributes(blob.blob);
             flowFile = session.putAllAttributes(flowFile, attributes);
         } catch (final StorageException | IOException e) {
-            getLogger().error("Failed to fetch GCS Object due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to fetch GCS Object due to {}", e, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;

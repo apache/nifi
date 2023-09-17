@@ -124,9 +124,9 @@ public class CapturingLogger implements Logger {
     }
 
     @Override
-    public void trace(Marker marker, String format, Object... argArray) {
-        traceMessages.add(new LogMessage(marker, format, null, argArray));
-        logger.trace(marker, format, argArray);
+    public void trace(Marker marker, String format, Object... arguments) {
+        traceMessages.add(new LogMessage(marker, format, null, arguments));
+        logger.trace(marker, format, arguments);
     }
 
     @Override
@@ -197,9 +197,9 @@ public class CapturingLogger implements Logger {
     }
 
     @Override
-    public void debug(Marker marker, String format, Object... argArray) {
-        debugMessages.add(new LogMessage(marker, format, null, argArray));
-        logger.debug(marker, format, argArray);
+    public void debug(Marker marker, String format, Object... arguments) {
+        debugMessages.add(new LogMessage(marker, format, null, arguments));
+        logger.debug(marker, format, arguments);
     }
 
     @Override
@@ -268,9 +268,9 @@ public class CapturingLogger implements Logger {
     }
 
     @Override
-    public void info(Marker marker, String format, Object... argArray) {
-        infoMessages.add(new LogMessage(marker, format, null, argArray));
-        logger.info(marker, format, argArray);
+    public void info(Marker marker, String format, Object... arguments) {
+        infoMessages.add(new LogMessage(marker, format, null, arguments));
+        logger.info(marker, format, arguments);
     }
 
     @Override
@@ -338,9 +338,9 @@ public class CapturingLogger implements Logger {
     }
 
     @Override
-    public void warn(Marker marker, String format, Object... argArray) {
-        warnMessages.add(new LogMessage(marker, format, null, argArray));
-        logger.warn(marker, format, argArray);
+    public void warn(Marker marker, String format, Object... arguments) {
+        warnMessages.add(new LogMessage(marker, format, null, arguments));
+        logger.warn(marker, format, arguments);
     }
 
     @Override
@@ -420,10 +420,10 @@ public class CapturingLogger implements Logger {
     }
 
     @Override
-    public void error(Marker marker, String format, Object... argArray) {
-        final String message = MessageFormatter.arrayFormat(format, argArray).getMessage();
-        errorMessages.add(new LogMessage(marker, message, null, argArray));
-        logger.error(marker, format, argArray);
+    public void error(Marker marker, String format, Object... arguments) {
+        final String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
+        errorMessages.add(new LogMessage(marker, message, null, arguments));
+        logger.error(marker, format, arguments);
     }
 
     @Override

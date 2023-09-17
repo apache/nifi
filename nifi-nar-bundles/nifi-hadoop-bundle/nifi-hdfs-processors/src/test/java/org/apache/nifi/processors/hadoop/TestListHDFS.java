@@ -492,7 +492,7 @@ class TestListHDFS {
                 // check that there are no throwables that are not of JobConf CNFE exceptions
                 .allMatch(throwable -> throwable instanceof ClassNotFoundException && throwable.getMessage().contains("JobConf")));
         verify(mockLogger, never()).error(anyString(), any(Object[].class));
-        verify(mockLogger, never()).error(anyString(), any(Object[].class), any(Throwable.class));
+        verify(mockLogger, never()).error(anyString(), any(Object[].class));
 
         // assert that no files were listed
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);

@@ -87,7 +87,7 @@ public class ISPEnrichIP extends AbstractEnrichIP {
             getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
                             "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
                             "providing the processor with an invalid IP address ",
-                    new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
+                    ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile, ioe);
             return;
         }
         final StopWatch stopWatch = new StopWatch(true);
@@ -99,7 +99,7 @@ public class ISPEnrichIP extends AbstractEnrichIP {
             // Most name or IP resolutions failure should have been triggered in the try loop above but
             // environmental conditions may trigger errors during the second resolution as well.
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
+            getLogger().warn("Failure while trying to find enrichment data for {} due to {}", flowFile, ex, ex);
             return;
         }
 

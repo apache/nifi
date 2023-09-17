@@ -54,7 +54,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object[] os) {
+    public void warn(String msg, Object... os) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, LogLevel.WARN), os);
             return;
@@ -94,7 +94,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void trace(String msg, Object[] os) {
+    public void trace(String msg, Object... os) {
         if (isTerminated()) {
             logger.trace(getMessage(msg, LogLevel.TRACE), os);
             return;
@@ -159,7 +159,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Object[] os) {
+    public void info(String msg, Object... os) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, LogLevel.INFO), os);
             return;
@@ -204,7 +204,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os) {
+    public void error(String msg, Object... os) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, LogLevel.ERROR), os);
             return;
@@ -244,7 +244,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void debug(String msg, Object[] os) {
+    public void debug(String msg, Object... os) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, LogLevel.DEBUG), os);
             return;
@@ -284,7 +284,7 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg, Object[] os) {
+    public void log(LogLevel level, String msg, Object... os) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, level), os);
             return;
