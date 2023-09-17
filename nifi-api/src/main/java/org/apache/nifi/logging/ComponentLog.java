@@ -53,9 +53,6 @@ public interface ComponentLog {
 
     void warn(String msg, Object... os);
 
-    @Deprecated
-    void warn(String msg, Object[] os, Throwable t);
-
     void warn(String msg);
 
     default void warn(LogMessage logMessage) {
@@ -67,9 +64,6 @@ public interface ComponentLog {
     void trace(String msg, Object... os);
 
     void trace(String msg);
-
-    @Deprecated
-    void trace(String msg, Object[] os, Throwable t);
 
     default void trace(LogMessage logMessage) {
         log(LogLevel.TRACE, logMessage);
@@ -91,9 +85,6 @@ public interface ComponentLog {
 
     void info(String msg);
 
-    @Deprecated
-    void info(String msg, Object[] os, Throwable t);
-
     default void info(LogMessage logMessage) {
         log(LogLevel.INFO, logMessage);
     }
@@ -106,9 +97,6 @@ public interface ComponentLog {
 
     void error(String msg);
 
-    @Deprecated
-    void error(String msg, Object[] os, Throwable t);
-
     default void error(LogMessage logMessage) {
         log(LogLevel.ERROR, logMessage);
     }
@@ -116,9 +104,6 @@ public interface ComponentLog {
     void debug(String msg, Throwable t);
 
     void debug(String msg, Object... os);
-
-    @Deprecated
-    void debug(String msg, Object[] os, Throwable t);
 
     void debug(String msg);
 
@@ -189,28 +174,6 @@ public interface ComponentLog {
         }
     }
 
-    @Deprecated
-    default void log(LogLevel level, String msg, Object[] os, Throwable t) {
-        switch (level) {
-            case DEBUG:
-                debug(msg, os, t);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg, os, t);
-                break;
-            case INFO:
-                info(msg, os, t);
-                break;
-            case TRACE:
-                trace(msg, os, t);
-                break;
-            case WARN:
-                warn(msg, os, t);
-                break;
-        }
-    }
-
     default void log(LogMessage message) {
         switch (message.getLogLevel()) {
             case DEBUG:
@@ -238,7 +201,10 @@ public interface ComponentLog {
         Object[] os = logMessage.getObjects();
 
         if (os != null && t != null) {
-            log(level, msg, os, t);
+            Object[] ost = new Object[os.length + 1];
+            System.arraycopy(os, 0, ost, 0, os.length);
+            ost[ost.length - 1] = t;
+            log(level, msg, ost);
         } else if (os != null) {
             log(level, msg, os);
         } else if (t != null) {
