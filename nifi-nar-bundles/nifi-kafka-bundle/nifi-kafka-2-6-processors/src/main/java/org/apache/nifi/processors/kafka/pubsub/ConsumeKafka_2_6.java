@@ -483,11 +483,9 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
                 getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. "
                     + "Will roll back session and discard any partially received data.", lease);
             } catch (final KafkaException kex) {
-                getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}",
-                        new Object[]{lease, kex}, kex);
+                getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}", lease, kex, kex);
             } catch (final Throwable t) {
-                getLogger().error("Exception while processing data from kafka so will close the lease {} due to {}",
-                        new Object[]{lease, t}, t);
+                getLogger().error("Exception while processing data from kafka so will close the lease {} due to {}", lease, t, t);
             } finally {
                 activeLeases.remove(lease);
             }

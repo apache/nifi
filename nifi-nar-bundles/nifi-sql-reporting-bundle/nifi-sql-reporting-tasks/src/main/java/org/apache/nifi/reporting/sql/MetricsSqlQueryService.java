@@ -128,7 +128,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         try {
             recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale);
         } catch (final SQLException e) {
-            getLogger().error("Error creating record set from query results due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error creating record set from query results due to {}", e.getMessage(), e);
         }
 
         return recordSet;

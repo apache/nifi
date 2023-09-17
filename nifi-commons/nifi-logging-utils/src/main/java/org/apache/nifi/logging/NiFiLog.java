@@ -44,7 +44,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void warn(Marker marker, String string, Object[] os) {
+    public void warn(Marker marker, String string, Object... os) {
         logger.warn(marker, string, os);
     }
 
@@ -78,7 +78,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void warn(String string, Object[] os) {
+    public void warn(String string, Object... os) {
         logger.warn(string, os);
     }
 
@@ -98,7 +98,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void trace(Marker marker, String string, Object[] os) {
+    public void trace(Marker marker, String string, Object... os) {
         logger.trace(marker, string, os);
     }
 
@@ -123,7 +123,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void trace(String string, Object[] os) {
+    public void trace(String string, Object... os) {
         logger.trace(string, os);
     }
 
@@ -202,7 +202,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void info(Marker marker, String string, Object[] os) {
+    public void info(Marker marker, String string, Object... os) {
         logger.info(marker, string, os);
     }
 
@@ -231,7 +231,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void info(String string, Object[] os) {
+    public void info(String string, Object... os) {
         logger.info(string, os);
     }
 
@@ -265,7 +265,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void error(Marker marker, String string, Object[] os) {
+    public void error(Marker marker, String string, Object... os) {
         logger.error(marker, string, os);
     }
 
@@ -294,7 +294,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void error(String string, Object[] os) {
+    public void error(String string, Object... os) {
         logger.error(string, os);
     }
 
@@ -319,7 +319,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void debug(Marker marker, String string, Object[] os) {
+    public void debug(Marker marker, String string, Object... os) {
         logger.debug(marker, string, os);
     }
 
@@ -344,7 +344,7 @@ public class NiFiLog implements Logger {
     }
 
     @Override
-    public void debug(String string, Object[] os) {
+    public void debug(String string, Object... os) {
         logger.debug(string, os);
     }
 

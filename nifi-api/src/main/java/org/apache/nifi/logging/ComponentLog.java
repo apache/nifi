@@ -31,7 +31,7 @@ package org.apache.nifi.logging;
  * within the same NiFi instance.
  * </li>
  * <li>
- * If the last value in an Object[] argument that is passed to the logger is a
+ * If the last value in an Object... argument that is passed to the logger is a
  * Throwable, then the logged message will include a <code>toString()</code> of
  * the Throwable; in addition, if the component's logger is set to DEBUG level
  * via the logback configuration, the Stacktrace will also be logged. This
@@ -53,6 +53,7 @@ public interface ComponentLog {
 
     void warn(String msg, Object... os);
 
+    @Deprecated
     void warn(String msg, Object[] os, Throwable t);
 
     void warn(String msg);
@@ -67,6 +68,7 @@ public interface ComponentLog {
 
     void trace(String msg);
 
+    @Deprecated
     void trace(String msg, Object[] os, Throwable t);
 
     default void trace(LogMessage logMessage) {
@@ -89,6 +91,7 @@ public interface ComponentLog {
 
     void info(String msg);
 
+    @Deprecated
     void info(String msg, Object[] os, Throwable t);
 
     default void info(LogMessage logMessage) {
@@ -103,6 +106,7 @@ public interface ComponentLog {
 
     void error(String msg);
 
+    @Deprecated
     void error(String msg, Object[] os, Throwable t);
 
     default void error(LogMessage logMessage) {
@@ -113,6 +117,7 @@ public interface ComponentLog {
 
     void debug(String msg, Object... os);
 
+    @Deprecated
     void debug(String msg, Object[] os, Throwable t);
 
     void debug(String msg);
@@ -184,6 +189,7 @@ public interface ComponentLog {
         }
     }
 
+    @Deprecated
     default void log(LogLevel level, String msg, Object[] os, Throwable t) {
         switch (level) {
             case DEBUG:

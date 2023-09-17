@@ -511,7 +511,7 @@ public class QuerySolr extends SolrProcessor {
             flowFileResponse = session.putAttribute(flowFileResponse, EXCEPTION, e.getClass().getName());
             flowFileResponse = session.putAttribute(flowFileResponse, EXCEPTION_MESSAGE, e.getMessage());
             session.transfer(flowFileResponse, FAILURE);
-            logger.error("Failed to execute query {} due to {}. FlowFile will be routed to relationship failure", new Object[]{solrQuery.toString(), e}, e);
+            logger.error("Failed to execute query {} due to {}. FlowFile will be routed to relationship failure", solrQuery.toString(), e, e);
             if (flowFileOriginal != null) {
                 flowFileOriginal = session.penalize(flowFileOriginal);
             }

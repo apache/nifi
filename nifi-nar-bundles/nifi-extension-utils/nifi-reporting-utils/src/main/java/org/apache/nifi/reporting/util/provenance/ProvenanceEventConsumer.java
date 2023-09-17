@@ -247,7 +247,7 @@ public class ProvenanceEventConsumer {
             stateManager.setState(newMapOfState, Scope.LOCAL);
         } catch (final IOException ioe) {
             logger.error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart. The message of {} was: {}",
-                    new Object[]{lastEventId, ioe, ioe, ioe.getMessage()}, ioe);
+                    lastEventId, ioe, ioe, ioe.getMessage(), ioe);
         }
 
         return lastEvent.getEventId() + 1;

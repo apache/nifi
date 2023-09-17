@@ -101,8 +101,7 @@ public class ExpressionHandler extends AbstractActionHandlerService {
                     executeSPEL(command, facts);
                 }
             } catch (Exception ex) {
-                getLogger().warn("Error occurred when attempting to execute expression. Action: {}, Facts - {}",
-                        new Object[]{action, facts}, ex);
+                getLogger().warn("Error occurred when attempting to execute expression. Action: {}, Facts - {}", action, facts, ex);
             }
         }else{
             getLogger().warn("Command attribute was not provided.  Action: {}, Facts - {}",

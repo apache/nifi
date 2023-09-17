@@ -189,7 +189,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             webSocketService.deregisterProcessor(endpointId, this);
             webSocketService = null;
         } catch (WebSocketConfigurationException e) {
-            logger.warn("Failed to deregister processor {} due to: {}", new Object[]{this, e}, e);
+            logger.warn("Failed to deregister processor {} due to: {}", this, e, e);
         }
     }
 

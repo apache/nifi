@@ -148,7 +148,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
                 return Optional.ofNullable(new MapRecord(schema, result));
             }
         } catch (Exception ex) {
-            getLogger().error("Error during lookup {}", new Object[]{ query.toJson() }, ex);
+            getLogger().error("Error during lookup {}", query.toJson(), ex);
             throw new LookupFailureException(ex);
         }
     }

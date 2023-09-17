@@ -121,7 +121,7 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object[] os) {
+    public void warn(String msg, Object... os) {
         if (lastArgIsException(os)) {
             warn(msg, translateException(os), (Throwable) os[os.length - 1]);
         } else {
@@ -156,7 +156,7 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void trace(String msg, Object[] os) {
+    public void trace(String msg, Object... os) {
         msg = "{} " + msg;
         os = addProcessor(os);
         logger.trace(msg, os);
@@ -215,7 +215,7 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Object[] os) {
+    public void info(String msg, Object... os) {
         msg = "{} " + msg;
         os = addProcessor(os);
 
@@ -258,7 +258,7 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os) {
+    public void error(String msg, Object... os) {
         if (lastArgIsException(os)) {
             error(msg, translateException(os), (Throwable) os[os.length - 1]);
         } else {
@@ -293,7 +293,7 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void debug(String msg, Object[] os) {
+    public void debug(String msg, Object... os) {
         os = addProcessor(os);
         msg = "{} " + msg;
 

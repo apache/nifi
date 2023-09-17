@@ -526,7 +526,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                             }
                         } catch (StorageException e) {
                             getLogger().error("Failure completing upload flowfile={} bucket={} key={} reason={}",
-                                    new Object[]{ffFilename, bucket, key, e.getMessage()}, e);
+                                    ffFilename, bucket, key, e.getMessage(), e);
                             throw (e);
                         }
 
@@ -547,7 +547,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     new Object[]{ff, millis});
 
         } catch (final ProcessException | StorageException e) {
-            getLogger().error("Failed to put {} to Google Cloud Storage due to {}", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to put {} to Google Cloud Storage due to {}", flowFile, e.getMessage(), e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

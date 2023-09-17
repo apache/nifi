@@ -234,7 +234,7 @@ public class SplitAvro extends AbstractProcessor {
             final FlowFile originalFlowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, splits.size());
             session.transfer(originalFlowFile, REL_ORIGINAL);
         } catch (ProcessException e) {
-            getLogger().error("Failed to split {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to split {} due to {}", flowFile, e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

@@ -222,7 +222,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         try {
             producer = createProducer(kafkaProperties);
         } catch (Exception e) {
-            getLogger().error("Could not create Kafka producer due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Could not create Kafka producer due to {}", e.getMessage(), e);
             throw new InitializationException(e);
         }
     }

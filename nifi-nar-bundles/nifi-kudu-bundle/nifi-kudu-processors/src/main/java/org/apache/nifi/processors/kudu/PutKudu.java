@@ -510,7 +510,7 @@ public class PutKudu extends AbstractKuduProcessor {
                     record = recordSet.next();
                 }
             } catch (Exception ex) {
-                getLogger().error("Failed to push {} to Kudu", new Object[] {flowFile}, ex);
+                getLogger().error("Failed to push {} to Kudu", flowFile, ex);
                 flowFileFailures.put(flowFile, ex);
             }
         }

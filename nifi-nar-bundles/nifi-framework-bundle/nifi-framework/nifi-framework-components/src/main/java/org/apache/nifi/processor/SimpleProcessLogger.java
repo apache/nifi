@@ -70,7 +70,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(final String msg, final Object[] os) {
+    public void warn(final String msg, final Object... os) {
         if (isWarnEnabled()) {
             final String componentMessage = getComponentMessage(msg);
             final Object[] arguments = insertComponent(os);
@@ -132,7 +132,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void trace(final String msg, final Object[] os) {
+    public void trace(final String msg, final Object... os) {
         if (isTraceEnabled()) {
             final String componentMessage = getComponentMessage(msg);
             final Object[] arguments = insertComponent(os);
@@ -219,7 +219,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void info(final String msg, final Object[] os) {
+    public void info(final String msg, final Object... os) {
         if (isInfoEnabled()) {
             final String componentMessage = getComponentMessage(msg);
             final Object[] arguments = insertComponent(os);
@@ -291,7 +291,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void error(final String msg, final Object[] os) {
+    public void error(final String msg, final Object... os) {
         if (isErrorEnabled()) {
             final String componentMessage = getComponentMessage(msg);
             final Object[] arguments = insertComponent(os);
@@ -348,7 +348,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void debug(final String msg, final Object[] os) {
+    public void debug(final String msg, final Object... os) {
         if (isDebugEnabled()) {
             final String componentMessage = getComponentMessage(msg);
             final Object[] arguments = insertComponent(os);
@@ -416,7 +416,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(final LogLevel level, final String msg, final Object[] os) {
+    public void log(final LogLevel level, final String msg, final Object... os) {
         switch (level) {
             case DEBUG:
                 debug(msg, os);

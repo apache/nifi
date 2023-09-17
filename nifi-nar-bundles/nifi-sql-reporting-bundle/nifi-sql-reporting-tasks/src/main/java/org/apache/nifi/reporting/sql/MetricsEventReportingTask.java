@@ -90,7 +90,7 @@ public class MetricsEventReportingTask extends AbstractReportingTask implements 
 
             fireRules(context, actionHandler, rulesEngineService, sql);
         } catch (Exception e) {
-            getLogger().error("Error opening loading rules: {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error opening loading rules: {}", e.getMessage(), e);
         }
     }
 

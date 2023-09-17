@@ -136,7 +136,7 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
             doc = parseHTMLDocumentFromFlowfile(flowFile, context, session);
             eles = doc.select(context.getProperty(CSS_SELECTOR).evaluateAttributeExpressions(flowFile).getValue());
         } catch (Exception ex) {
-            getLogger().error("Failed to extract HTML from {} due to {}; routing to {}", new Object[] {flowFile, ex.toString(), REL_INVALID_HTML.getName()}, ex);
+            getLogger().error("Failed to extract HTML from {} due to {}; routing to {}", flowFile, ex.toString(), REL_INVALID_HTML.getName(), ex);
             session.transfer(flowFile, REL_INVALID_HTML);
             return;
         }

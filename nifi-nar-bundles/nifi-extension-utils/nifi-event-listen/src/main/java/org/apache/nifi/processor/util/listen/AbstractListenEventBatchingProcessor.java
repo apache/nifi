@@ -200,8 +200,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
                 batch.setFlowFile(appendedFlowFile);
 
             } catch (final Exception e) {
-                getLogger().error("Failed to write contents of the message to FlowFile due to {}; will re-queue message and try again",
-                        new Object[] {e.getMessage()}, e);
+                getLogger().error("Failed to write contents of the message to FlowFile due to {}; will re-queue message and try again", e.getMessage(), e);
                 errorEvents.offer(event);
                 break;
             }

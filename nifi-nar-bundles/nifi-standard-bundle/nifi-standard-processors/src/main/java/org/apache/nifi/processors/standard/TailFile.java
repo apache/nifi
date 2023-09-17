@@ -799,7 +799,7 @@ public class TailFile extends AbstractProcessor {
                     cleanup(context);
                     tfo.setState(new TailFileState(filename, file, fileChannel, position, timestamp, file.length(), checksum, tfo.getState().getBuffer()));
                 } catch (final IOException ioe) {
-                    getLogger().error("Attempted to position Reader at current position in file {} but failed to do so due to {}", new Object[]{file, ioe.toString()}, ioe);
+                    getLogger().error("Attempted to position Reader at current position in file {} but failed to do so due to {}", file, ioe.toString(), ioe);
                     context.yield();
                     return;
                 }
@@ -983,11 +983,11 @@ public class TailFile extends AbstractProcessor {
             try {
                 reader.position(newPosition);
             } catch (IOException ex) {
-                getLogger().warn("Couldn't reposition the reader for {} due to {}", new Object[]{ file, ex }, ex);
+                getLogger().warn("Couldn't reposition the reader for {} due to {}", file, ex, ex);
                 try {
                     reader.close();
                 } catch (IOException ex2) {
-                    getLogger().warn("Failed to close reader for {} due to {}", new Object[]{ file, ex2 }, ex2);
+                    getLogger().warn("Failed to close reader for {} due to {}", file, ex2, ex2);
                 }
             }
 

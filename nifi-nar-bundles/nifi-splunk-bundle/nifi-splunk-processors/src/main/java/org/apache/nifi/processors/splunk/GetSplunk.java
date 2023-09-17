@@ -380,7 +380,7 @@ public class GetSplunk extends AbstractProcessor {
         try {
             context.getStateManager().clear(Scope.CLUSTER);
         } catch (IOException e) {
-           getLogger().error("Unable to clear processor state due to {}", new Object[] {e.getMessage()}, e);
+           getLogger().error("Unable to clear processor state due to {}", e.getMessage(), e);
         }
     }
 
@@ -449,7 +449,7 @@ public class GetSplunk extends AbstractProcessor {
                 }
 
             } catch (IOException e) {
-                getLogger().error("Unable to load data from State Manager due to {}", new Object[] {e.getMessage()}, e);
+                getLogger().error("Unable to load data from State Manager due to {}", e.getMessage(), e);
                 context.yield();
                 return;
             }
@@ -517,7 +517,7 @@ public class GetSplunk extends AbstractProcessor {
             try {
                 saveState(session, new TimeRange(earliestTime, latestTime));
             } catch (IOException e) {
-                getLogger().error("Unable to load data from State Manager due to {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Unable to load data from State Manager due to {}", e.getMessage(), e);
                 session.rollback();
                 context.yield();
             }

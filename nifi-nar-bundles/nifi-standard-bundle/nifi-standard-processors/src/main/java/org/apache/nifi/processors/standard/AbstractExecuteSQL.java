@@ -272,7 +272,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         st.setFetchSize(fetchSize);
                     } catch (SQLException se) {
                         // Not all drivers support this, just log the error (at debug level) and move on
-                        logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
+                        logger.debug("Cannot set fetch size to {} due to {}", fetchSize, se.getLocalizedMessage(), se);
                     }
                 }
                 st.setQueryTimeout(queryTimeout); // timeout in seconds

@@ -631,7 +631,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 try {
                   part.delete();
                 } catch (Exception e) {
-                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                  getLogger().error("Couldn't delete underlying storage for {}", part, e);
                 }
               }
             }
