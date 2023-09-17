@@ -40,12 +40,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object[] os, Throwable t) {
-        logger.warn(msg, os);
-        logger.warn("", t);
-    }
-
-    @Override
     public void warn(String msg) {
         logger.warn(msg);
     }
@@ -63,12 +57,6 @@ public class MockComponentLogger implements ComponentLog {
     @Override
     public void trace(String msg) {
         logger.trace(msg);
-    }
-
-    @Override
-    public void trace(String msg, Object[] os, Throwable t) {
-        logger.trace(msg, os);
-        logger.trace("", t);
     }
 
     @Override
@@ -113,12 +101,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Object[] os, Throwable t) {
-        logger.info(msg, os);
-        logger.info("", t);
-    }
-
-    @Override
     public String getName() {
         return logger.getName();
     }
@@ -139,12 +121,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os, Throwable t) {
-        logger.error(msg, os);
-        logger.error("", t);
-    }
-
-    @Override
     public void debug(String msg, Throwable t) {
         logger.debug(msg, t);
     }
@@ -152,12 +128,6 @@ public class MockComponentLogger implements ComponentLog {
     @Override
     public void debug(String msg, Object... os) {
         logger.debug(msg, os);
-    }
-
-    @Override
-    public void debug(String msg, Object[] os, Throwable t) {
-        logger.debug(msg, os);
-        logger.debug("", t);
     }
 
     @Override

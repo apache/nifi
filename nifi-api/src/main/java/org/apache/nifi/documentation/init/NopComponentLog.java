@@ -32,11 +32,6 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
-    public void warn(final String msg, final Object[] os, final Throwable t) {
-
-    }
-
-    @Override
     public void warn(final String msg) {
 
     }
@@ -58,11 +53,6 @@ public class NopComponentLog implements ComponentLog {
 
     @Override
     public void trace(final String msg) {
-
-    }
-
-    @Override
-    public void trace(final String msg, final Object[] os, final Throwable t) {
 
     }
 
@@ -112,11 +102,6 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
-    public void info(final String msg, final Object[] os, final Throwable t) {
-
-    }
-
-    @Override
     public void info(LogMessage message) {
 
     }
@@ -142,11 +127,6 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
-    public void error(final String msg, final Object[] os, final Throwable t) {
-
-    }
-
-    @Override
     public void error(LogMessage message) {
 
     }
@@ -158,11 +138,6 @@ public class NopComponentLog implements ComponentLog {
 
     @Override
     public void debug(final String msg, final Object... os) {
-
-    }
-
-    @Override
-    public void debug(final String msg, final Object[] os, final Throwable t) {
 
     }
 
@@ -188,11 +163,6 @@ public class NopComponentLog implements ComponentLog {
 
     @Override
     public void log(final LogLevel level, final String msg) {
-
-    }
-
-    @Override
-    public void log(final LogLevel level, final String msg, final Object[] os, final Throwable t) {
 
     }
 
