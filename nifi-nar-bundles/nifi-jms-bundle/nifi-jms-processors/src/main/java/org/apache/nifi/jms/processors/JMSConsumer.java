@@ -204,8 +204,7 @@ class JMSConsumer extends JMSWorker {
                 return null;
             }
         } catch (final MessageConversionException mce) {
-            processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.",
-                new Object[] {message}, mce);
+            processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.", message, mce);
             acknowledge(message, session);
 
             if (errorQueueName != null) {

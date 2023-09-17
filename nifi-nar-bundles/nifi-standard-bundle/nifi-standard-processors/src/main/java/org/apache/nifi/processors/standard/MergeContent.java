@@ -937,7 +937,7 @@ public class MergeContent extends BinFiles {
                                     out.closeEntry();
                                     unmerged.remove(flowFile);
                                 } catch (ZipException e) {
-                                    getLogger().error("Encountered exception merging {}", new Object[] {flowFile}, e);
+                                    getLogger().error("Encountered exception merging {}", flowFile, e);
                                 }
                             }
 

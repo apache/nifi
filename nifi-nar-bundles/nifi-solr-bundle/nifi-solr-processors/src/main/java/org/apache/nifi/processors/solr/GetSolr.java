@@ -288,7 +288,7 @@ public class GetSolr extends SolrProcessor {
 
             return(req.process(getSolrClient()).getResponse().get("uniqueKey").toString());
         } catch (SolrServerException | IOException e) {
-            getLogger().error("Solr query to retrieve uniqueKey-field failed due to {}", new Object[]{solrQuery.toString(), e}, e);
+            getLogger().error("Solr query to retrieve uniqueKey-field failed due to {}", solrQuery.toString(), e, e);
             throw new ProcessException(e);
         }
     }
@@ -420,12 +420,12 @@ public class GetSolr extends SolrProcessor {
         } catch (final SolrServerException | SchemaNotFoundException | IOException e) {
             context.yield();
             session.rollback();
-            logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), e}, e);
+            logger.error("Failed to execute query {} due to {}", solrQuery.toString(), e, e);
             throw new ProcessException(e);
         } catch (final Throwable t) {
             context.yield();
             session.rollback();
-            logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), t}, t);
+            logger.error("Failed to execute query {} due to {}", solrQuery.toString(), t, t);
             throw t;
         }
     }

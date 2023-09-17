@@ -283,7 +283,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             try {
                 maintainSessions();
             } catch (final Exception e) {
-                getLogger().warn("Failed to maintain sessions due to {}", new Object[]{e}, e);
+                getLogger().warn("Failed to maintain sessions due to {}", e, e);
             }
         }, sessionMaintenanceInterval, sessionMaintenanceInterval, TimeUnit.MILLISECONDS);
     }
@@ -319,7 +319,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             try {
                 sessionMaintenanceScheduler.shutdown();
             } catch (Exception e) {
-                getLogger().warn("Failed to shutdown session maintainer due to {}", new Object[]{e}, e);
+                getLogger().warn("Failed to shutdown session maintainer due to {}", e, e);
             }
             sessionMaintenanceScheduler = null;
         }

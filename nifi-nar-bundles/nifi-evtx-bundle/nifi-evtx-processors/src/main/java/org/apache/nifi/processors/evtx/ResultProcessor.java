@@ -40,7 +40,7 @@ public class ResultProcessor {
         if (exception == null) {
             session.transfer(updated, successRelationship);
         } else {
-            logger.error(UNABLE_TO_PROCESS_DUE_TO, new Object[]{name, exception}, exception);
+            logger.error(UNABLE_TO_PROCESS_DUE_TO, name, exception, exception);
             session.transfer(updated, failureRelationship);
         }
     }

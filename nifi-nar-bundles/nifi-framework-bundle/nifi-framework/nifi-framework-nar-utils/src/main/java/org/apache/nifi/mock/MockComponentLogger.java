@@ -35,7 +35,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object[] os) {
+    public void warn(String msg, Object... os) {
         logger.warn(msg, os);
     }
 
@@ -56,7 +56,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void trace(String msg, Object[] os) {
+    public void trace(String msg, Object... os) {
         logger.trace(msg, os);
     }
 
@@ -102,7 +102,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Object[] os) {
+    public void info(String msg, Object... os) {
         logger.info(msg, os);
     }
 
@@ -129,7 +129,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os) {
+    public void error(String msg, Object... os) {
         logger.error(msg, os);
     }
 
@@ -150,7 +150,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void debug(String msg, Object[] os) {
+    public void debug(String msg, Object... os) {
         logger.debug(msg, os);
     }
 

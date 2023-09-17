@@ -233,7 +233,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                 successfulFlowFiles.addAll(flowFiles);
             } catch (InterruptedException | ExecutionException e) {
                 getLogger().error("Failed to publish the messages to Google Cloud PubSub Lite topic '{}' due to {}, "
-                        + "routing all messages from the batch to failure", new Object[]{topicName, e.getLocalizedMessage()}, e);
+                        + "routing all messages from the batch to failure", topicName, e.getLocalizedMessage(), e);
                 session.transfer(flowFiles, REL_FAILURE);
                 context.yield();
             }

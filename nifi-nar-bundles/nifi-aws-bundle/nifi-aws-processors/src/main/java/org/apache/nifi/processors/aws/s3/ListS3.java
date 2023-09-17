@@ -553,7 +553,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             writer.finishListing();
         } catch (final Exception e) {
-            getLogger().error("Failed to list contents of bucket due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to list contents of bucket due to {}", e, e);
             writer.finishListingExceptionally(e);
             session.rollback();
             context.yield();
@@ -664,7 +664,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
                 writer.finishListing();
             } catch (final Exception e) {
-                getLogger().error("Failed to list contents of bucket due to {}", new Object[]{e}, e);
+                getLogger().error("Failed to list contents of bucket due to {}", e, e);
                 writer.finishListingExceptionally(e);
                 session.rollback();
                 context.yield();
@@ -680,7 +680,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain Object Tags for S3 Object {} in bucket {}. Will list S3 Object without the object tags",
-                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                        versionSummary.getKey(), versionSummary.getBucketName(), e);
             }
         }
         return taggingResult;
@@ -693,7 +693,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain User Metadata for S3 Object {} in bucket {}. Will list S3 Object without the user metadata",
-                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                        versionSummary.getKey(), versionSummary.getBucketName(), e);
             }
         }
         return objectMetadata;
@@ -1003,7 +1003,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             try {
                 recordWriter.close();
             } catch (IOException e) {
-                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+                logger.error("Failed to write listing as Records due to {}", e, e);
             }
 
             session.remove(flowFile);

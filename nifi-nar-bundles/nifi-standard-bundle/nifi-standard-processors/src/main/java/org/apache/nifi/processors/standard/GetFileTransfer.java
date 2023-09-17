@@ -223,7 +223,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     return;
                 } catch (final FlowFileAccessException e) {
                     context.yield();
-                    logger.error("Unable to retrieve file {} due to {}", new Object[]{file.getFullPathFileName(), e.getCause()}, e);
+                    logger.error("Unable to retrieve file {} due to {}", file.getFullPathFileName(), e.getCause(), e);
 
                     try {
                         transfer.close();
@@ -261,7 +261,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
             try {
                 fileTransfer.deleteFile(receivedFlowFile, null, remoteFilename);
             } catch (final IOException e) {
-                getLogger().error("Failed to remove remote file {} due to {}. This file may be duplicated in a subsequent run", new Object[] {remoteFilename, e}, e);
+                getLogger().error("Failed to remove remote file {} due to {}. This file may be duplicated in a subsequent run", remoteFilename, e, e);
             }
         }
     }

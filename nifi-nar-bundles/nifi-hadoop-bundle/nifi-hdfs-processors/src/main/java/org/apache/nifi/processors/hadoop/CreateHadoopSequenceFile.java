@@ -182,7 +182,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             session.transfer(flowFile, RELATIONSHIP_SUCCESS);
             getLogger().info("Transferred flowfile {} to {}", new Object[]{flowFile, RELATIONSHIP_SUCCESS});
         } catch (ProcessException e) {
-            getLogger().error("Failed to create Sequence File. Transferring {} to 'failure'", new Object[]{flowFile}, e);
+            getLogger().error("Failed to create Sequence File. Transferring {} to 'failure'", flowFile, e);
             session.transfer(flowFile, RELATIONSHIP_FAILURE);
         }
 

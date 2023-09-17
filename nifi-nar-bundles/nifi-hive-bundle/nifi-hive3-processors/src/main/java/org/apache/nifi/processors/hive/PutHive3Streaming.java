@@ -517,7 +517,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     } else {
                         log.error(
                                 "Failed to create {} for {} - routing to failure",
-                                new Object[]{RecordReader.class.getSimpleName(), flowFile},
+                                RecordReader.class.getSimpleName(), flowFile,
                                 rrfe
                         );
                         session.transfer(flowFile, REL_FAILURE);
@@ -539,14 +539,14 @@ public class PutHive3Streaming extends AbstractProcessor {
                     flowFile = session.putAllAttributes(flowFile, updateAttributes);
                     log.error(
                             "Exception while processing {} - routing to failure",
-                            new Object[]{flowFile},
+                            flowFile,
                             e
                     );
                     session.transfer(flowFile, REL_FAILURE);
                 }
             } catch (DiscontinuedException e) {
                 // The input FlowFile processing is discontinued. Keep it in the input queue.
-                getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
+                getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
                 session.transfer(flowFile, Relationship.SELF);
             } catch (ConnectionError ce) {
                 // If we can't connect to the metastore, yield the processor
@@ -579,7 +579,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     flowFile = session.putAllAttributes(flowFile, updateAttributes);
                     log.error(
                             "Exception while trying to stream {} to hive - routing to failure",
-                            new Object[]{flowFile},
+                            flowFile,
                             se
                     );
                     session.transfer(flowFile, REL_FAILURE);
