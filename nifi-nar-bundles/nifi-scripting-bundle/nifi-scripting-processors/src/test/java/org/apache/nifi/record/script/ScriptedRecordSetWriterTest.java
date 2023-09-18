@@ -37,12 +37,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Document;
-import org.xmlunit.xpath.JAXPXPathEngine;
-import org.xmlunit.xpath.XPathEngine;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.dom.DOMSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
@@ -99,11 +98,11 @@ public class ScriptedRecordSetWriterTest {
 
         DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         Document document = documentBuilder.parse(new ByteArrayInputStream(outputStream.toByteArray()));
-        DOMSource source = new DOMSource(document);
-        XPathEngine xpath = new JAXPXPathEngine();
-        assertEquals("1", xpath.evaluate("//record[1]/id/text()", source));
-        assertEquals("200", xpath.evaluate("//record[2]/code/text()", source));
-        assertEquals("Ramon", xpath.evaluate("//record[3]/name/text()", source));
+        XPathFactory xpathfactory = XPathFactory.newInstance();
+        XPath xpath = xpathfactory.newXPath();
+        assertEquals("1", xpath.evaluate("//record[1]/id/text()", document));
+        assertEquals("200", xpath.evaluate("//record[2]/code/text()", document));
+        assertEquals("Ramon", xpath.evaluate("//record[3]/name/text()", document));
     }
 
     private static MapRecord[] createMapRecords(SimpleRecordSchema recordSchema) {
