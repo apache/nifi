@@ -165,6 +165,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/xmlRecord.xml</exclude>
                         <exclude>src/test/resources/jython/test_compress.py</exclude>
                     </excludes>
                 </configuration>

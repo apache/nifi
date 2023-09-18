@@ -532,7 +532,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return componentName;
     }
 
-    protected void setMaxConcurrentTasks(int maxConcurrentTasks) {
+    public void setMaxConcurrentTasks(int maxConcurrentTasks) {
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
