@@ -17,7 +17,7 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { setTransform } from './transform.actions';
-import { CanvasTransform } from '../index';
+import { CanvasTransform } from './index';
 
 export const INITIAL_TRANSLATE = {
     x: 0,

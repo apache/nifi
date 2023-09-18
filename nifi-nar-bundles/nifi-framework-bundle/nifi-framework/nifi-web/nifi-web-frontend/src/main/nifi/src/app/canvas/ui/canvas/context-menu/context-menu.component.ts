@@ -19,7 +19,7 @@ import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core'
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { Observable, Subject } from 'rxjs';
-import { editComponentRequest, leaveProcessGroup, reloadFlow } from '../../../state/flow/flow.actions';
+import { leaveProcessGroup, navigateToEditComponent, reloadFlow } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 
 export interface ContextMenuItemDefinition {
@@ -278,11 +278,10 @@ export class ContextMenu implements OnInit {
                 action: function (store: Store<CanvasState>, selection: any) {
                     const selectionData = selection.datum();
                     store.dispatch(
-                        editComponentRequest({
+                        navigateToEditComponent({
                             request: {
                                 type: selectionData.type,
-                                uri: selectionData.uri,
-                                entity: selectionData
+                                id: selectionData.id
                             }
                         })
                     );
@@ -797,7 +796,7 @@ export class ContextMenu implements OnInit {
                 action: function (store: Store<CanvasState>) {
                     // TODO - delete
                 }
-            },
+            }
         ]
     };
 
@@ -844,14 +843,16 @@ export class ContextMenu implements OnInit {
                 });
 
                 // remove any extra separators
-                applicableMenuItems = applicableMenuItems.filter((menuItem: ContextMenuItemDefinition, index: number) => {
-                    if (menuItem.isSeparator && index > 0) {
-                        // cannot have two consecutive separators
-                        return !applicableMenuItems[index - 1].isSeparator;
-                    }
+                applicableMenuItems = applicableMenuItems.filter(
+                    (menuItem: ContextMenuItemDefinition, index: number) => {
+                        if (menuItem.isSeparator && index > 0) {
+                            // cannot have two consecutive separators
+                            return !applicableMenuItems[index - 1].isSeparator;
+                        }
 
-                    return true;
-                });
+                        return true;
+                    }
+                );
 
                 return applicableMenuItems.filter((menuItem: ContextMenuItemDefinition, index: number) => {
                     if (menuItem.isSeparator) {

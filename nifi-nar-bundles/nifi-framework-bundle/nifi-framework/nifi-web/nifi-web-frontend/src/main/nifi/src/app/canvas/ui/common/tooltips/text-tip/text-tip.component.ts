@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { TextTipInput } from '../../../../state';
+import { TextTipInput } from '../../../../state/flow';
 
 @Component({
     selector: 'text-tip',

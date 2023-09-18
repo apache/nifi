@@ -22,11 +22,9 @@ import { FlowDesignerRoutingModule } from './flow-designer-routing.module';
 import { HeaderModule } from '../ui/header/header.module';
 import { FooterModule } from '../ui/footer/footer.module';
 import { CanvasModule } from '../ui/canvas/canvas.module';
-import { flowReducer } from '../state/flow/flow.reducer';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { FlowEffects } from '../state/flow/flow.effects';
-import { transformReducer } from '../state/transform/transform.reducer';
 import { TransformEffects } from '../state/transform/transform.effects';
 import { CreatePort } from '../ui/port/create-port/create-port.component';
 import { EditPort } from '../ui/port/edit-port/edit-port.component';
@@ -45,11 +43,14 @@ import { TextTip } from '../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { UnorderedListTip } from '../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
+import { canvasFeatureKey, reducers } from '../state';
+import { EditCanvasItemComponent } from '../ui/edit-canvas-item/edit-canvas-item.component';
 
 @NgModule({
     declarations: [
         FlowDesignerComponent,
         Banner,
+        EditCanvasItemComponent,
         CreatePort,
         EditPort,
         ValidationErrorsTip,
@@ -65,9 +66,8 @@ import { UnorderedListTip } from '../ui/common/tooltips/unordered-list-tip/unord
         CanvasModule,
         FooterModule,
         FlowDesignerRoutingModule,
-        StoreModule.forFeature('flowState', flowReducer),
-        StoreModule.forFeature('transform', transformReducer),
-        EffectsModule.forFeature([FlowEffects, TransformEffects]),
+        StoreModule.forFeature(canvasFeatureKey, reducers),
+        EffectsModule.forFeature(FlowEffects, TransformEffects),
         MatFormFieldModule,
         MatDialogModule,
         MatButtonModule,

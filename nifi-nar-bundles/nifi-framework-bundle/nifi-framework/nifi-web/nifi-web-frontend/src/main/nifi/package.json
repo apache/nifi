@@ -22,6 +22,7 @@
         "@angular/platform-browser-dynamic": "^16.2.0",
         "@angular/router": "^16.2.0",
         "@ngrx/effects": "^16.2.0",
+        "@ngrx/router-store": "^16.2.0",
         "@ngrx/store": "^16.2.0",
         "@ngrx/store-devtools": "^16.2.0",
         "d3": "^7.8.5",

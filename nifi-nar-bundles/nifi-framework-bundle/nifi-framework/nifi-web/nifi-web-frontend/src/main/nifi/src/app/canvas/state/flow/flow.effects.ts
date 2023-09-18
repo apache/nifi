@@ -21,19 +21,22 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import { catchError, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
 import {
-    CanvasState,
-    ComponentType,
-    EnterProcessGroupRequest,
-    EnterProcessGroupResponse,
+    LoadProcessGroupRequest,
+    LoadProcessGroupResponse,
     UpdateComponentFailure,
     UpdateComponentResponse
-} from '../index';
+} from './index';
+import { CanvasState } from '../index';
 import { Store } from '@ngrx/store';
-import { selectCurrentProcessGroupId, selectSelected } from './flow.selectors';
+import { selectCurrentProcessGroupId, selectParentProcessGroupId, selectSelectedComponentIds } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
+import { ComponentType } from '../shared';
+import { ActivatedRoute, Router } from '@angular/router';
+import { selectCurrentRoute, selectUrl } from '../../../state/router/router.selectors';
+import { navigateToEditComponent } from './flow.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -42,37 +45,19 @@ export class FlowEffects {
         private store: Store<CanvasState>,
         private flowService: FlowService,
         private connectionManager: ConnectionManager,
+        private router: Router,
         private dialog: MatDialog
     ) {}
 
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId), this.store.select(selectSelected)),
-            switchMap(([action, processGroupId, selection]) => {
-                return of(
-                    FlowActions.enterProcessGroup({
-                        request: {
-                            id: processGroupId,
-                            selection: selection
-                        }
-                    })
-                );
-            })
-        )
-    );
-
-    leaveProcessGroup$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.leaveProcessGroup),
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-            filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
-            switchMap(([action, parentProcessGroupId]) => {
+            switchMap(([action, processGroupId]) => {
                 return of(
-                    FlowActions.enterProcessGroup({
+                    FlowActions.loadProcessGroup({
                         request: {
-                            id: parentProcessGroupId,
-                            selection: []
+                            id: processGroupId
                         }
                     })
                 );
@@ -80,17 +65,16 @@ export class FlowEffects {
         )
     );
 
-    enterProcessGroup$ = createEffect(() =>
+    loadProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.enterProcessGroup),
+            ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
-            switchMap((request: EnterProcessGroupRequest) =>
+            switchMap((request: LoadProcessGroupRequest) =>
                 from(this.flowService.getFlow(request.id)).pipe(
                     map((flow) =>
-                        FlowActions.enterProcessGroupSuccess({
+                        FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
-                                selection: request.selection,
                                 flow: flow
                             }
                         })
@@ -101,13 +85,13 @@ export class FlowEffects {
         )
     );
 
-    enterProcessGroupSuccess$ = createEffect(() =>
+    loadProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.enterProcessGroupSuccess),
+            ofType(FlowActions.loadProcessGroupSuccess),
             map((action) => action.response),
-            switchMap((response: EnterProcessGroupResponse) => {
+            switchMap((response: LoadProcessGroupResponse) => {
                 return of(
-                    FlowActions.enterProcessGroupComplete({
+                    FlowActions.loadProcessGroupComplete({
                         response: response
                     })
                 );
@@ -115,9 +99,9 @@ export class FlowEffects {
         )
     );
 
-    enterProcessGroupComplete$ = createEffect(() =>
+    loadProcessGroupComplete$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.enterProcessGroupComplete),
+            ofType(FlowActions.loadProcessGroupComplete),
             switchMap(() => {
                 return of(FlowActions.setRenderRequired({ renderRequired: false }));
             })
@@ -245,8 +229,15 @@ export class FlowEffects {
             map((action) => action.response),
             switchMap((response) =>
                 of(
-                    FlowActions.setSelectedComponents({
-                        ids: [response.payload.id]
+                    FlowActions.selectComponents({
+                        request: {
+                            components: [
+                                {
+                                    id: response.payload.id,
+                                    componentType: response.type
+                                }
+                            ]
+                        }
                     }),
                     FlowActions.setRenderRequired({ renderRequired: false })
                 )
@@ -254,9 +245,22 @@ export class FlowEffects {
         )
     );
 
+    navigateToEditComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToEditComponent),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     editComponentRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.editComponentRequest),
+            ofType(FlowActions.editComponent),
             map((action) => action.request),
             switchMap((request) => {
                 switch (request.type) {
@@ -275,7 +279,8 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditPortDialog),
                 map((action) => action.request),
-                tap((request) => {
+                withLatestFrom(this.store.select(selectUrl)),
+                tap(([request, currentUrl]) => {
                     this.dialog
                         .open(EditPort, {
                             data: request,
@@ -283,7 +288,15 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
+                            // determine the parent url (TODO: not sure how best to access
+                            // the current activated route for use in navigate below). Could
+                            // possible subscribe to router events but router-state does not
+                            // seem to surface the activated route
+                            const url: string[] = currentUrl.split('/');
+                            url.pop();
+
                             this.store.dispatch(FlowActions.clearFlowApiError());
+                            this.router.navigate(url);
                         });
                 })
             ),
@@ -323,7 +336,6 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.updateComponentSuccess),
-                map((action) => action.response),
                 tap(() => {
                     this.dialog.closeAll();
                 })
@@ -389,6 +401,122 @@ export class FlowEffects {
                         updatePath: true,
                         updateLabel: true
                     });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    enterProcessGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.enterProcessGroup),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/process-groups', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    leaveProcessGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.leaveProcessGroup),
+                withLatestFrom(this.store.select(selectParentProcessGroupId)),
+                filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
+                tap(([action, parentProcessGroupId]) => {
+                    this.router.navigate(['/process-groups', parentProcessGroupId]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    addSelectedComponents$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.addSelectedComponents),
+                map((action) => action.request),
+                withLatestFrom(
+                    this.store.select(selectCurrentProcessGroupId),
+                    this.store.select(selectSelectedComponentIds)
+                ),
+                tap(([request, processGroupId, selected]) => {
+                    if (selected.length === 0) {
+                        if (request.components.length === 1) {
+                            this.router.navigate([
+                                '/process-groups',
+                                processGroupId,
+                                request.components[0].componentType,
+                                request.components[0].id
+                            ]);
+                        } else if (request.components.length > 1) {
+                            const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                            this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
+                        }
+                    } else {
+                        const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                        ids.push(...selected);
+                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    removeSelectedComponents$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.removeSelectedComponents),
+                map((action) => action.request),
+                withLatestFrom(
+                    this.store.select(selectCurrentProcessGroupId),
+                    this.store.select(selectSelectedComponentIds)
+                ),
+                tap(([request, processGroupId, selected]) => {
+                    if (selected.length === 0) {
+                        this.router.navigate(['/process-groups', processGroupId]);
+                    } else {
+                        const idsToRemove: string[] = request.components.map(
+                            (selectedComponent) => selectedComponent.id
+                        );
+                        const ids: string[] = selected.filter((id) => !idsToRemove.includes(id));
+                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    selectComponents$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.selectComponents),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    if (request.components.length === 1) {
+                        this.router.navigate([
+                            '/process-groups',
+                            processGroupId,
+                            request.components[0].componentType,
+                            request.components[0].id
+                        ]);
+                    } else if (request.components.length > 1) {
+                        const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    deselectAllComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.deselectAllComponents),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([action, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId]);
                 })
             ),
         { dispatch: false }

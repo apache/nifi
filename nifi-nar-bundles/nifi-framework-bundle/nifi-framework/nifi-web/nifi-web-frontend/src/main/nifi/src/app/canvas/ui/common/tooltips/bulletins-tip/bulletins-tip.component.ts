@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { BulletinsTipInput } from '../../../../state';
+import { BulletinsTipInput } from '../../../../state/flow';
 
 @Component({
     selector: 'bulletins-tip',

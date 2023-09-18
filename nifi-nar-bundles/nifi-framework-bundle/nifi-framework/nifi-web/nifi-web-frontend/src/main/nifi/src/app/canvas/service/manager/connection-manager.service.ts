@@ -17,7 +17,7 @@
 
 import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState, ComponentType, Dimension, Position, UpdateComponent } from '../../state';
+import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Client } from '../client.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
@@ -25,7 +25,8 @@ import * as d3 from 'd3';
 import {
     selectConnections,
     selectCurrentProcessGroupId,
-    selectSelected,
+    selectFlowLoadingStatus,
+    selectSelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { initialState } from '../../state/flow/flow.reducer';
@@ -35,6 +36,9 @@ import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
+import { ComponentType, Dimension, Position } from '../../state/shared';
+import { UpdateComponent } from '../../state/flow';
+import { filter, switchMap } from 'rxjs';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -463,8 +467,8 @@ export class ConnectionManager {
         if (entered.empty()) {
             return entered;
         }
-
         const self: ConnectionManager = this;
+
         const connection = entered
             .append('g')
             .attr('id', function (d: any) {
@@ -486,9 +490,6 @@ export class ConnectionManager {
             .on('mousedown.selection', function (this: any, event: MouseEvent) {
                 // select the connection when clicking the selectable path
                 self.selectableBehavior.select(event, d3.select(this.parentNode));
-
-                // TODO - update URL deep linking params
-                // nfCanvasUtils.setURLParameters();
             });
 
         return connection;
@@ -702,9 +703,6 @@ export class ConnectionManager {
                         .on('mousedown.selection', function (this: any, event: MouseEvent) {
                             // select the connection when clicking the label
                             self.selectableBehavior.select(event, d3.select(this.parentNode));
-
-                            // TODO update URL deep linking params
-                            // nfCanvasUtils.setURLParameters();
                         });
 
                     // update the start point
@@ -734,9 +732,6 @@ export class ConnectionManager {
                         .on('mousedown.selection', function (this: any, event: MouseEvent) {
                             // select the connection when clicking the label
                             self.selectableBehavior.select(event, d3.select(this.parentNode));
-
-                            // update URL deep linking params
-                            // nfCanvasUtils.setURLParameters();
                         })
                         .call(self.endpointDrag);
 
@@ -819,9 +814,6 @@ export class ConnectionManager {
                         .on('mousedown.selection', function (this: any, event: MouseEvent) {
                             // select the connection when clicking the label
                             self.selectableBehavior.select(event, d3.select(this.parentNode));
-
-                            // TODO - update URL deep linking params
-                            // nfCanvasUtils.setURLParameters();
                         })
                         .call(self.bendPointDrag);
 
@@ -858,9 +850,6 @@ export class ConnectionManager {
                             .on('mousedown.selection', function (this: any, event: MouseEvent) {
                                 // select the connection when clicking the label
                                 self.selectableBehavior.select(event, d3.select(this.parentNode));
-
-                                // TODO - update URL deep linking params
-                                // nfCanvasUtils.setURLParameters();
                             });
 
                         // TODO
@@ -2149,8 +2138,12 @@ export class ConnectionManager {
             });
 
         this.store
-            .select(selectSelected)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .select(selectFlowLoadingStatus)
+            .pipe(
+                filter((status) => status === 'success'),
+                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                takeUntilDestroyed(this.destroyRef)
+            )
             .subscribe((selected) => {
                 this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
                     return selected.includes(d.id);

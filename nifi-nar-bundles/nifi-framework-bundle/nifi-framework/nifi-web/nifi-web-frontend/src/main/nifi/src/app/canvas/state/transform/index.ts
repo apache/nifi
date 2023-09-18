@@ -15,14 +15,11 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { ComponentType } from '../../state/shared';
+import { Position } from '../shared';
 
-@Component({
-    selector: 'fd-header',
-    templateUrl: './header.component.html',
-    styleUrls: ['./header.component.scss']
-})
-export class HeaderComponent {
-    protected readonly ComponentType = ComponentType;
+export const transformFeatureKey = 'transform';
+
+export interface CanvasTransform {
+    translate: Position;
+    scale: number;
 }

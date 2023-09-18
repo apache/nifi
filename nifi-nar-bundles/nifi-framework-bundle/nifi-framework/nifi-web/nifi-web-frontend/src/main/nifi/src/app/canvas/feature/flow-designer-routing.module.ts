@@ -16,10 +16,29 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { RouterModule, Routes } from '@angular/router';
+import { FlowDesignerComponent } from './flow-designer.component';
+import { EditCanvasItemComponent } from '../ui/edit-canvas-item/edit-canvas-item.component';
+
+const routes: Routes = [
+    {
+        path: 'process-groups/:processGroupId',
+        component: FlowDesignerComponent,
+        children: [
+            { path: 'bulk/:ids', component: FlowDesignerComponent },
+            {
+                path: ':type/:id',
+                component: FlowDesignerComponent,
+                children: [{ path: 'edit', component: EditCanvasItemComponent }]
+            }
+        ]
+    },
+    { path: '', redirectTo: '/process-groups/root', pathMatch: 'full' }
+    // { path: '**', component: FlowDesignerComponent }
+];
 
 @NgModule({
-    declarations: [],
-    imports: [CommonModule]
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
 })
 export class FlowDesignerRoutingModule {}

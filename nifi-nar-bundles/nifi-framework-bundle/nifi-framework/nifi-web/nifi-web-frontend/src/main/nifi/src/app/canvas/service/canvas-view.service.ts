@@ -31,6 +31,7 @@ import { PortManager } from './manager/port-manager.service';
 import { RemoteProcessGroupManager } from './manager/remote-process-group-manager.service';
 import { ConnectionManager } from './manager/connection-manager.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { deselectAllComponents } from '../state/flow/flow.actions';
 
 @Injectable({
     providedIn: 'root'
@@ -155,17 +156,8 @@ export class CanvasView {
                     }
 
                     if (!panning) {
-                        // TODO - get selection util
                         // deselect as necessary if we are not panning
-                        d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
-
-                        // TODO
-                        // update URL deep linking params
-                        // nfCanvasUtils.setURLParameters();
-
-                        // TODO
-                        // inform Angular app values have changed
-                        // nfNgBridge.digest();
+                        self.store.dispatch(deselectAllComponents());
                     }
                 }
 

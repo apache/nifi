@@ -15,14 +15,24 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { ComponentType } from '../../state/shared';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@Component({
-    selector: 'fd-header',
-    templateUrl: './header.component.html',
-    styleUrls: ['./header.component.scss']
-})
-export class HeaderComponent {
-    protected readonly ComponentType = ComponentType;
-}
+import { EditCanvasItemComponent } from './edit-canvas-item.component';
+
+describe('EditCanvasItemComponent', () => {
+    let component: EditCanvasItemComponent;
+    let fixture: ComponentFixture<EditCanvasItemComponent>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [EditCanvasItemComponent]
+        });
+        fixture = TestBed.createComponent(EditCanvasItemComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

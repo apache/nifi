@@ -17,17 +17,24 @@
 
 import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState, ComponentType, Dimension } from '../../state';
+import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
-import { selectRemoteProcessGroups, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+import {
+    selectFlowLoadingStatus,
+    selectRemoteProcessGroups,
+    selectSelectedComponentIds,
+    selectTransitionRequired
+} from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
 import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
+import { ComponentType, Dimension } from '../../state/shared';
+import { filter, switchMap } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
@@ -69,6 +76,7 @@ export class RemoteProcessGroupManager {
         if (entered.empty()) {
             return entered;
         }
+        const self: RemoteProcessGroupManager = this;
 
         const remoteProcessGroup = entered
             .append('g')
@@ -673,8 +681,12 @@ export class RemoteProcessGroupManager {
             });
 
         this.store
-            .select(selectSelected)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .select(selectFlowLoadingStatus)
+            .pipe(
+                filter((status) => status === 'success'),
+                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                takeUntilDestroyed(this.destroyRef)
+            )
             .subscribe((selected) => {
                 this.remoteProcessGroupContainer
                     .selectAll('g.remote-process-group')

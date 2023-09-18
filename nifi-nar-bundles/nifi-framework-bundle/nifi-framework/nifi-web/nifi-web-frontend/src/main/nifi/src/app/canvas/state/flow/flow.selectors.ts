@@ -15,10 +15,13 @@
  * limitations under the License.
  */
 
-import { CanvasState, FlowState } from '../index';
+import { flowFeatureKey, FlowState, SelectedComponent } from './index';
 import { createSelector } from '@ngrx/store';
+import { CanvasState, selectCanvasState } from '../index';
+import { selectCurrentRoute } from '../../../state/router/router.selectors';
+import { ComponentType } from '../shared';
 
-export const selectFlowState = (state: CanvasState) => state.flowState;
+export const selectFlowState = createSelector(selectCanvasState, (state: CanvasState) => state[flowFeatureKey]);
 
 export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: FlowState) => state.status);
 
@@ -33,7 +36,49 @@ export const selectParentProcessGroupId = createSelector(
     (state: FlowState) => state.flow.processGroupFlow.parentGroupId
 );
 
-export const selectSelected = createSelector(selectFlowState, (state: FlowState) => state.selection);
+export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.processGroupId;
+    }
+    return null;
+});
+
+export const selectSelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
+    const ids: string[] = [];
+    if (route) {
+        // handle either bulk or individual component routes
+        if (route.params.ids) {
+            ids.push(...route.params.ids.split(','));
+        } else if (route.params.id) {
+            ids.push(route.params.id);
+        }
+    }
+    return ids;
+});
+
+export const selectSelectedComponent = createSelector(selectCurrentRoute, (route) => {
+    let selectedComponent: SelectedComponent | null = null;
+    if (route.params.id && route.params.type) {
+        selectedComponent = {
+            id: route.params.id,
+            componentType: route.params.type
+        };
+    }
+    return selectedComponent;
+});
+
+export const selectEditedComponent = createSelector(selectCurrentRoute, (route) => {
+    let selectedComponent: SelectedComponent | null = null;
+    if (route?.routeConfig?.path == 'edit') {
+        if (route.params.id && route.params.type) {
+            selectedComponent = {
+                id: route.params.id,
+                componentType: route.params.type
+            };
+        }
+    }
+    return selectedComponent;
+});
 
 export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);
 
@@ -46,20 +91,36 @@ export const selectFunnels = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.funnels
 );
 
+export const selectFunnel = (id: string) =>
+    createSelector(selectFunnels, (funnels: any[]) => funnels.find((funnel) => id == funnel.id));
+
 export const selectProcessors = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.processors
 );
+
+export const selectProcessor = (id: string) =>
+    createSelector(selectProcessors, (processors: any[]) => processors.find((processor) => id == processor.id));
 
 export const selectProcessGroups = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.processGroups
 );
 
+export const selectProcessGroup = (id: string) =>
+    createSelector(selectProcessGroups, (processGroups: any[]) =>
+        processGroups.find((processGroup) => id == processGroup.id)
+    );
+
 export const selectRemoteProcessGroups = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.remoteProcessGroups
 );
+
+export const selectRemoteProcessGroup = (id: string) =>
+    createSelector(selectRemoteProcessGroups, (remoteProcessGroups: any[]) =>
+        remoteProcessGroups.find((remoteProcessGroup) => id == remoteProcessGroup.id)
+    );
 
 export const selectInputPorts = createSelector(
     selectFlowState,
@@ -88,7 +149,13 @@ export const selectLabels = createSelector(
     (state: FlowState) => state.flow.processGroupFlow?.flow.labels
 );
 
+export const selectLabel = (id: string) =>
+    createSelector(selectLabels, (labels: any[]) => labels.find((label) => id == label.id));
+
 export const selectConnections = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow?.flow.connections
 );
+
+export const selectConnection = (id: string) =>
+    createSelector(selectConnections, (connections: any[]) => connections.find((connection) => id == connection.id));

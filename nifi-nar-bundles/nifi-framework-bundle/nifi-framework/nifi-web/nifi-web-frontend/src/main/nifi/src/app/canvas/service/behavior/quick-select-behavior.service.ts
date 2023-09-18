@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
-import { editComponentRequest } from '../../state/flow/flow.actions';
+import { navigateToEditComponent } from '../../state/flow/flow.actions';
 
 @Injectable({
     providedIn: 'root'
@@ -40,11 +40,10 @@ export class QuickSelectBehavior {
         if (this.canvasUtils.isConfigurable(selection)) {
             // show configuration dialog
             this.store.dispatch(
-                editComponentRequest({
+                navigateToEditComponent({
                     request: {
                         type: selectionData.type,
-                        uri: selectionData.uri,
-                        entity: selectionData
+                        id: selectionData.id
                     }
                 })
             );

@@ -19,9 +19,10 @@ import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
-import { CanvasState, Position } from '../../state';
-import { setSelectedComponents } from '../../state/flow/flow.actions';
+import { CanvasState } from '../../state';
+import { selectComponents } from '../../state/flow/flow.actions';
 import { ConnectionManager } from '../manager/connection-manager.service';
+import { Position } from '../../state/shared';
 
 @Injectable({
     providedIn: 'root'
@@ -55,8 +56,15 @@ export class ConnectableBehavior {
 
                 // mark the source component has selected and unselect the previous components
                 self.store.dispatch(
-                    setSelectedComponents({
-                        ids: [sourceData.id]
+                    selectComponents({
+                        request: {
+                            components: [
+                                {
+                                    id: sourceData.id,
+                                    componentType: sourceData.type
+                                }
+                            ]
+                        }
                     })
                 );
 

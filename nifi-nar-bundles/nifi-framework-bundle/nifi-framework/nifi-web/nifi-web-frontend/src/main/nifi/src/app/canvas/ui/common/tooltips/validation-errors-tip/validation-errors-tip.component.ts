@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ValidationErrorsTipInput } from '../../../../state';
+import { ValidationErrorsTipInput } from '../../../../state/flow';
 
 @Component({
     selector: 'validation-errors-tip',

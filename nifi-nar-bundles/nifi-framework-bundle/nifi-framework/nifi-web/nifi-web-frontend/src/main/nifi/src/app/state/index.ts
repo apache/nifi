@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { ComponentType } from '../../state/shared';
+import { routerReducer, RouterReducerState } from '@ngrx/router-store';
+import { ActionReducerMap } from '@ngrx/store';
 
-@Component({
-    selector: 'fd-header',
-    templateUrl: './header.component.html',
-    styleUrls: ['./header.component.scss']
-})
-export class HeaderComponent {
-    protected readonly ComponentType = ComponentType;
+export interface State {
+    router: RouterReducerState;
 }
+
+export const rootReducers: ActionReducerMap<State> = {
+    router: routerReducer
+};

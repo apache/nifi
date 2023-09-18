@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
-import { CanvasState, ComponentType, Position, UpdateComponent } from '../../state';
+import { CanvasState } from '../../state';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -26,6 +26,8 @@ import { updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../client.service';
 import { selectConnections } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { UpdateComponent } from '../../state/flow';
+import { ComponentType, Position } from '../../state/shared';
 
 @Injectable({
     providedIn: 'root'

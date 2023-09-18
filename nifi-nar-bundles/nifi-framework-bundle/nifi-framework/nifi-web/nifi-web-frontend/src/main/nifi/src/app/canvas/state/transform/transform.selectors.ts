@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
-import { CanvasState } from '../index';
+import { createSelector } from '@ngrx/store';
+import { CanvasState, selectCanvasState } from '../index';
+import { transformFeatureKey } from './index';
 
-export const selectTransform = (state: CanvasState) => state.transform;
+export const selectTransform = createSelector(selectCanvasState, (state: CanvasState) => state[transformFeatureKey]);

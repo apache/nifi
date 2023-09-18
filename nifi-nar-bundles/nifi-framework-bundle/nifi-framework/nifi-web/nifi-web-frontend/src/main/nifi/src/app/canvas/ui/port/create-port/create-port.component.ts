@@ -18,11 +18,13 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { CanvasState, ComponentType, CreateComponent } from '../../../state';
+import { CanvasState } from '../../../state';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { selectParentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from 'src/app/canvas/state/flow/flow.actions';
+import { CreateComponent } from '../../../state/flow';
+import { ComponentType } from '../../../state/shared';
 
 @Component({
     selector: 'create-port',

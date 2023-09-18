@@ -17,17 +17,25 @@
 
 import { DestroyRef, inject, Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState, ComponentType, UpdateComponent } from '../../state';
+import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
-import { selectLabels, selectSelected, selectTransitionRequired } from '../../state/flow/flow.selectors';
+import {
+    selectFlowLoadingStatus,
+    selectLabels,
+    selectSelectedComponentIds,
+    selectTransitionRequired
+} from '../../state/flow/flow.selectors';
 import { Client } from '../client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
+import { ComponentType } from '../../state/shared';
+import { UpdateComponent } from '../../state/flow';
+import { filter, switchMap } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
@@ -68,6 +76,7 @@ export class LabelManager {
         if (entered.empty()) {
             return entered;
         }
+        const self: LabelManager = this;
 
         const label = entered
             .append('g')
@@ -257,8 +266,12 @@ export class LabelManager {
             });
 
         this.store
-            .select(selectSelected)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .select(selectFlowLoadingStatus)
+            .pipe(
+                filter((status) => status === 'success'),
+                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                takeUntilDestroyed(this.destroyRef)
+            )
             .subscribe((selected) => {
                 this.labelContainer.selectAll('g.label').classed('selected', function (d: any) {
                     return selected.includes(d.id);

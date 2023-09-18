@@ -19,11 +19,12 @@ import { ComponentRef, Injectable, Type, ViewContainerRef } from '@angular/core'
 import * as d3 from 'd3';
 import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
-import { CanvasState, Position } from '../state';
+import { CanvasState } from '../state';
 import { selectCurrentProcessGroupId, selectParentProcessGroupId } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+import { Position } from '../state/shared';
 
 @Injectable({
     providedIn: 'root'

@@ -17,23 +17,21 @@
 
 import { createReducer, on } from '@ngrx/store';
 import {
-    addSelectedComponents,
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
-    enterProcessGroup,
-    enterProcessGroupComplete,
-    enterProcessGroupSuccess,
+    loadProcessGroup,
+    loadProcessGroupComplete,
+    loadProcessGroupSuccess,
     flowApiError,
-    removeSelectedComponents,
     setDragging,
     setRenderRequired,
-    setSelectedComponents,
     setTransitionRequired,
     updateComponentFailure,
     updateComponentSuccess
 } from './flow.actions';
-import { ComponentType, FlowState } from '../index';
+import { FlowState } from './index';
+import { ComponentType } from '../shared';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {
@@ -61,7 +59,6 @@ export const initialState: FlowState = {
             lastRefreshed: ''
         }
     },
-    selection: [],
     dragging: false,
     renderRequired: false,
     transitionRequired: false,
@@ -71,21 +68,20 @@ export const initialState: FlowState = {
 
 export const flowReducer = createReducer(
     initialState,
-    on(enterProcessGroup, (state) => ({
+    on(loadProcessGroup, (state) => ({
         ...state,
         status: 'loading' as const
     })),
-    on(enterProcessGroupSuccess, (state, { response }) => ({
+    on(loadProcessGroupSuccess, (state, { response }) => ({
         ...state,
         id: response.flow.processGroupFlow.id,
         flow: response.flow,
         error: null,
         status: 'success' as const
     })),
-    on(enterProcessGroupComplete, (state, { response }) => ({
+    on(loadProcessGroupComplete, (state, { response }) => ({
         ...state,
-        renderRequired: true,
-        selection: response.selection
+        renderRequired: true
     })),
     on(flowApiError, (state, { error }) => ({
         ...state,
@@ -97,18 +93,6 @@ export const flowReducer = createReducer(
         ...state,
         error: null,
         status: 'pending' as const
-    })),
-    on(addSelectedComponents, (state, { ids }) => ({
-        ...state,
-        selection: [...state.selection, ...ids]
-    })),
-    on(setSelectedComponents, (state, { ids }) => ({
-        ...state,
-        selection: ids
-    })),
-    on(removeSelectedComponents, (state, { ids }) => ({
-        ...state,
-        selection: state.selection.filter((id) => !ids.includes(id))
     })),
     on(createComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

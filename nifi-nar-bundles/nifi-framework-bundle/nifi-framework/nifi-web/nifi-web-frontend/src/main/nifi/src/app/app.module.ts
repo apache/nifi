@@ -17,7 +17,6 @@
 
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -27,7 +26,10 @@ import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from './environments/environment';
 import { HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
+import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
+import { rootReducers } from './state';
 
+// @ts-ignore
 @NgModule({
     declarations: [AppComponent],
     imports: [
@@ -40,7 +42,11 @@ import { HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
             cookieName: '__Secure-Request-Token',
             headerName: 'Request-Token'
         }),
-        StoreModule.forRoot({}),
+        StoreModule.forRoot(rootReducers),
+        StoreRouterConnectingModule.forRoot({
+            routerState: RouterState.Minimal,
+            navigationActionTiming: NavigationActionTiming.PostActivation
+        }),
         EffectsModule.forRoot(),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

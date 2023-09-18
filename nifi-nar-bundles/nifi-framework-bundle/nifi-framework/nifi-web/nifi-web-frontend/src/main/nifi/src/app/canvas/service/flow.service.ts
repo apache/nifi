@@ -17,9 +17,10 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { ComponentType, CreateComponent, CreatePort, UpdateComponent } from '../state';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
+import { CreateComponent, CreatePort, UpdateComponent } from '../state/flow';
+import { ComponentType } from '../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService {

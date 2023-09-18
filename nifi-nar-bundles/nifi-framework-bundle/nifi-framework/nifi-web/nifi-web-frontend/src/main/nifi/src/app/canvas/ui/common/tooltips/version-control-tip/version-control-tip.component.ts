@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { VersionControlInformation, VersionControlTipInput } from '../../../../state';
+import { VersionControlInformation, VersionControlTipInput } from '../../../../state/flow';
 
 @Component({
     selector: 'version-control-tip',

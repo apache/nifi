@@ -15,28 +15,23 @@
  * limitations under the License.
  */
 
-/*
-  Canvas Positioning/Transforms
- */
-
-import { transformFeatureKey, CanvasTransform } from './transform';
-import { flowFeatureKey, FlowState } from './flow';
-import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
-import { transformReducer } from './transform/transform.reducer';
-import { flowReducer } from './flow/flow.reducer';
-
-export const canvasFeatureKey = 'canvas';
-
-export interface CanvasState {
-    [flowFeatureKey]: FlowState;
-    [transformFeatureKey]: CanvasTransform;
+export enum ComponentType {
+    Processor = 'Processor',
+    ProcessGroup = 'ProcessGroup',
+    RemoteProcessGroup = 'RemoteProcessGroup',
+    InputPort = 'InputPort',
+    OutputPort = 'OutputPort',
+    Label = 'Label',
+    Funnel = 'Funnel',
+    Connection = 'Connection'
 }
 
-export function reducers(state: CanvasState | undefined, action: Action) {
-    return combineReducers({
-        [flowFeatureKey]: flowReducer,
-        [transformFeatureKey]: transformReducer
-    })(state, action);
+export interface Dimension {
+    width: number;
+    height: number;
 }
 
-export const selectCanvasState = createFeatureSelector<CanvasState>(canvasFeatureKey);
+export interface Position {
+    x: number;
+    y: number;
+}

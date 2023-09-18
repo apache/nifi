@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { UnorderedListTipInput } from '../../../../state';
+import { UnorderedListTipInput } from '../../../../state/flow';
 
 @Component({
     selector: 'unordered-list-tip',

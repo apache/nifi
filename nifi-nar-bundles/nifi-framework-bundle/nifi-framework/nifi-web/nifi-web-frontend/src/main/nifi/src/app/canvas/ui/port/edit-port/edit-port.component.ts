@@ -17,11 +17,13 @@
 
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CanvasState, ComponentType, EditComponent } from '../../../state';
+import { CanvasState } from '../../../state';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../state/flow/flow.actions';
 import { Client } from '../../../service/client.service';
+import { EditComponent } from '../../../state/flow';
+import { ComponentType } from '../../../state/shared';
 
 @Component({
     selector: 'edit-port',

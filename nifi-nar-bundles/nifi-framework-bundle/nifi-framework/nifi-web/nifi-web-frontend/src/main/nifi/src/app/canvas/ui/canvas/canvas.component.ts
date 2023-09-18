@@ -16,14 +16,17 @@
  */
 
 import { Component, OnInit, ViewContainerRef } from '@angular/core';
-import { CanvasState, Position } from '../../state';
+import { CanvasState } from '../../state';
+import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
-import { enterProcessGroup, setSelectedComponents } from '../../state/flow/flow.actions';
+import { deselectAllComponents, loadProcessGroup, selectComponents } from '../../state/flow/flow.actions';
 import * as d3 from 'd3';
 import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SelectedComponent } from '../../state/flow';
+import { selectProcessGroupIdFromRoute } from '../../state/flow/flow.selectors';
 
 @Component({
     selector: 'fd-canvas',
@@ -48,22 +51,27 @@ export class CanvasComponent implements OnInit {
             .subscribe((transform) => {
                 this.scale = transform.scale;
             });
+
+        this.store
+            .select(selectProcessGroupIdFromRoute)
+            .pipe(takeUntilDestroyed())
+            .subscribe((processGroupId) => {
+                if (processGroupId) {
+                    this.store.dispatch(
+                        loadProcessGroup({
+                            request: {
+                                id: processGroupId
+                            }
+                        })
+                    );
+                }
+            });
     }
 
     ngOnInit(): void {
         // initialize the canvas svg
         this.createSvg();
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
-
-        // enter the root process group
-        this.store.dispatch(
-            enterProcessGroup({
-                request: {
-                    id: 'root',
-                    selection: []
-                }
-            })
-        );
     }
 
     private createSvg(): void {
@@ -80,15 +88,8 @@ export class CanvasComponent implements OnInit {
                 // if this context menu click was on the canvas (and not a nested
                 // element) we need to clear the selection
                 if (event.target === self.svg.node()) {
-                    self.store.dispatch(
-                        setSelectedComponents({
-                            ids: []
-                        })
-                    );
+                    self.store.dispatch(deselectAllComponents());
                 }
-
-                // update URL deep linking params
-                // nfCanvasUtils.setURLParameters();
             });
 
         this.createDefs();
@@ -314,7 +315,7 @@ export class CanvasComponent implements OnInit {
                 // get the selection box
                 const selectionBox: any = d3.select('rect.component-selection');
                 if (!selectionBox.empty()) {
-                    const selection: string[] = [];
+                    const selection: SelectedComponent[] = [];
 
                     const selectionBoundingBox: any = {
                         x: parseInt(selectionBox.attr('x'), 10),
@@ -335,7 +336,10 @@ export class CanvasComponent implements OnInit {
                                 d.position.y + d.dimensions.height <=
                                     selectionBoundingBox.y + selectionBoundingBox.height)
                         ) {
-                            selection.push(d.id);
+                            selection.push({
+                                id: d.id,
+                                componentType: d.type
+                            });
                         }
                     });
 
@@ -360,22 +364,24 @@ export class CanvasComponent implements OnInit {
                                 y[0] >= selectionBoundingBox.y &&
                                 y[1] <= selectionBoundingBox.y + selectionBoundingBox.height)
                         ) {
-                            selection.push(d.id);
+                            selection.push({
+                                id: d.id,
+                                componentType: d.type
+                            });
                         }
                     });
 
                     // dispatch the selected components
                     self.store.dispatch(
-                        setSelectedComponents({
-                            ids: selection
+                        selectComponents({
+                            request: {
+                                components: selection
+                            }
                         })
                     );
 
                     // remove the selection box
                     selectionBox.remove();
-
-                    // TODO - update URL deep linking params
-                    // nfCanvasUtils.setURLParameters();
                 }
             });
     }

@@ -21,13 +21,16 @@ import {
     CreateComponentResponse,
     CreatePort,
     EditComponent,
+    EditComponentRequest,
     EnterProcessGroupRequest,
-    EnterProcessGroupResponse,
+    LoadProcessGroupRequest,
+    LoadProcessGroupResponse,
+    SelectComponents,
     UpdateComponent,
     UpdateComponentFailure,
     UpdateComponentResponse,
     UpdatePositions
-} from '../index';
+} from './index';
 
 /*
     Loading Flow
@@ -42,14 +45,19 @@ export const enterProcessGroup = createAction(
     props<{ request: EnterProcessGroupRequest }>()
 );
 
-export const enterProcessGroupSuccess = createAction(
-    '[Canvas] Enter Process Group Success',
-    props<{ response: EnterProcessGroupResponse }>()
+export const loadProcessGroup = createAction(
+    '[Canvas] Load Process Group',
+    props<{ request: LoadProcessGroupRequest }>()
 );
 
-export const enterProcessGroupComplete = createAction(
-    '[Canvas] Enter Process Group Complete',
-    props<{ response: EnterProcessGroupResponse }>()
+export const loadProcessGroupSuccess = createAction(
+    '[Canvas] Load Process Group Success',
+    props<{ response: LoadProcessGroupResponse }>()
+);
+
+export const loadProcessGroupComplete = createAction(
+    '[Canvas] Load Process Group Complete',
+    props<{ response: LoadProcessGroupResponse }>()
 );
 
 export const flowApiError = createAction('[Canvas] Flow Api Error', props<{ error: string }>());
@@ -60,11 +68,19 @@ export const clearFlowApiError = createAction('[Canvas] Clear Flow Api Error');
     Selectable Behavior
  */
 
-export const addSelectedComponents = createAction('[Canvas] Add Selected Component', props<{ ids: string[] }>());
+export const addSelectedComponents = createAction(
+    '[Canvas] Add Selected Component',
+    props<{ request: SelectComponents }>()
+);
 
-export const setSelectedComponents = createAction('[Canvas] Set Selected Components', props<{ ids: string[] }>());
+export const selectComponents = createAction('[Canvas] Select Components', props<{ request: SelectComponents }>());
 
-export const removeSelectedComponents = createAction('[Canvas] Remove Selected Components', props<{ ids: string[] }>());
+export const deselectAllComponents = createAction('[Canvas] Deselect All Components');
+
+export const removeSelectedComponents = createAction(
+    '[Canvas] Remove Selected Components',
+    props<{ request: SelectComponents }>()
+);
 
 /*
     Create Component Actions
@@ -97,10 +113,12 @@ export const createComponentComplete = createAction(
     Update Component Action
  */
 
-export const editComponentRequest = createAction(
-    '[Canvas] Edit Component Request',
-    props<{ request: EditComponent }>()
+export const navigateToEditComponent = createAction(
+    '[Canvas] Navigate To Edit Component',
+    props<{ request: EditComponentRequest }>()
 );
+
+export const editComponent = createAction('[Canvas] Edit Component Request', props<{ request: EditComponent }>());
 
 export const openEditPortDialog = createAction('[Canvas] Open Edit Port Dialog', props<{ request: EditComponent }>());
 
