@@ -22,8 +22,10 @@ import java.util.regex.Pattern;
  * Pattern indicators for age-encryption.org public and private keys
  */
 public enum AgeKeyIndicator {
+    /** Human-Readable Part with Separator and enumeration of allowed Bech32 uppercase characters from BIP 0173 */
     PRIVATE_KEY("AGE-SECRET-KEY-1", Pattern.compile("^AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}$")),
 
+    /** Human-Readable Part with Separator and enumeration of allowed Bech32 lowercase characters from BIP 0173 */
     PUBLIC_KEY("age1", Pattern.compile("^age1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}$"));
 
     private final String prefix;
