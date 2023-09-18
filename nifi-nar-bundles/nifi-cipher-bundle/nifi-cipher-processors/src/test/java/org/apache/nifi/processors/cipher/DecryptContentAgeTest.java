@@ -63,6 +63,8 @@ class DecryptContentAgeTest {
 
     private static final String PRIVATE_KEY_ENCODED = "AGE-SECRET-KEY-1NZKRS8L39Y2KVLXT7XX4DHFVDUUWN0699NJYR2EJS8RWGRYN279Q8GSFTN";
 
+    private static final String PRIVATE_KEY_SECOND = "AGE-SECRET-KEY-1AU0T8M9GWJ4PEQK9TGS54T6VHRL8DLFTZ7AWYJDFTLMDZZWZQKDSA8K882";
+
     private static final String PUBLIC_KEY_ENCODED = "age1qqnete0p2wzcc7y55trm3c4jzr608g4xdvyfw9jurugyt6maauussgn5gg";
 
     private static final String KEY_FILE_SUFFIX = ".key";
@@ -124,6 +126,15 @@ class DecryptContentAgeTest {
     @Test
     void testRunSuccessBinary() throws GeneralSecurityException, IOException {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_ENCODED);
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+
+        assertSuccess(FileEncoding.BINARY);
+    }
+
+    @Test
+    void testRunSuccessBinaryMultiplePrivateKeys() throws GeneralSecurityException, IOException {
+        final String multiplePrivateKeys = String.format("%s%n%s", PRIVATE_KEY_ENCODED, PRIVATE_KEY_SECOND);
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, multiplePrivateKeys);
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
 
         assertSuccess(FileEncoding.BINARY);
