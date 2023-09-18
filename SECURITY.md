@@ -41,8 +41,6 @@ While researching, we'd like to ask you to refrain from:
 
 * NiFi Security Mailing List: [security@nifi.apache.org](mailto:security@nifi.apache.org)
   * Members of the [Project Management Committee](https://nifi.apache.org/people.html) monitor this private mailing list and respond to disclosures
-* NiFi [HackerOne](https://hackerone.com/apache_nifi) project page
-  * HackerOne provides a triaged process for researchers and organizations to collaboratively report and resolve security vulnerabilities
 
 ## Publishing
 
