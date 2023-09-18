@@ -238,6 +238,7 @@ public class ExtensionBuilder {
         }
 
         final ProcessorNode processorNode = createProcessorNode(loggableComponent, creationSuccessful);
+        loggingContext.setComponent(processorNode);
         return processorNode;
     }
 
