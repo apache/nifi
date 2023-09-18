@@ -120,28 +120,34 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.groovy</groupId>
+            <groupId>org.xmlunit</groupId>
+            <artifactId>xmlunit-core</artifactId>
+            <version>2.9.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-json</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${scripting.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.groovy</groupId>
+            <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-jsr223</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${scripting.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.groovy</groupId>
+            <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-xml</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${scripting.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- groovy-all does not include groovy-dateutil by default, so must explicitly include it here -->
         <dependency>
-            <groupId>org.apache.groovy</groupId>
+            <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-dateutil</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${scripting.groovy.version}</version>
         </dependency>
     </dependencies>
     <build>
@@ -151,6 +157,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/xmlRecord.xml</exclude>
                         <exclude>src/test/resources/jython/test_compress.py</exclude>
                     </excludes>
                 </configuration>
