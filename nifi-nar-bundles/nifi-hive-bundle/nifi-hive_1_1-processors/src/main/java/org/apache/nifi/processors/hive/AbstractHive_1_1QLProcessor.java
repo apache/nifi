@@ -220,7 +220,7 @@ public abstract class AbstractHive_1_1QLProcessor extends AbstractSessionFactory
                 }
             } catch (SQLException e) {
                 // Log which attribute/parameter had an error, then rethrow to be handled at the top level
-                getLogger().error("Error setting parameter {} to value from {} ({})", new Object[]{parameterIndex, attrName, parameterValue}, e);
+                getLogger().error("Error setting parameter {} to value from {} ({})", parameterIndex, attrName, parameterValue, e);
                 throw e;
             }
         }
@@ -281,7 +281,7 @@ public abstract class AbstractHive_1_1QLProcessor extends AbstractSessionFactory
             node = new ParseDriver().parse(normalize(query));
         } catch (ParseException e) {
             // If failed to parse the query, just log a message, but continue.
-            getLogger().debug("Failed to parse query: {} due to {}", new Object[]{query, e}, e);
+            getLogger().debug("Failed to parse query: {} due to {}", query, e, e);
             return Collections.emptySet();
         }
 

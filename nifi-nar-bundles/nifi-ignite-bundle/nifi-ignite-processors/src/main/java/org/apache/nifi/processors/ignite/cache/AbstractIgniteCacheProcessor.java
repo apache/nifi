@@ -111,7 +111,7 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
             cacheName = context.getProperty(CACHE_NAME).getValue();
 
         } catch (Exception e) {
-            getLogger().error("Failed to initialize ignite cache due to {}", new Object[] { e }, e);
+            getLogger().error("Failed to initialize ignite cache due to {}", e, e);
             throw new ProcessException(e);
         }
     }

@@ -938,7 +938,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
         } catch (DiscontinuedException e) {
             // The input FlowFile processing is discontinued. Keep it in the input queue.
-            getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
+            getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
             result.routeTo(flowFile, Relationship.SELF);
 
         } catch (ShouldRetryException e) {

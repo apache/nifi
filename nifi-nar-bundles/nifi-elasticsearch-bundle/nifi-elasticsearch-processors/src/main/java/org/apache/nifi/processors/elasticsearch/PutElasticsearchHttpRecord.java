@@ -499,7 +499,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         try {
             getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "PUT", requestBody);
         } catch (final Exception e) {
-            logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
+            logger.error("Routing to {} due to exception: {}", REL_FAILURE.getName(), e, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -555,7 +555,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 }
             } catch (IOException ioe) {
                 // Something went wrong when parsing the response, log the error and route to failure
-                logger.error("Error parsing Bulk API response: {}", new Object[]{ioe.getMessage()}, ioe);
+                logger.error("Error parsing Bulk API response: {}", ioe.getMessage(), ioe);
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();
                 return;

@@ -294,13 +294,13 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             logger.error(
                     "Failed to read from Elasticsearch due to {}, this may indicate an error in configuration "
                             + "(hosts, username/password, etc.).",
-                    new Object[] { ioe.getLocalizedMessage() }, ioe);
+                    ioe.getLocalizedMessage(), ioe);
             session.remove(flowFile);
             context.yield();
 
         } catch (Exception e) {
-            logger.error("Failed to read {} from Elasticsearch due to {}", new Object[] { flowFile,
-                    e.getLocalizedMessage() }, e);
+            logger.error("Failed to read {} from Elasticsearch due to {}", flowFile,
+                    e.getLocalizedMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }

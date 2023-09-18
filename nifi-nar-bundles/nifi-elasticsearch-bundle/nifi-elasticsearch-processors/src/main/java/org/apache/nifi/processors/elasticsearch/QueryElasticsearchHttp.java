@@ -365,21 +365,21 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             logger.error(
                     "Failed to read from Elasticsearch due to {}, this may indicate an error in configuration "
                             + "(hosts, username/password, etc.). Routing to retry",
-                    new Object[] { ioe.getLocalizedMessage() }, ioe);
+                    ioe.getLocalizedMessage(), ioe);
             if (flowFile != null) {
                 session.transfer(flowFile, REL_RETRY);
             }
             context.yield();
 
         } catch (RetryableException e) {
-            logger.error(e.getMessage(), new Object[] { e.getLocalizedMessage() }, e);
+            logger.error(e.getMessage(), e.getLocalizedMessage(), e);
             if (flowFile != null) {
                 session.transfer(flowFile, REL_RETRY);
             }
             context.yield();
         } catch (Exception e) {
-            logger.error("Failed to read {} from Elasticsearch due to {}", new Object[] { flowFile,
-                    e.getLocalizedMessage() }, e);
+            logger.error("Failed to read {} from Elasticsearch due to {}", flowFile,
+                    e.getLocalizedMessage(), e);
             if (flowFile != null) {
                 session.transfer(flowFile, REL_FAILURE);
             }

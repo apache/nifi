@@ -170,7 +170,7 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
         } catch (Exception exception) {
             getLogger().error("Failed to get document from RethinkDB due to error {}",
-                    new Object[]{exception.getLocalizedMessage()}, exception);
+                    exception.getLocalizedMessage(), exception);
             flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, exception.getMessage() + "");
             session.transfer(flowFile, REL_FAILURE);
             context.yield();

@@ -249,7 +249,7 @@ public class PutHive_1_1QL extends AbstractHive_1_1QLProcessor {
                             tableNames.addAll(findTableNames(hiveQL));
                         } catch (Exception e) {
                             // If failed to parse the query, just log a warning message, but continue.
-                            getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
+                            getLogger().warn("Failed to parse hiveQL: {} due to {}", hiveQL, e, e);
                         }
 
                         // Execute the statement
@@ -275,14 +275,13 @@ public class PutHive_1_1QL extends AbstractHive_1_1QLProcessor {
         onFlowFileError = onFlowFileError.andThen((c, i, r, e) -> {
             switch (r.destination()) {
                 case Failure:
-                    getLogger().error("Failed to update Hive for {} due to {}; routing to failure", new Object[] {i, e}, e);
+                    getLogger().error("Failed to update Hive for {} due to {}; routing to failure", i, e, e);
                     break;
                 case Retry:
-                    getLogger().error("Failed to update Hive for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                            new Object[] {i, e}, e);
+                    getLogger().error("Failed to update Hive for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry", i, e, e);
                     break;
                 case Self:
-                    getLogger().error("Failed to update Hive for {} due to {};", new Object[] {i, e}, e);
+                    getLogger().error("Failed to update Hive for {} due to {};", i, e, e);
                     break;
             }
         });
