@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 public abstract class AbstractSecureHasher implements SecureHasher {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSecureHasher.class);
@@ -185,7 +186,7 @@ public abstract class AbstractSecureHasher implements SecureHasher {
             return "";
         }
 
-        return CipherUtility.encodeBase64NoPadding(hash(input.getBytes(StandardCharsets.UTF_8)));
+        return Base64.getEncoder().withoutPadding().encodeToString(hash(input.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -204,7 +205,7 @@ public abstract class AbstractSecureHasher implements SecureHasher {
             return "";
         }
 
-        return CipherUtility.encodeBase64NoPadding(hash(input.getBytes(StandardCharsets.UTF_8), salt.getBytes(StandardCharsets.UTF_8)));
+        return Base64.getEncoder().withoutPadding().encodeToString(hash(input.getBytes(StandardCharsets.UTF_8), salt.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
