@@ -24,10 +24,6 @@
 
     <artifactId>nifi-cipher-processors</artifactId>
 
-    <properties>
-        <com.exceptionfactory.jagged.version>0.1.1</com.exceptionfactory.jagged.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -50,17 +46,14 @@
         <dependency>
             <groupId>com.exceptionfactory.jagged</groupId>
             <artifactId>jagged-x25519</artifactId>
-            <version>${com.exceptionfactory.jagged.version}</version>
         </dependency>
         <dependency>
             <groupId>com.exceptionfactory.jagged</groupId>
             <artifactId>jagged-framework</artifactId>
-            <version>${com.exceptionfactory.jagged.version}</version>
         </dependency>
         <dependency>
             <groupId>com.exceptionfactory.jagged</groupId>
             <artifactId>jagged-api</artifactId>
-            <version>${com.exceptionfactory.jagged.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
