@@ -536,13 +536,6 @@
                         <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
                         <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>

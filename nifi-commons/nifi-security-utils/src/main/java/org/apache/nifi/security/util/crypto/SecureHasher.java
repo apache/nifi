@@ -20,13 +20,8 @@ package org.apache.nifi.security.util.crypto;
  * An interface which specifies that implementations should provide a
  * cryptographic hash function (CHF) which accepts input and returns a
  * deterministic, (mathematically-difficult) irreversible value.
- *
  * While SHA-256, SHA-512, and Blake2 are CHF implementations, this interface is intended to
- * be used by password protection or key derivation functions (KDF) like
- * {@link PBKDF2CipherProvider}, {@link BcryptCipherProvider}, {@link ScryptCipherProvider},
- * or {@link Argon2SecureHasher}. These classes implement iterative processes which make use
- * of cryptographic primitives to return an irreversible value which can either securely
- * store a password representation or be used as an encryption key derived from a password.
+ * be used by password protection or key derivation functions (KDF).
  */
 public interface SecureHasher {
 

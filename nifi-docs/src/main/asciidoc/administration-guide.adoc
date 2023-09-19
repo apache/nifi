@@ -1889,9 +1889,6 @@ The EncryptContent processor allows for the encryption and decryption of data, b
 === Key Derivation Functions
 
 Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read the link:https://en.wikipedia.org/wiki/Key_derivation_function[Wikipedia entry on Key Derivation Functions^].
-Currently, KDFs are ingested by `CipherProvider` implementations and return a fully-initialized `Cipher` object to be used for encryption or decryption. Due to the use of a `CipherProviderFactory`, the KDFs are not customizable at this time. Future enhancements will include the ability to provide custom cost parameters to the KDF at initialization time. As a work-around, `CipherProvider` instances can be initialized with custom cost parameters in the constructor but this is not currently supported by the `CipherProviderFactory`.
-If you do not have a need for a specific KDF, *Argon2 is recommended* as it is a robust, secure, performant, and user-friendly default and is widely supported on multiple platforms.
-Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent` processor for password-based encryption (PBE)) and relevant notes:
 
 [[nifi-legacy-kdf]]
 ==== NiFi Legacy KDF
@@ -1998,95 +1995,11 @@ image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
 
 image:argon2-salt.png["Argon2 Salt & IV Encoding"]
 
-=== Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
-
-Because of US export regulations, default JVMs have link:https://docs.oracle.com/en/java/javase/17/security/oracle-providers.html[limits imposed on the strength of cryptographic operations^] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
-
-PBE is the process of deriving a cryptographic key for encryption or decryption from _user-provided secret material_, usually a password. Rather than a human remembering a (random-appearing) 32 or 64 character hexadecimal string, a password or passphrase is used.
-
-A number of PBE algorithms provided by NiFi impose strict limits on the length of the password due to the underlying key length checks. Below is a table listing the maximum password length on a JVM with limited cryptographic strength.
-
-.Maximum Password Length on Limited Cryptographic Strength JVM
-|===
-|Algorithm |Max Password Length
-
-|`PBEWITHMD5AND128BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5AND192BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5AND256BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5ANDDES`
-|16
-
-|`PBEWITHMD5ANDRC2`
-|16
-
-|`PBEWITHSHA1ANDRC2`
-|16
-
-|`PBEWITHSHA1ANDDES`
-|16
-
-|`PBEWITHSHAAND128BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND192BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND256BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND40BITRC2-CBC`
-|7
-
-|`PBEWITHSHAAND128BITRC2-CBC`
-|7
-
-|`PBEWITHSHAAND40BITRC4`
-|7
-
-|`PBEWITHSHAAND128BITRC4`
-|7
-
-|`PBEWITHSHA256AND128BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHA256AND192BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHA256AND256BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND2-KEYTRIPLEDES-CBC`
-|7
-
-|`PBEWITHSHAAND3-KEYTRIPLEDES-CBC`
-|7
-
-|`PBEWITHSHAANDTWOFISH-CBC`
-|7
-|===
-
-=== Allow Insecure Cryptographic Modes
-
-By default, the `Allow Insecure Cryptographic Modes` property in `EncryptContent` processor settings is set to `not-allowed`. This means that if a password of fewer than `10` characters is provided, a validation error will occur. 10 characters is a conservative estimate and does not take into consideration full entropy calculations, patterns, etc.
-
-image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
-
-It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" <<key-derivation-functions, Key Derivation Function (KDF) supported by NiFi>>.
-
 [[nifi_sensitive_props_key]]
 == Encrypted Passwords in Flows
 
 NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk.
 The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information).
-Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version.
-Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation.
-In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values.
 
 NiFi supports several configuration options to provide authenticated encryption with associated data (AEAD) using AES Galois/Counter Mode (AES-GCM).
 These algorithms use a strong Key Derivation Function to derive a secret key of specified length based on the sensitive properties key configured.

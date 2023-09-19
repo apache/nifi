@@ -162,7 +162,6 @@ MiNiFi is able to use the following processors out of the box:
 * ControlRate
 * ConvertCharacterSet
 * DuplicateFlowFile
-* EncryptContent
 * EvaluateJsonPath
 * EvaluateRegularExpression
 * EvaluateXPath
