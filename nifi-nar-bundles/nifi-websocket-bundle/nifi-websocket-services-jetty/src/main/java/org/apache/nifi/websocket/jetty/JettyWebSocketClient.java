@@ -64,7 +64,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Tags({"WebSocket", "Jetty", "client"})
@@ -114,6 +116,26 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("3")
+            .build();
+
+    public static final PropertyDescriptor INITIAL_BACKOFF_TIME = new PropertyDescriptor.Builder()
+            .name("initial-backoff-time")
+            .displayName("Initial Backoff Time")
+            .description("The initial exponential backoff time for reconnection.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 sec")
+            .build();
+
+    public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
+            .name("maximum-backoff-time")
+            .displayName("Maximum Backoff Time")
+            .description("The maximm exponential backoff time for reconnection.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 min")
             .build();
 
     public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
@@ -191,6 +213,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    private static final double BACKOFF_JITTER_FACTOR = 0.2;
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -199,6 +223,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
         props.add(CONNECTION_ATTEMPT_COUNT);
+        props.add(INITIAL_BACKOFF_TIME);
+        props.add(MAXIMUM_BACKOFF_TIME);
         props.add(SESSION_MAINTENANCE_INTERVAL);
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
@@ -215,6 +241,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private WebSocketClient client;
     private URI webSocketUri;
     private long connectionTimeoutMillis;
+    private int connectCount;
+    private long initialBackoffMillis;
+    private long maximumBackoffMillis;
+    private long backoffJitterMillis;
+
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
     protected String authorizationHeader;
@@ -228,6 +259,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     @Override
     public void startClient(final ConfigurationContext context) throws Exception {
         configurationContext = context;
+
+        connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
+        maximumBackoffMillis = configurationContext.getProperty(MAXIMUM_BACKOFF_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        initialBackoffMillis = configurationContext.getProperty(INITIAL_BACKOFF_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        backoffJitterMillis = (long) (initialBackoffMillis * BACKOFF_JITTER_FACTOR * ThreadLocalRandom.current().nextDouble(-1, 1));
 
         final HttpClient httpClient;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
@@ -370,30 +406,45 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
             }
 
-            final int connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
+            final Session session = attemptConnection(listener, request, connectCount);
 
-            Session session = null;
-            for (int i = 0; i < connectCount; i++) {
-                final Future<Session> connect = createWebsocketSession(listener, request);
-                getLogger().info("Connecting to : {}", webSocketUri);
-                try {
-                    session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-                    break;
-                } catch (Exception e) {
-                    if (i == connectCount - 1) {
-                        throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
-                    } else {
-                        getLogger().warn("Failed to connect to {}, reconnection attempt {}", webSocketUri, i + 1);
-                    }
-                }
-            }
             getLogger().info("Connected, session={}", session);
             activeSessions.put(clientId, new SessionInfo(listener.getSessionId(), flowFileAttributes));
 
         } finally {
             connectionLock.unlock();
         }
+    }
 
+    private Session attemptConnection(RoutingWebSocketListener listener, ClientUpgradeRequest request, int connectCount) throws IOException {
+        long backoffMillis = initialBackoffMillis;
+        for (int i = 0; i < connectCount; i++) {
+            final Future<Session> connect = createWebsocketSession(listener, request);
+            getLogger().info("Connecting to : {}", webSocketUri);
+            try {
+                return connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                getLogger().warn("Connection attempt to {} timed out", webSocketUri);
+            } catch (InterruptedException e) {
+                getLogger().warn("Thread was interrupted while attempting to connect to {}", webSocketUri, e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                getLogger().warn("Failed to connect to {}, reconnection attempt {}", webSocketUri, i + 1, e);
+            }
+
+            if (i < connectCount - 1) {
+                final long sleepTime = backoffMillis + backoffJitterMillis;
+                try {
+                    getLogger().info("Sleeping {} ms before new connection attempt.", sleepTime);
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    getLogger().warn("Thread was interrupted while reconnecting to {} with {} backoffMillis", webSocketUri, sleepTime, e);
+                    Thread.currentThread().interrupt();
+                }
+                backoffMillis = Math.min(backoffMillis * 2, maximumBackoffMillis);
+            }
+        }
+        throw new IOException("Failed to connect " + webSocketUri + " after " + connectCount + " attempts");
     }
 
     Future<Session> createWebsocketSession(RoutingWebSocketListener listener, ClientUpgradeRequest request) throws IOException {
