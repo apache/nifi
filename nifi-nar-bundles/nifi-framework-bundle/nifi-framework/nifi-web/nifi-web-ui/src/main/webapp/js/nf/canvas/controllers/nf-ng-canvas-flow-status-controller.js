@@ -526,7 +526,7 @@
                     if (groupId !== 'root') {
                         $.ajax({
                             type: 'GET',
-                            url: '../nifi-api/flow/flow-analysis/result/' + groupId,
+                            url: '../nifi-api/flow/flow-analysis/results/' + groupId,
                             dataType: 'json',
                             context: this
                         }).done(function (response) {
@@ -828,9 +828,10 @@
 
 
                 createNewFlowRequest: function () {
+                    var groupId = nfCanvasUtils.getGroupId();
                     return $.ajax({
                         type: 'POST',
-                        url: `../nifi-api/process-groups/flow-analysis/51deafbb-0187-1000-75c0-e64e509907fb`,
+                        url: '../nifi-api/process-groups/flow-analysis/' + groupId,
                         dataType: 'json'
                     }).done(function (response) {
                         console.log(response);
