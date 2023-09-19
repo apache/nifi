@@ -44,11 +44,11 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
 
     protected volatile IJMSConnectionFactoryProvider delegate;
 
-    protected abstract IJMSConnectionFactoryProvider createConnectionFactory(ConfigurationContext context, ComponentLog logger);
+    protected abstract IJMSConnectionFactoryProvider createConnectionFactoryProvider(ConfigurationContext context, ComponentLog logger);
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        delegate = createConnectionFactory(context, getLogger());
+        delegate = createConnectionFactoryProvider(context, getLogger());
     }
 
     @OnDisabled
@@ -69,7 +69,7 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        final IJMSConnectionFactoryProvider handler = createConnectionFactory(context, verificationLogger);
+        final IJMSConnectionFactoryProvider handler = createConnectionFactoryProvider(context, verificationLogger);
 
         final AtomicReference<Exception> failureReason = new AtomicReference<>();
         final ExceptionListener listener = failureReason::set;

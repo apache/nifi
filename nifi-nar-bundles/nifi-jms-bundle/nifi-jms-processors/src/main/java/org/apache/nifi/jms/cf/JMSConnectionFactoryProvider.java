@@ -73,7 +73,7 @@ public class JMSConnectionFactoryProvider extends AbstractJMSConnectionFactoryPr
 
 
     @Override
-    protected IJMSConnectionFactoryProvider createConnectionFactory(ConfigurationContext context, ComponentLog logger) {
-        return new JMSConnectionFactoryHandler(context, getLogger());
+    protected IJMSConnectionFactoryProvider createConnectionFactoryProvider(ConfigurationContext context, ComponentLog logger) {
+        return new JMSConnectionFactoryHandler(context, logger);
     }
 }
