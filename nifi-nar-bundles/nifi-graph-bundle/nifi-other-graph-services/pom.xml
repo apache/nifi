@@ -75,6 +75,11 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>org.opencypher.gremlin</groupId>
+            <artifactId>cypher-gremlin-neo4j-driver</artifactId>
+            <version>1.0.4</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
             <version>${gremlin.version}</version>
@@ -89,6 +94,11 @@
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
             <version>${gremlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-client-provider-api</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>

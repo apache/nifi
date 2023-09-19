@@ -297,4 +297,10 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     public String getTransitUrl() {
         return connectionUrl;
     }
+
+    @Override
+    public List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+        // Build queries from event list
+        return new CypherQueryFromNodesBuilder().getQueries(eventList);
+    }
 }

@@ -39,7 +39,9 @@ import java.security.Key;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -179,5 +181,41 @@ public class ITNeo4JCypherClientServiceSSL {
         Files.write(certificateFile, certificateEncoded.getBytes(StandardCharsets.UTF_8));
         certificateFile.toFile().deleteOnExit();
         return certificateFile;
+    }
+
+    @Test
+    public void testBuildQueryFromNodes() {
+        final List<Map<String, Object>> nodeList = new ArrayList<>();
+        nodeList.add(Collections.singletonMap("name", "Matt"));
+        final Map<String,Object> node2 = new LinkedHashMap<>();
+        node2.put("name", "Joe");
+        node2.put("age", 40);
+        node2.put("color", "blue");
+        nodeList.add(node2);
+        final Map<String,Object> node3 = new HashMap<>();
+        node3.put("name", "Mary");
+        node3.put("age", 40);
+        node3.put("state", "FL");
+        nodeList.add(node3);
+
+        final List<GraphQuery> expectedQuery = Arrays.asList(
+                new GraphQuery("MERGE (p:NiFiProvenanceEvent {name: \"Matt\"})", GraphClientService.CYPHER),
+                new GraphQuery("MERGE (p:NiFiProvenanceEvent {color: \"blue\",name: \"Joe\",age: \"40\"})", GraphClientService.CYPHER),
+                new GraphQuery("MERGE (p:NiFiProvenanceEvent {name: \"Mary\",state: \"FL\",age: \"40\"})", GraphClientService.CYPHER)
+        );
+        final List<GraphQuery> queryList = clientService.buildQueryFromNodes(nodeList, new HashMap<>());
+        assertEquals(expectedQuery, queryList);
+        final List<Map<String, Object>> result = new ArrayList<>();
+        for (GraphQuery query : queryList) {
+            Map<String, String> attributes = clientService.executeQuery(query.getQuery(), new HashMap<>(), (record, hasMore) -> result.add(record));
+            assertEquals("0", attributes.get(GraphClientService.LABELS_ADDED));
+            assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
+            assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));
+            assertEquals("0", attributes.get(GraphClientService.RELATIONS_CREATED));
+            assertEquals("0", attributes.get(GraphClientService.RELATIONS_DELETED));
+            assertEquals("TODO", attributes.get(GraphClientService.PROPERTIES_SET));
+            assertEquals("1", attributes.get(GraphClientService.ROWS_RETURNED));
+            assertEquals(1, result.size());
+        }
     }
 }

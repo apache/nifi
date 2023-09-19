@@ -27,6 +27,7 @@ import org.janusgraph.core.JanusGraphFactory;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -96,5 +97,11 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
      */
     public Graph getGraph() {
         return graph;
+    }
+
+    @Override
+    public List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+        // Build query from event list
+        return new GremlinQueryFromNodesBuilder().getQueries(eventList);
     }
 }

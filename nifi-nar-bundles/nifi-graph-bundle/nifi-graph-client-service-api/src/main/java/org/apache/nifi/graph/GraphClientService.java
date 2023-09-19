@@ -19,10 +19,11 @@ package org.apache.nifi.graph;
 
 import org.apache.nifi.controller.ControllerService;
 
+import java.util.List;
 import java.util.Map;
 
 public interface GraphClientService extends ControllerService {
-    String NODES_CREATED= "graph.nodes.created";
+    String NODES_CREATED = "graph.nodes.created";
     String RELATIONS_CREATED = "graph.relations.created";
     String LABELS_ADDED = "graph.labels.added";
     String NODES_DELETED = "graph.nodes.deleted";
@@ -30,6 +31,37 @@ public interface GraphClientService extends ControllerService {
     String PROPERTIES_SET = "graph.properties.set";
     String ROWS_RETURNED = "graph.rows.returned";
 
+    // Supported query languages (service-dependent)
+    String SQL = "sql";
+    String SQL_SCRIPT = "sqlscript";
+    String GRAPHQL = "graphql";
+    String CYPHER = "cypher";
+    String GREMLIN = "gremlin";
+    String MONGO = "mongo";
+
+    /**
+     * Executes the specified query using the client service, and handles and returned results by calling the specified callback
+     *
+     * @param query      The query to execute
+     * @param parameters A Map of parameter values to use in the query and/or execution
+     * @param handler    The callback handler invoked with any returned results
+     * @return Any results returned after handling the query response
+     */
     Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler);
+
+    /**
+     * Returns the URL used to submit the query
+     *
+     * @return the URL (as a string) used to submit the query
+     */
     String getTransitUrl();
+
+    /**
+     * Builds a list of client-specific queries based on a list of property map nodes. Usually followed by a call to executeQuery
+     *
+     * @param nodeList   A List of Maps corresponding to property map nodes
+     * @param parameters A Map of parameter values to use in the query and/or execution
+     * @return A List of queries each corresponding to an operation on the node list
+     */
+    List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> nodeList, Map<String, Object> parameters);
 }

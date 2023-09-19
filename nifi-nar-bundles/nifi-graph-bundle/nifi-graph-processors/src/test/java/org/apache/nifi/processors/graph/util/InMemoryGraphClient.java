@@ -20,7 +20,9 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.graph.GraphClientService;
+import org.apache.nifi.graph.GraphQuery;
 import org.apache.nifi.graph.GraphQueryResultCallback;
+import org.apache.nifi.graph.GremlinQueryFromNodesBuilder;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.janusgraph.core.JanusGraph;
@@ -32,6 +34,7 @@ import javax.script.ScriptException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class InMemoryGraphClient extends AbstractControllerService implements GraphClientService {
@@ -121,5 +124,11 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
     @Override
     public String getTransitUrl() {
         return "memory://localhost/graph";
+    }
+
+    @Override
+    public List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+        // Build query from event list
+        return new GremlinQueryFromNodesBuilder().getQueries(eventList);
     }
 }
