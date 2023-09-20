@@ -71,9 +71,8 @@ public class JMSConnectionFactoryProvider extends AbstractJMSConnectionFactoryPr
         return JMSConnectionFactoryProperties.getDynamicPropertyDescriptor(propertyDescriptorName);
     }
 
-
     @Override
-    protected IJMSConnectionFactoryProvider createConnectionFactoryProvider(ConfigurationContext context, ComponentLog logger) {
+    protected JMSConnectionFactoryHandlerDefinition createConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
         return new JMSConnectionFactoryHandler(context, logger);
     }
 }

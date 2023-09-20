@@ -43,7 +43,7 @@ import static org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties.JNDI_PRO
  * Handler class to retrieve a JMS Connection Factory object via JNDI.
  * The handler can be used from controller services and processors as well.
  */
-public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryProvider {
+public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryHandler {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;

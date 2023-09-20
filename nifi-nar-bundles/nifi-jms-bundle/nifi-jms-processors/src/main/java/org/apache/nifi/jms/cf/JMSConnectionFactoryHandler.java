@@ -38,7 +38,7 @@ import org.apache.nifi.ssl.SSLContextService;
  * implementation class and configuring the Connection Factory object directly.
  * The handler can be used from controller services and processors as well.
  */
-public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryProvider {
+public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandler {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;

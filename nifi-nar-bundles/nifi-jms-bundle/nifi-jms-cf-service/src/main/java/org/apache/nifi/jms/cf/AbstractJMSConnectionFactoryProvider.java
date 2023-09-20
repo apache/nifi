@@ -42,13 +42,13 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
     private static final String ESTABLISH_CONNECTION = "Establish Connection";
     private static final String VERIFY_JMS_INTERACTION = "Verify JMS Interaction";
 
-    protected volatile IJMSConnectionFactoryProvider delegate;
+    protected volatile JMSConnectionFactoryHandlerDefinition delegate;
 
-    protected abstract IJMSConnectionFactoryProvider createConnectionFactoryProvider(ConfigurationContext context, ComponentLog logger);
+    protected abstract JMSConnectionFactoryHandlerDefinition createConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger);
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        delegate = createConnectionFactoryProvider(context, getLogger());
+        delegate = createConnectionFactoryHandler(context, getLogger());
     }
 
     @OnDisabled
@@ -69,7 +69,7 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        final IJMSConnectionFactoryProvider handler = createConnectionFactoryProvider(context, verificationLogger);
+        final IJMSConnectionFactoryProvider handler = createConnectionFactoryHandler(context, verificationLogger);
 
         final AtomicReference<Exception> failureReason = new AtomicReference<>();
         final ExceptionListener listener = failureReason::set;

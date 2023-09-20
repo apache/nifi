@@ -20,13 +20,13 @@ import org.apache.nifi.logging.ComponentLog;
 
 import javax.jms.ConnectionFactory;
 
-public abstract class CachedJMSConnectionFactoryProvider implements IJMSConnectionFactoryProvider {
+public abstract class CachedJMSConnectionFactoryHandler implements JMSConnectionFactoryHandlerDefinition {
 
     private final ComponentLog logger;
 
     private volatile ConnectionFactory connectionFactory;
 
-    protected CachedJMSConnectionFactoryProvider(ComponentLog logger) {
+    protected CachedJMSConnectionFactoryHandler(ComponentLog logger) {
         this.logger = logger;
     }
 
