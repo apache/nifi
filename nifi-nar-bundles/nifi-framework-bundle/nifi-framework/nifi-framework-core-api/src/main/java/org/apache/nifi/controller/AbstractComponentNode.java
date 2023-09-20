@@ -1187,7 +1187,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public PropertyDescriptor getPropertyDescriptor(final String name) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             final PropertyDescriptor propertyDescriptor = getComponent().getPropertyDescriptor(name);
-            if (propertyDescriptor.isDynamic() && sensitiveDynamicPropertyNames.get().contains(name)) {
+            if (propertyDescriptor.isDynamic() && isSensitiveDynamicProperty(name)) {
                 return new PropertyDescriptor.Builder().fromPropertyDescriptor(propertyDescriptor).sensitive(true).build();
             } else {
                 return propertyDescriptor;

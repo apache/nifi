@@ -56,6 +56,7 @@ env:
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
+    -pl -:nifi-python-extensions-bundle
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version

@@ -779,6 +779,34 @@ public class StandardValidators {
         };
     }
 
+    public static Validator createNonNegativeFloatingPointValidator(final double maximum) {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
+                String reason = null;
+                try {
+                    final double doubleValue = Double.parseDouble(input);
+                    if (doubleValue < 0) {
+                        reason = "Value must be non-negative but was " + doubleValue;
+                    }
+                    final double maxPlusDelta = maximum + 0.00001D;
+                    if (doubleValue < 0 || doubleValue > maxPlusDelta) {
+                        reason = "Value must be between 0 and " + maximum + " but was " + doubleValue;
+                    }
+                } catch (final NumberFormatException e) {
+                    reason = "not a valid integer";
+                }
+
+                return new ValidationResult.Builder().subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            }
+
+        };
+    }
+
     //
     //
     // SPECIFIC VALIDATOR IMPLEMENTATIONS THAT CANNOT BE ANONYMOUS CLASSES

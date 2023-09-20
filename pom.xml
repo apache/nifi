@@ -42,6 +42,7 @@
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
+        <module>nifi-python-extensions</module>
         <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>

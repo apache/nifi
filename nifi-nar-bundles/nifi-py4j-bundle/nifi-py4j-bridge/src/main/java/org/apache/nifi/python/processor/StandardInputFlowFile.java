@@ -78,4 +78,9 @@ public class StandardInputFlowFile implements InputFlowFile, Closeable {
     public Map<String, String> getAttributes() {
         return flowFile.getAttributes();
     }
+
+    @Override
+    public String toString() {
+        return "FlowFile[id=" + getAttribute("uuid") + ", filename=" + getAttribute("filename") + ", size=" + getSize() + "]";
+    }
 }
