@@ -222,7 +222,12 @@ public class TestListenTCPRecord {
                 final OutputStream outputStream = socket.getOutputStream();
                 outputStream.write(DATA.getBytes(StandardCharsets.UTF_8));
                 outputStream.flush();
-            } catch (final IOException e) {
+                /**
+                 * Once NIFI-12098 is resolved this sleep can be removed.  Without the sleep
+                 * on some systems (Windows builds often) the build can fail and lockup indefinitely.
+                 */
+                Thread.sleep(3000);
+            } catch (final IOException | InterruptedException e) {
                 LOGGER.error("Failed Sending Records to Port [{}]", port, e);
             }
         });
