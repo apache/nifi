@@ -26,7 +26,7 @@
     <properties>
         <!--Wrapper Properties -->
         <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
-        <nifi.jvm.heap.max>512m</nifi.jvm.heap.max>
+        <nifi.jvm.heap.max>1g</nifi.jvm.heap.max>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
