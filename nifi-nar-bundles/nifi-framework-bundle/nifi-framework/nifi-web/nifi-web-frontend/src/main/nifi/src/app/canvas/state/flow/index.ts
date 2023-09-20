@@ -106,6 +106,50 @@ export interface UpdatePositions {
     connectionUpdates: UpdateComponent[];
 }
 
+export interface DeleteComponent {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    entity: any;
+}
+
+export interface DeleteComponentResponse {
+    id: string;
+    type: ComponentType;
+}
+
+/*
+    Snippets
+ */
+
+export interface Snippet {
+    parentGroupId: string;
+    processors: {
+        [key: string]: any;
+    };
+    funnels: {
+        [key: string]: any;
+    };
+    inputPorts: {
+        [key: string]: any;
+    };
+    outputPorts: {
+        [key: string]: any;
+    };
+    remoteProcessGroups: {
+        [key: string]: any;
+    };
+    processGroups: {
+        [key: string]: any;
+    };
+    connections: {
+        [key: string]: any;
+    };
+    labels: {
+        [key: string]: any;
+    };
+}
+
 /*
     Tooltips
  */

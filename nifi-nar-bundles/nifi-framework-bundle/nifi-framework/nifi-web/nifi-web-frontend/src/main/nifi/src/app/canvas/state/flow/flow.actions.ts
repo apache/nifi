@@ -20,6 +20,8 @@ import {
     CreateComponent,
     CreateComponentResponse,
     CreatePort,
+    DeleteComponent,
+    DeleteComponentResponse,
     EditComponent,
     EditComponentRequest,
     EnterProcessGroupRequest,
@@ -110,7 +112,7 @@ export const createComponentComplete = createAction(
 );
 
 /*
-    Update Component Action
+    Update Component Actions
  */
 
 export const navigateToEditComponent = createAction(
@@ -118,7 +120,7 @@ export const navigateToEditComponent = createAction(
     props<{ request: EditComponentRequest }>()
 );
 
-export const editComponent = createAction('[Canvas] Edit Component Request', props<{ request: EditComponent }>());
+export const editComponent = createAction('[Canvas] Edit Component', props<{ request: EditComponent }>());
 
 export const openEditPortDialog = createAction('[Canvas] Open Edit Port Dialog', props<{ request: EditComponent }>());
 
@@ -139,6 +141,17 @@ export const updatePositions = createAction('[Canvas] Update Positions', props<{
 export const updatePositionComplete = createAction(
     '[Canvas] Update Position Complete',
     props<{ response: UpdateComponentResponse }>()
+);
+
+/*
+    Delete Component Actions
+ */
+
+export const deleteComponents = createAction('[Canvas] Delete Components', props<{ request: DeleteComponent[] }>());
+
+export const deleteComponentsSuccess = createAction(
+    '[Canvas] Delete Components Success',
+    props<{ response: DeleteComponentResponse[] }>()
 );
 
 /*

@@ -19,8 +19,9 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
-import { CreateComponent, CreatePort, UpdateComponent } from '../state/flow';
+import { CreateComponent, CreatePort, DeleteComponent, Snippet, UpdateComponent } from '../state/flow';
 import { ComponentType } from '../state/shared';
+import { Client } from './client.service';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService {
@@ -28,7 +29,8 @@ export class FlowService {
 
     constructor(
         private httpClient: HttpClient,
-        private canvasUtils: CanvasUtils
+        private canvasUtils: CanvasUtils,
+        private client: Client
     ) {}
 
     /**
@@ -81,5 +83,19 @@ export class FlowService {
     updateComponent(updateComponent: UpdateComponent): Observable<any> {
         // return throwError('API Error');
         return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
+    }
+
+    deleteComponent(deleteComponent: DeleteComponent): Observable<any> {
+        // return throwError('API Error');
+        const revision: any = this.client.getRevision(deleteComponent.entity);
+        return this.httpClient.delete(this.stripProtocol(deleteComponent.uri), { params: revision });
+    }
+
+    createSnippet(snippet: Snippet): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/snippets`, { snippet });
+    }
+
+    deleteSnippet(snippetId: string): Observable<any> {
+        return this.httpClient.delete(`${FlowService.API}/snippets/${snippetId}`);
     }
 }

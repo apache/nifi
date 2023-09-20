@@ -21,8 +21,10 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import { catchError, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
 import {
+    DeleteComponentResponse,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse
 } from './index';
@@ -34,9 +36,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
 import { ComponentType } from '../shared';
-import { ActivatedRoute, Router } from '@angular/router';
-import { selectCurrentRoute, selectUrl } from '../../../state/router/router.selectors';
-import { navigateToEditComponent } from './flow.actions';
+import { Router } from '@angular/router';
+import { selectUrl } from '../../../state/router/router.selectors';
+import { Client } from '../../service/client.service';
+import { CanvasUtils } from '../../service/canvas-utils.service';
 
 @Injectable()
 export class FlowEffects {
@@ -44,6 +47,8 @@ export class FlowEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private flowService: FlowService,
+        private client: Client,
+        private canvasUtils: CanvasUtils,
         private connectionManager: ConnectionManager,
         private router: Router,
         private dialog: MatDialog
@@ -404,6 +409,121 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    deleteComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.deleteComponents),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            mergeMap(([requests, processGroupId]) => {
+                if (requests.length === 1) {
+                    return from(this.flowService.deleteComponent(requests[0])).pipe(
+                        map((response) => {
+                            const deleteResponses: DeleteComponentResponse[] = [
+                                {
+                                    id: requests[0].id,
+                                    type: requests[0].type
+                                }
+                            ];
+
+                            if (requests[0].type !== ComponentType.Connection) {
+                                const componentConnections: any[] = this.canvasUtils.getComponentConnections(
+                                    requests[0].id
+                                );
+                                componentConnections.forEach((componentConnection) =>
+                                    deleteResponses.push({
+                                        id: componentConnection.id,
+                                        type: ComponentType.Connection
+                                    })
+                                );
+                            }
+
+                            return FlowActions.deleteComponentsSuccess({
+                                response: deleteResponses
+                            });
+                        }),
+                        catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                    );
+                } else {
+                    const snippet: Snippet = requests.reduce(
+                        (snippet, request) => {
+                            switch (request.type) {
+                                case ComponentType.Processor:
+                                    snippet.processors[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.InputPort:
+                                    snippet.inputPorts[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.OutputPort:
+                                    snippet.outputPorts[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.ProcessGroup:
+                                    snippet.processGroups[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.RemoteProcessGroup:
+                                    snippet.remoteProcessGroups[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.Funnel:
+                                    snippet.funnels[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.Label:
+                                    snippet.labels[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                                case ComponentType.Connection:
+                                    snippet.connections[request.id] = this.client.getRevision(request.entity);
+                                    break;
+                            }
+                            return snippet;
+                        },
+                        {
+                            parentGroupId: processGroupId,
+                            processors: {},
+                            funnels: {},
+                            inputPorts: {},
+                            outputPorts: {},
+                            remoteProcessGroups: {},
+                            processGroups: {},
+                            connections: {},
+                            labels: {}
+                        } as Snippet
+                    );
+
+                    return from(this.flowService.createSnippet(snippet)).pipe(
+                        switchMap((response) => this.flowService.deleteSnippet(response.snippet.id)),
+                        map((response) => {
+                            const deleteResponses: DeleteComponentResponse[] = [];
+
+                            // prepare the delete responses with all requested components that are now deleted
+                            requests.forEach((request) => {
+                                deleteResponses.push({
+                                    id: request.id,
+                                    type: request.type
+                                });
+
+                                // if the component is not a connection, also include any of it's connections
+                                if (request.type !== ComponentType.Connection) {
+                                    const componentConnections: any[] = this.canvasUtils.getComponentConnections(
+                                        request.id
+                                    );
+                                    componentConnections.forEach((componentConnection) =>
+                                        deleteResponses.push({
+                                            id: componentConnection.id,
+                                            type: ComponentType.Connection
+                                        })
+                                    );
+                                }
+                            });
+
+                            return FlowActions.deleteComponentsSuccess({
+                                response: deleteResponses
+                            });
+                        }),
+                        catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                    );
+                }
+            })
+        )
     );
 
     enterProcessGroup$ = createEffect(

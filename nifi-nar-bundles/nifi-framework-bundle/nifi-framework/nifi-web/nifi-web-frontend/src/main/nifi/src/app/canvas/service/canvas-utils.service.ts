@@ -15,16 +15,22 @@
  * limitations under the License.
  */
 
-import { ComponentRef, Injectable, Type, ViewContainerRef } from '@angular/core';
+import { ComponentRef, DestroyRef, inject, Injectable, Type, ViewContainerRef } from '@angular/core';
 import * as d3 from 'd3';
 import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
-import { selectCurrentProcessGroupId, selectParentProcessGroupId } from '../state/flow/flow.selectors';
+import {
+    selectCanvasPermissions,
+    selectConnections,
+    selectCurrentProcessGroupId,
+    selectParentProcessGroupId
+} from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
+import { Permissions } from '../state/flow';
 
 @Injectable({
     providedIn: 'root'
@@ -32,9 +38,13 @@ import { Position } from '../state/shared';
 export class CanvasUtils {
     private static readonly TWO_PI: number = 2 * Math.PI;
 
+    private destroyRef = inject(DestroyRef);
+
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
     private currentProcessGroupId: string = initialState.id;
     private parentProcessGroupId: string | null = initialState.flow.processGroupFlow.parentGroupId;
+    private canvasPermissions: Permissions = initialState.flow.permissions;
+    private connections: any[] = [];
 
     private readonly humanizeDuration: Humanizer;
 
@@ -43,7 +53,7 @@ export class CanvasUtils {
 
         this.store
             .select(selectCurrentProcessGroupId)
-            .pipe(takeUntilDestroyed())
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((currentProcessGroupId) => {
                 this.currentProcessGroupId = currentProcessGroupId;
                 this.trimLengthCaches.clear();
@@ -51,9 +61,23 @@ export class CanvasUtils {
 
         this.store
             .select(selectParentProcessGroupId)
-            .pipe(takeUntilDestroyed())
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((parentProcessGroupId) => {
                 this.parentProcessGroupId = parentProcessGroupId;
+            });
+
+        this.store
+            .select(selectCanvasPermissions)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((canvasPermissions) => {
+                this.canvasPermissions = canvasPermissions;
+            });
+
+        this.store
+            .select(selectConnections)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((connections) => {
+                this.connections = connections;
             });
     }
 
@@ -166,6 +190,51 @@ export class CanvasUtils {
             supportsModification = isSourceConfigurable && isDestinationConfigurable;
         }
         return supportsModification;
+    }
+
+    /**
+     * Determines whether the components in the specified selection are deletable.
+     *
+     * @argument {selection} selection      The selection
+     * @return {boolean}            Whether the selection is deletable
+     */
+    public areDeletable(selection: any): boolean {
+        if (selection.empty()) {
+            return false;
+        }
+
+        const self: CanvasUtils = this;
+        let isDeletable: boolean = true;
+        selection.each(function (this: any) {
+            if (!self.isDeletable(d3.select(this))) {
+                isDeletable = false;
+            }
+        });
+
+        return isDeletable;
+    }
+
+    /**
+     * Determines whether the component in the specified selection is deletable.
+     *
+     * @argument {selection} selection      The selection
+     * @return {boolean}            Whether the selection is deletable
+     */
+    public isDeletable(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        // ensure the user has write permissions to the current process group
+        if (!this.canvasPermissions.canWrite) {
+            return false;
+        }
+
+        if (!this.canModify(selection)) {
+            return false;
+        }
+
+        return this.supportsModification(selection);
     }
 
     /**
@@ -423,6 +492,15 @@ export class CanvasUtils {
             groupString = bundle.group + ' - ';
         }
         return groupString + bundle.artifact;
+    }
+
+    public getComponentConnections(id: string): any[] {
+        return this.connections.filter((connection) => {
+            return (
+                this.getConnectionSourceComponentId(connection) === id ||
+                this.getConnectionDestinationComponentId(connection) === id
+            );
+        });
     }
 
     /**

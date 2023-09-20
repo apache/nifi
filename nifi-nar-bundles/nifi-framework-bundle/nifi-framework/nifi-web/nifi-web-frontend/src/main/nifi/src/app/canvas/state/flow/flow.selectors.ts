@@ -19,7 +19,6 @@ import { flowFeatureKey, FlowState, SelectedComponent } from './index';
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
 import { selectCurrentRoute } from '../../../state/router/router.selectors';
-import { ComponentType } from '../shared';
 
 export const selectFlowState = createSelector(selectCanvasState, (state: CanvasState) => state[flowFeatureKey]);
 
@@ -30,6 +29,8 @@ export const selectFlow = createSelector(selectFlowState, (state: FlowState) => 
 export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
+
+export const selectCanvasPermissions = createSelector(selectFlowState, (state: FlowState) => state.flow.permissions);
 
 export const selectParentProcessGroupId = createSelector(
     selectFlowState,

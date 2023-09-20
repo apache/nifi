@@ -24,7 +24,6 @@ import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
 import { updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../client.service';
-import { selectConnections } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UpdateComponent } from '../../state/flow';
 import { ComponentType, Position } from '../../state/shared';
@@ -39,7 +38,6 @@ export class DraggableBehavior {
 
     private scale: number = INITIAL_SCALE;
 
-    private connections: any[] = [];
     private updateConnectionRequestId: number = 0;
 
     constructor(
@@ -55,12 +53,6 @@ export class DraggableBehavior {
             .pipe(takeUntilDestroyed())
             .subscribe((transform) => {
                 this.scale = transform.scale;
-            });
-        this.store
-            .select(selectConnections)
-            .pipe(takeUntilDestroyed())
-            .subscribe((connections) => {
-                this.connections = connections;
             });
 
         // handle component drag events
@@ -222,12 +214,7 @@ export class DraggableBehavior {
         // go through each selected component
         selectedComponents.each(function (d: any) {
             // consider any self looping connections
-            const componentConnections = self.connections.filter((connection) => {
-                return (
-                    self.canvasUtils.getConnectionSourceComponentId(connection) === d.id ||
-                    self.canvasUtils.getConnectionDestinationComponentId(connection) === d.id
-                );
-            });
+            const componentConnections = self.canvasUtils.getComponentConnections(d.id);
 
             componentConnections.forEach((componentConnection) => {
                 if (!connectionUpdates.has(componentConnection.id)) {

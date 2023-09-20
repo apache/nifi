@@ -19,8 +19,14 @@ import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core'
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { Observable, Subject } from 'rxjs';
-import { leaveProcessGroup, navigateToEditComponent, reloadFlow } from '../../../state/flow/flow.actions';
+import {
+    deleteComponents,
+    leaveProcessGroup,
+    navigateToEditComponent,
+    reloadFlow
+} from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
+import { DeleteComponent } from '../../../state/flow';
 
 export interface ContextMenuItemDefinition {
     isSeparator?: boolean;
@@ -788,13 +794,41 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - isDeletable
-                    return false;
+                    return canvasUtils.areDeletable(selection);
                 },
                 clazz: 'fa fa-trash',
                 text: 'Delete',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - delete
+                action: function (store: Store<CanvasState>, selection: any) {
+                    if (selection.size() === 1) {
+                        const selectionData = selection.datum();
+                        store.dispatch(
+                            deleteComponents({
+                                request: [
+                                    {
+                                        id: selectionData.id,
+                                        type: selectionData.type,
+                                        uri: selectionData.uri,
+                                        entity: selectionData
+                                    }
+                                ]
+                            })
+                        );
+                    } else {
+                        const requests: DeleteComponent[] = [];
+                        selection.each(function (d: any) {
+                            requests.push({
+                                id: d.id,
+                                type: d.type,
+                                uri: d.uri,
+                                entity: d
+                            });
+                        });
+                        store.dispatch(
+                            deleteComponents({
+                                request: requests
+                            })
+                        );
+                    }
                 }
             }
         ]

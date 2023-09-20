@@ -28,7 +28,8 @@ import {
     setRenderRequired,
     setTransitionRequired,
     updateComponentFailure,
-    updateComponentSuccess
+    updateComponentSuccess,
+    deleteComponentsSuccess
 } from './flow.actions';
 import { FlowState } from './index';
 import { ComponentType } from '../shared';
@@ -214,6 +215,46 @@ export const flowReducer = createReducer(
                     }
                 }
             }
+        });
+    }),
+    on(deleteComponentsSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            response.forEach((deleteResponse) => {
+                let collection: any[] | null = null;
+                switch (deleteResponse.type) {
+                    case ComponentType.Processor:
+                        collection = draftState.flow.processGroupFlow.flow.processors;
+                        break;
+                    case ComponentType.ProcessGroup:
+                        collection = draftState.flow.processGroupFlow.flow.processGroups;
+                        break;
+                    case ComponentType.RemoteProcessGroup:
+                        collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
+                        break;
+                    case ComponentType.InputPort:
+                        collection = draftState.flow.processGroupFlow.flow.inputPorts;
+                        break;
+                    case ComponentType.OutputPort:
+                        collection = draftState.flow.processGroupFlow.flow.outputPorts;
+                        break;
+                    case ComponentType.Label:
+                        collection = draftState.flow.processGroupFlow.flow.labels;
+                        break;
+                    case ComponentType.Funnel:
+                        collection = draftState.flow.processGroupFlow.flow.funnels;
+                        break;
+                    case ComponentType.Connection:
+                        collection = draftState.flow.processGroupFlow.flow.connections;
+                        break;
+                }
+
+                if (collection) {
+                    const componentIndex: number = collection.findIndex((f: any) => deleteResponse.id === f.id);
+                    if (componentIndex > -1) {
+                        collection.splice(componentIndex, 1);
+                    }
+                }
+            });
         });
     }),
     on(setDragging, (state, { dragging }) => ({
