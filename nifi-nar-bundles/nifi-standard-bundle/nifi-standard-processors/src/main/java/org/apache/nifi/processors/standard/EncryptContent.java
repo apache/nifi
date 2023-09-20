@@ -43,6 +43,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -99,6 +100,17 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
         @WritesAttribute(attribute = "encryptcontent.salt_length", description = "The raw salt length in bytes"),
         @WritesAttribute(attribute = "encryptcontent.timestamp", description = "The timestamp at which the cryptographic operation occurred in 'yyyy-MM-dd HH:mm:ss.SSS Z' format"),
                })
+@DeprecationNotice(
+        classNames = {
+                "org.apache.nifi.processors.pgp.EncryptContentPGP",
+                "org.apache.nifi.processors.pgp.DecryptContentPGP",
+                "org.apache.nifi.processors.cipher.DecryptContent",
+                "org.apache.nifi.processors.cipher.DecryptContentCompatibility",
+                "org.apache.nifi.processors.cipher.EncryptContentAge",
+                "org.apache.nifi.processors.cipher.DecryptContentAge",
+        },
+        reason = "EncryptContentAge or EncryptContentPGP should be used for encrypting new files using standard formatting. DecryptContent supports deciphering historical files."
+)
 public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
