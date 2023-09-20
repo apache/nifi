@@ -18,6 +18,7 @@
 package org.apache.nifi.components.state;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Provides a representation of a component's state at some point in time.
@@ -31,7 +32,19 @@ public interface StateMap {
      *
      * @return the version associated with the state
      */
+    @Deprecated
     long getVersion();
+
+    /**
+     * Get state version is not guaranteed to be numeric, but can be used to compare against an expected version.
+     * The default implementation uses the available version number and considers -1 as indicating an empty version
+     *
+     * @return State version or empty when not known
+     */
+    default Optional<String> getStateVersion() {
+        final long version = getVersion();
+        return version == -1 ? Optional.empty() : Optional.of(String.valueOf(version));
+    }
 
     /**
      * Returns the value associated with the given key
