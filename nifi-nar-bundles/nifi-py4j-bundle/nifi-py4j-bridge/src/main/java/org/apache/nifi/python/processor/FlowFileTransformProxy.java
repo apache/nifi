@@ -17,8 +17,6 @@
 
 package org.apache.nifi.python.processor;
 
-import org.apache.nifi.annotation.behavior.DefaultRunDuration;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -30,7 +28,6 @@ import py4j.Py4JNetworkException;
 import java.util.Map;
 import java.util.Optional;
 
-@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
 
     private final PythonProcessorBridge bridge;
@@ -60,7 +57,7 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             return;
         }
 
-        FlowFile transformed = session.create(original);
+        FlowFile transformed = session.clone(original);
 
         final FlowFileTransformResult result;
         try (final StandardInputFlowFile inputFlowFile = new StandardInputFlowFile(session, original)) {
