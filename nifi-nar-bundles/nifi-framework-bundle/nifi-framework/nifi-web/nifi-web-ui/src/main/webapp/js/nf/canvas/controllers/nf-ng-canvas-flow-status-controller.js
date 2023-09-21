@@ -73,7 +73,7 @@
             urls: {
                 search: '../nifi-api/flow/search-results',
                 status: '../nifi-api/flow/status',
-                recsAndPolicies: '../nifi-api/controller/analyze-flow'
+                flowAnalysis: '../nifi-api/controller/analyze-flow'
             }
         };
 
@@ -408,26 +408,26 @@
             }
 
             /**
-             * The recs and policies controller.
+             * The flow analysis controller.
              */
 
-            this.recsAndPolicies = {
+            this.flowAnalysis = {
                 /**
                  * Get the drawer trigger button element.
                  */
                 getDrawerButton: function () {
-                    return $('#recs-and-policies');
+                    return $('#flow-analysis');
                 },
 
                 /**
                  * Get the drawer container
                  */
                 getDrawerContainer: function () {
-                    return $('#recs-and-policies-drawer');
+                    return $('#flow-analysis-drawer');
                 },
 
                 getAccordion: function() {
-                    return $('#recs-and-policies-rules-accordion');
+                    return $('#flow-analysis-rules-accordion');
                 },
 
                 buildRuleViolationsList: function(rules, violationsAndRecs) {
@@ -517,7 +517,7 @@
                 },
 
                 loadFlowPolicies: function () {
-                    var recsAndPoliciesCtrl = this;
+                    var flowAnalysisCtrl = this;
                     var requiredRulesListEl = $('#required-rules-list');
                     var recommendedRulesListEl = $('#recommended-rules-list');
                     var requiredRuleCountEl = $('#required-rule-count');
@@ -540,7 +540,7 @@
                                 // clear previous accordion content
                                 requiredRulesListEl.empty();
                                 recommendedRulesListEl.empty();
-                                recsAndPoliciesCtrl.buildRuleViolations(response.rules, response.ruleViolations);
+                                flowAnalysisCtrl.buildRuleViolations(response.rules, response.ruleViolations);
 
                                 // For each ruleViolations: 
                                 // * group violations by ruleId
@@ -578,15 +578,15 @@
                                     return violation.enforcementPolicy === 'WARN';
                                 });
                                 if (hasRecommendations !== -1) {
-                                    $('#recs-and-policies .recs-and-policies-notification-icon ').addClass('recommendations');
+                                    $('#flow-analysis .flow-analysis-notification-icon ').addClass('recommendations');
                                 } else {
-                                    $('#recs-and-policies .recs-and-policies-notification-icon ').removeClass('recommendations');
+                                    $('#flow-analysis .flow-analysis-notification-icon ').removeClass('recommendations');
                                 }
     
                                 // build list of requirements
                                 recommendedRuleCountEl.empty().append('(' + recommendationsTotal + ')');
                                 recommendations.forEach(function(rec) {
-                                    recsAndPoliciesCtrl.buildRuleList('recommendation', violationsMap, rec);
+                                    flowAnalysisCtrl.buildRuleList('recommendation', violationsMap, rec);
                                 });
 
                                 response.rules.forEach(function(rule) {
@@ -610,16 +610,16 @@
                                     return violation.enforcementPolicy === 'ENFORCE';
                                 })
                                 if (hasViolations !== -1) {
-                                    $('#recs-and-policies .recs-and-policies-notification-icon ').addClass('violations');
+                                    $('#flow-analysis .flow-analysis-notification-icon ').addClass('violations');
                                 } else {
-                                    $('#recs-and-policies .recs-and-policies-notification-icon ').removeClass('violations');
+                                    $('#flow-analysis .flow-analysis-notification-icon ').removeClass('violations');
                                 }
     
                                 requiredRuleCountEl.empty().append('(' + requirementsTotal + ')');
                                 
                                 // build violations
                                 requirements.forEach(function(rec) {
-                                    recsAndPoliciesCtrl.buildRuleList('violation', violationsMap, rec);                              
+                                    flowAnalysisCtrl.buildRuleList('violation', violationsMap, rec);                              
                                 });
 
                                 $('#required-rules').accordion('refresh');
@@ -628,10 +628,10 @@
                                 previousRulesResponse = response;
     
                                 // setup rule menu handling
-                                recsAndPoliciesCtrl.setMenuRuleHandling(response);
+                                flowAnalysisCtrl.setMenuRuleHandling(response);
 
                                 // setup violation menu handling
-                                recsAndPoliciesCtrl.setViolationMenuHandling(response, groupId);
+                                flowAnalysisCtrl.setViolationMenuHandling(response, groupId);
                             }
                         }).fail(nfErrorHandler.handleAjaxError);
                     }
@@ -749,10 +749,10 @@
                 },
 
                 /**
-                 * Initialize the recs and policies controller.
+                 * Initialize the flow analysis controller.
                  */
                 init: function () {
-                    var recsAndPoliciesCtrl = this;
+                    var flowAnalysisCtrl = this;
                     var drawer = this.getDrawerContainer();
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
@@ -829,7 +829,7 @@
                     // handle show only violations checkbox
                     $('#show-only-violations').on('change', function(event) {
                         var isChecked = $(this).hasClass('checkbox-checked');
-                        recsAndPoliciesCtrl.toggleOnlyViolations(isChecked);
+                        flowAnalysisCtrl.toggleOnlyViolations(isChecked);
                     });
                 },
 
@@ -863,9 +863,9 @@
                 },
 
                 /**
-                 * Toggle/Slide the recs and policies drawer open/closed.
+                 * Toggle/Slide the flow analysis drawer open/closed.
                  */
-                toggleRecsAndPoliciesDrawer: function () {
+                toggleflowAnalysisDrawer: function () {
                     var searchCtrl = this;
 
                     // hide the context menu if necessary
@@ -964,7 +964,7 @@
              */
             init: function () {
                 this.search.init();
-                this.recsAndPolicies.init();
+                this.flowAnalysis.init();
             },
 
             /**
