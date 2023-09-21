@@ -16,7 +16,7 @@
   -->
 
 <header>
-    <nav class="bg-nifi-primary">
+    <nav class="bg-nifi-primary nifi-header">
         <div class="flex justify-between items-center h-16 px-4">
             <div class="flex">
                 <div class="h-16 w-28 mr-6 relative">
@@ -56,5 +56,9 @@
             </div>
         </div>
     </nav>
-    <div class="bg-nifi-accent h-8"></div>
+    <flow-status
+        [controllerStatus]="(controllerStatus$ | async)!"
+        [lastRefreshed]="(lastRefreshed$ | async)!"
+        [clusterSummary]="(clusterSummary$ | async)!"
+        [bulletins]="(controllerBulletins$ | async)!"></flow-status>
 </header>

@@ -50,6 +50,22 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
     }
 
+    getFlowStatus(): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/status`);
+    }
+
+    getClusterSummary(): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/cluster/summary`);
+    }
+
+    getControllerBulletins(): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
+    }
+
+    getCurrentUser(): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
+    }
+
     createFunnel(processGroupId: string = 'root', createFunnel: CreateComponent): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/funnels`, {
             revision: createFunnel.revision,

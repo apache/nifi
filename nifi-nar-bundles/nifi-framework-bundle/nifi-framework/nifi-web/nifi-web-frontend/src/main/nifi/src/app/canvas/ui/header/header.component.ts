@@ -17,6 +17,14 @@
 
 import { Component } from '@angular/core';
 import { ComponentType } from '../../state/shared';
+import { Store } from '@ngrx/store';
+import { CanvasState } from '../../state';
+import {
+    selectClusterSummary,
+    selectControllerBulletins,
+    selectControllerStatus,
+    selectLastRefreshed
+} from '../../state/flow/flow.selectors';
 
 @Component({
     selector: 'fd-header',
@@ -25,4 +33,11 @@ import { ComponentType } from '../../state/shared';
 })
 export class HeaderComponent {
     protected readonly ComponentType = ComponentType;
+
+    controllerStatus$ = this.store.select(selectControllerStatus);
+    lastRefreshed$ = this.store.select(selectLastRefreshed);
+    clusterSummary$ = this.store.select(selectClusterSummary);
+    controllerBulletins$ = this.store.select(selectControllerBulletins);
+
+    constructor(private store: Store<CanvasState>) {}
 }

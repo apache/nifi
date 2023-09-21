@@ -461,7 +461,10 @@ export class RemoteProcessGroupManager {
                             self.canvasUtils.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (self.viewContainerRef) {
+                            if (
+                                !self.canvasUtils.isBlank(remoteProcessGroupData.component.comments) &&
+                                self.viewContainerRef
+                            ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
                                     text: remoteProcessGroupData.component.comments
                                 });

@@ -228,6 +228,10 @@ body {
     font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
+/*
+    Dialog styles
+ */
+
 .small-dialog {
     min-width: 320px;
 }
@@ -260,7 +264,6 @@ body {
     border-width: 1px;
     border-color: #000;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-    margin-top: 5px;
     font-size: 13px;
     font-family: Roboto;
     font-weight: 400;
@@ -271,4 +274,83 @@ body {
         list-style: disc outside;
         margin-left: 1em;
     }
+}
+
+/*
+    General status styles. TODO - Reconsider this... separating canvas/style styles from html styles...
+ */
+
+.disabled {
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.enabled {
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.stopped {
+    color: #d18686 !important;
+    fill: #d18686 !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.running {
+    color: #7dc7a0 !important;
+    fill: #7dc7a0 !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.has-errors,
+.invalid {
+    color: #cf9f5d !important;
+    fill: #cf9f5d !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.validating {
+    color: #a8a8a8 !important;
+    fill: #a8a8a8 !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.transmitting {
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.not-transmitting {
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.up-to-date {
+    color: #3da67a !important;
+    fill: #3da67a !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.locally-modified,
+.sync-failure {
+    color: #747474 !important;
+    fill: #747474 !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.stale,
+.locally-modified-and-stale {
+    color: #c7685d !important;
+    fill: #c7685d !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+}
+
+.zero {
+    color: #aabec7 !important;
+    fill: #aabec7 !important;
+    text-shadow: none !important;
 }

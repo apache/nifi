@@ -329,7 +329,7 @@ export class PortManager {
                                 ')'
                         )
                         .each(function (this: any) {
-                            if (self.viewContainerRef) {
+                            if (!self.canvasUtils.isBlank(portData.component.comments) && self.viewContainerRef) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
                                     text: portData.component.comments
                                 });

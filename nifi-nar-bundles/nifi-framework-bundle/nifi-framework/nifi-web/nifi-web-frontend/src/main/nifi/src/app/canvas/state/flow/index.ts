@@ -43,7 +43,10 @@ export interface LoadProcessGroupRequest {
 
 export interface LoadProcessGroupResponse {
     id: string;
-    flow: any;
+    flow: ProcessGroupFlowEntity;
+    flowStatus: ControllerStatusEntity;
+    clusterSummary: ClusterSummary;
+    controllerBulletins: ControllerBulletinsEntity;
 }
 
 /*
@@ -173,7 +176,7 @@ export interface BulletinEntity {
     sourceId: string;
     groupId: string;
     timestamp: string;
-    nodeAddress: string;
+    nodeAddress?: string;
     bulletin: {
         id: number;
         sourceId: string;
@@ -183,7 +186,7 @@ export interface BulletinEntity {
         message: string;
         sourceName: string;
         timestamp: string;
-        nodeAddress: string;
+        nodeAddress?: string;
     };
 }
 
@@ -250,9 +253,51 @@ export interface ProcessGroupFlowEntity {
     processGroupFlow: ProcessGroupFlow;
 }
 
+export interface ControllerStatus {
+    activeThreadCount: number;
+    terminatedThreadCount: number;
+    queued: string;
+    flowFilesQueued: number;
+    bytesQueued: number;
+    runningCount: number;
+    stoppedCount: number;
+    invalidCount: number;
+    disabledCount: number;
+    activeRemotePortCount: number;
+    inactiveRemotePortCount: number;
+    upToDateCount?: number;
+    locallyModifiedCount?: number;
+    staleCount?: number;
+    locallyModifiedAndStaleCount?: number;
+    syncFailureCount?: number;
+}
+
+export interface ControllerStatusEntity {
+    controllerStatus: ControllerStatus;
+}
+
+export interface ClusterSummary {
+    clustered: boolean;
+    connectedToCluster: boolean;
+    connectedNodes?: string;
+    connectedNodeCount: number;
+    totalNodeCount: number;
+}
+
+export interface ControllerBulletinsEntity {
+    bulletins: BulletinEntity[];
+    controllerServiceBulletins: BulletinEntity[];
+    reportingTaskBulletins: BulletinEntity[];
+    parameterProviderBulletins: BulletinEntity[];
+    flowRegistryClientBulletins: BulletinEntity[];
+}
+
 export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
+    flowStatus: ControllerStatusEntity;
+    clusterSummary: ClusterSummary;
+    controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
     transitionRequired: boolean;
     renderRequired: boolean;

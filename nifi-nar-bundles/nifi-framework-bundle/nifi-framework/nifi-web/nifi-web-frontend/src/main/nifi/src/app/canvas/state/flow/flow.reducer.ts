@@ -60,6 +60,40 @@ export const initialState: FlowState = {
             lastRefreshed: ''
         }
     },
+    flowStatus: {
+        controllerStatus: {
+            activeThreadCount: 0,
+            terminatedThreadCount: 0,
+            queued: '',
+            flowFilesQueued: 0,
+            bytesQueued: 0,
+            runningCount: 0,
+            stoppedCount: 0,
+            invalidCount: 0,
+            disabledCount: 0,
+            activeRemotePortCount: 0,
+            inactiveRemotePortCount: 0,
+            upToDateCount: undefined,
+            locallyModifiedCount: undefined,
+            staleCount: undefined,
+            locallyModifiedAndStaleCount: undefined,
+            syncFailureCount: undefined
+        }
+    },
+    clusterSummary: {
+        clustered: false,
+        connectedToCluster: false,
+        connectedNodes: '',
+        connectedNodeCount: 0,
+        totalNodeCount: 0
+    },
+    controllerBulletins: {
+        bulletins: [],
+        controllerServiceBulletins: [],
+        flowRegistryClientBulletins: [],
+        parameterProviderBulletins: [],
+        reportingTaskBulletins: []
+    },
     dragging: false,
     renderRequired: false,
     transitionRequired: false,
@@ -77,6 +111,9 @@ export const flowReducer = createReducer(
         ...state,
         id: response.flow.processGroupFlow.id,
         flow: response.flow,
+        flowStatus: response.flowStatus,
+        clusterSummary: response.clusterSummary,
+        controllerBulletins: response.controllerBulletins,
         error: null,
         status: 'success' as const
     })),

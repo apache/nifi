@@ -160,3 +160,20 @@ export const selectConnections = createSelector(
 
 export const selectConnection = (id: string) =>
     createSelector(selectConnections, (connections: any[]) => connections.find((connection) => id == connection.id));
+
+export const selectControllerStatus = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flowStatus.controllerStatus
+);
+
+export const selectLastRefreshed = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.lastRefreshed
+);
+
+export const selectClusterSummary = createSelector(selectFlowState, (state: FlowState) => state.clusterSummary);
+
+export const selectControllerBulletins = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.controllerBulletins.bulletins // TODO - include others?
+);

@@ -545,7 +545,10 @@ export class ProcessorManager {
                             self.canvasUtils.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (self.viewContainerRef) {
+                            if (
+                                !self.canvasUtils.isBlank(processorData.component.config.comments) &&
+                                self.viewContainerRef
+                            ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
                                     text: processorData.component.config.comments
                                 });

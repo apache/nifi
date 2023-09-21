@@ -15,15 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { HeaderComponent } from './header.component';
-import { NewCanvasItemModule } from '../new-canvas-item/new-canvas-item.module';
-import { FlowStatus } from './flow-status/flow-status.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [HeaderComponent, FlowStatus],
-    exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, NewCanvasItemModule]
-})
-export class HeaderModule {}
+import { FlowStatus } from './flow-status.component';
+
+describe('FlowStatus', () => {
+    let component: FlowStatus;
+    let fixture: ComponentFixture<FlowStatus>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [FlowStatus]
+        });
+        fixture = TestBed.createComponent(FlowStatus);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

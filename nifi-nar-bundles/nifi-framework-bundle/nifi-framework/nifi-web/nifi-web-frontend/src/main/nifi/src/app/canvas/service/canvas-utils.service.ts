@@ -728,8 +728,8 @@ export class CanvasUtils {
 
                 // create and configure the tooltip
                 tooltipRef = viewContainerRef.createComponent(type);
-                tooltipRef.setInput('top', y + height + 5);
-                tooltipRef.setInput('left', x + width + 5);
+                tooltipRef.setInput('top', y + height + 8);
+                tooltipRef.setInput('left', x + width + 8);
                 tooltipRef.setInput('data', tooltipData);
 
                 // register mouse events

@@ -1131,7 +1131,10 @@ export class ProcessGroupManager {
                             self.canvasUtils.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
-                            if (self.viewContainerRef) {
+                            if (
+                                !self.canvasUtils.isBlank(processGroupData.component.comments) &&
+                                self.viewContainerRef
+                            ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
                                     text: processGroupData.component.comments
                                 });

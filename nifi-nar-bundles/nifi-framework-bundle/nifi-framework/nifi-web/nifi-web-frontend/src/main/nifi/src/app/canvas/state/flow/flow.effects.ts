@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { catchError, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
+import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
 import {
     DeleteComponentResponse,
     LoadProcessGroupRequest,
@@ -75,15 +75,24 @@ export class FlowEffects {
             ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
             switchMap((request: LoadProcessGroupRequest) =>
-                from(this.flowService.getFlow(request.id)).pipe(
-                    map((flow) =>
-                        FlowActions.loadProcessGroupSuccess({
+                combineLatest([
+                    this.flowService.getFlow(request.id),
+                    this.flowService.getFlowStatus(),
+                    this.flowService.getClusterSummary(),
+                    this.flowService.getControllerBulletins()
+                ]).pipe(
+                    map(([flow, flowStatus, clusterSummary, controllerBulletins]) => {
+                        console.log('cluster summary', clusterSummary);
+                        return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
-                                flow: flow
+                                flow: flow,
+                                flowStatus: flowStatus,
+                                clusterSummary: clusterSummary.clusterSummary,
+                                controllerBulletins: controllerBulletins
                             }
-                        })
-                    ),
+                        });
+                    }),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
