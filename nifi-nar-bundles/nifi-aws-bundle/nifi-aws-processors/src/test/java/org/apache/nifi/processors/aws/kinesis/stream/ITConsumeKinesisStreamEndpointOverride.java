@@ -30,8 +30,6 @@ import software.amazon.awssdk.services.kinesis.model.CreateStreamRequest;
 
 import java.net.URI;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
-
 public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStream {
 
     private static final String ACCESS_KEY = "test";
@@ -54,12 +52,9 @@ public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStre
                 }
             });
 
-    private final AwsClientBuilder.EndpointConfiguration dynamoDBEndpointConfig =
-            new AwsClientBuilder.EndpointConfiguration(LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE, REGION);
-
     @BeforeEach
     public void setUp() throws InterruptedException {
-        System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
+        System.setProperty("aws.cborEnabled", "false");
 
         kinesis = KinesisClient.builder()
                 .credentialsProvider(awsCredentialsProvider)

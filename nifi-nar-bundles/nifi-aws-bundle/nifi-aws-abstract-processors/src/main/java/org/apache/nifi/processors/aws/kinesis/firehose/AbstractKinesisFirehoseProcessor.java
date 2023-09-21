@@ -25,7 +25,7 @@ import software.amazon.awssdk.services.firehose.FirehoseClient;
 import software.amazon.awssdk.services.firehose.FirehoseClientBuilder;
 
 /**
- * This class is the base class for kinesis  processors
+ * This class is the base class for Kinesis Firehose processors
  */
 public abstract class AbstractKinesisFirehoseProcessor extends AbstractAwsSyncProcessor<FirehoseClient, FirehoseClientBuilder> {
 

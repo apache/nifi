@@ -37,7 +37,6 @@ import software.amazon.awssdk.services.firehose.model.PutRecordBatchResponse;
 import software.amazon.awssdk.services.firehose.model.PutRecordBatchResponseEntry;
 import software.amazon.awssdk.services.firehose.model.Record;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -107,8 +106,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
                 final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                session.exportTo(flowFile, baos);
+                session.read(flowFile, in -> recordHash.get(firehoseStreamName).add(Record.builder().data(SdkBytes.fromInputStream(in)).build()));
 
                 if (recordHash.containsKey(firehoseStreamName) == false) {
                     recordHash.put(firehoseStreamName, new ArrayList<>());
@@ -119,7 +117,6 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                 }
 
                 hashFlowFiles.get(firehoseStreamName).add(flowFile);
-                recordHash.get(firehoseStreamName).add(Record.builder().data(SdkBytes.fromByteArray(baos.toByteArray())).build());
             }
 
             for (final Map.Entry<String, List<Record>> entryRecord : recordHash.entrySet()) {

@@ -60,7 +60,7 @@ import java.util.Random;
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
 @SeeAlso(ConsumeKinesisStream.class)
-public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
+public class PutKinesisStream extends AbstractKinesisStreamSyncProcessor {
     /**
      * Kinesis put record response error message
      */
@@ -105,7 +105,7 @@ public class PutKinesisStream extends AbstractKinesisSyncStreamProcessor {
             .build();
 
     public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractKinesisSyncStreamProcessor.KINESIS_STREAM_NAME)
+            .fromPropertyDescriptor(AbstractKinesisStreamSyncProcessor.KINESIS_STREAM_NAME)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 

@@ -30,8 +30,6 @@ import software.amazon.awssdk.services.kinesis.model.CreateStreamRequest;
 
 import java.io.File;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
-
 public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
 
     private final static File CREDENTIALS_FILE =
@@ -39,7 +37,7 @@ public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
 
     @BeforeEach
     public void setUp() throws InterruptedException, InitializationException {
-        System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
+        System.setProperty("aws.cborEnabled", "false");
 
         kinesis = KinesisClient.builder()
                 .credentialsProvider(new PropertiesCredentialsProvider(CREDENTIALS_FILE))

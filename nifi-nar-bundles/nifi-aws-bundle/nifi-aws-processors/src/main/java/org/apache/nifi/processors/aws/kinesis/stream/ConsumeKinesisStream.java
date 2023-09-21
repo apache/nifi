@@ -142,7 +142,7 @@ import java.util.stream.Collectors;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
-public class ConsumeKinesisStream extends AbstractKinesisAsyncStreamProcessor {
+public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
     private static final String CHECKPOINT_CONFIG = "checkpointConfig";
     private static final String COORDINATOR_CONFIG = "coordinatorConfig";
     private static final String LEASE_MANAGEMENT_CONFIG = "leaseManagementConfig";

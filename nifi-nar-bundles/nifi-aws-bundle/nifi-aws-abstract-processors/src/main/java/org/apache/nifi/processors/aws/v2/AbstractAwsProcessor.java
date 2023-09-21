@@ -18,7 +18,6 @@ package org.apache.nifi.processors.aws.v2;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -54,8 +53,6 @@ import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
-import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 
 import javax.net.ssl.TrustManager;
@@ -190,10 +187,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
-    protected volatile T client;
-
-    protected volatile Region region;
-
     private final AwsClientCache<T> awsClientCache = new AwsClientCache<>();
 
     /**
@@ -278,13 +271,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient>
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         getClient(context);
-    }
-
-    @OnShutdown
-    public void onShutDown() {
-        if (this.client != null) {
-            this.client.close();
-        }
     }
 
     @OnStopped
