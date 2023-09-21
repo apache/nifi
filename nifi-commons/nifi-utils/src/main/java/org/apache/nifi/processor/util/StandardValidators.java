@@ -30,7 +30,6 @@ import org.apache.nifi.util.FormatUtils;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.NumberFormat;
@@ -548,7 +547,7 @@ public class StandardValidators {
 
                 try {
                     final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                    new URL(evaluatedInput);
+                    URI.create(evaluatedInput).toURL();
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
                 } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();
@@ -577,7 +576,7 @@ public class StandardValidators {
 
                 // First check to see if it is a valid URL
                 try {
-                    new URL(evaluatedInput);
+                    URI.create(evaluatedInput).toURL();
                 } catch (MalformedURLException mue) {
                     validUrl = false;
                 }

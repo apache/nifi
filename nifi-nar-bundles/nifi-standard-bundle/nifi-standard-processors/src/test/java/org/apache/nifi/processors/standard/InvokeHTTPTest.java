@@ -22,6 +22,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okio.Buffer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
@@ -764,8 +765,7 @@ public class InvokeHTTPTest {
     @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
     @MethodSource
     public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String inputUrl, String expectedFileName) throws MalformedURLException {
-        URL baseUrl = new URL(getMockWebServerUrl());
-        URL targetUrl = new URL(baseUrl, inputUrl);
+        URL targetUrl = URI.create(getMockWebServerUrl() + "/" + inputUrl).toURL();
 
         runner.setProperty(InvokeHTTP.HTTP_METHOD, httpMethod);
         runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());

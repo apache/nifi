@@ -28,7 +28,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.junit.jupiter.api.Test;
@@ -99,7 +99,7 @@ public abstract class AbstractTestUnsecure {
     }
 
     protected HttpURLConnection openSuperUserUrlConnection(String url) throws IOException {
-        return (HttpURLConnection) new URL(url).openConnection();
+        return (HttpURLConnection) URI.create(url).toURL().openConnection();
     }
 
     protected VersionedDataflow toVersionedDataFlow(InputStream inputStream) throws IOException {

@@ -98,7 +98,7 @@ public class ClassLoaderUtils {
                 // If the path is already a URL, just add it (but don't check if it exists, too expensive and subject to network availability)
                 boolean isUrl = true;
                 try {
-                    additionalClasspath.add(new URL(modulePathString));
+                    additionalClasspath.add(URI.create(modulePathString).toURL());
                 } catch (MalformedURLException mue) {
                     isUrl = false;
                 }

@@ -80,8 +80,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -447,8 +446,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .map(String::trim)
                 .forEach(input -> {
                     try {
-                        final URL url = new URL(input);
-                        schemes.add(url.toURI().getScheme());
+                        schemes.add(URI.create(input).getScheme());
                     } catch (Exception e) {
                         results.add(new ValidationResult.Builder().subject(ATLAS_URLS.getDisplayName()).input(input)
                                 .explanation("contains invalid URI: " + e).valid(false).build());
@@ -667,7 +665,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .map(String::trim)
                 .forEach(urlString -> {
                         try {
-                            new URL(urlString);
+                            URI.create(urlString).toURL();
                         } catch (Exception e) {
                             throw new ProcessException(e);
                         }
@@ -860,15 +858,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final ProcessGroupStatus rootProcessGroup = context.getEventAccess().getGroupStatus("root");
         final String flowName = rootProcessGroup.getName();
         final String nifiUrl = context.getProperty(ATLAS_NIFI_URL).evaluateAttributeExpressions().getValue();
-
-
-        final String namespace;
-        try {
-            final String nifiHostName = new URL(nifiUrl).getHost();
-            namespace = namespaceResolvers.fromHostNames(nifiHostName);
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Failed to parse NiFi URL, " + e.getMessage(), e);
-        }
+        final String nifiHostName = URI.create(nifiUrl).getHost();
+        final String namespace = namespaceResolvers.fromHostNames(nifiHostName);
 
         NiFiFlow existingNiFiFlow = null;
         try {

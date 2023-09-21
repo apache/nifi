@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -255,7 +256,7 @@ public class PutSlack extends AbstractProcessor {
             jsonWriter.writeObject(jsonObject);
             jsonWriter.close();
 
-            URL url = new URL(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue());
+            URL url = URI.create(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue()).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);

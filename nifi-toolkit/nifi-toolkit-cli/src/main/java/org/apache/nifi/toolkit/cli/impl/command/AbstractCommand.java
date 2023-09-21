@@ -32,7 +32,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -242,8 +241,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         String contents;
         try {
             // try a public resource URL
-            URL url = new URL(inputFile);
-            contents = IOUtils.toString(url, StandardCharsets.UTF_8);
+            contents = IOUtils.toString(URI.create(inputFile).toURL(), StandardCharsets.UTF_8);
         } catch (MalformedURLException e) {
             // assume a local file then
             URI uri = Paths.get(inputFile).toAbsolutePath().toUri();

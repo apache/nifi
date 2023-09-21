@@ -20,6 +20,7 @@ package org.apache.nifi.reporting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -274,7 +275,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
-            url = new URL(nifiUrl);
+            url = URI.create(nifiUrl).toURL();
         } catch (final MalformedURLException e1) {
             // already validated
             throw new AssertionError();

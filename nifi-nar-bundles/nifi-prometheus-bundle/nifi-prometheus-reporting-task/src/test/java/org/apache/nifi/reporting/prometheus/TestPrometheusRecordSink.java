@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -124,8 +124,7 @@ public class TestPrometheusRecordSink {
     }
 
     private String getMetrics() throws IOException {
-        URL url = new URL("http://localhost:" + portString + "/metrics");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        HttpURLConnection con = (HttpURLConnection) URI.create("http://localhost:" + portString + "/metrics").toURL().openConnection();
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
         assertEquals(HttpURLConnection.HTTP_OK, status);
