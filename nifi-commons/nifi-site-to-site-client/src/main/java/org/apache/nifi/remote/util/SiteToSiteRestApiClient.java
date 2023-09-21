@@ -38,10 +38,8 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -93,6 +91,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.entity.BasicHttpEntity;
@@ -1356,8 +1355,14 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         try {
-            return new URL(clusterUrl.getScheme(), clusterUrl.getHost(), clusterUrl.getPort(), uriPath).toURI().toString();
-        } catch (MalformedURLException|URISyntaxException e) {
+            return new URIBuilder()
+                    .setScheme(clusterUrl.getScheme())
+                    .setHost(clusterUrl.getHost())
+                    .setPort(clusterUrl.getPort())
+                    .setPath(uriPath)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -1369,8 +1374,14 @@ public class SiteToSiteRestApiClient implements Closeable {
     private void setBaseUrl(final String scheme, final String host, final int port, final String path) {
         final String baseUri;
         try {
-            baseUri = new URL(scheme, host, port, path).toURI().toString();
-        } catch (MalformedURLException|URISyntaxException e) {
+            baseUri = new URIBuilder()
+                    .setScheme(scheme)
+                    .setHost(host)
+                    .setPort(port)
+                    .setPath(path)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
         this.setBaseUrl(baseUri);

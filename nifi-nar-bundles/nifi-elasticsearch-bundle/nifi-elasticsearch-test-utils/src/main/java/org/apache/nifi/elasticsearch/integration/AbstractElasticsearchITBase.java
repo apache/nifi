@@ -40,6 +40,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -134,7 +135,7 @@ public abstract class AbstractElasticsearchITBase {
 
     protected static void setupTestData() throws IOException {
         final int majorVersion = getElasticMajorVersion();
-        final URL url = new URL(elasticsearchHost);
+        final URL url = URI.create(elasticsearchHost).toURL();
         testDataManagementClient = RestClient
                 .builder(new HttpHost(url.getHost(), url.getPort(), url.getProtocol()))
                 .setHttpClientConfigCallback(httpClientBuilder -> {

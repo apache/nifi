@@ -19,6 +19,7 @@ package org.apache.nifi.components.resource;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,11 +70,11 @@ public class StandardResourceReferenceFactory implements ResourceReferenceFactor
         if (allowedResourceTypes.contains(ResourceType.URL)) {
             try {
                 if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-                    return new URLResourceReference(new URL(trimmed));
+                    return new URLResourceReference(URI.create(trimmed).toURL());
                 }
 
                 if (trimmed.startsWith("file:")) {
-                    final URL url = new URL(trimmed);
+                    final URL url = URI.create(trimmed).toURL();
                     final String filename = url.getFile();
                     final File file = new File(filename);
                     return new FileResourceReference(file);

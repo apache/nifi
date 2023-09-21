@@ -38,7 +38,7 @@ import org.apache.nifi.util.file.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -77,8 +77,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String storageLocation) {
         try {
-            final URL url = new URL(storageLocation);
-            final File file = new java.io.File(url.toURI());
+            final File file = new java.io.File(URI.create(storageLocation));
             final Path path = file.toPath();
 
             final String configuredDirectory = context.getProperty(DIRECTORY).getValue();

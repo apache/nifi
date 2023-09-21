@@ -27,6 +27,7 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.net.Proxy.Type;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -836,7 +837,7 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URL url = new URL(urlProperty);
+            final URL url = URI.create(urlProperty).toURL();
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
             logRequest(logger, httpRequest);

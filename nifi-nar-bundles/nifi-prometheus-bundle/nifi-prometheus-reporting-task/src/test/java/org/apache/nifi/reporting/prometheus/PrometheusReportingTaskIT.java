@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -158,8 +158,7 @@ public class PrometheusReportingTaskIT {
     }
 
     private String getMetrics() throws IOException {
-        URL url = new URL("http://localhost:9092/metrics");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        HttpURLConnection con = (HttpURLConnection) URI.create("http://localhost:9092/metrics").toURL().openConnection();
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
         assertEquals(HttpURLConnection.HTTP_OK, status);

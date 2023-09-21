@@ -18,6 +18,7 @@ package org.apache.nifi.reporting.azure.loganalytics;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -45,7 +46,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -168,8 +168,6 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .displayName("Batch Size")
                         .description("Specifies how many records to send in a single batch, at most.").required(true)
                         .defaultValue("1000").addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
-
-        private ConfigurationContext context;
 
         private volatile ProvenanceEventConsumer consumer;
 
@@ -300,8 +298,8 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
                 URL url;
                 try {
-                        url = new URL(nifiUrl);
-                } catch (final MalformedURLException e1) {
+                        url = URI.create(nifiUrl).toURL();
+                } catch (IllegalArgumentException | MalformedURLException e) {
                         throw new AssertionError();
                 }
 
