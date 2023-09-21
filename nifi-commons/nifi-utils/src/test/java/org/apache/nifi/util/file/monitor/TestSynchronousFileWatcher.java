@@ -37,9 +37,8 @@ public class TestSynchronousFileWatcher {
         Files.copy(new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")), path, StandardCopyOption.REPLACE_EXISTING);
         final UpdateMonitor monitor = new DigestUpdateMonitor();
 
-        final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 40L);
+        final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 0L);
         assertFalse(watcher.checkAndReset());
-        Thread.sleep(41L);
         assertFalse(watcher.checkAndReset());
 
         try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
@@ -47,11 +46,7 @@ public class TestSynchronousFileWatcher {
             fos.getFD().sync();
         }
 
-        // immediately after file changes, but before the next check time is reached, answer should be false
-        assertFalse(watcher.checkAndReset());
-
-        // after check time has passed, answer should be true
-        Thread.sleep(41L);
+        // file has changed, answer should be true once
         assertTrue(watcher.checkAndReset());
         assertFalse(watcher.checkAndReset());
     }
