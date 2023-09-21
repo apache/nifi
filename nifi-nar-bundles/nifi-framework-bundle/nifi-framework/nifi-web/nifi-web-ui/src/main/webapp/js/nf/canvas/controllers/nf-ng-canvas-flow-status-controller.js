@@ -98,7 +98,7 @@
             this.controllerLocallyModifiedAndStaleCount = "-";
             this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
-            this.violationMenuInitialized = false;
+            // this.violationMenuInitialized = false;
 
             /**
              * The search controller.
@@ -430,38 +430,39 @@
                     return $('#recs-and-policies-rules-accordion');
                 },
 
-                buildRuleViolationsList: function(rules, violations) {
+                buildRuleViolationsList: function(rules, violationsAndRecs) {
                     var ruleViolationCountEl = $('#rule-violation-count');
                     var ruleViolationListEl = $('#rule-violations-list');
+                    var violations = violationsAndRecs.filter(function (violation) {
+                        return violation.enforcementPolicy === 'ENFORCE'
+                    });
                     ruleViolationCountEl.empty().text('(' + violations.length + ')');
                     ruleViolationListEl.empty();
                     violations.forEach(function(violation) {
-                        if (violation.enforcementPolicy === 'ENFORCE') {
-                            var rule = rules.find(function(rule) {
-                                return rule.id === violation.ruleId;
-                            });
-                            // create DOM elements
-                            var violationListItemEl = $('<li></li>');
-                            var violationEl = $('<div class="violation-list-item"></div>');
-                            var violationListItemWrapperEl = $('<div class="violation-list-item-wrapper"></div>');
-                            var violationRuleEl = $('<div class="rule-violations-list-item-name"></div>');
-                            var violationListItemNameEl = $('<div class="violation-list-item-name"></div>');
-                            var violationListItemIdEl = $('<span class="violation-list-item-id"></span>');
-                            var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+                        var rule = rules.find(function(rule) {
+                            return rule.id === violation.ruleId;
+                        });
+                        // create DOM elements
+                        var violationListItemEl = $('<li></li>');
+                        var violationEl = $('<div class="violation-list-item"></div>');
+                        var violationListItemWrapperEl = $('<div class="violation-list-item-wrapper"></div>');
+                        var violationRuleEl = $('<div class="rule-violations-list-item-name"></div>');
+                        var violationListItemNameEl = $('<div class="violation-list-item-name"></div>');
+                        var violationListItemIdEl = $('<span class="violation-list-item-id"></span>');
+                        var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
 
-                            // add text content and button data
-                            $(violationRuleEl).text(rule.name);
-                            $(violationListItemNameEl).text(violation.subjectDisplayName);
-                            $(violationListItemIdEl).text(violation.subjectId);
-                            $(violationListItemEl).append(violationRuleEl).append(violationListItemWrapperEl);
-                            $(violationInfoButtonEl).data('violationInfo', violation);
+                        // add text content and button data
+                        $(violationRuleEl).text(rule.name);
+                        $(violationListItemNameEl).text(violation.subjectDisplayName);
+                        $(violationListItemIdEl).text(violation.subjectId);
+                        $(violationListItemEl).append(violationRuleEl).append(violationListItemWrapperEl);
+                        $(violationInfoButtonEl).data('violationInfo', violation);
 
-                            // build list DOM structure
-                            violationListItemWrapperEl.append(violationListItemNameEl).append(violationListItemIdEl);
-                            violationEl.append(violationListItemWrapperEl).append(violationInfoButtonEl);
-                            violationListItemEl.append(violationRuleEl).append(violationEl)
-                            ruleViolationListEl.append(violationListItemEl);
-                        }
+                        // build list DOM structure
+                        violationListItemWrapperEl.append(violationListItemNameEl).append(violationListItemIdEl);
+                        violationEl.append(violationListItemWrapperEl).append(violationInfoButtonEl);
+                        violationListItemEl.append(violationRuleEl).append(violationEl)
+                        ruleViolationListEl.append(violationListItemEl);
                     });
                 },
 
@@ -636,8 +637,10 @@
                     }
                 },
 
-                setMenuRuleHandling: function(response) {
+                setMenuRuleHandling: function() {
                     $('.rule-menu-btn').click(function(event) {
+                        // stop event from immediately bubbling up to document and triggering closeRuleWindow
+                        event.stopPropagation();
                         var ruleMenuInitialized = false;
                         var ruleInfo = $(this).data('ruleInfo');
                         $('#rule-menu').show();
@@ -647,7 +650,28 @@
                             of: event
                         });
 
-                        $('#rule-menu-more-info').on( "click", function openRuleMoreInfoDialog() {
+                        // rule menu bindings
+                        $('#rule-menu-more-info').on( "click", openRuleMoreInfoDialog);
+                        $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
+                        $(document).on('click', function closeRuleWindow(e) {
+                            if (ruleMenuInitialized && $(e.target).parents("#rule-menu").length === 0) {
+                                $("#rule-menu").hide();
+                                $(document).unbind('click', closeRuleWindow);
+                                unbindRuleMenuHandling()
+                                ruleMenuInitialized = false;
+                            }
+                            ruleMenuInitialized = true;
+                        });
+
+                        function openRuleDetailsDialog() {
+                            $('#rule-menu').hide();
+                            nfSettings.showSettings().done(function() {
+                                nfSettings.selectFlowAnalysisRule(ruleInfo.id);
+                            });
+                            unbindRuleMenuHandling()
+                        }
+
+                        function openRuleMoreInfoDialog() {
                             $('#rule-menu').hide();
                             $('#rule-type-pill').empty()
                                                 .removeClass()
@@ -656,31 +680,22 @@
                             $('#rule-display-name').empty().append(ruleInfo.descriptors['component-type'].displayName);
                             $('#rule-description').empty().append(ruleInfo.descriptors['component-type'].description);
                             $( "#rule-menu-more-info-dialog" ).modal( "show" );
+                            unbindRuleMenuHandling();
+                        };
+
+                        function unbindRuleMenuHandling() {
                             $('#rule-menu-more-info').unbind('click', openRuleMoreInfoDialog);
-                        });
-
-                        $('#rule-menu-edit-rule').on('click', function openRuleDetailsDialog() {
-                            $('#rule-menu').hide();
-                            nfSettings.showSettings().done(function() {
-                                nfSettings.selectFlowAnalysisRule(ruleInfo.id);
-                            });
                             $('#rule-menu-edit-rule').unbind('click', openRuleDetailsDialog);
-                        });
+                        }
 
-                        $(document).on('click', function closeRuleWindow(e) {
-                            if (ruleMenuInitialized && $(e.target).parents("#rule-menu").length === 0) {
-                                $("#rule-menu").hide();
-                                $(document).unbind('click', closeRuleWindow);
-                            }
-                            ruleMenuInitialized = true;
-                        });
                     });
                 },
 
                 setViolationMenuHandling: function(response, groupId) {
                     $('.violation-menu-btn').click(function(event) {
-                        // $("#violation-menu").hide();
-                        // this.violationMenuInitialized = false;
+                        // stop event from immediately bubbling up to document and triggering closeViolationWindow
+                        event.stopPropagation();
+                        var violationMenuInitialized = false;
                         var violationInfo = $(this).data('violationInfo');
                         $('#violation-menu').show();
                         $('#violation-menu').position({
@@ -689,38 +704,47 @@
                             of: event
                         });
 
-                        $('#violation-menu-more-info').on( "click", function openRuleMoreInfoDialog() {
+                        // violation menu bindings
+                        $('#violation-menu-more-info').on( "click", openRuleMoreInfoDialog);
+                        $('#violation-menu-go-to').on('click', goToComponent);
+                        $(document).on('click', closeViolationWindow);
+
+                        function closeViolationWindow(e) {
+                            if (violationMenuInitialized && $(e.target).parents("#violation-menu").length === 0) {
+                                $("#violation-menu").hide();
+                                unbindViolationMenuHandling();
+                                violationMenuInitialized = false;
+                            } else {
+                                violationMenuInitialized = true;
+                            }
+                        }
+
+                        function openRuleMoreInfoDialog() {
                             var rule = response.rules.find(function(rule){ 
                                 return rule.id === violationInfo.ruleId;
                             })
                             $('#violation-menu').hide();
                             $('#violation-type-pill').empty()
-                                                .removeClass()
-                                                .addClass(violationInfo.enforcementPolicy.toLowerCase() + ' violation-type-pill')
-                                                .append(violationInfo.enforcementPolicy);
+                                                    .removeClass()
+                                                    .addClass(violationInfo.enforcementPolicy.toLowerCase() + ' violation-type-pill')
+                                                    .append(violationInfo.enforcementPolicy);
                             $('#violation-display-name').empty().append(violationInfo.violationMessage);
                             $('#violation-description').empty().append(rule.descriptors['component-type'].description);
                             $( "#violation-menu-more-info-dialog" ).modal( "show" );
+                            unbindViolationMenuHandling();
+                        }
+
+                        function goToComponent() {
+                            $('#violation-menu').hide();
+                            nfCanvasUtils.showComponent(groupId, violationInfo.subjectId);
+                            unbindViolationMenuHandling();
+                        }
+
+                        function unbindViolationMenuHandling() {
+                            $('#violation-menu-go-to').unbind('click', goToComponent);
                             $('#violation-menu-more-info').unbind('click', openRuleMoreInfoDialog);
                             $(document).unbind('click.closeViolationWindow');
-                        });
-
-                        $('#violation-menu-go-to').on('click', function goToComponent() {
-                            $('#violation-menu').hide();
-                            $('#violation-menu-go-to').unbind('click', goToComponent);
-                            nfCanvasUtils.showComponent(groupId, violationInfo.subjectId);
-                            $(document).unbind('click.closeViolationWindow');
-                        });
-
-                        $(document).on('click', function closeViolationWindow(e) {
-                            if (this.violationMenuInitialized && $(e.target).parents("#violation-menu").length === 0) {
-                                $("#violation-menu").hide();
-                                $(document).unbind('click', closeViolationWindow);
-                                this.violationMenuInitialized = false;
-                            } else {
-                                this.violationMenuInitialized = true;
-                            }
-                        });
+                        }
                     });
                 },
 
