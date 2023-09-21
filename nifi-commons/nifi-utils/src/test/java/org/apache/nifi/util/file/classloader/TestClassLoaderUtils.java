@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -124,7 +125,7 @@ public class TestClassLoaderUtils {
     @Test
     public void testGenerateAdditionalUrlsFingerprintForHttpUrl() throws MalformedURLException {
         final Set<URL> urls = new HashSet<>();
-        URL testUrl = new URL("http://myhost/TestSuccess.jar");
+        URL testUrl = URI.create("http://myhost/TestSuccess.jar").toURL();
         urls.add(testUrl);
         String testFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(urls, null);
         assertNotNull(testFingerprint);

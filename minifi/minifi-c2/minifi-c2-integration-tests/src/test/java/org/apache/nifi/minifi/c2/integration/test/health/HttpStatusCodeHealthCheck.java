@@ -23,7 +23,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.function.Function;
 
 public class HttpStatusCodeHealthCheck implements HealthCheck<Container> {
@@ -50,6 +50,6 @@ public class HttpStatusCodeHealthCheck implements HealthCheck<Container> {
     }
 
     protected HttpURLConnection openConnection(String url) throws IOException {
-        return ((HttpURLConnection) new URL(url).openConnection());
+        return ((HttpURLConnection) URI.create(url).toURL().openConnection());
     }
 }

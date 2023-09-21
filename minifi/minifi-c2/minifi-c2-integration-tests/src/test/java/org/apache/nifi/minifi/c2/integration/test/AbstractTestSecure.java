@@ -40,7 +40,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -194,8 +194,8 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
 
     protected HttpsURLConnection openUrlConnection(String url, SSLContext sslContext) throws IOException {
         DockerPort dockerPort = docker.containers().container("squid").port(3128);
-        HttpsURLConnection httpURLConnection = (HttpsURLConnection) new URL(url).openConnection(
-                new Proxy(Proxy.Type.HTTP, new InetSocketAddress(dockerPort.getIp(), dockerPort.getExternalPort())));
+        HttpsURLConnection httpURLConnection = (HttpsURLConnection) URI.create(url).toURL().openConnection(
+            new Proxy(Proxy.Type.HTTP, new InetSocketAddress(dockerPort.getIp(), dockerPort.getExternalPort())));
         httpURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
         return httpURLConnection;
     }

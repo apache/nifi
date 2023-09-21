@@ -70,6 +70,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -419,7 +420,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.url = hostsSplit.get(0);
         final List<HttpHost> hh = new ArrayList<>(hostsSplit.size());
         for (final String host : hostsSplit) {
-            final URL u = new URL(host);
+            final URL u = URI.create(host).toURL();
             hh.add(new HttpHost(u.getHost(), u.getPort(), u.getProtocol()));
         }
 
@@ -560,8 +561,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
         sb.append("/").append(endpoint);
 
-        final HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         try {
+            final HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
             return performRequest("POST", sb.toString(), requestParameters, queryEntity);
         } catch (final Exception e) {
             throw new ElasticsearchException(e);

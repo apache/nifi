@@ -31,7 +31,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -336,7 +335,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                     // but we may need to when validating
                     final String encodedInput = URLEncoder.encode(evaluatedInput, "UTF-8");
                     final String url = String.format("http://www.foo.com?%s", encodedInput);
-                    new URL(url);
+                    URI.create(url).toURL();
                     results.add(new ValidationResult.Builder().subject(PROP_QUERY_PARAMS.getName())
                                                               .input(input)
                                                               .explanation("Valid URL params")

@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,7 +62,7 @@ public class HttpsStatusCodeHealthCheck implements HealthCheck<List<Container>> 
     }
 
     public static HttpURLConnection getHttpURLConnection(String url, SSLSocketFactory sslSocketFactory, String proxyHostname, int proxyPort) throws IOException {
-        HttpsURLConnection httpURLConnection = (HttpsURLConnection) new URL(url).openConnection(
+        HttpsURLConnection httpURLConnection = (HttpsURLConnection) URI.create(url).toURL().openConnection(
                 new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHostname, proxyPort)));
         httpURLConnection.setSSLSocketFactory(sslSocketFactory);
         return httpURLConnection;
