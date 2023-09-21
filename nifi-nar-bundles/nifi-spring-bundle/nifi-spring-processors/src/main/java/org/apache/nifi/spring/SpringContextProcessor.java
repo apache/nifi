@@ -19,6 +19,7 @@ package org.apache.nifi.spring;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -133,6 +134,7 @@ import java.util.concurrent.TimeUnit;
  * representation of the content that is being exchanged between NiFi and
  * Spring.
  */
+@DeprecationNotice(reason = "Alternative event-handling solutions should be used")
 @TriggerWhenEmpty
 @Tags({ "Spring", "Message", "Get", "Put", "Integration" })
 @CapabilityDescription("A Processor that supports sending and receiving data from application defined in "
