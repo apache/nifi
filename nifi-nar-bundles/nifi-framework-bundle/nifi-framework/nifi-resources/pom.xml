@@ -25,7 +25,7 @@
     <description>Holds common resources used to build installers</description>
     <properties>
         <!--Wrapper Properties -->
-        <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
+        <nifi.jvm.heap.init>1g</nifi.jvm.heap.init>
         <nifi.jvm.heap.max>1g</nifi.jvm.heap.max>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
