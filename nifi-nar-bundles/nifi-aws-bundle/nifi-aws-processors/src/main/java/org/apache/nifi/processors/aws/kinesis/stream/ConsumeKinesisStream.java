@@ -388,6 +388,11 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
         return builder.build();
     }
 
+    @OnStopped
+    public void onStopped() {
+        super.onStopped();
+    }
+
     private ValidationResult validateDynamicKCLConfigProperty(final String subject, final String input, final ValidationContext context) {
         final ValidationResult.Builder validationResult = new ValidationResult.Builder().subject(subject).input(input);
 

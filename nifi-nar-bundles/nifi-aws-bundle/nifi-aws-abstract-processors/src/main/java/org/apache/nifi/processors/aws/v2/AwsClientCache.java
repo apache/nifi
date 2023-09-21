@@ -29,7 +29,12 @@ public class AwsClientCache<T extends SdkClient> {
         return clientCache.get(clientDetails, ignored -> provider.createClient(context));
     }
 
+    public void closeClients() {
+        clientCache.asMap().values().stream().forEach(SdkClient::close);
+    }
+
     public void clearCache() {
+        closeClients();
         clientCache.invalidateAll();
         clientCache.cleanUp();
     }
