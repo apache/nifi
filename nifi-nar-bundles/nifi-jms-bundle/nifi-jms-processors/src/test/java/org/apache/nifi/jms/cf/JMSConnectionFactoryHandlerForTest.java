@@ -32,7 +32,7 @@ public class JMSConnectionFactoryHandlerForTest extends JMSConnectionFactoryHand
 
     public JMSConnectionFactoryHandlerForTest(ConfigurationContext context, ComponentLog logger) {
         super(context, logger);
-        setConnectionFactoryProperties(getConnectionFactory());
+        setConnectionFactoryProperties(null);
     }
 
     @Override
