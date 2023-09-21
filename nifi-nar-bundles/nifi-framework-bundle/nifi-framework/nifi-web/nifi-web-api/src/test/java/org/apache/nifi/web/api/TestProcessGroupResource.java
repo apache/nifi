@@ -25,7 +25,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,12 +37,12 @@ import javax.ws.rs.core.Response;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestProcessGroupResource {
@@ -84,7 +84,7 @@ public class TestProcessGroupResource {
         revisionDTO.setVersion(1L);
 
         processGroupEntity.setRevision(revisionDTO);
-        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupUpdateStrategy.CURRENT_GROUP.name());
+        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupRecursivity.DIRECT_CHILDREN.name());
         processGroupEntity.setComponent(groupDTO);
 
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));

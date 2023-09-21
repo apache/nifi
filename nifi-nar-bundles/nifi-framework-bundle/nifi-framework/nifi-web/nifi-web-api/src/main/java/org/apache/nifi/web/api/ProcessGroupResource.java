@@ -30,10 +30,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,7 +72,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
-import java.util.ArrayList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -154,8 +155,8 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessGroupUploadEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -175,8 +176,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.HashSet;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -532,11 +531,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         final String processGroupUpdateStrategy = requestProcessGroupEntity.getProcessGroupUpdateStrategy();
-        final ProcessGroupUpdateStrategy updateStrategy;
+        final ProcessGroupRecursivity updateStrategy;
         if (processGroupUpdateStrategy == null) {
-            updateStrategy = ProcessGroupUpdateStrategy.CURRENT_GROUP;
+            updateStrategy = ProcessGroupRecursivity.DIRECT_CHILDREN;
         } else {
-            updateStrategy = ProcessGroupUpdateStrategy.valueOf(processGroupUpdateStrategy);
+            updateStrategy = ProcessGroupRecursivity.valueOf(processGroupUpdateStrategy);
         }
 
         final String executionEngine = requestProcessGroupDTO.getExecutionEngine();
@@ -575,7 +574,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
 
-        if (updateStrategy == ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN) {
+        if (updateStrategy == ProcessGroupRecursivity.ALL_DESCENDANTS) {
             for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
                 final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
                 final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
@@ -2242,7 +2241,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the process groups
-        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, ProcessGroupUpdateStrategy.CURRENT_GROUP);
+        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, ProcessGroupRecursivity.DIRECT_CHILDREN);
 
         // always prune the contents
         for (final ProcessGroupEntity entity : entities) {

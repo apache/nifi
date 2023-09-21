@@ -46,7 +46,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.slf4j.Logger;
@@ -156,9 +156,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final ProcessGroupUpdateStrategy processGroupUpdateStrategy) {
+    public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
         ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
-        if (processGroupUpdateStrategy == ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN) {
+        if (processGroupRecursivity == ProcessGroupRecursivity.ALL_DESCENDANTS) {
             return new HashSet<>(group.findAllProcessGroups());
         } else {
             return group.getProcessGroups();

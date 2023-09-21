@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-public enum ProcessGroupUpdateStrategy {
-    CURRENT_GROUP,
-    CURRENT_GROUP_WITH_CHILDREN
+public enum ProcessGroupRecursivity {
+    DIRECT_CHILDREN,
+    ALL_DESCENDANTS
 }
