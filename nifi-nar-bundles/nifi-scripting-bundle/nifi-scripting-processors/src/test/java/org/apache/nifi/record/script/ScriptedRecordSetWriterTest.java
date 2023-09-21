@@ -119,7 +119,7 @@ public class ScriptedRecordSetWriterTest {
         map2.put("name", "Ramon");
         map2.put("code", 300);
 
-        return  new MapRecord[]{new MapRecord(recordSchema, map), new MapRecord(recordSchema, map1), new MapRecord(recordSchema, map2)};
+        return new MapRecord[]{new MapRecord(recordSchema, map), new MapRecord(recordSchema, map1), new MapRecord(recordSchema, map2)};
     }
     public static class MockScriptedWriter extends ScriptedRecordSetWriter implements AccessibleScriptingComponentHelper {
         @Override

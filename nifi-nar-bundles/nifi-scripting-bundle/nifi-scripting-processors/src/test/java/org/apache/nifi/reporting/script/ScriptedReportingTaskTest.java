@@ -89,7 +89,7 @@ class ScriptedReportingTaskTest {
         reportingContext.setProperty(ScriptingComponentUtils.SCRIPT_FILE.getName(), targetPath.toString());
 
         final MockEventAccess eventAccess = reportingContext.getEventAccess();
-        for(long index = 1; index < 4; index++) {
+        for (long index = 1; index < 4; index++) {
             final ProvenanceEventRecord event = mock(ProvenanceEventRecord.class);
             doReturn(index).when(event).getEventId();
             if(index == 1) {

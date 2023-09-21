@@ -16,16 +16,13 @@
  */
 package org.apache.nifi.record.script;
 
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -76,11 +73,7 @@ class ScriptedReaderTest {
     @BeforeEach
     public void setUp() throws Exception {
         recordReaderFactory = new MockScriptedReader();
-        runner = TestRunners.newTestRunner(new AbstractProcessor() {
-            @Override
-            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-            }
-        });
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("reader", recordReaderFactory);
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);

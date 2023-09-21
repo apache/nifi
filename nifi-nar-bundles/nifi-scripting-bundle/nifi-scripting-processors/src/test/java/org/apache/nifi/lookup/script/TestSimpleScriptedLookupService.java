@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.lookup.script;
 
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,11 +51,7 @@ public class TestSimpleScriptedLookupService {
 
     @Test
     void testSimpleLookupServiceGroovyScript() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
-            @Override
-            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-            }
-        });
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         SimpleScriptedLookupService scriptedLookupService = new MockScriptedLookupService();
         runner.addControllerService("lookupService", scriptedLookupService);
         runner.setProperty(scriptedLookupService, "Script Engine", "Groovy");
