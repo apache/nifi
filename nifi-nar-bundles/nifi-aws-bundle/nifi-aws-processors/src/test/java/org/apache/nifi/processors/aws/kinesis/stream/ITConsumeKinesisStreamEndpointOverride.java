@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.client.builder.AwsClientBuilder;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;

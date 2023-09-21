@@ -24,7 +24,6 @@ import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.SdkEventLoopGroup;
 
 import javax.net.ssl.TrustManager;
 import java.time.Duration;
