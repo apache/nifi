@@ -178,7 +178,7 @@ public class ModifyHTMLElement extends AbstractHTMLProcessor {
                     out.write(doc.html().getBytes(StandardCharsets.UTF_8));
                 }
             });
-            ff = session.putAttribute(ff, NUM_ELEMENTS_MODIFIED_ATTR, new Integer(eles.size()).toString());
+            ff = session.putAttribute(ff, NUM_ELEMENTS_MODIFIED_ATTR, Integer.valueOf(eles.size()).toString());
             session.transfer(ff, REL_SUCCESS);
 
             // Transfer the original HTML

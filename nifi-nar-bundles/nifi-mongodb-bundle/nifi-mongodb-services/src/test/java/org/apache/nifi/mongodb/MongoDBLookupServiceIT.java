@@ -202,7 +202,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
             .append("decimalField", Double.MAX_VALUE / 2.0)
             .append("subrecordField", new Document()
                 .append("nestedString", "test")
-                .append("nestedLong", new Long(1000)))
+                .append("nestedLong", Long.valueOf(1000)))
             .append("arrayField", list)
         );
 
@@ -217,7 +217,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
         assertEquals("Hello, world", record.getValue("stringField"), "The value was wrong.");
         assertEquals("x-y-z", record.getValue("uuid"), "The value was wrong.");
-        assertEquals(new Long(10000), record.getValue("longField"));
+        assertEquals(Long.valueOf(10000), record.getValue("longField"));
         assertEquals((Double.MAX_VALUE / 2.0), record.getValue("decimalField"));
         assertEquals(d, record.getValue("dateField"));
         assertEquals(ts.getTime(), ((Date)record.getValue("timestampField")).getTime());
@@ -225,7 +225,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         Record subRecord = record.getAsRecord("subrecordField", subSchema);
         assertNotNull(subRecord);
         assertEquals("test", subRecord.getValue("nestedString"));
-        assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
+        assertEquals(Long.valueOf(1000), subRecord.getValue("nestedLong"));
         assertEquals(list, record.getValue("arrayField"));
 
         Map<String, Object> clean = new HashMap<>();
