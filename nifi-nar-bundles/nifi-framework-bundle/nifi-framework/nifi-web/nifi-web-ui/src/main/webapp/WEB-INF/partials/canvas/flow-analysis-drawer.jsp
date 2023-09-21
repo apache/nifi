@@ -15,24 +15,24 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<section id="recs-and-policies-drawer">
-    <div class="recs-and-policies-header">
+<section id="flow-analysis-drawer">
+    <div class="flow-analysis-header">
         <div class="recs-policies-refresh-container">
             <div class="recs-policies-refresh">Next check in: <span class="recs-policies-check-in">21</span></div>
             <button id="recs-policies-check-now-btn" class="recs-policies-check-now-btn">Check Now</button>
         </div>
     </div>
-    <div class="recs-and-policies-flow-guide-container">
+    <div class="flow-analysis-flow-guide-container">
         <div class="recs-policies-flow-guide">
             <div class="recs-policies-flow-guide-title">Flow Guide</div>
-            <div class="recs-and-policies-violations-options">
+            <div class="flow-analysis-violations-options">
                 <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
                 <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
             </div>
         </div>
         <div class="recs-policies-flow-guide-breadcrumb">NiFi Flow</div>
     </div>
-    <div id="recs-and-policies-rules-accordion" class="recs-and-policies-rules-accordion">
+    <div id="flow-analysis-rules-accordion" class="flow-analysis-rules-accordion">
 
         <div id="required-rules" class="required-rules">
             <div>

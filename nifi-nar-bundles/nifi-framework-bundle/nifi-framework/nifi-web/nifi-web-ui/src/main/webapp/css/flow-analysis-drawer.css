@@ -1,20 +1,20 @@
-.recs-and-policies {
+.flow-analysis {
   padding: 0;
 }
 
-#flow-status .recs-and-policies .fa-lightbulb-o {
+#flow-status .flow-analysis .fa-lightbulb-o {
   padding: 4px;
   width: 14px;
   height: 14px;
   border-radius: 15px;
 }
 
-#flow-status .recs-and-policies .fa-lightbulb-o.recommendations {
+#flow-status .flow-analysis .fa-lightbulb-o.recommendations {
   border: 1px solid #176e83;
   border-radius: 15px;
 }
 
-#flow-status .recs-and-policies .fa-lightbulb-o.violations {
+#flow-status .flow-analysis .fa-lightbulb-o.violations {
   border: 0;
   padding: 4px;
   color: white;
@@ -24,7 +24,7 @@
   border-radius: 15px;
 }
 
-#recs-and-policies-drawer {
+#flow-analysis-drawer {
   background-color: rgba(249, 250, 251, 0.9);
   height: calc(100vh - 115px);
   padding: 20px;
@@ -35,7 +35,7 @@
   transition: right 0.3s ease-in-out;
 }
 
-#recs-and-policies-drawer.opened {
+#flow-analysis-drawer.opened {
   right: 0;
 }
 
@@ -51,7 +51,7 @@
   margin-bottom: 5px;
 }
 
-.recs-and-policies-header {
+.flow-analysis-header {
   display: flex;
   width: 100%;
 }
@@ -62,7 +62,7 @@
   justify-content: space-between;
 }
 
-.recs-and-policies-violations-options {
+.flow-analysis-violations-options {
   align-items: center;
   display: flex;
 }
@@ -93,7 +93,7 @@
   display: flex;
 }
 
-.recs-and-policies-flow-guide-container {
+.flow-analysis-flow-guide-container {
   margin-top: 22px;
 }
 
@@ -101,15 +101,15 @@
   display: flex;
 }
 
-#recs-and-policies-drawer .recs-and-policies-rules-accordion {
+#flow-analysis-drawer .flow-analysis-rules-accordion {
   margin-top: 10px;
   padding: 0;
 }
 
-#recs-and-policies-drawer
-  .recs-and-policies-rules-accordion
+#flow-analysis-drawer
+  .flow-analysis-rules-accordion
   .ui-accordion-header,
-#recs-and-policies-drawer .rules-violations-header {
+#flow-analysis-drawer .rules-violations-header {
   background-color: transparent;
   border: 0;
   color: black;
@@ -123,11 +123,11 @@
   align-items: center;
 }
 
-.recs-and-policies-rules-accordion .ui-accordion-header-icon {
+.flow-analysis-rules-accordion .ui-accordion-header-icon {
   order: 2;
 }
 
-#recs-and-policies-drawer .recs-poliicies-accordion-header-text {
+#flow-analysis-drawer .recs-poliicies-accordion-header-text {
   color: #262626;
   font-family: Roboto Slab;
   font-size: 12px;
@@ -136,14 +136,14 @@
   margin: 6px 5px 6px 0;
 }
 
-#recs-and-policies-drawer .recommended-rules-list,
-#recs-and-policies-drawer .required-rules-list {
+#flow-analysis-drawer .recommended-rules-list,
+#flow-analysis-drawer .required-rules-list {
   padding: 0;
   background-color: transparent;
   border: 0;
 }
 
-#recs-and-policies-drawer .ui-icon {
+#flow-analysis-drawer .ui-icon {
   background-image: none;
   text-indent: 0;
 }
@@ -156,11 +156,11 @@
   font-weight: 400;
 }
 
-#recs-and-policies-drawer .rules-list-item {
+#flow-analysis-drawer .rules-list-item {
   border-bottom: 1px solid #ddd;
 }
 
-#recs-and-policies-drawer .rules-list-rule-info {
+#flow-analysis-drawer .rules-list-rule-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -176,7 +176,7 @@
   color: #262626;
 }
 
-#recs-and-policies-drawer .show-only-violations-label {
+#flow-analysis-drawer .show-only-violations-label {
   font-family: Roboto;
   font-size: 13px;
   font-weight: normal;
@@ -188,26 +188,26 @@
   color: #262626;
 }
 
-#recs-and-policies-drawer .rules-list-item-menu-target {
+#flow-analysis-drawer .rules-list-item-menu-target {
   font-size: 14px;
   color: #054849;
 }
 
-#recs-and-policies-drawer .rule-menu-btn,
-#recs-and-policies-drawer .violation-menu-btn {
+#flow-analysis-drawer .rule-menu-btn,
+#flow-analysis-drawer .violation-menu-btn {
   border: 0;
 }
 
-#recs-and-policies-drawer .rule-menu,
-#recs-and-policies-drawer .violation-menu {
+#flow-analysis-drawer .rule-menu,
+#flow-analysis-drawer .violation-menu {
   width: 200px;
   box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.3);
   border: solid 1px #004849;
   background-color: #fff;
 }
 
-#recs-and-policies-drawer .rule-menu-option,
-#recs-and-policies-drawer .violation-menu-option {
+#flow-analysis-drawer .rule-menu-option,
+#flow-analysis-drawer .violation-menu-option {
   padding: 3px 0 3px 10px;
   background-color: #fff;
   font-family: Roboto;
@@ -224,15 +224,15 @@
   margin: 3px 0;
 }
 
-#recs-and-policies-drawer .rule-menu-option:hover,
-#recs-and-policies-drawer .violation-menu-option:hover {
+#flow-analysis-drawer .rule-menu-option:hover,
+#flow-analysis-drawer .violation-menu-option:hover {
   background-color: #dce3e6;
   color: #262626;
   cursor: pointer;
 }
 
-#recs-and-policies-drawer .rule-menu-option-icon,
-#recs-and-policies-drawer .violation-menu-option-icon {
+#flow-analysis-drawer .rule-menu-option-icon,
+#flow-analysis-drawer .violation-menu-option-icon {
   color: #004849;
   font-size: 18px;
   margin-right: 10px;

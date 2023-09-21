@@ -551,7 +551,6 @@
                                                 <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-bootstrap.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-recs-and-policies-drawer.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -742,7 +741,7 @@
                                                 <include>${staging.dir}/css/settings.css</include>
                                                 <include>${staging.dir}/css/about.css</include>
                                                 <include>${staging.dir}/css/status-history.css</include>
-                                                <include>${staging.dir}/css/recs-and-policies-drawer.css</include>
+                                                <include>${staging.dir}/css/flow-analysis-drawer.css</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -782,7 +781,7 @@
                                                 <include>${staging.dir}/css/processor-details.css</include>
                                                 <include>${staging.dir}/css/connection-details.css</include>
                                                 <include>${staging.dir}/css/status-history.css</include>
-                                                <include>${staging.dir}/css/recs-and-policies-drawer.css</include>
+                                                <include>${staging.dir}/css/flow-analysis-drawer.css</include>
                                                 <include>${staging.dir}/css/summary.css</include>
                                             </includes>
                                         </aggregation>
