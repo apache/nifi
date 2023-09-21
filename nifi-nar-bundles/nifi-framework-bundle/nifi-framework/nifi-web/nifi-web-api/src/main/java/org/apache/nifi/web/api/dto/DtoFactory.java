@@ -118,9 +118,9 @@ import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -2241,6 +2241,13 @@ public final class DtoFactory {
         component.setRevision(groupEntity.getRevision());
         component.setUri(groupEntity.getUri());
         component.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+
+        final String parentGroupId = groupEntity.getComponent().getParentGroupId();
+        if (parentGroupId != null) {
+            final ProcessGroupNameDTO groupName = new ProcessGroupNameDTO();
+            groupName.setId(parentGroupId);
+            component.setProcessGroup(groupName);
+        }
 
         final ProcessGroupDTO groupDto = groupEntity.getComponent();
         final AffectedComponentDTO componentDto = new AffectedComponentDTO();

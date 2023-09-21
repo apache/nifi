@@ -24,7 +24,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 
 import java.util.Collection;
 import java.util.Map;
@@ -60,10 +60,10 @@ public interface ProcessGroupDAO {
      * Gets all of the process groups.
      *
      * @param parentGroupId The parent group id
-     * @param processGroupUpdateStrategy if process groups with its child groups should be included
+     * @param processGroupRecursivity how far into child/descendant groups to recurse
      * @return The process groups
      */
-    Set<ProcessGroup> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy processGroupUpdateStrategy);
+    Set<ProcessGroup> getProcessGroups(String parentGroupId, ProcessGroupRecursivity processGroupRecursivity);
 
     /**
      * Gets all of the process groups.

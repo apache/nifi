@@ -226,6 +226,7 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
@@ -305,9 +306,9 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
@@ -4631,10 +4632,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final ProcessGroupUpdateStrategy processGroupUpdateStrategy) {
-        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, processGroupUpdateStrategy);
+    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
+        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, processGroupRecursivity);
         return groups.stream()
-            .map(group -> createProcessGroupEntity(group))
+            .map(this::createProcessGroupEntity)
             .collect(Collectors.toSet());
     }
 
@@ -5696,11 +5697,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
 
+    private ProcessGroupNameDTO createProcessGroupNameDto(final ProcessGroup group) {
+        if (group == null) {
+            return null;
+        }
+
+        final ProcessGroupNameDTO dto = new ProcessGroupNameDTO();
+        dto.setId(group.getIdentifier());
+        dto.setName(group.getName());
+        return dto;
+    }
+
     private AffectedComponentEntity createAffectedComponentEntity(final Connectable connectable) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(connectable.getIdentifier())));
         entity.setId(connectable.getIdentifier());
         entity.setReferenceType(connectable.getConnectableType().name());
+        entity.setProcessGroup(createProcessGroupNameDto(connectable.getProcessGroup()));
 
         final Authorizable authorizable = getAuthorizable(connectable);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5724,6 +5737,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier())));
         entity.setId(serviceNode.getIdentifier());
         entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        entity.setProcessGroup(createProcessGroupNameDto(serviceNode.getProcessGroup()));
 
         final Authorizable authorizable = authorizableLookup.getControllerService(serviceNode.getIdentifier()).getAuthorizable();
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5744,6 +5758,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier())));
         entity.setId(group.getIdentifier());
         entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+        entity.setProcessGroup(createProcessGroupNameDto(group.getParent()));
 
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(group);
         entity.setPermissions(permissionsDto);
@@ -5764,6 +5779,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(instance.getInstanceIdentifier())));
         entity.setId(instance.getInstanceIdentifier());
         entity.setReferenceType(componentTypeName);
+
+        final String groupId = instance.getInstanceGroupId();
+        if (groupId != null) {
+            final ProcessGroupNameDTO groupNameDto = new ProcessGroupNameDTO();
+            groupNameDto.setId(groupId);
+            entity.setProcessGroup(groupNameDto);
+        }
 
         final Authorizable authorizable = getAuthorizable(componentTypeName, instance);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);

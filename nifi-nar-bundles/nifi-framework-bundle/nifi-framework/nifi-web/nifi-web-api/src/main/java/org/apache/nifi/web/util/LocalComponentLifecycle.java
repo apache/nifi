@@ -31,7 +31,7 @@ import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -191,7 +191,14 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             final Set<ProcessorEntity> processorEntities = serviceFacade.getProcessors(groupId, true);
             final boolean processorsComplete = isProcessorActionComplete(processorEntities, affectedComponents, desiredState, invalidComponentAction);
 
-            final Set<ProcessGroupEntity> groupEntities = serviceFacade.getProcessGroups(groupId, ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN);
+            // Gather the Process Group in question and all of its descendants
+            final Set<ProcessGroupEntity> groupEntities = new HashSet<>();
+            groupEntities.add(serviceFacade.getProcessGroup(groupId));
+
+            final Set<ProcessGroupEntity> descendantEntities = serviceFacade.getProcessGroups(groupId, ProcessGroupRecursivity.ALL_DESCENDANTS);
+            groupEntities.addAll(descendantEntities);
+
+            // Wait until the stateless group has reached the desired state
             final boolean statelessGroupsComplete = isStatelessGroupActionComplete(groupEntities, affectedComponents, desiredState);
 
             if (processorsComplete && statelessGroupsComplete) {
@@ -293,8 +300,16 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         updateAffectedGroupComponents(groupEntities, affectedComponents);
 
+        final Set<String> affectedGroupIds = affectedComponents.values().stream()
+            .map(entity -> {
+                final boolean isGroup = AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(entity.getReferenceType());
+                return isGroup ? entity.getId() : entity.getComponent().getProcessGroupId();
+            })
+            .collect(Collectors.toSet());
+
         for (final ProcessGroupEntity entity : groupEntities) {
-            if (!affectedComponents.containsKey(entity.getId())) {
+            // Only account for groups that are in our affected component list
+            if (!affectedGroupIds.contains(entity.getId())) {
                 continue;
             }
 
