@@ -29,8 +29,8 @@ import java.util.TreeMap;
  */
 public class RedisStateMap implements StateMap {
 
-    public static final Long DEFAULT_VERSION = new Long(-1);
-    public static final Integer DEFAULT_ENCODING = new Integer(1);
+    public static final Long DEFAULT_VERSION = Long.valueOf(-1);
+    public static final Integer DEFAULT_ENCODING = Integer.valueOf(1);
 
     private final Long version;
     private final Integer encodingVersion;

@@ -1121,7 +1121,7 @@ public class TestFlowController {
         // create a processor dto
         final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
-        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setPosition(new PositionDTO(Double.valueOf(0), Double.valueOf(0)));
         processorDTO.setStyle(processorNode.getStyle());
         processorDTO.setParentGroupId("1234");
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
@@ -1180,7 +1180,7 @@ public class TestFlowController {
         // create a processor dto
         final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
-        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setPosition(new PositionDTO(Double.valueOf(0), Double.valueOf(0)));
         processorDTO.setStyle(processorNode.getStyle());
         processorDTO.setParentGroupId("1234");
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());

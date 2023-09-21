@@ -136,7 +136,7 @@ public class TestPutHBaseRecord {
         String nameVal = Bytes.toString(name.getBuffer());
         String codeVal = Bytes.toString(code.getBuffer());
         assertTrue(NAMES.contains(nameVal), "Name was not found");
-        assertTrue(CODES.contains(new Long(codeVal)), "Code was not found ");
+        assertTrue(CODES.contains(Long.valueOf(codeVal)), "Code was not found ");
     }
 
     @Test

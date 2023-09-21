@@ -519,7 +519,7 @@ public class TestDataTypeUtils {
     @Test
     public void testIsCompatibleDataTypeInteger() {
         final DataType dataType = RecordFieldType.INT.getDataType();
-        assertTrue(DataTypeUtils.isCompatibleDataType(new Integer("1234567"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(Integer.valueOf("1234567"), dataType));
         assertTrue(DataTypeUtils.isCompatibleDataType("1234567", dataType));
         assertFalse(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
         assertFalse(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
