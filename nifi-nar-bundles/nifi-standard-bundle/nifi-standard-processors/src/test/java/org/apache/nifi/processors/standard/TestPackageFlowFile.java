@@ -55,9 +55,7 @@ public class TestPackageFlowFile {
         runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, 1);
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PackageFlowFile.REL_SUCCESS).get(0);
 
-        // filename and mime.type have changed
-        Assertions.assertEquals(SAMPLE_ATTR_FILENAME + PackageFlowFile.PACKAGE_FILENAME_EXTENSION,
-                outputFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        // mime.type has changed
         Assertions.assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
@@ -96,9 +94,7 @@ public class TestPackageFlowFile {
         runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, FILE_COUNT);
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PackageFlowFile.REL_SUCCESS).get(0);
 
-        // filename and mime.type have changed
-        Assertions.assertTrue(outputFlowFile.getAttribute(CoreAttributes.FILENAME.key())
-                .matches("[0-9]*\\" + PackageFlowFile.PACKAGE_FILENAME_EXTENSION));
+        // mime.type has changed
         Assertions.assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
@@ -138,5 +134,6 @@ public class TestPackageFlowFile {
 
         runner.assertTransferCount(PackageFlowFile.REL_SUCCESS, 1);
         runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, BATCH_SIZE);
+        runner.assertQueueNotEmpty();
     }
 }

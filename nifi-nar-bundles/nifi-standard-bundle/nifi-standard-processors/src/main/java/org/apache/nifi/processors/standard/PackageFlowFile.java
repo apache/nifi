@@ -57,13 +57,10 @@ import java.util.Set;
 @CapabilityDescription("This processor will package FlowFile attributes and content into an output FlowFile that can be exported from NiFi"
         + " and imported back into NiFi, preserving the original attributes and content.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "mime.type", description = "The mime.type will be changed to application/flowfile-v3"),
-        @WritesAttribute(attribute = "filename", description = "The filename will be appended with '.pkg'")
+        @WritesAttribute(attribute = "mime.type", description = "The mime.type will be changed to application/flowfile-v3")
 })
 @SeeAlso({UnpackContent.class, MergeContent.class})
 public class PackageFlowFile extends AbstractProcessor {
-
-    static final String PACKAGE_FILENAME_EXTENSION = ".pkg";
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("max-batch-size")
@@ -114,7 +111,6 @@ public class PackageFlowFile extends AbstractProcessor {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), StandardFlowFileMediaType.VERSION_3.getMediaType());
-        attributes.put(CoreAttributes.FILENAME.key(), createFilename(flowFiles));
 
         final FlowFilePackager packager = new FlowFilePackagerV3();
 
@@ -134,13 +130,5 @@ public class PackageFlowFile extends AbstractProcessor {
         packagedFlowFile = session.putAllAttributes(packagedFlowFile, attributes);
         session.transfer(packagedFlowFile, REL_SUCCESS);
         session.transfer(flowFiles, REL_ORIGINAL);
-    }
-
-    private String createFilename(final List<FlowFile> flowFiles) {
-        if (flowFiles.size() == 1) {
-            return flowFiles.get(0).getAttribute(CoreAttributes.FILENAME.key()) + PACKAGE_FILENAME_EXTENSION;
-        } else {
-            return System.nanoTime() + PACKAGE_FILENAME_EXTENSION;
-        }
     }
 }
