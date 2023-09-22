@@ -17,7 +17,7 @@
 
 <div class="bg-nifi-accent h-8 flow-status">
     <div class="flex justify-between">
-        <div class="flex flex-1 justify-around gap-x-7 pl-5 pr-24">
+        <div class="flex flex-1 justify-around pr-20">
             <div
                 class="flex items-center gap-x-2"
                 title="Connected nodes / Total number of nodes in the cluster"
@@ -97,9 +97,9 @@
             </div>
         </div>
         <div class="flex">
-            <div class="flex justify-around search-container" [class.open]="searchVisible">
-                <button class="h-8 w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search"></i></button>
-                <input type="text" placeholder="Search" class="search-input" [class.open]="searchVisible">
+            <div class="h-8 flex justify-around search-container" [class.open]="searchVisible">
+                <button class="w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search"></i></button>
+                <input type="text" placeholder="Search" class="search-input" [class.open]="searchVisible" />
             </div>
             <button
                 class="h-8 w-8 controller-bulletins"

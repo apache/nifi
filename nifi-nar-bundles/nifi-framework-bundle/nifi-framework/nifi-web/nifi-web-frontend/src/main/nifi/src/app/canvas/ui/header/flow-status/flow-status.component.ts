@@ -36,7 +36,6 @@ export class FlowStatus {
     private closeTimer: number = -1;
     private tooltipRef: ComponentRef<BulletinsTip> | undefined;
 
-
     constructor(private viewContainerRef: ViewContainerRef) {}
 
     hasTerminatedThreads(): boolean {

@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { userFeatureKey, UserState } from './index';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+export const selectUserState = createFeatureSelector<UserState>(userFeatureKey);
+
+export const selectUser = createSelector(selectUserState, (state: UserState) => state.user);

@@ -28,6 +28,7 @@ import { environment } from './environments/environment';
 import { HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
+import { UserEffects } from './state/user/user.effects';
 
 // @ts-ignore
 @NgModule({
@@ -47,7 +48,7 @@ import { rootReducers } from './state';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(),
+        EffectsModule.forRoot(UserEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,

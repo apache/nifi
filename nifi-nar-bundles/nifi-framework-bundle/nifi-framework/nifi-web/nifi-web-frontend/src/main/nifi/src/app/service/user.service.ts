@@ -15,7 +15,17 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+@Injectable({ providedIn: 'root' })
+export class UserService {
+    private static readonly API: string = '../nifi-api';
+
+    constructor(private httpClient: HttpClient) {}
+
+    getUser(): Observable<any> {
+        return this.httpClient.get(`${UserService.API}/flow/current-user`);
+    }
+}

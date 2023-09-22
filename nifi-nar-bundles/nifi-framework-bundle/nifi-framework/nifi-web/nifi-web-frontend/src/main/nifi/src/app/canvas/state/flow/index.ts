@@ -16,6 +16,7 @@
  */
 
 import { ComponentType, Position } from '../shared';
+import { Permissions } from '../../../state/shared';
 
 export const flowFeatureKey = 'flowState';
 
@@ -216,11 +217,6 @@ export interface VersionControlTipInput {
 /*
   Application State
  */
-
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
 
 export interface ComponentEntity {
     id: string;

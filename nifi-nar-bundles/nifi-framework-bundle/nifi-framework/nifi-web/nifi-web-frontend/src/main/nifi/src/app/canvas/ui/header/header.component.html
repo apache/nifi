@@ -17,7 +17,7 @@
 
 <header>
     <nav class="bg-nifi-primary nifi-header">
-        <div class="flex justify-between items-center h-16 px-4">
+        <div class="flex justify-between items-center h-16 pl-4">
             <div class="flex">
                 <div class="h-16 w-28 mr-6 relative">
                     <img ngSrc="assets/icons/nifi-logo.svg" fill priority />
@@ -51,8 +51,15 @@
                     iconClass="icon-label"
                     iconHoverClass="icon-label-add"></new-canvas-item>
             </div>
-            <div class="h-8 w-8">
-                <div class="fa fa-navicon text-3xl text-gray-600"></div>
+            <div class="flex justify-between items-center">
+                <div class="flex flex-col justify-between items-end gap-y-1" *ngIf="(currentUser$ | async) as user">
+                    <div class="current-user">{{ user.identity }}</div>
+                    <a href="#" *ngIf="allowLogin(user)">log in</a>
+                    <a href="#" *ngIf="allowLogout(user)">log out</a>
+                </div>
+                <button class="h-16 w-16 flex items-center justify-center icon">
+                    <i class="fa fa-navicon"></i>
+                </button>
             </div>
         </div>
     </nav>

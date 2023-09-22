@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
-
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+export interface Permissions {
+    canRead: boolean;
+    canWrite: boolean;
+}

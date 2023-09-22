@@ -82,7 +82,6 @@ export class FlowEffects {
                     this.flowService.getControllerBulletins()
                 ]).pipe(
                     map(([flow, flowStatus, clusterSummary, controllerBulletins]) => {
-                        console.log('cluster summary', clusterSummary);
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,

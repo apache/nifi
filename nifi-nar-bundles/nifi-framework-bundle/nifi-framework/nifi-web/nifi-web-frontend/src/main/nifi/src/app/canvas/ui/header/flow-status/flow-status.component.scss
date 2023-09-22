@@ -17,6 +17,7 @@
 
 .flow-status {
     border-bottom: 1px solid #aabbc3;
+    box-sizing: content-box;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
     position: relative;
     z-index: 2;
@@ -29,6 +30,7 @@
     }
 
     .status-value {
+        white-space: nowrap;
         font-weight: 500;
         color: #775351;
         text-shadow: none;
@@ -39,13 +41,15 @@
         border-left: 1px solid #aabbc3;
     }
 
-    .search-container:hover, .search-container.open {
-        background-color: #FFFFFF;
+    .search-container:hover,
+    .search-container.open {
+        background-color: #ffffff;
         border-left: 1px solid #004849;
     }
 
     .search-input {
         width: 0;
+        height: 32px;
         outline: none;
         font-size: 13px;
         line-height: 13px;

@@ -30,7 +30,7 @@ import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
-import { Permissions } from '../state/flow';
+import { Permissions } from '../../state/shared';
 
 @Injectable({
     providedIn: 'root'

@@ -18,4 +18,34 @@
 .nifi-header {
     position: relative;
     z-index: 3;
+
+    .icon {
+        font-size: 32px;
+        color: #004849;
+    }
+
+    .current-user {
+        font-family: 'Roboto Slab';
+        font-style: normal;
+        font-weight: normal;
+        font-size: 12px;
+        max-width: 250px;
+        text-overflow: ellipsis;
+        line-height: normal;
+        overflow: hidden;
+        white-space: nowrap;
+        color: #262626;
+    }
+
+    a {
+      font-size: 12px;
+      text-transform: uppercase;
+        cursor: pointer;
+        color: #004849;
+        font-weight: normal;
+        display: inline-block;
+        border-bottom: 1px solid #CCDADB;
+        font-family: Roboto;
+    }
 }
+

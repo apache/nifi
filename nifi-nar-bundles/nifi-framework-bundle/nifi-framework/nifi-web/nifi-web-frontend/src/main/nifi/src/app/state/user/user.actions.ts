@@ -16,6 +16,17 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { LoadUserResponse, UserState } from './index';
+import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../canvas/state/flow';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+export const loadUser = createAction('[User] Load User');
+
+export const loadUserSuccess = createAction('[User] Load User Success', props<{ response: LoadUserResponse }>());
+
+export const userApiError = createAction('[User] User Api Error', props<{ error: string }>());
+
+export const clearUserApiError = createAction('[User] Clear User Api Error');
+
+export const startUserPolling = createAction('[User] Start User Polling');
+
+export const stopUserPolling = createAction('[User] Stop User Polling');

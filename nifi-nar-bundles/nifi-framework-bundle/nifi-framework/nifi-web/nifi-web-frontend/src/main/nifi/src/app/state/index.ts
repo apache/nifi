@@ -17,11 +17,15 @@
 
 import { routerReducer, RouterReducerState } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
+import { UserState, userFeatureKey } from './user';
+import { userReducer } from './user/user.reducer';
 
 export interface State {
     router: RouterReducerState;
+    [userFeatureKey]: UserState;
 }
 
 export const rootReducers: ActionReducerMap<State> = {
-    router: routerReducer
+    router: routerReducer,
+    [userFeatureKey]: userReducer
 };

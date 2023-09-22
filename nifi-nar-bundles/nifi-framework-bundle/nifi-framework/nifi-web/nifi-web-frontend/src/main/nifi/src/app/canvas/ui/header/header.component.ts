@@ -25,6 +25,8 @@ import {
     selectControllerStatus,
     selectLastRefreshed
 } from '../../state/flow/flow.selectors';
+import { selectUser } from '../../../state/user/user.selectors';
+import { User } from '../../../state/user';
 
 @Component({
     selector: 'fd-header',
@@ -38,6 +40,16 @@ export class HeaderComponent {
     lastRefreshed$ = this.store.select(selectLastRefreshed);
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
+    currentUser$ = this.store.select(selectUser);
 
     constructor(private store: Store<CanvasState>) {}
+
+    allowLogin(user: User): boolean {
+        return user.anonymous && location.protocol === 'https:';
+    }
+
+    allowLogout(user: User): boolean {
+        // TODO - once auth service/token storage is availabe we need to update
+        return true;
+    }
 }

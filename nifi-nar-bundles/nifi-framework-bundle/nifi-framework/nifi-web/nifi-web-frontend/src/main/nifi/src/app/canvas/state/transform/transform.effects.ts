@@ -24,7 +24,7 @@ import { of, switchMap } from 'rxjs';
 export class TransformEffects {
     constructor(private actions$: Actions) {}
 
-    loadFlow$ = createEffect(
+    setTransform$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(TransformActions.setTransform),

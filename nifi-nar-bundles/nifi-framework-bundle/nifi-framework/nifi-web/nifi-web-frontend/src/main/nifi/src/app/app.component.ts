@@ -15,13 +15,35 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { UserState } from './state/user';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectUser } from './state/user/user.selectors';
+import { loadUser, startUserPolling, stopUserPolling } from './state/user/user.actions';
 
 @Component({
-    selector: 'app-root',
+    selector: 'nifi',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
     title = 'nifi';
+
+    constructor(private store: Store<UserState>) {
+        this.store
+            .select(selectUser)
+            .pipe(takeUntilDestroyed())
+            .subscribe((user) => {
+                this.store.dispatch(startUserPolling());
+            });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadUser());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopUserPolling());
+    }
 }
