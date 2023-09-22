@@ -17,6 +17,7 @@
 package org.apache.nifi.rules.handlers;
 
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 @Tags({"rules", "rules engine", "action", "action handler", "record", "record sink"})
 @CapabilityDescription("Sends fact information to sink based on a provided action (usually created by a rules engine)." +
         "  Action objects executed with this Handler should contain \"sendZeroResult\" attribute.")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class RecordSinkHandler extends AbstractActionHandlerService{
 
     static final PropertyDescriptor RECORD_SINK_SERVICE = new PropertyDescriptor.Builder()

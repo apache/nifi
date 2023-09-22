@@ -16,6 +16,7 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -62,6 +63,7 @@ import java.util.Collections;
 @SeeAlso({GetHTMLElement.class, PutHTMLElement.class})
 @WritesAttributes({@WritesAttribute(attribute="NumElementsModified", description="Total number of HTML " +
         "element modifications made")})
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class ModifyHTMLElement extends AbstractHTMLProcessor {
 
     public static final String NUM_ELEMENTS_MODIFIED_ATTR = "NumElementsModified";

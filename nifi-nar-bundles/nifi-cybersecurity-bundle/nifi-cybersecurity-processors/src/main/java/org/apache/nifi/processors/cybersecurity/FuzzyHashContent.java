@@ -18,6 +18,7 @@ package org.apache.nifi.processors.cybersecurity;
 
 import com.idealista.tlsh.exceptions.InsufficientComplexityException;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -70,7 +71,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SeeAlso(classNames = {"org.apache.nifi.processors.standard.HashContent"}, value = {CompareFuzzyHash.class})
 @WritesAttributes({@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
         + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")})
-
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
 
 

@@ -17,6 +17,7 @@
 package org.apache.nifi;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -66,6 +67,7 @@ import java.util.Collections;
 @SeeAlso({ModifyHTMLElement.class, PutHTMLElement.class})
 @WritesAttributes({@WritesAttribute(attribute="HTMLElement", description="Flowfile attribute where the element result" +
         " parsed from the HTML using the CSS selector syntax are placed if the destination is a flowfile attribute.")})
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class GetHTMLElement
         extends AbstractHTMLProcessor {
 

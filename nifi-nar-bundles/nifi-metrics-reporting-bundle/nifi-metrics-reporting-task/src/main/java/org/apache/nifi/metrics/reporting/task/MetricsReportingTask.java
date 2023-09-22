@@ -19,6 +19,7 @@ package org.apache.nifi.metrics.reporting.task;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -52,6 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("This reporting task reports a set of metrics regarding the JVM and the NiFi instance" +
         "to a reporter. The reporter is provided by a MetricReporterService. It can be optionally used for a specific" +
         "process group if a property with the group id is provided.")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class MetricsReportingTask extends AbstractReportingTask {
 
     /**
