@@ -193,7 +193,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testMultilIneJson() {
+    void testMultilineJson() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
 
