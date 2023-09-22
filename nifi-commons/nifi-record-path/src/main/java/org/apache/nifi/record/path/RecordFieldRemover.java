@@ -17,15 +17,14 @@
 
 package org.apache.nifi.record.path;
 
-import org.apache.nifi.record.path.util.RecordPathCache;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.nifi.record.path.util.RecordPathCache;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 public class RecordFieldRemover {
     private final RecordPathCache recordPathCache;
@@ -50,20 +49,22 @@ public class RecordFieldRemover {
         final RecordPathResult recordPathResult = recordPath.evaluate(record);
         final List<FieldValue> selectedFields = recordPathResult.getSelectedFields().collect(Collectors.toList());
 
-        if (!selectedFields.isEmpty()) {
-            if (recordPathRemovalProperties.isAppliedToAllElementsInCollection()) {
-                // all elements have the same parent, so navigate up from the first element in the collection
-                selectedFields.get(0).getParent().ifPresent(FieldValue::removeContent);
-            } else {
-                selectedFields.forEach(FieldValue::remove);
-            }
-
-            if (recordPathRemovalProperties.isRemovingFieldsNotJustElementsFromWithinCollection()) {
-                removeFieldsFromSchema(selectedFields);
-            }
-
-            fieldsChanged = true;
+        if (selectedFields.isEmpty()) {
+            return;
         }
+
+        if (recordPathRemovalProperties.isAppliedToAllElementsInCollection()) {
+            // all elements have the same parent, so navigate up from the first element in the collection
+            selectedFields.get(0).getParent().ifPresent(FieldValue::removeContent);
+        } else {
+            selectedFields.forEach(FieldValue::remove);
+        }
+
+        if (recordPathRemovalProperties.isRemovingFieldsNotJustElementsFromWithinCollection()) {
+            removeFieldsFromSchema(selectedFields);
+        }
+
+        fieldsChanged = true;
     }
 
     private void removeFieldsFromSchema(final List<FieldValue> selectedFields) {
@@ -92,7 +93,7 @@ public class RecordFieldRemover {
     }
 
     public static class RecordPathRemovalProperties {
-        private static final Pattern ALL_ELEMENTS_REGEX = Pattern.compile(".*\\[\\s*(?:\\*|0\\s*\\.\\.\\s*-1)\\s*]$");
+        private static final Pattern ALL_ELEMENTS_REGEX = Pattern.compile("\\[\\s*(?:\\*|0\\s*\\.\\.\\s*-1)\\s*]$");
         private static final Pattern ARRAY_ELEMENTS_REGEX = Pattern.compile("\\[\\s*-?\\d+(?:\\s*,\\s*-?\\d+)*+\\s*]");
         private static final Pattern MAP_ELEMENTS_REGEX = Pattern.compile("\\[\\s*'[^']+'(?:\\s*,\\s*'[^']+')*+\\s*]");
 
@@ -106,7 +107,7 @@ public class RecordFieldRemover {
             this.recordPath = recordPath;
 
             // ends with [*] or [0..-1]
-            this.appliedToAllElementsInCollection = ALL_ELEMENTS_REGEX.matcher(recordPath).matches();
+            this.appliedToAllElementsInCollection = ALL_ELEMENTS_REGEX.matcher(recordPath).find();
 
             // contains an array reference [] with one or more element references, e.g. [1], [ 1, -1]
             this.appliedToIndividualArrayElements = ARRAY_ELEMENTS_REGEX.matcher(recordPath).find();
