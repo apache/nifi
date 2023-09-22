@@ -468,11 +468,11 @@
                  * 
                  * Render a new list when it differs from the previous violations response
                  */
-                buildRuleViolations: function(rules, violations, force = false) {
+                buildRuleViolations: function(rules, violations) {
                     if (Object.keys(previousRulesResponse).length !== 0) {
                         var previousRulesResponseSorted = _.sortBy(previousRulesResponse.ruleViolations, 'subjectId');
                         var violationsSorted = _.sortBy(violations, 'subjectId');
-                        if (!_.isEqual(previousRulesResponseSorted, violationsSorted) || force) {
+                        if (!_.isEqual(previousRulesResponseSorted, violationsSorted)) {
                             this.buildRuleViolationsList(rules, violations);
                         }
                     } else {
@@ -850,7 +850,7 @@
                 /**
                  * Show/hide violations menu
                  */
-                toggleOnlyViolations(isChecked) {
+                toggleOnlyViolations: function(isChecked) {
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
                     var ruleViolationsEl = $('#rule-violations');
