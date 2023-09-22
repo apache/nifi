@@ -299,7 +299,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 URL url;
                 try {
                         url = URI.create(nifiUrl).toURL();
-                } catch (final MalformedURLException e1) {
+                } catch (IllegalArgumentException | MalformedURLException e) {
                         throw new AssertionError();
                 }
 

@@ -152,7 +152,7 @@ public class HttpConnector {
         URL url;
         try {
             url = URI.create(endpointUrl).toURL();
-        } catch (MalformedURLException e) {
+        } catch (IllegalArgumentException | MalformedURLException e) {
             throw new ConfigurationProviderException("Malformed url " + endpointUrl, e);
         }
 

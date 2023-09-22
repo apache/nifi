@@ -49,7 +49,7 @@ public abstract class AbstractNiFiProvenanceEventAnalyzer implements NiFiProvena
     protected URL parseUrl(String url) {
         try {
             return URI.create(url).toURL();
-        } catch (MalformedURLException e) {
+        } catch (IllegalArgumentException | MalformedURLException e) {
             final String msg = String.format("Failed to parse url %s due to %s", url, e);
             throw new IllegalArgumentException(msg, e);
         }

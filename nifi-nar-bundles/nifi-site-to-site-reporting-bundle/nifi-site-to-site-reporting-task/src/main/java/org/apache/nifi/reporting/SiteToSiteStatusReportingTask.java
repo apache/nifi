@@ -134,7 +134,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         URL url;
         try {
             url = URI.create(nifiUrl).toURL();
-        } catch (final MalformedURLException e1) {
+        } catch (IllegalArgumentException | MalformedURLException e) {
             // already validated
             throw new AssertionError();
         }

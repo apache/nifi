@@ -242,7 +242,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         try {
             // try a public resource URL
             contents = IOUtils.toString(URI.create(inputFile).toURL(), StandardCharsets.UTF_8);
-        } catch (MalformedURLException e) {
+        } catch (IllegalArgumentException | MalformedURLException e) {
             // assume a local file then
             URI uri = Paths.get(inputFile).toAbsolutePath().toUri();
             contents = IOUtils.toString(uri, StandardCharsets.UTF_8);

@@ -206,7 +206,7 @@ class OidcAuthenticationSuccessHandlerTest {
     URL getIssuer() {
         try {
             return URI.create(ISSUER).toURL();
-        } catch (final MalformedURLException e) {
+        } catch (IllegalArgumentException | MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }

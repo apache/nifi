@@ -577,7 +577,7 @@ public class StandardValidators {
                 // First check to see if it is a valid URL
                 try {
                     URI.create(evaluatedInput).toURL();
-                } catch (MalformedURLException mue) {
+                } catch (IllegalArgumentException | MalformedURLException mue) {
                     validUrl = false;
                 }
 
