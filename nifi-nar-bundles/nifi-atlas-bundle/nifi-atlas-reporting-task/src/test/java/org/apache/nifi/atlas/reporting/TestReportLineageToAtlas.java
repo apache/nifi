@@ -53,7 +53,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -195,8 +194,8 @@ public class TestReportLineageToAtlas {
         atlasConf.setProperty("atlas.rest.address", atlasUrls);
 
         Consumer<Exception> assertion = e -> assertTrue(
-            e.getCause() instanceof MalformedURLException,
-            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
+            e.getCause() instanceof IllegalArgumentException,
+            "Expected " + IllegalArgumentException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
         );
 
         // WHEN
