@@ -24,6 +24,30 @@
     <artifactId>nifi-system-test-suite</artifactId>
     <packaging>jar</packaging>
 
+    <profiles>
+        <profile>
+            <id>include-python-integration-tests</id>
+            <activation>
+                <property>
+                    <name>include-python-integration-tests</name>
+                    <value>!true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>PythonProcessorIT.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
