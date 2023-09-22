@@ -22,6 +22,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okio.Buffer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
@@ -51,6 +52,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -245,7 +247,7 @@ public class InvokeHTTPTest {
         runner.assertPenalizeCount(1);
 
         final MockFlowFile flowFile = getFailureFlowFile();
-        flowFile.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, MalformedURLException.class.getName());
+        flowFile.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, IllegalArgumentException.class.getName());
         flowFile.assertAttributeExists(InvokeHTTP.EXCEPTION_MESSAGE);
     }
 
@@ -763,8 +765,14 @@ public class InvokeHTTPTest {
 
     @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
     @MethodSource
-    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String inputUrl, String expectedFileName) throws MalformedURLException {
-        URL targetUrl = URI.create(getMockWebServerUrl() + "/" + inputUrl).toURL();
+    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String inputUrl, String expectedFileName) throws MalformedURLException, URISyntaxException {
+        URL targetUrl = new URIBuilder()
+                .setScheme("http")
+                .setHost(mockWebServer.getHostName())
+                .setPort(mockWebServer.getPort())
+                .setPath(inputUrl)
+                .build()
+                .toURL();
 
         runner.setProperty(InvokeHTTP.HTTP_METHOD, httpMethod);
         runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());
@@ -788,8 +796,7 @@ public class InvokeHTTPTest {
             Arguments.of(HttpMethod.GET.name(), "file/", "file"),
             Arguments.of(HttpMethod.GET.name(), "file.txt", "file.txt"),
             Arguments.of(HttpMethod.GET.name(), "file.txt/", "file.txt"),
-            Arguments.of(HttpMethod.GET.name(), "file.txt/?qp=v", "file.txt"),
-            Arguments.of(HttpMethod.GET.name(), "f%69%6Cle.txt", "f%69%6Cle.txt"),
+            Arguments.of(HttpMethod.GET.name(), "f%69%6Cle.txt", "f%2569%256Cle.txt"),
             Arguments.of(HttpMethod.GET.name(), "path/to/file.txt", "file.txt"),
             Arguments.of(HttpMethod.GET.name(), "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(HttpMethod.POST.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
@@ -805,6 +812,33 @@ public class InvokeHTTPTest {
             Arguments.of(HttpMethod.OPTIONS.name(), "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(HttpMethod.OPTIONS.name(), "has/path", FLOW_FILE_INITIAL_FILENAME)
         );
+    }
+
+    @Test
+    public void testResponseFlowFileFilenameExtractedFromRemoteUrlWithParameter() throws MalformedURLException, URISyntaxException {
+        URL targetUrl = new URIBuilder()
+                .setScheme("http")
+                .setHost(mockWebServer.getHostName())
+                .setPort(mockWebServer.getPort())
+                .setPath("file.txt/")
+                .setParameter("qp", "v")
+                .build()
+                .toURL();
+
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.GET.name());
+        runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());
+        runner.setProperty(InvokeHTTP.RESPONSE_FLOW_FILE_NAMING_STRATEGY, FlowFileNamingStrategy.URL_PATH.name());
+
+        Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put(CoreAttributes.FILENAME.key(), FLOW_FILE_INITIAL_FILENAME);
+        runner.enqueue(FLOW_FILE_CONTENT, ffAttributes);
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
+
+        runner.run();
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
+        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
     }
 
     @Test
