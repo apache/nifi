@@ -770,6 +770,8 @@
                     var drawer = this.getDrawerContainer();
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
+                    var flowAnalysisRefreshIntervalSeconds = 30;
+
                     this.getDrawerButton().click(function () {
                         drawer.toggleClass('opened');
                     });
@@ -833,11 +835,29 @@
                         }
                     });
                     this.loadFlowPolicies();
-                    // TODO: update this to use the specified interval for polling
-                    setInterval(this.loadFlowPolicies.bind(this), 30000);
+
+                    var checkInEl = $('.flow-analysis-check-in');
+                    var checkInTimer;
+                    var initializeTimer = function() {
+                        var i = flowAnalysisRefreshIntervalSeconds;
+                        checkInTimer = setInterval(function() {
+                            checkInEl.text(i);
+                            i--;
+                        }, 1000);
+                    }
+                    initializeTimer();
+                    setInterval(function () { 
+                        flowAnalysisCtrl.loadFlowPolicies.bind(flowAnalysisCtrl);
+                        clearInterval(checkInTimer);
+                        initializeTimer();
+                    }, flowAnalysisRefreshIntervalSeconds * 1000);
 
                     // add click event listener to refresh button
-                    $('#recs-policies-check-now-btn').on('click', this.createNewFlowAnalysisRequest);
+                    $('#flow-analysis-check-now-btn').on('click', function() {
+                        flowAnalysisCtrl.createNewFlowAnalysisRequest();
+                        clearInterval(checkInTimer);
+                        initializeTimer();
+                    });
 
                     this.toggleOnlyViolations(false);
                     // handle show only violations checkbox

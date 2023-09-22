@@ -39,7 +39,7 @@
   right: 0;
 }
 
-.recs-policies-flow-guide-title {
+.flow-analysis-flow-guide-title {
   color: #728e9b;
   font-family: Roboto Slab;
   font-size: 16px;
@@ -56,7 +56,7 @@
   width: 100%;
 }
 
-.recs-policies-flow-guide {
+.flow-analysis-flow-guide {
   align-items: center;
   display: flex;
   justify-content: space-between;
@@ -67,7 +67,7 @@
   display: flex;
 }
 
-.recs-policies-check-now-btn {
+.flow-analysis-check-now-btn {
   background: none;
   border: none;
   color: #004849;
@@ -84,11 +84,11 @@
   width: auto;
 }
 
-.recs-policies-check-now-btn:hover {
+.flow-analysis-check-now-btn:hover {
   border: 0;
 }
 
-.recs-policies-refresh {
+.flow-analysis-refresh {
   align-items: center;
   display: flex;
 }
@@ -97,7 +97,7 @@
   margin-top: 22px;
 }
 
-.recs-policies-refresh-container {
+.flow-analysis-refresh-container {
   display: flex;
 }
 
