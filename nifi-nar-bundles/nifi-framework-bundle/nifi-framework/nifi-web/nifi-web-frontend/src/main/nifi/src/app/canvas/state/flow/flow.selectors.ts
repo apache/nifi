@@ -32,6 +32,11 @@ export const selectCurrentProcessGroupId = createSelector(selectFlowState, (stat
 
 export const selectCanvasPermissions = createSelector(selectFlowState, (state: FlowState) => state.flow.permissions);
 
+export const selectBreadcrumbs = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.breadcrumb
+);
+
 export const selectParentProcessGroupId = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow.parentGroupId

@@ -225,6 +225,20 @@ export interface ComponentEntity {
     component: any;
 }
 
+export interface Breadcrumb {
+    id: string;
+    name: string;
+    versionControlInformation?: VersionControlInformation;
+}
+
+export interface BreadcrumbEntity {
+    id: string;
+    permissions: Permissions;
+    versionedFlowState: string;
+    breadcrumb: Breadcrumb;
+    parentBreadcrumb?: BreadcrumbEntity;
+}
+
 export interface Flow {
     processGroups: ComponentEntity[];
     remoteProcessGroups: ComponentEntity[];
@@ -240,7 +254,7 @@ export interface ProcessGroupFlow {
     id: string;
     uri: string;
     parentGroupId: string | null;
-    breadcrumb: any;
+    breadcrumb: BreadcrumbEntity;
     flow: Flow;
     lastRefreshed: string;
 }

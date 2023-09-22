@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { HeaderComponent } from './header.component';
-import { FlowStatus } from './flow-status/flow-status.component';
-import { CdkDrag } from '@angular/cdk/drag-drop';
-import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus],
-    exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, CdkDrag]
-})
-export class HeaderModule {}
+import { Breadcrumbs } from './breadcrumbs.component';
+
+describe('Breadcrumbs', () => {
+    let component: Breadcrumbs;
+    let fixture: ComponentFixture<Breadcrumbs>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [Breadcrumbs]
+        });
+        fixture = TestBed.createComponent(Breadcrumbs);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

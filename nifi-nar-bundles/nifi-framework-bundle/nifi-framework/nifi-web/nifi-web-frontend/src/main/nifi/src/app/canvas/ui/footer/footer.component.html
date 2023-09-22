@@ -16,5 +16,9 @@
   -->
 
 <footer>
-    <div class="bg-nifi-accent h-8"></div>
+    <div class="bg-nifi-accent">
+        <breadcrumbs
+            [entity]="(breadcrumbs$ | async)!"
+            [currentProcessGroupId]="(currentProcessGroupId$ | async)!"></breadcrumbs>
+    </div>
 </footer>

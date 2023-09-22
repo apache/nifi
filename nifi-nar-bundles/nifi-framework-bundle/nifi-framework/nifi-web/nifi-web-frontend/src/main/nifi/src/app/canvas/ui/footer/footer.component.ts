@@ -16,10 +16,18 @@
  */
 
 import { Component } from '@angular/core';
+import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../state/flow/flow.selectors';
+import { Store } from '@ngrx/store';
+import { CanvasState } from '../../state';
 
 @Component({
     selector: 'fd-footer',
     templateUrl: './footer.component.html',
     styleUrls: ['./footer.component.scss']
 })
-export class FooterComponent {}
+export class FooterComponent {
+    breadcrumbs$ = this.store.select(selectBreadcrumbs);
+    currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
+
+    constructor(private store: Store<CanvasState>) {}
+}

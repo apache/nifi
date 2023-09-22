@@ -228,6 +228,22 @@ body {
     font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
+a {
+    font-size: 13px;
+    cursor: pointer;
+    color: #004849;
+    font-weight: normal;
+    display: inline-block;
+    font-family: Roboto;
+    text-decoration: underline;
+    text-decoration-color: #ccdadb;
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    text-decoration-color: #004849;
+}
+
 /*
     Dialog styles
  */

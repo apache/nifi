@@ -46,7 +46,18 @@ export const initialState: FlowState = {
             id: '',
             uri: '',
             parentGroupId: null,
-            breadcrumb: {},
+            breadcrumb: {
+                id: '',
+                permissions: {
+                    canRead: false,
+                    canWrite: false
+                },
+                versionedFlowState: '',
+                breadcrumb: {
+                    id: '',
+                    name: ''
+                }
+            },
             flow: {
                 processGroups: [],
                 remoteProcessGroups: [],
