@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * Base class for writable results that have either JSON or simple output.
@@ -34,8 +34,7 @@ public abstract class AbstractWritableResult<T> implements WritableResult<T> {
     protected final ResultType resultType;
 
     public AbstractWritableResult(final ResultType resultType) {
-        this.resultType = resultType;
-        Validate.notNull(resultType);
+        this.resultType = Objects.requireNonNull(resultType);
     }
 
     @Override

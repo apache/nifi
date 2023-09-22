@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.session;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.api.SessionException;
 
@@ -26,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -36,10 +36,8 @@ public class PersistentSession implements Session {
     private final Session wrappedSession;
 
     public PersistentSession(final File persistenceFile, final Session wrappedSession) {
-        this.persistenceFile = persistenceFile;
-        this.wrappedSession = wrappedSession;
-        Validate.notNull(persistenceFile);
-        Validate.notNull(wrappedSession);
+        this.persistenceFile = Objects.requireNonNull(persistenceFile);
+        this.wrappedSession = Objects.requireNonNull(wrappedSession);
     }
 
     @Override

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.registry.client.impl.request;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.security.util.ProxiedEntitiesUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Implementation of RequestConfig that produces headers for a request with proxied-entities.
@@ -31,7 +31,7 @@ public class ProxiedEntityRequestConfig implements RequestConfig {
     private final String proxiedEntitiesChain;
 
     public ProxiedEntityRequestConfig(final String... proxiedEntities) {
-        Validate.notNull(proxiedEntities);
+        Objects.requireNonNull(proxiedEntities);
         this.proxiedEntitiesChain = ProxiedEntitiesUtils.getProxiedEntitiesChain(proxiedEntities);
     }
 

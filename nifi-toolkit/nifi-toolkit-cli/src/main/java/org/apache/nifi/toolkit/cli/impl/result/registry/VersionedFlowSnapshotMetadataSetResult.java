@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
@@ -28,6 +27,7 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,8 +41,7 @@ public class VersionedFlowSnapshotMetadataSetResult extends AbstractWritableResu
     public VersionedFlowSnapshotMetadataSetResult(final ResultType resultType,
                                                   final VersionedFlowSnapshotMetadataSetEntity versionedFlowSnapshotMetadataSetEntity) {
         super(resultType);
-        this.versionedFlowSnapshotMetadataSetEntity = versionedFlowSnapshotMetadataSetEntity;
-        Validate.notNull(this.versionedFlowSnapshotMetadataSetEntity);
+        this.versionedFlowSnapshotMetadataSetEntity = Objects.requireNonNull(versionedFlowSnapshotMetadataSetEntity);
     }
 
     @Override

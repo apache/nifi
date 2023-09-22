@@ -17,7 +17,6 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.util.ProxiedEntitiesUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 
@@ -25,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +35,7 @@ public class ProxiedEntityRequestConfig implements RequestConfig {
     private final String[] proxiedEntities;
 
     public ProxiedEntityRequestConfig(final String... proxiedEntities) {
-        this.proxiedEntities = Validate.notNull(proxiedEntities);
+        this.proxiedEntities = Objects.requireNonNull(proxiedEntities);
     }
 
     @Override

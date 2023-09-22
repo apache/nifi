@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.api;
 
-import org.apache.commons.lang3.Validate;
+import java.util.Objects;
+
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 /**
@@ -38,12 +39,9 @@ public class ResolvedReference {
             final String displayName,
             final String resolvedValue) {
         this.option = option;
-        this.position = position;
-        this.displayName = displayName;
-        this.resolvedValue = resolvedValue;
-        Validate.notNull(this.position);
-        Validate.notNull(this.displayName);
-        Validate.notNull(this.resolvedValue);
+        this.position = Objects.requireNonNull(position);
+        this.displayName = Objects.requireNonNull(displayName);
+        this.resolvedValue = Objects.requireNonNull(resolvedValue);
     }
 
     public CommandOption getOption() {

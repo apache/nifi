@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -26,6 +25,7 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * Result for VersionControlInformationEntity.
@@ -37,8 +37,7 @@ public class VersionControlInfoResult extends AbstractWritableResult<VersionCont
     public VersionControlInfoResult(final ResultType resultType,
                                     final VersionControlInformationEntity versionControlInformationEntity) {
         super(resultType);
-        this.versionControlInformationEntity = versionControlInformationEntity;
-        Validate.notNull(this.versionControlInformationEntity);
+        this.versionControlInformationEntity = Objects.requireNonNull(versionControlInformationEntity);
     }
 
     @Override

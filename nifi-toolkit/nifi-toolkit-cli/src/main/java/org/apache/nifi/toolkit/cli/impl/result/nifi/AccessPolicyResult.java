@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
@@ -25,6 +24,7 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,8 +34,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicyEntit
 
     public AccessPolicyResult(ResultType resultType, AccessPolicyEntity accessPolicyEntity) {
         super(resultType);
-        this.accessPolicyEntity = accessPolicyEntity;
-        Validate.notNull(accessPolicyEntity);
+        this.accessPolicyEntity = Objects.requireNonNull(accessPolicyEntity);
     }
 
     @Override

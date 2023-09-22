@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -25,6 +24,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 public class ControllerServiceResult extends AbstractWritableResult<ControllerServiceEntity> {
 
@@ -32,8 +32,7 @@ public class ControllerServiceResult extends AbstractWritableResult<ControllerSe
 
     public ControllerServiceResult(ResultType resultType, ControllerServiceEntity controllerServiceEntity) {
         super(resultType);
-        this.controllerServiceEntity = controllerServiceEntity;
-        Validate.notNull(controllerServiceEntity);
+        this.controllerServiceEntity = Objects.requireNonNull(controllerServiceEntity);
     }
 
     @Override
