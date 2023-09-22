@@ -83,6 +83,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
@@ -471,6 +472,33 @@ public class TestIcebergRecordConverter {
         } else {
             assertEquals(UUID.fromString("0000-00-00-00-000000"), resultRecord.get(13, UUID.class));
         }
+
+        // Test null values
+        for (String fieldName : record.getRawFieldNames()) {
+            record.setValue(fieldName, null);
+        }
+
+        genericRecord = recordConverter.convert(record);
+
+        writeTo(format, PRIMITIVES_SCHEMA, genericRecord, tempFile);
+
+        results = readFrom(format, PRIMITIVES_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(results.size(), 1);
+        resultRecord = results.get(0);
+        assertNull(resultRecord.get(0, String.class));
+        assertNull(resultRecord.get(1, Integer.class));
+        assertNull(resultRecord.get(2, Float.class));
+        assertNull(resultRecord.get(3, Long.class));
+        assertNull(resultRecord.get(4, Double.class));
+        assertNull(resultRecord.get(5, BigDecimal.class));
+        assertNull(resultRecord.get(6, Boolean.class));
+        assertNull(resultRecord.get(7));
+        assertNull(resultRecord.get(8));
+        assertNull(resultRecord.get(9, LocalDate.class));
+        assertNull(resultRecord.get(10, LocalTime.class));
+        assertNull(resultRecord.get(11, OffsetDateTime.class));
+        assertNull(resultRecord.get(14, Integer.class));
     }
 
     @DisabledOnOs(WINDOWS)

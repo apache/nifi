@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -91,7 +92,8 @@ public class GenericDataConverters {
 
         @Override
         public LocalTime convert(Object data) {
-            return DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
+            Time time = DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null);
+            return time == null ? null : time.toLocalTime();
         }
     }
 
@@ -106,7 +108,7 @@ public class GenericDataConverters {
         @Override
         public LocalDateTime convert(Object data) {
             final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return convertedTimestamp.toLocalDateTime();
+            return convertedTimestamp == null ? null : convertedTimestamp.toLocalDateTime();
         }
     }
 
@@ -121,7 +123,7 @@ public class GenericDataConverters {
         @Override
         public OffsetDateTime convert(Object data) {
             final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
+            return convertedTimestamp == null ? null : OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
         }
     }
 
@@ -129,6 +131,9 @@ public class GenericDataConverters {
 
         @Override
         public byte[] convert(Object data) {
+            if (data == null) {
+                return null;
+            }
             final UUID uuid = DataTypeUtils.toUUID(data);
             ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
             byteBuffer.putLong(uuid.getMostSignificantBits());
@@ -147,6 +152,9 @@ public class GenericDataConverters {
 
         @Override
         public byte[] convert(Byte[] data) {
+            if (data == null) {
+                return null;
+            }
             Validate.isTrue(data.length == length, String.format("Cannot write byte array of length %s as fixed[%s]", data.length, length));
             return ArrayUtils.toPrimitive(data);
         }
@@ -156,6 +164,9 @@ public class GenericDataConverters {
 
         @Override
         public ByteBuffer convert(Byte[] data) {
+            if (data == null) {
+                return null;
+            }
             return ByteBuffer.wrap(ArrayUtils.toPrimitive(data));
         }
     }
@@ -171,6 +182,9 @@ public class GenericDataConverters {
 
         @Override
         public BigDecimal convert(Object data) {
+            if (data == null) {
+                return null;
+            }
             if (data instanceof BigDecimal) {
                 BigDecimal bigDecimal = (BigDecimal) data;
                 Validate.isTrue(bigDecimal.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale %s for value: %s", precision, scale, bigDecimal.scale(), data);
@@ -194,6 +208,9 @@ public class GenericDataConverters {
         @Override
         @SuppressWarnings("unchecked")
         public List<T> convert(S[] data) {
+            if (data == null) {
+                return null;
+            }
             final int numElements = data.length;
             final List<T> result = new ArrayList<>(numElements);
             for (int i = 0; i < numElements; i += 1) {
@@ -219,6 +236,9 @@ public class GenericDataConverters {
         @Override
         @SuppressWarnings("unchecked")
         public Map<TK, TV> convert(Map<SK, SV> data) {
+            if (data == null) {
+                return null;
+            }
             final int mapSize = data.size();
             final Object[] keyArray = data.keySet().toArray();
             final Object[] valueArray = data.values().toArray();
@@ -253,6 +273,9 @@ public class GenericDataConverters {
 
         @Override
         public GenericRecord convert(Record data) {
+            if (data == null) {
+                return null;
+            }
             final GenericRecord record = GenericRecord.create(schema);
 
             for (DataConverter<?, ?> converter : converters) {
