@@ -22,7 +22,6 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okio.Buffer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;

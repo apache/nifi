@@ -99,7 +99,7 @@ public class ClassLoaderUtils {
                 boolean isUrl = true;
                 try {
                     additionalClasspath.add(URI.create(modulePathString).toURL());
-                } catch (MalformedURLException mue) {
+                } catch (IllegalArgumentException | MalformedURLException e) {
                     isUrl = false;
                 }
                 if (!isUrl) {
