@@ -103,8 +103,9 @@ export const initialState: FlowState = {
 
 export const flowReducer = createReducer(
     initialState,
-    on(loadProcessGroup, (state) => ({
+    on(loadProcessGroup, (state, { request }) => ({
         ...state,
+        transitionRequired: request.transitionRequired,
         status: 'loading' as const
     })),
     on(loadProcessGroupSuccess, (state, { response }) => ({

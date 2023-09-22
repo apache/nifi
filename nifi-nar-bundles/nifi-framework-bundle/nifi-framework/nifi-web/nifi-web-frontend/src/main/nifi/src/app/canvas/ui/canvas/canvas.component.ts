@@ -15,11 +15,17 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, ViewContainerRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewContainerRef } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
-import { deselectAllComponents, loadProcessGroup, selectComponents } from '../../state/flow/flow.actions';
+import {
+    deselectAllComponents,
+    loadProcessGroup,
+    selectComponents,
+    startProcessGroupPolling,
+    stopProcessGroupPolling
+} from '../../state/flow/flow.actions';
 import * as d3 from 'd3';
 import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
@@ -33,7 +39,7 @@ import { selectProcessGroupIdFromRoute } from '../../state/flow/flow.selectors';
     templateUrl: './canvas.component.html',
     styleUrls: ['./canvas.component.scss']
 })
-export class CanvasComponent implements OnInit {
+export class CanvasComponent implements OnInit, OnDestroy {
     private svg: any;
     private canvas: any;
 
@@ -60,7 +66,8 @@ export class CanvasComponent implements OnInit {
                     this.store.dispatch(
                         loadProcessGroup({
                             request: {
-                                id: processGroupId
+                                id: processGroupId,
+                                transitionRequired: false
                             }
                         })
                     );
@@ -72,6 +79,8 @@ export class CanvasComponent implements OnInit {
         // initialize the canvas svg
         this.createSvg();
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
+
+        this.store.dispatch(startProcessGroupPolling());
     }
 
     private createSvg(): void {
@@ -384,5 +393,9 @@ export class CanvasComponent implements OnInit {
                     selectionBox.remove();
                 }
             });
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopProcessGroupPolling());
     }
 }

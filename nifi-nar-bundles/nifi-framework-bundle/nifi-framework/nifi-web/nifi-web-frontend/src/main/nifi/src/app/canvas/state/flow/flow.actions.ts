@@ -66,6 +66,10 @@ export const flowApiError = createAction('[Canvas] Flow Api Error', props<{ erro
 
 export const clearFlowApiError = createAction('[Canvas] Clear Flow Api Error');
 
+export const startProcessGroupPolling = createAction('[Canvas] Start Process Group Polling');
+
+export const stopProcessGroupPolling = createAction('[Canvas] Stop Process Group Polling');
+
 /*
     Selectable Behavior
  */

@@ -19,7 +19,21 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, tap, withLatestFrom } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    combineLatest,
+    filter,
+    from,
+    interval,
+    map,
+    mergeMap,
+    of,
+    switchMap,
+    takeUntil,
+    tap,
+    withLatestFrom
+} from 'rxjs';
 import {
     DeleteComponentResponse,
     LoadProcessGroupRequest,
@@ -62,7 +76,8 @@ export class FlowEffects {
                 return of(
                     FlowActions.loadProcessGroup({
                         request: {
-                            id: processGroupId
+                            id: processGroupId,
+                            transitionRequired: true
                         }
                     })
                 );
@@ -116,8 +131,23 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.loadProcessGroupComplete),
             switchMap(() => {
-                return of(FlowActions.setRenderRequired({ renderRequired: false }));
+                return of(
+                    FlowActions.setRenderRequired({ renderRequired: false }),
+                    FlowActions.setTransitionRequired({ transitionRequired: false })
+                );
             })
+        )
+    );
+
+    startProcessGroupPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startProcessGroupPolling),
+            switchMap(() =>
+                interval(30000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopProcessGroupPolling)))
+                )
+            ),
+            switchMap((request) => of(FlowActions.reloadFlow()))
         )
     );
 

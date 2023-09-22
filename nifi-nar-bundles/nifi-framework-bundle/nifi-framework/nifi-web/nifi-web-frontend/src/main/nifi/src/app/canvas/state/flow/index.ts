@@ -40,6 +40,7 @@ export interface EnterProcessGroupRequest {
 
 export interface LoadProcessGroupRequest {
     id: string;
+    transitionRequired: boolean;
 }
 
 export interface LoadProcessGroupResponse {

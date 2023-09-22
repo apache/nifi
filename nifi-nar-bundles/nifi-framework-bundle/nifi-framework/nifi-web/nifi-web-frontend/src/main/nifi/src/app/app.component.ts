@@ -18,8 +18,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { UserState } from './state/user';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { selectUser } from './state/user/user.selectors';
 import { loadUser, startUserPolling, stopUserPolling } from './state/user/user.actions';
 
 @Component({
@@ -30,17 +28,11 @@ import { loadUser, startUserPolling, stopUserPolling } from './state/user/user.a
 export class AppComponent implements OnInit, OnDestroy {
     title = 'nifi';
 
-    constructor(private store: Store<UserState>) {
-        this.store
-            .select(selectUser)
-            .pipe(takeUntilDestroyed())
-            .subscribe((user) => {
-                this.store.dispatch(startUserPolling());
-            });
-    }
+    constructor(private store: Store<UserState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadUser());
+        this.store.dispatch(startUserPolling());
     }
 
     ngOnDestroy(): void {
