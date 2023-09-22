@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -25,6 +24,7 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 public class ProcessorResult extends AbstractWritableResult<ProcessorEntity> {
 
@@ -32,8 +32,7 @@ public class ProcessorResult extends AbstractWritableResult<ProcessorEntity> {
 
     public ProcessorResult(ResultType resultType, ProcessorEntity processorEntity) {
         super(resultType);
-        this.processorEntity = processorEntity;
-        Validate.notNull(processorEntity);
+        this.processorEntity = Objects.requireNonNull(processorEntity);
     }
 
     @Override

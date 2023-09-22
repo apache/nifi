@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.security.krb;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Objects;
 
 /**
  * Helper class for processors to perform an action as a KerberosUser.
@@ -43,13 +43,10 @@ public class KerberosAction<T> {
                           final PrivilegedExceptionAction<T> action,
                           final ComponentLog logger,
                           final ClassLoader contextClassLoader) {
-        this.kerberosUser = kerberosUser;
-        this.action = action;
-        this.logger = logger;
+        this.kerberosUser = Objects.requireNonNull(kerberosUser);
+        this.action = Objects.requireNonNull(action);
+        this.logger = Objects.requireNonNull(logger);
         this.contextClassLoader = contextClassLoader;
-        Validate.notNull(this.kerberosUser);
-        Validate.notNull(this.action);
-        Validate.notNull(this.logger);
     }
 
     public T execute() {

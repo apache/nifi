@@ -17,7 +17,6 @@
 package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 
 import org.apache.commons.cli.MissingOptionException;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
@@ -38,6 +37,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -116,9 +116,8 @@ public class ExportParamContext extends AbstractNiFiCommand<ExportParamContext.E
         private final String outputFilename;
 
         public ExportedParamContextResult(final ParameterContextDTO parameterContext, final String outputFilename) {
-            this.parameterContext = parameterContext;
+            this.parameterContext = Objects.requireNonNull(parameterContext);
             this.outputFilename = outputFilename;
-            Validate.notNull(this.parameterContext);
         }
 
         @Override

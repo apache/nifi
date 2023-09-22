@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.cli.impl.client;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
@@ -51,6 +50,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRe
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -195,7 +195,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         public NiFiClientWithRequestConfig(final NiFiClient wrappedClient, final RequestConfig requestConfig) {
             this.wrappedClient = wrappedClient;
-            this.requestConfig = Validate.notNull(requestConfig);
+            this.requestConfig = Objects.requireNonNull(requestConfig);
         }
 
         @Override

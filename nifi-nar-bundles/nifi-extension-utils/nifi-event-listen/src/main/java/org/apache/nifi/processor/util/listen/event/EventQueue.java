@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -42,11 +43,9 @@ public class EventQueue<E extends Event> {
     }
 
     public EventQueue(final BlockingQueue<E> events, final long offerWaitMs, final ComponentLog logger) {
-        this.events = events;
+        this.events = Objects.requireNonNull(events);
         this.offerWaitMs = offerWaitMs;
-        this.logger = logger;
-        Validate.notNull(this.events);
-        Validate.notNull(this.logger);
+        this.logger = Objects.requireNonNull(logger);
     }
 
     /**

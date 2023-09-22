@@ -21,7 +21,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
@@ -37,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -54,14 +54,10 @@ public class CommandProcessor {
     private final AtomicReference<ReferenceResolver> backReferenceHolder = new AtomicReference<>(null);
 
     public CommandProcessor(final Map<String,Command> topLevelCommands, final Map<String,CommandGroup> commandGroups, final Context context) {
-        this.topLevelCommands = topLevelCommands;
-        this.commandGroups = commandGroups;
-        this.context = context;
-        this.out = context.getOutput();
-        Validate.notNull(this.topLevelCommands);
-        Validate.notNull(this.commandGroups);
-        Validate.notNull(this.context);
-        Validate.notNull(this.out);
+        this.topLevelCommands = Objects.requireNonNull(topLevelCommands);
+        this.commandGroups = Objects.requireNonNull(commandGroups);
+        this.context = Objects.requireNonNull(context);
+        this.out = Objects.requireNonNull(context.getOutput());
     }
 
     public void printBasicUsage(String errorMessage) {

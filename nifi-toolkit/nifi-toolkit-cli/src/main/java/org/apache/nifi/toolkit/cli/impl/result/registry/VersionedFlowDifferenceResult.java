@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.diff.ComponentDifference;
 import org.apache.nifi.registry.diff.ComponentDifferenceGroup;
 import org.apache.nifi.registry.diff.VersionedFlowDifference;
@@ -32,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public class VersionedFlowDifferenceResult extends AbstractWritableResult<VersionedFlowDifference> {
 
@@ -39,7 +39,7 @@ public class VersionedFlowDifferenceResult extends AbstractWritableResult<Versio
 
     public VersionedFlowDifferenceResult(final ResultType resultType, final VersionedFlowDifference flowDifference) {
         super(resultType);
-        this.flowDifference = Validate.notNull(flowDifference);
+        this.flowDifference = Objects.requireNonNull(flowDifference);
     }
 
     @Override

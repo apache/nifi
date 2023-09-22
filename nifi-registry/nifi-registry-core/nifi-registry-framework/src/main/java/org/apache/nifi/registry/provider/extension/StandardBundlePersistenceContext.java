@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.provider.extension;
 
+import java.util.Objects;
+
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.extension.BundlePersistenceContext;
 import org.apache.nifi.registry.extension.BundleVersionCoordinate;
@@ -28,11 +30,10 @@ public class StandardBundlePersistenceContext implements BundlePersistenceContex
     private final long bundleSize;
 
     private StandardBundlePersistenceContext(final Builder builder) {
-        this.coordinate = builder.coordinate;
+        this.coordinate = Objects.requireNonNull(builder.coordinate);
         this.bundleSize = builder.bundleSize;
         this.author = builder.author;
         this.timestamp = builder.timestamp;
-        Validate.notNull(this.coordinate);
         Validate.notBlank(this.author);
     }
 
