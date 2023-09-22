@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -158,7 +159,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     @Override
     public AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        Validate.notNull(accessPolicy);
+        Objects.requireNonNull(accessPolicy);
 
         // insert to the policy table
         final String policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
@@ -172,7 +173,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     @Override
     public AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        Validate.notNull(accessPolicy);
+        Objects.requireNonNull(accessPolicy);
 
         // determine if policy exists
         final DatabaseAccessPolicy existingPolicy = getDatabaseAcessPolicy(accessPolicy.getIdentifier());
@@ -250,7 +251,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
     @Override
     public AccessPolicy getAccessPolicy(final String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
         Validate.notBlank(resourceIdentifier);
-        Validate.notNull(action);
+        Objects.requireNonNull(action);
 
         final String policySql = "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
         final Object[] args = new Object[]{resourceIdentifier, action.toString()};
@@ -266,7 +267,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     @Override
     public AccessPolicy deleteAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        Validate.notNull(accessPolicy);
+        Objects.requireNonNull(accessPolicy);
 
         final String sql = "DELETE FROM APP_POLICY WHERE IDENTIFIER = ?";
         final int rowsUpdated = jdbcTemplate.update(sql, accessPolicy.getIdentifier());

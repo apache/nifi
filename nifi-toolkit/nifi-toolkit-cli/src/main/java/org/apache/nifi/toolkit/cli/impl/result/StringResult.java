@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
 
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * Result for a single string value.
@@ -30,9 +30,8 @@ public class StringResult implements WritableResult<String> {
     private final boolean isInteractive;
 
     public StringResult(final String value, final boolean isInteractive) {
-        this.value = value;
+        this.value = Objects.requireNonNull(value);
         this.isInteractive = isInteractive;
-        Validate.notNull(this.value);
     }
 
     @Override

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -26,6 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Result for a list of users.
@@ -35,8 +35,7 @@ public class UsersResult extends AbstractWritableResult<List<User>> {
 
     public UsersResult(ResultType resultType, List<User> users) {
         super(resultType);
-        this.users = users;
-        Validate.notNull(users);
+        this.users = Objects.requireNonNull(users);
     }
 
     @Override

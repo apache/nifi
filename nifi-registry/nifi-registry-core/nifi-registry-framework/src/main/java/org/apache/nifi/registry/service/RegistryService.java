@@ -18,7 +18,6 @@ package org.apache.nifi.registry.service;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.db.entity.BucketEntity;
@@ -70,6 +69,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -98,12 +98,12 @@ public class RegistryService {
                            final FlowContentSerializer flowContentSerializer,
                            final Validator validator,
                            final RegistryUrlAliasService registryUrlAliasService) {
-        this.metadataService = Validate.notNull(metadataService);
-        this.flowPersistenceProvider = Validate.notNull(flowPersistenceProvider);
-        this.bundlePersistenceProvider = Validate.notNull(bundlePersistenceProvider);
-        this.flowContentSerializer = Validate.notNull(flowContentSerializer);
-        this.validator = Validate.notNull(validator);
-        this.registryUrlAliasService = Validate.notNull(registryUrlAliasService);
+        this.metadataService = Objects.requireNonNull(metadataService);
+        this.flowPersistenceProvider = Objects.requireNonNull(flowPersistenceProvider);
+        this.bundlePersistenceProvider = Objects.requireNonNull(bundlePersistenceProvider);
+        this.flowContentSerializer = Objects.requireNonNull(flowContentSerializer);
+        this.validator = Objects.requireNonNull(validator);
+        this.registryUrlAliasService = Objects.requireNonNull(registryUrlAliasService);
     }
 
     private <T> void validate(T t, String invalidMessage) {

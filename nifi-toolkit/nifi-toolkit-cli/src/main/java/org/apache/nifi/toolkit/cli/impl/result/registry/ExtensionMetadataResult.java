@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -27,6 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 
 public class ExtensionMetadataResult extends AbstractWritableResult<List<ExtensionMetadata>> {
 
@@ -34,8 +34,7 @@ public class ExtensionMetadataResult extends AbstractWritableResult<List<Extensi
 
     public ExtensionMetadataResult(final ResultType resultType, final List<ExtensionMetadata> extensionMetadata) {
         super(resultType);
-        this.extensionMetadata = extensionMetadata;
-        Validate.notNull(this.extensionMetadata);
+        this.extensionMetadata = Objects.requireNonNull(this.extensionMetadata);
     }
 
     @Override

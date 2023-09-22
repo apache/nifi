@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -31,6 +30,7 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,8 +43,7 @@ public class ControllerServicesResult extends AbstractWritableResult<ControllerS
 
     public ControllerServicesResult(final ResultType resultType, final ControllerServicesEntity controllerServicesEntity) {
         super(resultType);
-        this.controllerServicesEntity = controllerServicesEntity;
-        Validate.notNull(this.controllerServicesEntity);
+        this.controllerServicesEntity = Objects.requireNonNull(controllerServicesEntity);
     }
 
     @Override

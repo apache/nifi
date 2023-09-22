@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -30,6 +29,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,8 +39,7 @@ public class ProcessorsResult extends AbstractWritableResult<ProcessorsEntity> {
 
     public ProcessorsResult(ResultType resultType, ProcessorsEntity processorsEntity) {
         super(resultType);
-        this.processorsEntity = processorsEntity;
-        Validate.notNull(processorsEntity);
+        this.processorsEntity = Objects.requireNonNull(processorsEntity);
     }
 
     @Override

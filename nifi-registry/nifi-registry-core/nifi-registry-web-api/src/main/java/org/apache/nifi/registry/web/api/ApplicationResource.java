@@ -17,7 +17,6 @@
 package org.apache.nifi.registry.web.api;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
@@ -36,6 +35,7 @@ import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 public class ApplicationResource {
 
@@ -67,10 +67,8 @@ public class ApplicationResource {
 
     public ApplicationResource(final ServiceFacade serviceFacade,
                                final EventService eventService) {
-        this.serviceFacade = serviceFacade;
-        this.eventService = eventService;
-        Validate.notNull(this.serviceFacade);
-        Validate.notNull(this.eventService);
+        this.serviceFacade = Objects.requireNonNull(serviceFacade);
+        this.eventService = Objects.requireNonNull(eventService);
     }
 
     // We don't want an error creating/publishing an event to cause the overall request to fail, so catch all throwables here

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -30,6 +29,7 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -41,8 +41,7 @@ public class VariableRegistryResult extends AbstractWritableResult<VariableRegis
 
     public VariableRegistryResult(final ResultType resultType, final VariableRegistryEntity variableRegistryEntity) {
         super(resultType);
-        this.variableRegistryEntity = variableRegistryEntity;
-        Validate.notNull(this.variableRegistryEntity);
+        this.variableRegistryEntity = Objects.requireNonNull(variableRegistryEntity);
     }
 
     @Override

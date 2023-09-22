@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
@@ -27,6 +26,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * Result for a list of VersionedFlowSnapshots.
@@ -47,9 +47,8 @@ public class VersionedFlowSnapshotsResult implements WritableResult<Iterator<Ver
     private final String exportDirectoryName;
 
     public VersionedFlowSnapshotsResult(final Iterator<VersionedFlowSnapshot> versionedFlowSnapshots, final String exportDirectoryName) {
-        this.versionedFlowSnapshots = versionedFlowSnapshots;
+        this.versionedFlowSnapshots = Objects.requireNonNull(versionedFlowSnapshots);
         this.exportDirectoryName = exportDirectoryName;
-        Validate.notNull(this.versionedFlowSnapshots);
     }
 
     @Override

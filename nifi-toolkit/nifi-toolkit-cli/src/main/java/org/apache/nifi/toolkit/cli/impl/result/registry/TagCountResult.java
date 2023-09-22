@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.extension.TagCount;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -27,6 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 
 public class TagCountResult extends AbstractWritableResult<List<TagCount>> {
 
@@ -34,8 +34,7 @@ public class TagCountResult extends AbstractWritableResult<List<TagCount>> {
 
     public TagCountResult(ResultType resultType, final List<TagCount> tagCounts) {
         super(resultType);
-        this.tagCounts = tagCounts;
-        Validate.notNull(this.tagCounts);
+        this.tagCounts = Objects.requireNonNull(tagCounts);
     }
 
     @Override

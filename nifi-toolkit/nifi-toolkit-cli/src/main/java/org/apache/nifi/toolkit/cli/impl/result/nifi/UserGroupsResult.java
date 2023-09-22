@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -32,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -43,8 +43,7 @@ public class UserGroupsResult extends AbstractWritableResult<UserGroupsEntity> {
 
     public UserGroupsResult(final ResultType resultType, final UserGroupsEntity userGroupsEntity) {
         super(resultType);
-        this.userGroupsEntity = userGroupsEntity;
-        Validate.notNull(this.userGroupsEntity);
+        this.userGroupsEntity = Objects.requireNonNull(userGroupsEntity);
     }
 
     @Override

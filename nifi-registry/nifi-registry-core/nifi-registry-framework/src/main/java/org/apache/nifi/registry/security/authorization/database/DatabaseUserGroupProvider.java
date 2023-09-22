@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -120,7 +121,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public User addUser(final User user) throws AuthorizationAccessException {
-        Validate.notNull(user);
+        Objects.requireNonNull(user);
         final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         jdbcTemplate.update(sql, new Object[] {user.getIdentifier(), user.getIdentity()});
         return user;
@@ -128,7 +129,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public User updateUser(final User user) throws AuthorizationAccessException {
-        Validate.notNull(user);
+        Objects.requireNonNull(user);
 
         // update the user identity
         final String sql = "UPDATE UGP_USER SET IDENTITY = ? WHERE IDENTIFIER = ?";
@@ -227,7 +228,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public User deleteUser(final User user) throws AuthorizationAccessException {
-        Validate.notNull(user);
+        Objects.requireNonNull(user);
 
         final String deleteFromUserGroupSql = "DELETE FROM UGP_USER_GROUP WHERE USER_IDENTIFIER = ?";
         jdbcTemplate.update(deleteFromUserGroupSql, user.getIdentifier());
@@ -257,7 +258,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public Group addGroup(final Group group) throws AuthorizationAccessException {
-        Validate.notNull(group);
+        Objects.requireNonNull(group);
 
         // insert to the group table...
         final String groupSql = "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
@@ -271,7 +272,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public Group updateGroup(final Group group) throws AuthorizationAccessException {
-        Validate.notNull(group);
+        Objects.requireNonNull(group);
 
         // update the group identity
         final String updateGroupSql = "UPDATE UGP_GROUP SET IDENTITY = ? WHERE IDENTIFIER = ?";
@@ -331,7 +332,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     @Override
     public Group deleteGroup(final Group group) throws AuthorizationAccessException {
-        Validate.notNull(group);
+        Objects.requireNonNull(group);
 
         final String sql = "DELETE FROM UGP_GROUP WHERE IDENTIFIER = ?";
         final int rowsUpdated = jdbcTemplate.update(sql, group.getIdentifier());

@@ -26,6 +26,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Base class for CommandGroups to extend from.
@@ -43,7 +44,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
 
     @Override
     public final void initialize(final Context context) {
-        Validate.notNull(context);
+        Objects.requireNonNull(context);
         this.output = context.getOutput();
         this.commands = Collections.unmodifiableList(createCommands());
         this.commands.stream().forEach(c -> c.initialize(context));

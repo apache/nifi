@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.event;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventField;
 import org.apache.nifi.registry.hook.EventFieldName;
@@ -38,10 +37,9 @@ public class StandardEvent implements Event {
     private final List<EventField> eventFields;
 
     private StandardEvent(final Builder builder) {
-        this.eventType = builder.eventType;
+        this.eventType = Objects.requireNonNull(builder.eventType);
         this.eventFields = Collections.unmodifiableList(builder.eventFields == null
                 ? Collections.emptyList() : new ArrayList<>(builder.eventFields));
-        Validate.notNull(this.eventType);
     }
 
     @Override

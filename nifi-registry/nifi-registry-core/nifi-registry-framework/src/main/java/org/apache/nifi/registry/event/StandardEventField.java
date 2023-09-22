@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.event;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.hook.EventField;
 import org.apache.nifi.registry.hook.EventFieldName;
 
@@ -32,10 +31,8 @@ public class StandardEventField implements EventField {
     private final String value;
 
     public StandardEventField(final EventFieldName name, final String value) {
-        this.name = name;
-        this.value = value;
-        Validate.notNull(this.name);
-        Validate.notNull(this.value);
+        this.name = Objects.requireNonNull(name);
+        this.value = Objects.requireNonNull(value);
     }
 
     @Override

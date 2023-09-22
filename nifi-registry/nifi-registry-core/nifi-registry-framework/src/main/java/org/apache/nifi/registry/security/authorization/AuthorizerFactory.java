@@ -17,7 +17,6 @@
 package org.apache.nifi.registry.security.authorization;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
@@ -71,6 +70,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -125,12 +125,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             final DataSource dataSource,
             final IdentityMapper identityMapper) {
 
-        this.properties = Validate.notNull(properties);
-        this.extensionManager = Validate.notNull(extensionManager);
+        this.properties = Objects.requireNonNull(properties);
+        this.extensionManager = Objects.requireNonNull(extensionManager);
         this.sensitivePropertyProviderFactory = sensitivePropertyProviderFactory;
-        this.registryService = Validate.notNull(registryService);
-        this.dataSource = Validate.notNull(dataSource);
-        this.identityMapper = Validate.notNull(identityMapper);
+        this.registryService = Objects.requireNonNull(registryService);
+        this.dataSource = Objects.requireNonNull(dataSource);
+        this.identityMapper = Objects.requireNonNull(identityMapper);
     }
 
     /***** UserGroupProviderLookup *****/

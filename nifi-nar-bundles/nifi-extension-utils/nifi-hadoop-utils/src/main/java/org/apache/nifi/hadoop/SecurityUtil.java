@@ -30,6 +30,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -70,9 +71,9 @@ public class SecurityUtil {
      */
     public static synchronized UserGroupInformation loginKerberos(final Configuration config, final String principal, final String keyTab)
             throws IOException {
-        Validate.notNull(config);
-        Validate.notNull(principal);
-        Validate.notNull(keyTab);
+        Objects.requireNonNull(config);
+        Objects.requireNonNull(principal);
+        Objects.requireNonNull(keyTab);
 
         UserGroupInformation.setConfiguration(config);
         UserGroupInformation.loginUserFromKeytab(principal.trim(), keyTab.trim());
@@ -128,7 +129,7 @@ public class SecurityUtil {
      * @throws IOException if login failed
      */
     public static synchronized UserGroupInformation loginSimple(final Configuration config) throws IOException {
-        Validate.notNull(config);
+        Objects.requireNonNull(config);
         UserGroupInformation.setConfiguration(config);
         return UserGroupInformation.getLoginUser();
     }
@@ -144,7 +145,7 @@ public class SecurityUtil {
      *
      */
     public static boolean isSecurityEnabled(final Configuration config) {
-        Validate.notNull(config);
+        Objects.requireNonNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
 

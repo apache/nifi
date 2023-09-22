@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.authorization.Tenant;
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.toolkit.cli.api.ResultType;
@@ -27,6 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,8 +38,7 @@ public class UserGroupsResult extends AbstractWritableResult<List<UserGroup>> {
 
     public UserGroupsResult(final ResultType resultType, final List<UserGroup> userGroups) {
         super(resultType);
-        this.userGroups = userGroups;
-        Validate.notNull(userGroups);
+        this.userGroups = Objects.requireNonNull(userGroups);
     }
 
     @Override

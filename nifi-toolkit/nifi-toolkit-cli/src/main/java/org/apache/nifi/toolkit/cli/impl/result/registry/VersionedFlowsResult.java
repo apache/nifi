@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
@@ -34,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -45,8 +45,7 @@ public class VersionedFlowsResult extends AbstractWritableResult<List<VersionedF
 
     public VersionedFlowsResult(final ResultType resultType, final List<VersionedFlow> flows) {
         super(resultType);
-        this.versionedFlows = flows;
-        Validate.notNull(this.versionedFlows);
+        this.versionedFlows = Objects.requireNonNull(flows);
 
         // NOTE: it is important that the order the flows are printed is the same order for the ReferenceResolver
         this.versionedFlows.sort(Comparator.comparing(VersionedFlow::getName));
