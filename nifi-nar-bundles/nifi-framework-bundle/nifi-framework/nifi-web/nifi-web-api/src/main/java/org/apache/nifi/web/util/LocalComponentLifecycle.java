@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -341,6 +342,12 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
     }
 
     private boolean isDesiredStatelessGroupStateReached(final ProcessGroupEntity groupEntity, final ScheduledState desiredState) {
+        // Only consider this case for stateless groups
+        final String executionEngine = groupEntity.getComponent().getExecutionEngine();
+        if (!ExecutionEngine.STATELESS.name().equals(executionEngine)) {
+            return true;
+        }
+
         final String runStatus = groupEntity.getComponent().getStatelessGroupScheduledState();
         final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
 
