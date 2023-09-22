@@ -24,9 +24,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.record.sink.RecordSinkService;
-import org.apache.nifi.rules.PropertyContextActionHandler;
-import org.apache.nifi.rules.engine.RulesEngineService;
-
 
 public class QueryMetricsUtil {
 
@@ -56,22 +53,6 @@ public class QueryMetricsUtil {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor RULES_ENGINE = new PropertyDescriptor.Builder()
-            .name("rules-engine-service")
-            .displayName("Rules Engine Service")
-            .description("Specifies the Controller Service to use for applying rules to metrics.")
-            .identifiesControllerService(RulesEngineService.class)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor ACTION_HANDLER = new PropertyDescriptor.Builder()
-            .name("action-handler")
-            .displayName("Event Action Handler")
-            .description("Handler that will execute the defined action returned from rules engine (if Action type is supported by the handler)")
-            .identifiesControllerService(PropertyContextActionHandler.class)
             .required(true)
             .build();
 
