@@ -17,20 +17,20 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <section id="flow-analysis-drawer">
     <div class="flow-analysis-header">
-        <div class="recs-policies-refresh-container">
-            <div class="recs-policies-refresh">Next check in: <span class="recs-policies-check-in">21</span></div>
-            <button id="recs-policies-check-now-btn" class="recs-policies-check-now-btn">Check Now</button>
+        <div class="flow-analysis-refresh-container">
+            <div class="flow-analysis-refresh">Next check in: <span class="flow-analysis-check-in"></span>s</div>
+            <button id="flow-analysis-check-now-btn" class="flow-analysis-check-now-btn">Check Now</button>
         </div>
     </div>
     <div class="flow-analysis-flow-guide-container">
-        <div class="recs-policies-flow-guide">
-            <div class="recs-policies-flow-guide-title">Flow Guide</div>
+        <div class="flow-analysis-flow-guide">
+            <div class="flow-analysis-flow-guide-title">Flow Guide</div>
             <div class="flow-analysis-violations-options">
                 <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
                 <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
             </div>
         </div>
-        <div class="recs-policies-flow-guide-breadcrumb">NiFi Flow</div>
+        <div class="flow-analysis-flow-guide-breadcrumb">NiFi Flow</div>
     </div>
     <div id="flow-analysis-rules-accordion" class="flow-analysis-rules-accordion">
 
