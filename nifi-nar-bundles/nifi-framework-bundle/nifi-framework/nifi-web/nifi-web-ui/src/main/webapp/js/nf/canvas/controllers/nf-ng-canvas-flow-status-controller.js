@@ -98,7 +98,6 @@
             this.controllerLocallyModifiedAndStaleCount = "-";
             this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
-            // this.violationMenuInitialized = false;
 
             /**
              * The search controller.
@@ -426,10 +425,9 @@
                     return $('#flow-analysis-drawer');
                 },
 
-                getAccordion: function() {
-                    return $('#flow-analysis-rules-accordion');
-                },
-
+                /**
+                 * Create the list of rule violations
+                 */
                 buildRuleViolationsList: function(rules, violationsAndRecs) {
                     var ruleViolationCountEl = $('#rule-violation-count');
                     var ruleViolationListEl = $('#rule-violations-list');
@@ -466,6 +464,10 @@
                     });
                 },
 
+                /**
+                 * 
+                 * Render a new list when it differs from the previous violations response
+                 */
                 buildRuleViolations: function(rules, violations, force = false) {
                     if (Object.keys(previousRulesResponse).length !== 0) {
                         var previousRulesResponseSorted = _.sortBy(previousRulesResponse.ruleViolations, 'subjectId');
@@ -478,6 +480,9 @@
                     }
                 },
 
+                /**
+                 * Create the list of flow policy rules
+                 */
                 buildRuleList: function(ruleType, violationsMap, rec) {
                     var requiredRulesListEl = $('#required-rules-list');
                     var recommendedRulesListEl = $('#recommended-rules-list');
@@ -516,6 +521,9 @@
                     ruleType === 'violation' ? requiredRulesListEl.append(rule) : recommendedRulesListEl.append(rule);
                 },
 
+                /**
+                 * Loads the current status of the flow.
+                 */
                 loadFlowPolicies: function () {
                     var flowAnalysisCtrl = this;
                     var requiredRulesListEl = $('#required-rules-list');
@@ -637,6 +645,9 @@
                     }
                 },
 
+                /**
+                 * Set event bindings for rule menus
+                 */
                 setMenuRuleHandling: function() {
                     $('.rule-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeRuleWindow
@@ -691,6 +702,9 @@
                     });
                 },
 
+                /**
+                 * Set event bindings for violation menus
+                 */
                 setViolationMenuHandling: function(response, groupId) {
                     $('.violation-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeViolationWindow
@@ -820,10 +834,10 @@
                     });
                     this.loadFlowPolicies();
                     // TODO: update this to use the specified interval for polling
-                    setInterval(this.loadFlowPolicies.bind(this), 5000);
+                    setInterval(this.loadFlowPolicies.bind(this), 30000);
 
                     // add click event listener to refresh button
-                    $('#recs-policies-check-now-btn').on('click', this.createNewFlowRequest);
+                    $('#recs-policies-check-now-btn').on('click', this.createNewFlowAnalysisRequest);
 
                     this.toggleOnlyViolations(false);
                     // handle show only violations checkbox
@@ -833,6 +847,9 @@
                     });
                 },
 
+                /**
+                 * Show/hide violations menu
+                 */
                 toggleOnlyViolations(isChecked) {
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
@@ -850,8 +867,10 @@
                     }
                 },
 
-
-                createNewFlowRequest: function () {
+                /**
+                 * Submit a request for a new flow analysis report
+                 */
+                createNewFlowAnalysisRequest: function () {
                     var groupId = nfCanvasUtils.getGroupId();
                     return $.ajax({
                         type: 'POST',
