@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gettcp;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -59,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 @DynamicProperty(name = "A FlowFile attribute to set", value = "The value to set it to",
         description = "Sets a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "source.endpoint", description = "The address of the source endpoint the message came from")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class GetTCP extends AbstractSessionFactoryProcessor {
 
     private static String SOURCE_ENDPOINT_ATTRIBUTE = "source.endpoint";

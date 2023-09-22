@@ -17,6 +17,7 @@
 package org.apache.nifi.rules.handlers;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -41,6 +42,7 @@ import java.util.Map;
 @Tags({"rules", "rules engine", "action", "action handler", "expression language","MVEL","SpEL"})
 @CapabilityDescription("Executes an action containing an expression written in MVEL or SpEL. The action " +
 "is usually created by a rules engine. Action objects executed with this Handler should contain \"command\" and \"type\" attributes.")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class ExpressionHandler extends AbstractActionHandlerService {
 
     enum ExpresssionType {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules.handlers;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -40,6 +41,7 @@ import java.util.Set;
 @Tags({"rules", "rules engine", "action", "action handler", "logging", "alerts", "bulletins"})
 @CapabilityDescription("Creates alerts as bulletins based on a provided action (usually created by a rules engine).  " +
         "Action objects executed with this Handler should contain \"category\", \"message\", and \"logLevel\" attributes.")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class AlertHandler extends AbstractActionHandlerService {
 
     public static final PropertyDescriptor DEFAULT_LOG_LEVEL = new PropertyDescriptor.Builder()

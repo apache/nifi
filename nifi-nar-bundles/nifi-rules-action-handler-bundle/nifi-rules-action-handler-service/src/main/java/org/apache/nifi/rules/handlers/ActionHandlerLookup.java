@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules.handlers;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -44,6 +45,7 @@ import java.util.Map;
 "This service will allow multiple ActionHandlers to be defined and registered by action type.  When actions are provided the handlers can " +
 "be dynamically determined and executed at runtime.")
 @DynamicProperty(name = "actionType ", value = "Action Handler Service", expressionLanguageScope = ExpressionLanguageScope.NONE, description = "")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class ActionHandlerLookup extends AbstractActionHandlerService{
 
     private volatile Map<String, PropertyContextActionHandler> actionHandlerMap;

@@ -20,6 +20,7 @@ import io.riemann.riemann.Proto;
 import io.riemann.riemann.Proto.Event;
 import io.riemann.riemann.client.RiemannClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -58,6 +59,7 @@ import java.util.concurrent.TimeUnit;
   "events support the NiFi Expression Language.")
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class PutRiemann extends AbstractProcessor {
   protected enum Transport {
     TCP, UDP

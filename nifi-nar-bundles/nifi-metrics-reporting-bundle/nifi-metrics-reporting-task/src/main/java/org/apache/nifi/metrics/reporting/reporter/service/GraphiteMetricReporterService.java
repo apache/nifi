@@ -21,6 +21,7 @@ import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.codahale.metrics.graphite.GraphiteSender;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -47,6 +48,7 @@ import java.util.List;
 @Tags({"metrics", "reporting", "graphite"})
 @CapabilityDescription("A controller service that provides metric reporters for graphite. " +
         "Used by MetricsReportingTask.")
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class GraphiteMetricReporterService extends AbstractControllerService implements MetricReporterService {
 
     /**

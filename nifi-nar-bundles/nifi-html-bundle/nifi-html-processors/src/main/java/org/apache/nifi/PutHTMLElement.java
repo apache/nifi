@@ -16,6 +16,7 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -56,6 +57,7 @@ import java.util.Collections;
         " content with the updated HTML. A more thorough reference for the CSS selector syntax can be found at" +
         " \"http://jsoup.org/apidocs/org/jsoup/select/Selector.html\"")
 @SeeAlso({GetHTMLElement.class, ModifyHTMLElement.class})
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class PutHTMLElement extends AbstractHTMLProcessor {
 
     public static final String APPEND_ELEMENT = "append-html";

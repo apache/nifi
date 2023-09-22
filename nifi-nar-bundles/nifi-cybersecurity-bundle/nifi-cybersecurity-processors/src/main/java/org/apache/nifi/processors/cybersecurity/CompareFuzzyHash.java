@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.cybersecurity;
 
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -70,7 +71,7 @@ import java.util.Set;
                 "by the <Hash Attribute Name> property. Note that: 'XXX' gets replaced with the <Hash Attribute Name>"),
         @WritesAttribute(attribute = "XXXX.N.similarity", description = "The similarity score between this flowfile" +
                 "and its match of the same number N. Note that: 'XXX' gets replaced with the <Hash Attribute Name>")})
-
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
     public static final AllowableValue singleMatch = new AllowableValue(
             "single",
