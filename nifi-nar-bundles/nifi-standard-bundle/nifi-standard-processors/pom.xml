@@ -726,6 +726,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateJson/multiline.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example-missing-required.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>

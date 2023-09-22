@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -167,6 +168,7 @@ public class ValidateJson extends AbstractProcessor {
     static {
         MAPPER = new ObjectMapper();
         MAPPER.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        MAPPER.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
     }
 
     private JsonSchema schema;

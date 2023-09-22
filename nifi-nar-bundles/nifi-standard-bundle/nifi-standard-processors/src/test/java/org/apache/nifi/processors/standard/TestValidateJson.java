@@ -191,6 +191,20 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
     }
+
+    @Test
+    void testMultilIneJson() {
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
+
+        runner.enqueue(getFileContent("multiline.json"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 1);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
+    }
+
     private void assertValidationErrors(Relationship relationship, boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
 
