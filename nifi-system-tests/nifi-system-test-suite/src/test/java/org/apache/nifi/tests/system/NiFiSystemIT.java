@@ -201,7 +201,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
                 .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
                 .instanceDirectory("target/standalone-instance")
                 .overrideNifiProperties(getNifiPropertiesOverrides())
-                .unpackPythonExtensions(isUnpackPythonExtensions())
+                .unpackPythonExtensions(false)
                 .build());
     }
 
@@ -209,6 +209,16 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return new SpawnedClusterNiFiInstanceFactory(
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");
+    }
+
+    public NiFiInstanceFactory createPythonicInstanceFactory() {
+        return new SpawnedStandaloneNiFiInstanceFactory(
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/pythonic/bootstrap.conf")
+                        .instanceDirectory("target/pythonic-instance")
+                        .overrideNifiProperties(getNifiPropertiesOverrides())
+                        .unpackPythonExtensions(true)
+                        .build());
     }
 
     protected String getTestName() {
@@ -543,10 +553,6 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
 
         return node2Dto;
-    }
-
-    protected boolean isUnpackPythonExtensions() {
-        return false;
     }
 
     /**

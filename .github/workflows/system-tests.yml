@@ -56,6 +56,7 @@ env:
     package
     verify
     -P integration-tests
+    -D include-python-integration-tests=true
   MAVEN_PROJECTS: >-
     -pl :nifi-python-framework
     -pl :nifi-python-extension-api
