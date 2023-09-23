@@ -13,4 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.graph.TinkerpopClientService
+hosts: [localhost]
+port: 8182
+serializer: { className: org.apache.tinkerpop.gremlin.util.ser.GraphBinaryMessageSerializerV1,
+              config: { serializeResultToString: false }}

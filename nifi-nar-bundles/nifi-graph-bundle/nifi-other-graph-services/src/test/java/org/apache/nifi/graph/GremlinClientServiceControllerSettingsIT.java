@@ -33,21 +33,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /*
  * As of JanusGraph 0.3.X these tests can be a little inconsistent for a few runs at first.
  */
-public class GremlinClientServiceIT {
+public class GremlinClientServiceControllerSettingsIT {
     private TestRunner runner;
     private TestableGremlinClientService clientService;
+
 
     @BeforeEach
     public void setup() throws Exception {
         clientService = new TestableGremlinClientService();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("gremlinService", clientService);
-        runner.setProperty(clientService, AbstractTinkerpopClientService.CONTACT_POINTS, "localhost");
+        runner.setProperty(clientService, TinkerpopClientService.CONTACT_POINTS, "localhost");
+        runner.setProperty(clientService, TinkerpopClientService.PORT, "8182");
         runner.enableControllerService(clientService);
         runner.assertValid();
 
+        String teardown = IOUtils.toString(getClass().getResourceAsStream("/teardown.gremlin"), "UTF-8");
+        clientService.getCluster().connect().submit(teardown);
         String setup = IOUtils.toString(getClass().getResourceAsStream("/setup.gremlin"), "UTF-8");
-        clientService.getClient().submit(setup);
+        clientService.getCluster().connect().submit(setup);
 
         assertEquals("gremlin://localhost:8182/gremlin", clientService.getTransitUrl());
     }
@@ -55,7 +59,7 @@ public class GremlinClientServiceIT {
     @AfterEach
     public void tearDown() throws Exception {
         String teardown = IOUtils.toString(getClass().getResourceAsStream("/teardown.gremlin"), "UTF-8");
-        clientService.getClient().submit(teardown);
+        clientService.getCluster().connect().submit(teardown);
     }
 
     @Test

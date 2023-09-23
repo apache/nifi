@@ -14,13 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.graph.gremlin;
 
-package org.apache.nifi.graph;
+import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.driver.Cluster;
+public class SimpleEntry<K, V> implements Map.Entry<K, V> {
+    private final K key;
+    private V value;
 
-public class TestableGremlinClientService extends TinkerpopClientService {
-    public Cluster getCluster() {
-        return cluster;
+    public SimpleEntry(K key, V value) {
+        this.key = key;
+        this.value = value;
     }
+
+    @Override
+    public K getKey() {
+        return key;
+    }
+
+    @Override
+    public V getValue() {
+        return value;
+    }
+
+    @Override
+    public V setValue(V value) {
+        V old = this.value;
+        this.value = value;
+        return old;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:%s", this.key, this.value);
+    }
+
 }
