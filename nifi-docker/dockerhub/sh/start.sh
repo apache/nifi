@@ -50,32 +50,8 @@ prop_replace 'keystoreType'       "PKCS12"                              ${nifi_t
 prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
 prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
 
-if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
-    prop_replace 'nifi.web.https.port'                        ''
-    prop_replace 'nifi.web.https.host'                        ''
-    prop_replace 'nifi.web.http.port'                         "${NIFI_WEB_HTTP_PORT}"
-    prop_replace 'nifi.web.http.host'                         "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
-    prop_replace 'nifi.remote.input.secure'                   'false'
-    prop_replace 'nifi.cluster.protocol.is.secure'            'false'
-    prop_replace 'nifi.security.keystore'                     ''
-    prop_replace 'nifi.security.keystoreType'                 ''
-    prop_replace 'nifi.security.truststore'                   ''
-    prop_replace 'nifi.security.truststoreType'               ''
-    prop_replace 'nifi.security.user.login.identity.provider' ''
-    prop_replace 'keystore'                                   '' ${nifi_toolkit_props_file}
-    prop_replace 'keystoreType'                               '' ${nifi_toolkit_props_file}
-    prop_replace 'truststore'                                 '' ${nifi_toolkit_props_file}
-    prop_replace 'truststoreType'                             '' ${nifi_toolkit_props_file}
-    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" ${nifi_toolkit_props_file}
-
-    if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
-        prop_replace 'nifi.web.proxy.host' ''
-    fi
-else
-    if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
-    fi
+if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
 fi
 
 prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"

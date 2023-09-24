@@ -23,8 +23,8 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <nifi.version>${project.version}</nifi.version>
-        <docker.image.name>eclipse-temurin</docker.image.name>
-        <docker.image.tag>11-jre</docker.image.tag>
+        <docker.image.name>bellsoft/liberica-openjdk-debian</docker.image.name>
+        <docker.image.tag>21</docker.image.tag>
     </properties>
 
     <modules>

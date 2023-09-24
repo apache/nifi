@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
 # distributed with this work for additional information
@@ -16,8 +17,8 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
+ARG IMAGE_NAME=bellsoft/liberica-openjdk-alpine
+ARG IMAGE_TAG=21
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
@@ -48,6 +49,8 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
     && apt-get install -y jq xmlstarlet procps unzip \
+    && apt-get install -y python3 \
+    && apt-get install -y python3-pip \
     && apt-get -y autoremove \
     && apt-get clean autoclean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -89,7 +92,7 @@ VOLUME ${NIFI_LOG_DIR} \
 RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
 
 # Web HTTP(s) & Socket Site-to-Site Ports
-EXPOSE 8080 8443 10000 8000
+EXPOSE 8443 10000 8000
 
 WORKDIR ${NIFI_HOME}
 

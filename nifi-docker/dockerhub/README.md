@@ -15,6 +15,10 @@
 
 ## Latest changes
 
+### 2.0.0
+
+- Changed base image to bellsoft/liberica-openjdk-debian:21 as NiFi 2.0.0 requires Java 21
+
 ### 1.19.0
 
 - Changed base image to eclipse-temurin:11-jre as openjdk:8-jre is no longer maintained
@@ -215,7 +219,6 @@ can be published to the host.
 
 | Function                 | Property                      | Port  |
 |--------------------------|-------------------------------|-------|
-| HTTP Port                | nifi.web.http.port            | 8080  |
 | HTTPS Port               | nifi.web.https.port           | 8443  |
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
 | JVM Debugger             | java.arg.debug                | 8000  |

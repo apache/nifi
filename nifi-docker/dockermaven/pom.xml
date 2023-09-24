@@ -52,6 +52,7 @@
                                                 </tags>
                                                 <dockerFile>Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}</contextDir>
+                                                <optimise>true</optimise>
                                                 <args>
                                                     <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
                                                     <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
