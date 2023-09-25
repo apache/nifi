@@ -520,8 +520,6 @@ public class StandardFlowComparator implements FlowComparator {
             return;
         }
 
-        compareVariableRegistries(groupA, groupB, differences);
-
         // Compare Flow Coordinates for any differences. Because the way in which we store flow coordinates has changed between versions,
         // we have to use a specific method for this instead of just using addIfDifferent. We also store the differences into a different set
         // so that we can later check if there were any differences or not.
@@ -615,29 +613,6 @@ public class StandardFlowComparator implements FlowComparator {
         if (storageLocationA != null && storageLocationB != null && !storageLocationA.equals(storageLocationB)) {
             differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
             return;
-        }
-    }
-
-    private void compareVariableRegistries(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences) {
-        final Map<String, String> variablesA = groupA.getVariables();
-        final Map<String, String> variablesB = groupB.getVariables();
-
-        for (final String variableName : variablesA.keySet()) {
-            final String variableA = variablesA.get(variableName);
-            final String variableB = variablesB.get(variableName);
-
-            if (variableB == null) {
-                differences.add(difference(DifferenceType.VARIABLE_REMOVED, groupA, groupB, variableName, variableName, variableA, variableB));
-            } else if (!variableB.equals(variableA)) {
-                differences.add(difference(DifferenceType.VARIABLE_CHANGED, groupA, groupB, variableName, variableA, variableB, variableB));
-            }
-        }
-
-        for (final String variableName : variablesB.keySet()) {
-            final String variableA = variablesA.get(variableName);
-            if (variableA == null) {
-                differences.add(difference(DifferenceType.VARIABLE_ADDED, groupA, groupB, variableName, variableName, variableA, variablesB.get(variableName)));
-            }
         }
     }
 

@@ -39,7 +39,7 @@ public class HadoopCatalogService extends AbstractCatalogService {
             .name("warehouse-path")
             .displayName("Warehouse Path")
             .description("Path to the location of the warehouse.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();

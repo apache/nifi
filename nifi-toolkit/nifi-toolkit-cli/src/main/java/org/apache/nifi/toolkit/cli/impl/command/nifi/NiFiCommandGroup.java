@@ -68,13 +68,11 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGEnableControllerServic
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetAllVersions;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetParamContext;
-import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVars;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGList;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGReplace;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetParamContext;
-import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetVar;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStatus;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
@@ -128,8 +126,6 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGStart());
         commands.add(new PGStop());
         commands.add(new PGCreate());
-        commands.add(new PGGetVars());
-        commands.add(new PGSetVar());
         commands.add(new PGGetVersion());
         commands.add(new PGStopVersionControl());
         commands.add(new PGChangeVersion());

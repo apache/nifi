@@ -84,7 +84,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON = new PropertyDescriptor.Builder()
             .name("service-account-json")
             .displayName("Service Account JSON")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(JsonValidator.INSTANCE)
             .description("The raw JSON containing a Service Account keyfile.")

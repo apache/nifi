@@ -41,7 +41,7 @@ public final class DBCPProperties {
             .defaultValue(null)
             .addValidator(new ConnectionUrlValidator())
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -49,7 +49,7 @@ public final class DBCPProperties {
             .description("Database user name")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -59,7 +59,7 @@ public final class DBCPProperties {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
 
@@ -69,7 +69,7 @@ public final class DBCPProperties {
             .defaultValue(null)
             .required(true)
             .addValidator(new DriverClassValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
@@ -79,7 +79,7 @@ public final class DBCPProperties {
             .defaultValue(null)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -90,7 +90,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MAX_WAIT_TIME.getValue())
             .required(true)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -101,7 +101,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getValue())
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -113,7 +113,7 @@ public final class DBCPProperties {
                     + "Note!! Using validation might have some performance penalty.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
@@ -124,7 +124,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MIN_IDLE.getValue())
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
@@ -135,7 +135,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MAX_IDLE.getValue())
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
@@ -147,7 +147,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MAX_CONN_LIFETIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
@@ -158,7 +158,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.EVICTION_RUN_PERIOD.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -168,7 +168,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -184,7 +184,7 @@ public final class DBCPProperties {
             .defaultValue(DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()

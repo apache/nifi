@@ -163,9 +163,9 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", "${empty}");
         runner.setProperty("slices", "${slices}");
         runner.setProperty("another", "${blank}");
-        runner.setVariable("slices", "auto");
-        runner.setVariable("blank", " ");
-        runner.setVariable("version", "external");
+        runner.setEnvironmentSystemVariableValue("slices", "auto");
+        runner.setEnvironmentSystemVariableValue("blank", " ");
+        runner.setEnvironmentSystemVariableValue("version", "external");
         runner.assertValid();
 
         clientService.setEvalParametersConsumer((Map<String, String> params) -> {
@@ -199,7 +199,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
     public void simpleTestWithRequestParametersAndBulkHeadersFlowFileEL() {
         runner.setProperty("refresh", "true");
         runner.setProperty("slices", "${slices}");
-        runner.setVariable("blank", " ");
+        runner.setEnvironmentSystemVariableValue("blank", " ");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "1");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", "${version}");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", "${empty}");

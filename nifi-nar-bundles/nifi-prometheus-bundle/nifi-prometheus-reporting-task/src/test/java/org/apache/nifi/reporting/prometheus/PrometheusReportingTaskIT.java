@@ -33,7 +33,6 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -66,13 +65,12 @@ public class PrometheusReportingTaskIT {
         reportingInitContextStub = new MockReportingInitializationContext(TEST_INIT_CONTEXT_ID, TEST_INIT_CONTEXT_NAME,
                 new MockComponentLog(TEST_TASK_ID, testedReportingTask));
 
-        reportingContextStub = new MockReportingContext(Collections.emptyMap(),
-                new MockStateManager(testedReportingTask), new MockVariableRegistry());
+        reportingContextStub = new MockReportingContext(Collections.emptyMap(), new MockStateManager(testedReportingTask));
 
         reportingContextStub.setProperty(PrometheusMetricsUtil.INSTANCE_ID.getName(), "localhost");
 
         configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
-                reportingContextStub.getControllerServiceLookup());
+                reportingContextStub.getControllerServiceLookup(), null);
 
         rootGroupStatus.setId("1234");
         rootGroupStatus.setFlowFilesReceived(5);

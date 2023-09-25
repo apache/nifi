@@ -1131,7 +1131,7 @@ public class TestTailFile {
 
     @Test
     public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
-        runner.setVariable("vrBaseDirectory", "target");
+        runner.setEnvironmentSystemVariableValue("vrBaseDirectory", "target");
         runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
         final String fileRegex;
@@ -1140,7 +1140,7 @@ public class TestTailFile {
         } else {
             fileRegex = "(testDir" + Pattern.quote(File.separator) + ")?log(ging)?.txt";
         }
-        runner.setVariable("vrFilename", fileRegex);
+        runner.setEnvironmentSystemVariableValue("vrFilename", fileRegex);
         runner.setProperty(TailFile.FILENAME, "${vrFilename}");
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "${filename}.?");
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);

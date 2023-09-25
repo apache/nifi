@@ -69,7 +69,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .required(true)
             .defaultValue(String.valueOf(DEFAULT_HAZELCAST_PORT))
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private static final PropertyDescriptor HAZELCAST_CLUSTERING_STRATEGY = new PropertyDescriptor.Builder()
@@ -91,7 +91,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .required(false)
             // HOSTNAME_PORT_LIST_VALIDATOR would not work properly as we do not expect port here, only list of hosts. Custom validator provides further checks.
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;

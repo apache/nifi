@@ -317,16 +317,6 @@ public class FlowFromDOMFactory {
         dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
         dto.setLogFileSuffix(getString(element, "logFileSuffix"));
 
-        final Map<String, String> variables = new HashMap<>();
-        final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
-        for (int i = 0; i < variableList.getLength(); i++) {
-            final Element variableElement = (Element) variableList.item(i);
-            final String name = variableElement.getAttribute("name");
-            final String value = variableElement.getAttribute("value");
-            variables.put(name, value);
-        }
-        dto.setVariables(variables);
-
         final Element versionControlInfoElement = DomUtils.getChild(element, "versionControlInformation");
         dto.setVersionControlInformation(getVersionControlInformation(versionControlInfoElement));
 

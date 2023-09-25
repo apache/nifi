@@ -67,7 +67,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
             .displayName("Keyring File")
             .description("File path to PGP Keyring or Public Key encoded in binary or ASCII Armor")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 

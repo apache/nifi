@@ -38,7 +38,6 @@ import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
-import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -76,7 +75,6 @@ import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
@@ -134,7 +132,6 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
@@ -997,48 +994,6 @@ public interface NiFiServiceFacade {
      * @return ProcessGroup transfer object
      */
     ProcessGroupEntity getProcessGroup(String groupId);
-
-    /**
-     * Returns the Variable Registry for the Process Group with the given ID
-     *
-     * @param groupId the ID of the Process Group
-     * @param includeAncestorGroups whether or not to include the variables that are defined in the the process group's parent group & its parent group, etc.
-     * @return the Variable Registry transfer object
-     */
-    VariableRegistryEntity getVariableRegistry(String groupId, boolean includeAncestorGroups);
-
-    /**
-     * Returns a Variable Registry that includes the variables in the given DTO but has the affected components populated
-     *
-     * @param variableRegistryDto the Variable Registry that contains the variables of interest
-     * @return a Variable Registry that has the affected components populated
-     */
-    VariableRegistryEntity populateAffectedComponents(VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Updates the variable registry on behalf of the user currently logged in
-     *
-     * @param revision Revision to compare with current base revision
-     * @param variableRegistryDto the Variable Registry
-     */
-    VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Determines which components will be affected by updating the given Variable Registry.
-     *
-     * @param variableRegistryDto the variable registry
-     * @return the components that will be affected
-     */
-    Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Determines which components are active and will be affected by updating the given Variable Registry. These active components
-     * are needed to authorize the request and deactivate prior to changing the variables.
-     *
-     * @param variableRegistryDto the variable registry
-     * @return the components that will be affected
-     */
-    Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
 
     /**
      * Verifies that a Parameter Context matching the given DTO can be created

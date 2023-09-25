@@ -28,7 +28,7 @@ public class TestScanAttribute {
     @Test
     public void testSingleMatch() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.setVariable("dictionary", "src/test/resources/ScanAttribute/dictionary1");
+        runner.setEnvironmentSystemVariableValue("dictionary", "src/test/resources/ScanAttribute/dictionary1");
         runner.setProperty(ScanAttribute.DICTIONARY_FILE, "${dictionary}");
 
         final Map<String, String> attributes = new HashMap<>();

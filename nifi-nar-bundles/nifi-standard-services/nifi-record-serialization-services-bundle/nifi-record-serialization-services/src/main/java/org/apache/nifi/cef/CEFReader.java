@@ -86,7 +86,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .description("If set the raw message will be added to the record using the property value as field name. This is not the same as the \"rawEvent\" extension field!")
             .addValidator(new ValidateRawField())
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor INVALID_FIELD = new PropertyDescriptor.Builder()
@@ -97,7 +97,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                     "This record contains one field with the name specified by the property and the raw message as value.")
             .addValidator(new ValidateRawField())
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DATETIME_REPRESENTATION = new PropertyDescriptor.Builder()
@@ -107,7 +107,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                     "fields with long or short month names (e.g. may <en-US> vs. mai. <fr-FR>. The default" +
                     "value is generally safe. Only change if having issues parsing CEF messages")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(new ValidateLocale())
             .defaultValue("en-US")
             .build();

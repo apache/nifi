@@ -25,7 +25,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -65,8 +64,7 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingInitContextStub = new MockReportingInitializationContext(TEST_INIT_CONTEXT_ID, TEST_INIT_CONTEXT_NAME,
                 new MockComponentLog(TEST_TASK_ID, testedReportingTask));
 
-        reportingContextStub = new MockReportingContext(Collections.emptyMap(),
-                new MockStateManager(testedReportingTask), new MockVariableRegistry());
+        reportingContextStub = new MockReportingContext(Collections.emptyMap(), new MockStateManager(testedReportingTask));
 
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.INSTANCE_ID.getName(), TEST_TASK_ID);
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LOG_ANALYTICS_WORKSPACE_ID.getName(), TEST_TASK_ID);

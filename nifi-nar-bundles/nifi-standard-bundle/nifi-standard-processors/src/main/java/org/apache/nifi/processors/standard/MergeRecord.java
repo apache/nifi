@@ -180,7 +180,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("1")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor MAX_RECORDS = new PropertyDescriptor.Builder()
         .name("max-records")
@@ -190,7 +190,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(false)
         .defaultValue("1000")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
         .name("max.bin.count")

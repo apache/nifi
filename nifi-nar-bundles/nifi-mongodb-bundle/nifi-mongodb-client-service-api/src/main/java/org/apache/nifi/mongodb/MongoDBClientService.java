@@ -75,7 +75,7 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .displayName("Mongo URI")
             .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .build();
      PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -84,7 +84,7 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .description("Database user name")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
      PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
@@ -93,7 +93,7 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
      PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")

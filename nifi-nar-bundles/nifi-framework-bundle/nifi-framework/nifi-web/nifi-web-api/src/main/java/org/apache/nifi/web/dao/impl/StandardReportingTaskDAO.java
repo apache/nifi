@@ -272,7 +272,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
         final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, properties, taskNode.getAnnotationData(),
-            parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+            parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = taskNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()

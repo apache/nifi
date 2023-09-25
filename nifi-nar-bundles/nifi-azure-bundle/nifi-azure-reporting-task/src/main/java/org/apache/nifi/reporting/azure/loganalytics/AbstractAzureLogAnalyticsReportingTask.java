@@ -58,37 +58,37 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_ID = new PropertyDescriptor.Builder()
             .name("Log Analytics Workspace Id").description("Log Analytics Workspace Id").required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_KEY = new PropertyDescriptor.Builder()
             .name("Log Analytics Workspace Key").description("Azure Log Analytic Worskspace Key").required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder().name("Application ID")
             .description("The Application ID to be included in the metrics sent to Azure Log Analytics WS")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("nifi")
+            .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder().name("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Azure Log Analytics WS")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder().name("Process group ID(s)")
             .description(
                     "If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
                             + " none of the group-IDs could be found or no IDs are defined, the Root Process Group is used and global metrics are sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createListValidator(true, true,
                     StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder().name("Job Name")
             .description("The name of the exporting job").defaultValue("nifi_reporting_job")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     static final PropertyDescriptor LOG_ANALYTICS_URL_ENDPOINT_FORMAT = new PropertyDescriptor.Builder()
             .name("Log Analytics URL Endpoint Format").description("Log Analytics URL Endpoint Format").required(false)
             .defaultValue("https://{0}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
 
     protected String createAuthorization(String workspaceId, String key, int contentLength, String rfc1123Date) {
         try {

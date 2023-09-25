@@ -40,7 +40,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterReference;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -59,7 +58,6 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
-    private final VariableRegistry variableRegistry;
     private final String groupId;
     private final String componentId;
     private final ParameterContext parameterContext;
@@ -72,7 +70,6 @@ public class StandardValidationContext extends AbstractValidationContext impleme
             final String annotationData,
             final String groupId,
             final String componentId,
-            final VariableRegistry variableRegistry,
             final ParameterContext parameterContext,
             final boolean validateConnections) {
         super(parameterContext, properties);
@@ -80,7 +77,6 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
-        this.variableRegistry = variableRegistry;
         this.groupId = groupId;
         this.componentId = componentId;
         this.parameterContext = parameterContext;
@@ -109,12 +105,12 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
-        return new StandardPropertyValue(resourceContext, rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
+        return new StandardPropertyValue(resourceContext, rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue));
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(variableRegistry, parameterContext);
+        return new StandardExpressionLanguageCompiler(parameterContext);
     }
 
     @Override
@@ -123,7 +119,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         final ProcessGroup serviceGroup = serviceNode.getProcessGroup();
         final String serviceGroupId = serviceGroup == null ? null : serviceGroup.getIdentifier();
         return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId,
-            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext(), validateConnections);
+            serviceNode.getIdentifier(), serviceNode.getProcessGroup().getParameterContext(), validateConnections);
     }
 
     @Override
@@ -131,7 +127,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         final PropertyConfiguration configuredValue = properties.get(property);
         final String effectiveValue = configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(resourceContext, effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property));
     }
 
     @Override

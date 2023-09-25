@@ -58,7 +58,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .description("Destination hostname or IP address")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -67,7 +67,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .description("Destination port number")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SENDER_THREADS = new PropertyDescriptor.Builder()
@@ -76,7 +76,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .description("Number of worker threads allocated for handling socket communication")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("2")
             .build();
 

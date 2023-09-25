@@ -89,7 +89,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .description("The address the FTP server should be bound to. If not set (or set to 0.0.0.0), "
                     + "the server binds to all available addresses (i.e. all network interfaces of the host machine).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -99,7 +99,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .description("The Port to listen on for incoming connections. On Linux, root privileges are required to use port numbers below 1024.")
             .required(true)
             .defaultValue("2221")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -110,7 +110,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                     + "If a username is provided, a password must also be provided. "
                     + "If no username is specified, anonymous connections will be permitted.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -120,7 +120,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .description("If the Username is set, then a password must also be specified. "
                     + "The password provided by the client trying to log in to the FTP server will be checked against this password.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
             .build();

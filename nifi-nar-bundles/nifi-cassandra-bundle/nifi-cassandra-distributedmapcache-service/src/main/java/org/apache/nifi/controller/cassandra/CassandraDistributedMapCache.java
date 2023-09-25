@@ -67,7 +67,7 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
             .description("The name of the table where the cache will be stored.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KEY_FIELD_NAME = new PropertyDescriptor.Builder()
@@ -76,7 +76,7 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
             .description("The name of the field that acts as the unique key. (The CQL type should be \"blob\")")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor VALUE_FIELD_NAME = new PropertyDescriptor.Builder()
@@ -85,7 +85,7 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
             .description("The name of the field that will store the value. (The CQL type should be \"blob\")")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
@@ -94,7 +94,7 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
             .description("If configured, this will set a TTL (Time to Live) for each row inserted into the table so that " +
                     "old cache items expire after a certain period of time.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 

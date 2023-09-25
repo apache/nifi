@@ -45,7 +45,6 @@ import static org.apache.nifi.util.NiFiProperties.PROVENANCE_MAX_STORAGE_TIME;
 import static org.apache.nifi.util.NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS;
 import static org.apache.nifi.util.NiFiProperties.PROVENANCE_ROLLOVER_TIME;
 import static org.apache.nifi.util.NiFiProperties.QUEUE_SWAP_THRESHOLD;
-import static org.apache.nifi.util.NiFiProperties.VARIABLE_REGISTRY_PROPERTIES;
 import static org.apache.nifi.util.NiFiProperties.WRITE_DELAY_INTERVAL;
 
 import java.util.List;
@@ -127,7 +126,6 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
                     entry(WRITE_DELAY_INTERVAL, coreProperties.getFlowServiceWriteDelayInterval()),
                     entry(ADMINISTRATIVE_YIELD_DURATION, coreProperties.getAdministrativeYieldDuration()),
                     entry(BORED_YIELD_DURATION, coreProperties.getBoredYieldDuration()),
-                    entry(VARIABLE_REGISTRY_PROPERTIES, coreProperties.getVariableRegistryProperties()),
                     entry(FLOWFILE_REPOSITORY_IMPLEMENTATION, flowFileRepositoryProperties.getFlowFileRepository()),
                     entry(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, flowFileRepositoryProperties.getCheckpointInterval()),
                     entry(FLOWFILE_REPOSITORY_ALWAYS_SYNC, Boolean.toString(flowFileRepositoryProperties.getAlwaysSync())),

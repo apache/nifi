@@ -53,7 +53,7 @@ import java.util.Map;
                 description = "Allows any Spring Vault property keys to be specified, as described in " +
                         "(https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration). " +
                         "See Additional Details for more information.",
-                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY
+                expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT
         )
 )
 public class StandardHashiCorpVaultClientService extends AbstractControllerService implements HashiCorpVaultClientService {
@@ -76,7 +76,7 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
                 .name(propertyDescriptorName)
                 .displayName(propertyDescriptorName)
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .build();
     }

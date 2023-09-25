@@ -78,7 +78,7 @@ import java.util.concurrent.atomic.AtomicReference;
         "the Database Driver Location(s) contains some version of a hadoop-common JAR, or a shaded JAR that shades hadoop-common.")
 @DynamicProperty(name = "The name of a Hadoop configuration property.", value = "The value of the given Hadoop configuration property.",
         description = "These properties will be set on the Hadoop configuration after loading any provided configuration files.",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -108,7 +108,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
@@ -117,7 +117,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(null)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
@@ -129,7 +129,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(null)
             .required(true)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -141,7 +141,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
                     + "the appropriate properties must be set in the configuration files.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -150,7 +150,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .description("The user for the database")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -160,7 +160,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -170,7 +170,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue("500 millis")
             .required(true)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -181,7 +181,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue("8")
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -193,7 +193,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
                     + "Note!! Using validation might have some performance penalty.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
@@ -204,7 +204,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_MIN_IDLE)
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
@@ -215,7 +215,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_MAX_IDLE)
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
@@ -227,7 +227,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
@@ -238,7 +238,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -248,7 +248,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -264,7 +264,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
@@ -340,7 +340,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

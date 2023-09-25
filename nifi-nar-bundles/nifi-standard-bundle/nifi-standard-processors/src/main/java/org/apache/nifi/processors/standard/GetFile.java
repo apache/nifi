@@ -111,7 +111,7 @@ public class GetFile extends AbstractProcessor {
             .description("The input directory from which to pull files")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
             .name("Recurse Subdirectories")

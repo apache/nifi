@@ -233,7 +233,9 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             .description(
                 "The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
                     + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to "
-                    + DEFAULT_CONTENT_TYPE).required(true).expressionLanguageSupported(true)
+                    + DEFAULT_CONTENT_TYPE)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
             .addValidator(StandardValidators
                     .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))

@@ -106,7 +106,7 @@ public class TestExecuteProcess {
     @Test
     public void validateProcessInterruptOnStop() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setVariable("command", "ping");
+        runner.setEnvironmentSystemVariableValue("command", "ping");
         runner.setProperty(ExecuteProcess.COMMAND, "${command}");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "nifi.apache.org");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");

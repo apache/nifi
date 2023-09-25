@@ -58,7 +58,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -66,7 +66,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .description("Destination port number")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
@@ -85,7 +85,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .required(true)
             .defaultValue("15 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     // Putting these properties here so sub-classes don't have to redefine them, but they are
@@ -120,7 +120,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
@@ -129,7 +129,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .required(false)
             .defaultValue("10 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor OUTGOING_MESSAGE_DELIMITER = new PropertyDescriptor.Builder()

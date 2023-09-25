@@ -362,7 +362,6 @@ image::nifi-process-group-menu.png["Process Group Menu"]
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Process Group.
-- *Variables*: This option allows the user to create or configure variables within the NiFi UI.
 - *Enter group*: This option allows the user to enter the Process Group.
 
 NOTE: It is also possible to double-click on the Process Group to enter it.
@@ -882,8 +881,6 @@ The UI indicates whether a Parameter can be used for a property value.
 
 image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
 
-NOTE: Parameters have numerous advantages over <<Variables>>. In addition to sensitive value support, Parameters offer more granular control over access policies. Additionally, properties that reference Parameters are validated against the substituted value, unlike most properties that reference Variables using Expression Language.
-
 [[parameter-contexts]]
 ==== Parameter Contexts
 Parameters are created within Parameter Contexts. Parameter Contexts are globally defined/accessible to the NiFi instance. Access policies can be applied to Parameter Contexts to determine which users can create them. Once created, policies to read and write to a specific Parameter Context can also be applied (see <<accessing-parameters>> for more information).
@@ -953,7 +950,7 @@ is `test.txt`. If each of those Properties is set to `#{File}`, then the follow 
 | Configured Property Value | Expression Language Scope | Effective Property Value | Notes
 
 | #{File} | FlowFile Attributes | test.txt | The filename is resolved by looking at the `filename` attribute.
-| #{File} | Variable Registry Only | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no Variable in the Variable Registry named "filename"
+| #{File} | Environment | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no system property nor environment variable defined at JVM level named "filename"
 | #{File} | None | ${filename} | The literal text "${filename}" will be unevaluated.
 |===
 
@@ -1139,127 +1136,7 @@ NiFi properties have resolution precedence of which you should be aware when cre
 * Processor-specific attributes
 * FlowFile properties 
 * FlowFile attributes 
-* From Variable Registry: 
-** User defined properties (custom properties)
-** System properties 
-** Operating System environment variables
-
-When you are creating custom properties, ensure that each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
-
-There are two ways to use and manage custom properties with Expression Language:
-
-- *Variables*: Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. NiFi automatically picks up new or modified variables. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. See <<Variables>> for more information.
-
-- *Custom Properties File*: Key/value pairs are defined in a custom properties file that is referenced via the `nifi.variable.registry.properties` in _nifi.properties_. NiFi must be restarted for updates to be picked up. See <<Custom_Properties>> for more information.
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Expression Language support for a property is indicated in the UI.
-
-image::el-support-help-text.png[Expression Language Help Text]
-
-[[Variables]]
-==== Variables
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. Variable values cannot reference other variables or make use of Expression Language.
-
-===== Variables Window
-
-To access the Variables window, right-click on the canvas with nothing selected:
-
-image::variables-context_menu-rpg.png["Variables in Context Menu for RPG"]
-
-Select "Variables" from the Context Menu:
-
-image::variables_window_empty.png["Empty Variables Window"]
-
-"Variables" is also available in the right-click Context Menu when a process group is selected:
-
-image::variables-context_menu-pg.png["Variables in Context Menu for PG"]
-
-===== Creating a Variable
-
-In the Variables window, click the `+` button to create a new variable.  Add a name:
-
-image::variable-name.png["Variable Name Creation"]
-
-and a value:
-
-image::variable-value.png["Variable Value Creation"]
-
-Select "Apply":
-
-image::new_variable-apply.png["New Variable Applied"]
-
-Steps to update the variable are performed (Identifying components affected, Stopping affected Processors, etc.).  For example, the Referencing Processors section now lists the "PutFile-Root" processor.  Selecting the name of the processor in the list will navigate to that processor on the canvas.  Looking at the properties of the processor, `${putfile_dir}` is referenced by the Directory property:
-
-image::variable-putfile-property.png["Processor Property Using Variable"]
-
-===== Variable Scope
-
-Variables are scoped by the Process Group they are defined in and are available to any Processor defined at that level and below (i.e., any descendant Processors).
-
-Variables in a descendant group override the value in a parent group.  More specifically, if a variable `x` is declared at the root group and also declared inside a process group, components inside the process group will use the value of `x` defined in the process group.
-
-For example, in addition to the `putfile_dir` variable that exists at the root process group, assume another `putfile_dir` variable was created within Process Group A.  If one of the components within Process Group A references `putfile_dir`, both variables will be listed, but the `putfile_dir` from the root group will have a strikethrough indicating that is is being overridden:
-
-image::variable-overridden.png["Variable Overridden"]
-
-A variable can only be modified for the process group it was created in, which is listed at the top of the Variables window.  To modify a variable defined in a different process group, select the "arrow" icon in that variable's row:
-
-image::variable_window-goto.png["Variable Go To"]
-
-which will navigate to the Variables window for that process group:
-
-image::variable_window-rpg.png["Variables Window for RPG"]
-
-===== Variable Permissions
-
-Variable permissions are based solely on the privileges configured on the corresponding Process Group.
-
-For example, if a user does not have access to View a process group, the Variables window can not be viewed for that process group:
-
-image::variable_insufficient-permissions.png["Insufficient Permissions to View Variables"]
-
-If a user has access to View a process group but does not have access to Modify the process group, the variables can be viewed but not modified.
-
-For information on how to manage privileges on components, see the <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
-
-===== Referencing Controller Services
-
-In addition to Referencing Processors, the Variables window also displays Referencing Controller Services:
-
-image::variables-window_controller-services.png["Referencing Controller Services"]
-
-Selecting the name of the controller service will navigate to that controller service in the Configuration window:
-
-image::variable_nav-controller_services.png["Controller Service Using Variable"]
-
-===== Unauthorized Referencing Components
-
-When View or Modify privileges are not given to a component that references a variable, the UUID of the component will be displayed in the Variables window:
-
-image::variables-window_unauthorized.png["Unauthorized Referencing Components"]
-
-In the above example, the variable `property1` is referenced by a processor that "user1" is not able to view:
-
-image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
-
-[[Custom_Properties]]
-==== Referencing Custom Properties via nifi.properties
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Identify one or more sets of key/value pairs, and give them to your system administrator.
-
-Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
-field in the _nifi.properties_ file is updated with the custom properties location.
-
-NOTE: NiFi must be restarted for these updates to be picked up.
-
-For more information, see the <<administration-guide.adoc#custom_properties,Custom Properties>> section in the System Administrator's Guide.
+* Environment (System properties and Operating System environment variables)
 
 
 [[Controller_Services]]
@@ -2778,13 +2655,8 @@ The following actions are not considered local changes:
 * modifying remote process group URLs
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
 * assigning, creating, modifying or deleting parameter contexts
-* creating, modifying or deleting variables
 
 NOTE: Assigning or creating a parameter context does not trigger a local change because assigning or creating a parameter context on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses a parameter in the parameter context, which will trigger a local change. Modifying a parameter context does not trigger a local change because parameters are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those parameters specific for the given environment. Deleting a parameter context does not trigger a local change because any components that reference parameters in that parameter context will need need to be modified, which will trigger a local change.
-
-NOTE: Creating a variable does not trigger a local change because creating a variable on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses the new variable, which will trigger a local change. Modifying a variable does not trigger a local change because variable values are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those variables specific for the given environment. Deleting a variable does not trigger a local change because the component that references that variable will need need to be modified, which will trigger a local change.
-
-WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. Variables are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
 
 ==== Show Local Changes
 The local changes made to a versioned process group can be viewed in the Show Local Changes dialog by selecting "Version->Show local changes" from the context menu.
@@ -2877,40 +2749,6 @@ Version 1 of a flow does not have a Parameter Context associated with it. A new 
 - A new Parameter Context is created if it does not already exist
 - An existing Parameter Context is assigned (by name) to the Process Group and the values of the Parameter Contexts are merged
 
-
-[[Variables_in_Versioned_Flows]]
-=== Variables in Versioned Flows
-Variables are included when a process group is placed under version control.  If a versioned flow is imported that references a variable not defined in the versioned process group, the reference is maintained if the variable exists.  If the referenced variable does not exist, a copy of the variable will be defined in the process group.  To illustrate, assume the variable “RPG_Var" is defined in the root process group:
-
-image::rpg-variable.png["Root Process Group Defined Variable"]
-
-A process group PG1 is created:
-
-image::PG1_process_group.png["PG1 Process Group"]
-
-The GetFile processor in PG1 references the variable "RPG_Var":
-
-image::PG1_variable_ref_1.png["PG1 References RPG Variable"]
-
-PG1 is saved as a versioned flow:
-
-image::PG1_versioned_flow.png["PG1 Versioned Flow"]
-
-If PG1 versioned flow is imported into this same NiFi instance:
-
-image::PG1_imported_same.png["PG1 Imported to Same NiFi"]
-
-the added GetFile processor will also reference the "RPG_Var" variable that exists in the root process group:
-
-image::PG1_variable_ref_2.png["Both PG1 Reference RPG Variable"]
-
-If PG1 versioned flow is imported into a different NiFi instance where "RPG_Var" does not exist:
-
-image::PG1_imported_diff.png["PG1 Imported to Different NiFi"]
-
-A "RPG_Var" variable is created in the PG1 process group:
-
-image::PG1_variable_ref_PG.png["PG1 References PG Variable Copy"]
 
 [[Restricted_Components_in_Versioned_Flows]]
 === Restricted Components in Versioned Flows

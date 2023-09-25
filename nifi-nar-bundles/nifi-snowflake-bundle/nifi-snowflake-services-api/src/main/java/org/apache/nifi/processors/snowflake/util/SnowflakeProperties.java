@@ -30,7 +30,7 @@ public final class SnowflakeProperties {
             .displayName("Account Locator")
             .description("Snowflake account locator to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -39,7 +39,7 @@ public final class SnowflakeProperties {
             .displayName("Cloud Region")
             .description("Snowflake cloud region to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -48,7 +48,7 @@ public final class SnowflakeProperties {
             .displayName("Cloud Type")
             .description("Snowflake cloud type to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor ORGANIZATION_NAME = new PropertyDescriptor.Builder()
@@ -56,7 +56,7 @@ public final class SnowflakeProperties {
             .displayName("Organization Name")
             .description("Snowflake organization name to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -65,7 +65,7 @@ public final class SnowflakeProperties {
             .displayName("Account Name")
             .description("Snowflake account name to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -74,7 +74,7 @@ public final class SnowflakeProperties {
             .displayName("Database")
             .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
@@ -82,6 +82,6 @@ public final class SnowflakeProperties {
             .displayName("Schema")
             .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 }

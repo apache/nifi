@@ -94,7 +94,7 @@ import java.util.stream.Collectors;
 @DynamicProperty(
         name = "The name of a Request Header to add",
         value = "The value of the Header",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Adds the specified property name/value as a Request Header in the Elasticsearch requests.")
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
     public static final String VERIFICATION_STEP_CONNECTION = "Elasticsearch Connection";
@@ -132,7 +132,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

@@ -68,7 +68,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
     public static final PropertyDescriptor LOCAL_SCHEMA_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SCHEMA_NAME)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()

@@ -26,19 +26,19 @@ import java.util.Map;
  * than explicit values which can make configurations of those components more
  * portable.
  */
-public interface VariableRegistry {
+public interface EnvironmentSystemRegistry {
 
     /**
      * Returns an empty registry which can be used as a more intentional null
      * value.
      */
-    public static final VariableRegistry EMPTY_REGISTRY = () -> Collections.emptyMap();
+    public static final EnvironmentSystemRegistry EMPTY_REGISTRY = () -> Collections.emptyMap();
 
     /**
      * Provides a registry containing all environment variables and system
      * properties. System properties receive precedence.
      */
-    public static final VariableRegistry ENVIRONMENT_SYSTEM_REGISTRY = new VariableRegistry() {
+    public static final EnvironmentSystemRegistry ENVIRONMENT_SYSTEM_REGISTRY = new EnvironmentSystemRegistry() {
         final Map<VariableDescriptor, String> map = new HashMap<>();
 
         {
@@ -59,9 +59,8 @@ public interface VariableRegistry {
         }
 
         @Override
-        public Map<VariableDescriptor, String> getVariableMap() {
+        public Map<VariableDescriptor, String> getEnvironmentSystemVariableMap() {
             return Collections.unmodifiableMap(map);
-
         }
 
     };
@@ -74,7 +73,7 @@ public interface VariableRegistry {
      * @return An immutable map of all variables in the registry
      */
 
-    Map<VariableDescriptor, String> getVariableMap();
+    Map<VariableDescriptor, String> getEnvironmentSystemVariableMap();
 
     /**
      * Returns the VariableDescriptor for the given key name if it exists.
@@ -83,12 +82,12 @@ public interface VariableRegistry {
      * @return the variable descriptor registered for this name if it exists;
      * null otherwise
      */
-    default VariableDescriptor getVariableKey(final String name) {
+    default VariableDescriptor getEnvironmentSystemVariableKey(final String name) {
         if (name == null) {
             return null;
         }
         final VariableDescriptor spec = new VariableDescriptor(name);
-        for (final Map.Entry<VariableDescriptor, String> entry : getVariableMap().entrySet()) {
+        for (final Map.Entry<VariableDescriptor, String> entry : getEnvironmentSystemVariableMap().entrySet()) {
             if (entry.getKey().equals(spec)) {
                 return entry.getKey();
             }
@@ -105,11 +104,11 @@ public interface VariableRegistry {
      * @return the value associated with the given variable name if found; null
      * otherwise
      */
-    default String getVariableValue(final String name) {
+    default String getEnvironmentSystemVariableValue(final String name) {
         if (name == null) {
             return null;
         }
-        return getVariableMap().get(new VariableDescriptor(name));
+        return getEnvironmentSystemVariableMap().get(new VariableDescriptor(name));
     }
 
     /**
@@ -119,11 +118,11 @@ public interface VariableRegistry {
      * @return the variable value if the given descriptor is equivalent to one
      * of the entries in the registry; null otherwise
      */
-    default String getVariableValue(final VariableDescriptor descriptor) {
+    default String getEnvironmentSystemVariableValue(final VariableDescriptor descriptor) {
         if (descriptor == null) {
             return null;
         }
-        return getVariableMap().get(descriptor);
+        return getEnvironmentSystemVariableMap().get(descriptor);
     }
 
 }

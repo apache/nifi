@@ -59,7 +59,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                     .description("The column whose value will be returned when the Lookup value is matched")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .build();
 
     @Override

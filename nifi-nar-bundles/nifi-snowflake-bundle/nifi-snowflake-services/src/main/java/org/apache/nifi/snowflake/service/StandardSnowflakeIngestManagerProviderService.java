@@ -61,7 +61,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .displayName("Snowflake URL")
             .description("Example host url: [account-locator].[cloud-region].[cloud]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.FULL_URL)
             .build();
@@ -96,7 +96,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .displayName("User Name")
             .description("The Snowflake user name.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -123,7 +123,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .displayName("Pipe")
             .description("The Snowflake pipe to ingest from.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

@@ -131,7 +131,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 + BigQueryWriteStubSettings.getDefaultEndpoint() + ". "
                 + "Format must be hostname:port.")
         .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .defaultValue(BigQueryWriteStubSettings.getDefaultEndpoint())
         .build();

@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
 @Tags({"dbcp", "hikari", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service based on HikariCP. Connections can be asked from pool and returned after usage.")
 @SupportsSensitiveDynamicProperties
-@DynamicProperty(name = "JDBC property name", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+@DynamicProperty(name = "JDBC property name", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Specifies a property name and value to be set on the JDBC connection(s). "
                 + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
                 + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")
@@ -89,7 +89,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .defaultValue(null)
             .addValidator(new ConnectionUrlValidator())
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
@@ -99,7 +99,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .defaultValue(null)
             .required(true)
             .addValidator(new DriverClassValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
@@ -109,7 +109,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .defaultValue(null)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -119,7 +119,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .description("Database user name")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -130,7 +130,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -142,7 +142,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .sensitive(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
@@ -155,7 +155,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .sensitive(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
@@ -166,7 +166,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                     + "NOTE: Using validation might have some performance penalty.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
@@ -178,7 +178,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .defaultValue(DEFAULT_TOTAL_CONNECTIONS)
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
@@ -190,7 +190,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
@@ -240,7 +240,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
             builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
         } else {
-            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
+            builder.expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT);
         }
 
         return builder.build();

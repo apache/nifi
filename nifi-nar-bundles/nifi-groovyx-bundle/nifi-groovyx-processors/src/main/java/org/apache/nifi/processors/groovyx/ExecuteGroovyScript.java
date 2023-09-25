@@ -99,7 +99,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
@@ -132,7 +132,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Classpath list separated by semicolon or comma. You can use masks like `*`, `*.jar` in file name.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that were successfully processed").build();
@@ -548,7 +548,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

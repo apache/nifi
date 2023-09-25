@@ -36,7 +36,7 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
             .description("A comma-separated list of hostnames or IP addresses where an OpenCypher-enabled server can be found.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("tinkerpop-port")
@@ -45,7 +45,7 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
             .required(true)
             .defaultValue("8182")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("tinkerpop-path")
@@ -54,7 +54,7 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
             .required(true)
             .defaultValue("/gremlin")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

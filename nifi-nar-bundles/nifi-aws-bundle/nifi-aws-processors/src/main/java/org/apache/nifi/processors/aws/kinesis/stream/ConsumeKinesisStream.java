@@ -185,7 +185,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 return new ValidationResult.Builder().valid(true).subject(subject).build();
             })
             .defaultValue(RecordFieldType.TIMESTAMP.getDefaultFormat())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true).build();
 
     public static final PropertyDescriptor FAILOVER_TIMEOUT = new PropertyDescriptor.Builder()
@@ -233,7 +233,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .name("amazon-kinesis-stream-dynamodb-override")
             .description("DynamoDB override to use non-AWS deployments")
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false).build();
 
     public static final PropertyDescriptor REPORT_CLOUDWATCH_METRICS = new PropertyDescriptor.Builder()

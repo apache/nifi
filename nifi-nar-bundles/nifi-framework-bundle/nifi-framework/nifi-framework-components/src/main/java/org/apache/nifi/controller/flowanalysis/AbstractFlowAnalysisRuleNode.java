@@ -48,7 +48,6 @@ import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
@@ -84,22 +83,20 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
                                         final ControllerServiceProvider controllerServiceProvider,
                                         final ValidationContextFactory validationContextFactory,
                                         final RuleViolationsManager ruleViolationsManager,
-                                        final ComponentVariableRegistry variableRegistry,
                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(flowAnalysisRule, id, controllerServiceProvider, validationContextFactory, ruleViolationsManager,
                 flowAnalysisRule.getComponent().getClass().getSimpleName(), flowAnalysisRule.getComponent().getClass().getCanonicalName(),
-                variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
+                reloadComponent, extensionManager, validationTrigger, false);
     }
 
 
     public AbstractFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final String id, final ControllerServiceProvider controllerServiceProvider,
                                         final ValidationContextFactory validationContextFactory, final RuleViolationsManager ruleViolationsManager,
-                                        final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                        final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
-                                        final boolean isExtensionMissing) {
+                                        final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                        final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.flowAnalysisRuleRef = new AtomicReference<>(new FlowAnalysisRuleDetails(flowAnalysisRule));
         this.serviceLookup = controllerServiceProvider;
@@ -167,7 +164,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, null, getVariableRegistry());
+        return new StandardConfigurationContext(this, serviceLookup, null);
     }
 
     @Override
@@ -275,7 +272,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
     }
 
     private void setState(FlowAnalysisRuleState newState, Class<? extends Annotation> annotation) {
-        final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceLookup, null, getVariableRegistry());
+        final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceLookup, null);
 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getFlowAnalysisRule().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(annotation, getFlowAnalysisRule(), configContext);

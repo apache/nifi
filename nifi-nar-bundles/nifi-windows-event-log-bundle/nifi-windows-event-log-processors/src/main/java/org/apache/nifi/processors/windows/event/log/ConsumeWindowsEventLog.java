@@ -80,7 +80,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .defaultValue(DEFAULT_CHANNEL)
             .description("The Windows Event Log Channel to listen to.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
@@ -90,7 +90,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .defaultValue(DEFAULT_XPATH)
             .description("XPath Query to filter events. (See https://msdn.microsoft.com/en-us/library/windows/desktop/dd996910(v=vs.85).aspx for examples.)")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
@@ -121,7 +121,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
                     " Such situation can happen if Windows Event Log service is restarted, or ERROR_EVT_QUERY_RESULT_STALE (15011) is returned." +
                     " Setting no duration, e.g. '0 ms' disables auto-reconnection.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("10 mins")
             .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.MILLISECONDS))
             .build();

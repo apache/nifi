@@ -134,7 +134,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .name("partition-key-field")
             .displayName("Partition Key Field")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description(
                     "Defines the name of the partition key field in the DynamoDB table. Partition key is also known as hash key. " +
@@ -146,7 +146,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .displayName("Partition Key Attribute")
             .required(true)
             .dependsOn(PARTITION_KEY_STRATEGY, PARTITION_BY_ATTRIBUTE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Specifies the FlowFile attribute that will be used as the value of the partition key when using \"Partition by attribute\" partition key strategy.")
             .build();
@@ -166,7 +166,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .displayName("Sort Key Field")
             .required(true)
             .dependsOn(SORT_KEY_STRATEGY, SORT_BY_FIELD, SORT_BY_SEQUENCE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Defines the name of the sort key field in the DynamoDB table. Sort key is also known as range key.")
             .build();

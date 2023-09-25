@@ -62,7 +62,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .description("A comma-separated list of known AMQP Brokers in the format <host>:<port> (e.g., localhost:5672). If this is " +
                     "set, Host Name and Port are ignored. Only include hosts from the same AMQP cluster.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
@@ -70,7 +70,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .description("Network address of AMQP broker (e.g., localhost). If Brokers is set, then this property is ignored.")
             .required(false)
             .defaultValue("localhost")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -78,21 +78,21 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .description("Numeric value identifying Port of AMQP broker (e.g., 5671). If Brokers is set, then this property is ignored.")
             .required(false)
             .defaultValue("5672")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor V_HOST = new PropertyDescriptor.Builder()
             .name("Virtual Host")
             .description("Virtual Host name which segregates AMQP system for enhanced security.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
             .name("User Name")
             .description("User Name used for authentication and authorization.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()

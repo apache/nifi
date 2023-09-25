@@ -52,7 +52,6 @@ import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.python.DisabledPythonBridge;
 import org.apache.nifi.python.PythonBridge;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -150,7 +149,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final ExtensionRepository extensionRepository = new FileSystemExtensionRepository(extensionManager, engineConfiguration, narClassLoaders, extensionClients);
             extensionRepository.initialize();
 
-            final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;
             final PropertyEncryptor lazyInitializedEncryptor = new PropertyEncryptor() {
                 private PropertyEncryptor created = null;
 
@@ -190,7 +188,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)
                     .stateManagerProvider(stateManagerProvider)
-                    .variableRegistry(variableRegistry)
                     .processScheduler(processScheduler)
                     .kerberosConfiguration(kerberosConfig)
                     .flowFileEventRepository(flowFileEventRepo)

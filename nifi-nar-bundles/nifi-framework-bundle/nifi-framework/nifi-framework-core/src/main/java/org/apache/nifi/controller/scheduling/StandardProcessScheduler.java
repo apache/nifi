@@ -197,7 +197,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
     }

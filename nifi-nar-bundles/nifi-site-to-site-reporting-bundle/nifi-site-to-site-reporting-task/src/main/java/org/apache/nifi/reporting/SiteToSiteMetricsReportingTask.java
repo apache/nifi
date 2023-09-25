@@ -74,7 +74,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .displayName("Application ID")
             .description("The Application ID to be included in the metrics")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -84,7 +84,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .displayName("Hostname")
             .description("The Hostname of this NiFi instance to be included in the metrics")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

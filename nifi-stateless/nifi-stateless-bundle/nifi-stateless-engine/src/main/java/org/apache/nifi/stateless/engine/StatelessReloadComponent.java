@@ -143,9 +143,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // call OnRemoved for the existing service using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                null, statelessEngine.getRootVariableRegistry());
-
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, statelessEngine.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);

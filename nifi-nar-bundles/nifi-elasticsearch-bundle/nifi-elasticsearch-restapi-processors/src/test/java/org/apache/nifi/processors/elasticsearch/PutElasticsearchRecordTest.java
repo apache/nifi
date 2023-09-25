@@ -195,8 +195,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     @Test
     public void simpleTestWithRequestParametersAndBulkHeaders() {
         runner.setProperty("another", "${blank}");
-        runner.setVariable("slices", "auto");
-        runner.setVariable("version", "/version");
+        runner.setEnvironmentSystemVariableValue("slices", "auto");
+        runner.setEnvironmentSystemVariableValue("version", "/version");
         testWithRequestParametersAndBulkHeaders(null);
     }
 
@@ -826,7 +826,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "/routing");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", "${version}");
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", "${empty}");
-        runner.setVariable("blank", " ");
+        runner.setEnvironmentSystemVariableValue("blank", " ");
         runner.assertValid();
 
         clientService.setEvalParametersConsumer( (Map<String, String> params) -> {

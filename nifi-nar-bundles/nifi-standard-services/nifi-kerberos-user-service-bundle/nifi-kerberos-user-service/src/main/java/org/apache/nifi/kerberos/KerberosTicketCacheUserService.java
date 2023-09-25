@@ -47,7 +47,7 @@ public class KerberosTicketCacheUserService extends AbstractKerberosUserService 
             .name("Kerberos Ticket Cache File")
             .description("Kerberos ticket cache associated with the principal.")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

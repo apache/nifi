@@ -81,7 +81,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         mapService(dynamicProperty2, mappedNotCreatedServiceID);
 
         // WHEN
-        assertThrows(Exception.class, () -> testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup)));
+        assertThrows(Exception.class, () -> testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null)));
     }
 
     @Test
@@ -92,7 +92,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
         // WHEN
-        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup));
+        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
 
         ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(null));
         assertEquals("Attributes map is null", e.getMessage());
@@ -106,7 +106,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
         // WHEN
-        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup));
+        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
         ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(new HashMap<>()));
         assertEquals("Attributes must contain an attribute name '" + LOOKUP_ATTRIBUTE + "'", e.getMessage());
     }
@@ -131,7 +131,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         String lookupServiceKey = dynamicProperty2;
 
         // WHEN
-        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup));
+        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
         ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(createAttributes(lookupServiceKey)));
         assertEquals("No ControllerService found for lookupAttribute", e.getMessage());
     }
@@ -158,7 +158,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
         ControllerService expected = mappedCreatedService2;
 
         // WHEN
-        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup));
+        testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
         ControllerService actual = testSubject.lookupService(createAttributes(lookupServiceKey));
 
         // THEN

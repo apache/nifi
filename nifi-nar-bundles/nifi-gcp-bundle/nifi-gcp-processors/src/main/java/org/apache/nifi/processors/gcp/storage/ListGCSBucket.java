@@ -218,7 +218,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .displayName("Bucket")
             .description(BUCKET_DESC)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -227,7 +227,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .displayName("Prefix")
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 

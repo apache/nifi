@@ -69,7 +69,7 @@ public class ControllerServiceTestContext {
     }
 
     public MockPropertyValue setCustomValue(PropertyDescriptor propertyDescriptor, String value) {
-        final MockPropertyValue propertyValue = new MockPropertyValue(value, initializationContext);
+        final MockPropertyValue propertyValue = new MockPropertyValue(value, initializationContext, null);
         when(configurationContext.getProperty(eq(propertyDescriptor)))
                 .thenReturn(propertyValue);
         return propertyValue;

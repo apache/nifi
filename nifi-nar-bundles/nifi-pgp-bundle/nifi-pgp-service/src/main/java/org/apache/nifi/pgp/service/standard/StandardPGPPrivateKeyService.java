@@ -70,7 +70,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
             .displayName("Keyring File")
             .description("File path to PGP Keyring or Secret Key encoded in binary or ASCII Armor")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 

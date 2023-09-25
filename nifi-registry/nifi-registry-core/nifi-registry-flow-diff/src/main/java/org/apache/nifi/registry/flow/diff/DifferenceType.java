@@ -291,21 +291,6 @@ public enum DifferenceType {
     ZINDEX_CHANGED("z-index Changed"),
 
     /**
-     * The variable does not exist in Flow A but exists in Flow B
-     */
-    VARIABLE_ADDED("Variable Added to Process Group"),
-
-    /**
-     * The variable does not exist in Flow B but exists in Flow A
-     */
-    VARIABLE_REMOVED("Variable Removed from Process Group"),
-
-    /**
-     * THe value of the variable is different in each of the flows
-     */
-    VARIABLE_CHANGED("Value of Variable was changed"),
-
-    /**
      * The API of the Controller Service is different in each of the flows
      */
     SERVICE_API_CHANGED("Controller Service API Changed"),

@@ -65,7 +65,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .description("Neo4J endpoing to connect to.")
             .required(true)
             .defaultValue("bolt://localhost:7687")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -74,7 +74,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .displayName("Username")
             .description("Username for accessing Neo4J")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -94,7 +94,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("5 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -105,7 +105,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("100")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -116,7 +116,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("60 second")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -127,7 +127,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("60 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -138,7 +138,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("3600 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(false)
             .build();
 
@@ -148,7 +148,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
                     "rather than defaulting to the system trust chain, specify the path to a PEM file with the trust chain.")
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected Driver neo4JDriver;

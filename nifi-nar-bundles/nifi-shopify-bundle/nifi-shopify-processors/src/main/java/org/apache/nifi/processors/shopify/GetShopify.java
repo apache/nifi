@@ -89,7 +89,7 @@ public class GetShopify extends AbstractProcessor {
             .description("The domain of the Shopify store, e.g. nifistore.myshopify.com")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
@@ -99,7 +99,7 @@ public class GetShopify extends AbstractProcessor {
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
@@ -108,7 +108,7 @@ public class GetShopify extends AbstractProcessor {
             .description("The Shopify REST API version")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("2022-10")
             .build();
 
@@ -124,7 +124,7 @@ public class GetShopify extends AbstractProcessor {
             .name("result-limit")
             .displayName("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.createLongValidator(1, 100, true))
             .build();
@@ -147,7 +147,7 @@ public class GetShopify extends AbstractProcessor {
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
                     " Set this property to avoid missing objects when the clock of your local machines and Shopify servers' clock are not in sync.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
             .defaultValue("3 sec")
@@ -160,7 +160,7 @@ public class GetShopify extends AbstractProcessor {
                     " Represents an ISO 8601-encoded date and time string. For example, 3:50 pm on September 7, 2019" +
                     " in the time zone of UTC (Coordinated Universal Time) is represented as \"2019-09-07T15:50:00Z\".")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
             .build();

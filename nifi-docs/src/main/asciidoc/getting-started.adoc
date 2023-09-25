@@ -588,11 +588,6 @@ cause a tooltip to show, which explains what the function does, the arguments th
 
 
 
-== Custom Properties Within Expression Language
-
-In addition to using FlowFile attributes, you can also define custom properties for Expression Language use. Defining custom properties gives you additional flexibility in processing and configuring dataflows. For example, you can refer to custom properties for connection, server, and service properties. Once you have created custom properties, you can identify their location in the `nifi.variable.registry.properties` field in the 'nifi.properties' file. After you have updated the 'nifi.properties' file and restarted NiFi, you are able to use custom properties as needed.
-
-
 == Monitoring NiFi
 
 As data flows through your dataflow in NiFi, it is important to understand how well your system is performing in order to assess if you

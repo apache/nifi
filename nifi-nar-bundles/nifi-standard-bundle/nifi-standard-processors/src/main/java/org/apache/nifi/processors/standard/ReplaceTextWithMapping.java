@@ -88,7 +88,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("The number of the matching group of the provided regex to replace with the corresponding value from the mapping file (if it exists).")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("0")
             .build();
     public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder()

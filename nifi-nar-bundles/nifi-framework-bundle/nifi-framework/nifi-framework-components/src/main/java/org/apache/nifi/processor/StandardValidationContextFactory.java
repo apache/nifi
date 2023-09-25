@@ -23,7 +23,6 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.Map;
@@ -31,25 +30,19 @@ import java.util.Map;
 public class StandardValidationContextFactory implements ValidationContextFactory {
 
     private final ControllerServiceProvider serviceProvider;
-    private final VariableRegistry variableRegistry;
     private final RuleViolationsManager ruleViolationsManager;
     private final FlowAnalyzer flowAnalyzer;
 
-    public StandardValidationContextFactory(
-        final ControllerServiceProvider serviceProvider,
-        final VariableRegistry variableRegistry
-    ) {
-        this(serviceProvider, variableRegistry, null, null);
+    public StandardValidationContextFactory(final ControllerServiceProvider serviceProvider) {
+        this(serviceProvider, null, null);
     }
 
     public StandardValidationContextFactory(
         final ControllerServiceProvider serviceProvider,
-        final VariableRegistry variableRegistry,
         final RuleViolationsManager ruleViolationsManager,
         final FlowAnalyzer flowAnalyzer
     ) {
         this.serviceProvider = serviceProvider;
-        this.variableRegistry = variableRegistry;
         this.ruleViolationsManager = ruleViolationsManager;
         this.flowAnalyzer = flowAnalyzer;
     }
@@ -57,7 +50,7 @@ public class StandardValidationContextFactory implements ValidationContextFactor
     @Override
     public ValidationContext newValidationContext(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final String groupId, final String componentId,
                                                   final ParameterContext parameterContext, final boolean validateConnections) {
-        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, variableRegistry, parameterContext, validateConnections);
+        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, parameterContext, validateConnections);
     }
 
     @Override

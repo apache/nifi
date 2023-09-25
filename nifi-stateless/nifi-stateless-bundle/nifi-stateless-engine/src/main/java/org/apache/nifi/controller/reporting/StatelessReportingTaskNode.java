@@ -29,7 +29,6 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.stateless.engine.StatelessEngine;
@@ -43,9 +42,9 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
 
     public StatelessReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final StatelessEngine statelessEngine,
                                       final FlowManager flowManager, final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                      final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                      final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
                                       final ValidationTrigger validationTrigger) {
-        super(reportingTask, id, statelessEngine.getControllerServiceProvider(), processScheduler, validationContextFactory, variableRegistry, reloadComponent, extensionManager, validationTrigger);
+        super(reportingTask, id, statelessEngine.getControllerServiceProvider(), processScheduler, validationContextFactory, reloadComponent, extensionManager, validationTrigger);
         this.flowManager = flowManager;
         this.statelessEngine = statelessEngine;
     }
@@ -62,7 +61,7 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StatelessReportingContext(statelessEngine, flowManager, getEffectivePropertyValues(), this, getVariableRegistry(), getParameterLookup());
+        return new StatelessReportingContext(statelessEngine, flowManager, getEffectivePropertyValues(), this, getParameterLookup());
     }
 
     @Override

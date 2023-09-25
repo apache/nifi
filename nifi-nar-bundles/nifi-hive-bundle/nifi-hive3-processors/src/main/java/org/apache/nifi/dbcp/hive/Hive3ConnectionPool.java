@@ -109,7 +109,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor HIVE_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -120,7 +120,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -129,7 +129,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .description("Database user name")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -140,7 +140,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -151,7 +151,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue("500 millis")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
@@ -162,7 +162,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue("8")
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
@@ -173,7 +173,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     + "NOTE: Using validation may have a performance penalty.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
@@ -184,7 +184,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_MIN_IDLE)
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
@@ -195,7 +195,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_MAX_IDLE)
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
@@ -207,7 +207,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
@@ -218,7 +218,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -228,7 +228,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
@@ -244,7 +244,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()

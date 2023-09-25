@@ -104,7 +104,7 @@ public class NiFiSmbjClientIT {
         properties.put(PASSWORD, "password");
         properties.put(DOMAIN, "domain");
         properties.put(TIMEOUT, "0.5 sec");
-        MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+        MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null, null);
 
         smbjClientProviderService.onEnabled(mockConfigurationContext);
 

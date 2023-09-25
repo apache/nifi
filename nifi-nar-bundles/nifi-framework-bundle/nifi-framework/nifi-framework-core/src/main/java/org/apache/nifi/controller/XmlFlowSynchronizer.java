@@ -1561,7 +1561,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             processGroup.setParameterContext(parameterContext);
         }
 
-        addVariables(processGroupElement, processGroup);
         addVersionControlInfo(processGroup, processGroupDTO, controller);
         addControllerServices(processGroupElement, processGroup, controller, encodingVersion);
         addProcessors(processGroupElement, processGroup, controller, encodingVersion);
@@ -1598,22 +1597,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components
             processGroup.setVersionControlInformation(versionControlInformation, Collections.emptyMap());
         }
-    }
-
-    private void addVariables(final Element processGroupElement, final ProcessGroup processGroup) {
-        final Map<String, String> variables = new HashMap<>();
-        final List<Element> variableElements = getChildrenByTagName(processGroupElement, "variable");
-        for (final Element variableElement : variableElements) {
-            final String variableName = variableElement.getAttribute("name");
-            final String variableValue = variableElement.getAttribute("value");
-            if (variableName == null || variableValue == null) {
-                continue;
-            }
-
-            variables.put(variableName, variableValue);
-        }
-
-        processGroup.setVariables(variables);
     }
 
     private void addControllerServices(final Element processGroupElement, final ProcessGroup processGroup, final FlowController flowController, final FlowEncodingVersion encodingVersion) {

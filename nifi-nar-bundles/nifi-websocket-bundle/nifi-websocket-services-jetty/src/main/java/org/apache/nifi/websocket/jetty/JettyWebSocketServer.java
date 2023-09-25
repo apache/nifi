@@ -106,7 +106,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .displayName("Listen Port")
             .description("The port number on which this WebSocketServer listens to.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -126,7 +126,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .description("Specify a Path Spec to apply Basic Authentication.")
             .required(false)
             .defaultValue("/*")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -138,7 +138,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
                     + "'*' represents any role and so does '**' any role including no role.")
             .required(false)
             .defaultValue("**")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -158,7 +158,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .description("Specify a property file containing users for Basic Authentication using HashLoginService. "
                     + "See http://www.eclipse.org/jetty/documentation/current/configuring-security.html for detail.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .build();
 

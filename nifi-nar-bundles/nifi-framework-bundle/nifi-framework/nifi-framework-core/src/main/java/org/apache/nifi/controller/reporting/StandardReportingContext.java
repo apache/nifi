@@ -23,7 +23,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
@@ -38,8 +37,8 @@ public class StandardReportingContext extends AbstractReportingContext implement
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
                                     final Map<PropertyDescriptor, String> properties, final ReportingTaskNode reportingTaskNode,
-                                    final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
-        super(reportingTaskNode, bulletinRepository, properties, flowController.getControllerServiceProvider(), parameterLookup, variableRegistry);
+                                    final ParameterLookup parameterLookup) {
+        super(reportingTaskNode, bulletinRepository, properties, flowController.getControllerServiceProvider(), parameterLookup);
         this.flowController = flowController;
         this.eventAccess = flowController.getEventAccess();
         this.analyticsEnabled = flowController.getStatusAnalyticsEngine() != null;

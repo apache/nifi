@@ -58,7 +58,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                     + "comma-separated and in hostname:port format. Example node1:port,node2:port,...."
                     + " The default client port for Cassandra is 9042, but the port(s) must be explicitly specified.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
@@ -69,7 +69,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                     "if the processor supports the 'Table' property, the keyspace name has to be provided with the " +
                     "table name in the form of <KEYSPACE>.<TABLE>")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -95,7 +95,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Username")
             .description("Username to access the Cassandra cluster")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -104,7 +104,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .description("Password to access the Cassandra cluster")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -130,7 +130,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         .displayName("Read Timout (ms)")
         .description("Read timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
 
@@ -139,7 +139,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         .displayName("Connect Timout (ms)")
         .description("Connection timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
 

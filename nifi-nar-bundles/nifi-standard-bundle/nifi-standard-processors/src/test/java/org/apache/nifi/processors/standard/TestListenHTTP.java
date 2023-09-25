@@ -186,8 +186,8 @@ public class TestListenHTTP {
         proc = new ListenHTTP();
 
         runner = TestRunners.newTestRunner(proc);
-        runner.setVariable(PORT_VARIABLE, "0");
-        runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
+        runner.setEnvironmentSystemVariableValue(PORT_VARIABLE, "0");
+        runner.setEnvironmentSystemVariableValue(BASEPATH_VARIABLE, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.PORT, "0");
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
     }

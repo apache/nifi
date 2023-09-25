@@ -83,7 +83,6 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
@@ -690,18 +689,6 @@ public final class EntityFactory {
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
-            }
-        }
-
-        return entity;
-    }
-
-    public VariableRegistryEntity createVariableRegistryEntity(final VariableRegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        final VariableRegistryEntity entity = new VariableRegistryEntity();
-        entity.setProcessGroupRevision(revision);
-        if (dto != null) {
-            if (permissions != null && permissions.getCanRead()) {
-                entity.setVariableRegistry(dto);
             }
         }
 

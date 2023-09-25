@@ -36,8 +36,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.provenance.MockProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
@@ -64,10 +62,6 @@ public class StandardFlowSerializerTest {
             = "<tagName> \"This\" is an ' example with many characters that need to be filtered and escaped \u0002 in it. \u007f \u0086 " + Character.MIN_SURROGATE;
     private static final String SERIALIZED_COMMENTS
             = "&lt;tagName&gt; \"This\" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; ";
-    private static final String RAW_VARIABLE_NAME = "Name with \u0001 escape needed";
-    private static final String SERIALIZED_VARIABLE_NAME = "Name with  escape needed";
-    private static final String RAW_VARIABLE_VALUE = "Value with \u0001 escape needed";
-    private static final String SERIALIZED_VARIABLE_VALUE = "Value with  escape needed";
     private static final String RAW_STRING_WITH_EMOJI = "String with \uD83D\uDCA7 droplet emoji";
     private static final String SERIALIZED_STRING_WITH_EMOJI = "String with &#128167; droplet emoji";
 
@@ -95,11 +89,10 @@ public class StandardFlowSerializerTest {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
-        final VariableRegistry variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, extensionManager, Mockito.mock(StatusHistoryRepository.class), null);
+            auditService, encryptor, bulletinRepo, extensionManager, Mockito.mock(StatusHistoryRepository.class), null);
 
         serializer = new StandardFlowSerializer();
     }
@@ -140,7 +133,6 @@ public class StandardFlowSerializerTest {
         controller.getFlowManager().getParameterContextManager().addParameterContext(referencedContext2);
 
         controller.getFlowManager().getRootGroup().setParameterContext(parameterContext);
-        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_VARIABLE_NAME, RAW_VARIABLE_VALUE));
         controller.getFlowManager().getRootGroup().setParameterContext(parameterContext);
 
         // serialize the controller
@@ -152,10 +144,6 @@ public class StandardFlowSerializerTest {
         final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
         assertTrue(serializedFlow.contains(SERIALIZED_COMMENTS));
         assertFalse(serializedFlow.contains(RAW_COMMENTS));
-        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_NAME));
-        assertFalse(serializedFlow.contains(RAW_VARIABLE_NAME));
-        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
-        assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains("\u0001"));
         assertTrue(serializedFlow.contains("<inheritedParameterContextId>referenced-context</inheritedParameterContextId>"));
     }
@@ -167,8 +155,6 @@ public class StandardFlowSerializerTest {
 
         dummy.setName(RAW_STRING_WITH_EMOJI);
         controller.getFlowManager().getRootGroup().addProcessor(dummy);
-
-        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_STRING_WITH_EMOJI, RAW_STRING_WITH_EMOJI));
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();

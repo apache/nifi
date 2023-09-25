@@ -61,7 +61,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .displayName("Proxy Server Host")
             .description("Proxy server hostname or ip-address.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_SERVER_PORT = new PropertyDescriptor.Builder()
@@ -69,7 +69,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .displayName("Proxy Server Port")
             .description("Proxy server port number.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_USER_NAME = new PropertyDescriptor.Builder()
@@ -77,7 +77,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .displayName("Proxy User Name")
             .description("The name of the proxy client for user authentication.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_USER_PASSWORD = new PropertyDescriptor.Builder()
@@ -85,7 +85,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .displayName("Proxy User Password")
             .description("The password of the proxy client for user authentication.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
             .build();
 

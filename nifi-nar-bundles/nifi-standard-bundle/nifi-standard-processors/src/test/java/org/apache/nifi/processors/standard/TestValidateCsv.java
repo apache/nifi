@@ -302,10 +302,10 @@ public class TestValidateCsv {
         runner.assertValid();
 
         int hashcode = "test".hashCode();
-        runner.setVariable("schema", "RequireHashCode(" + hashcode + "), RequireSubStr(\"test\")");
-        runner.setVariable("comma", ",");
-        runner.setVariable("quote", "\"");
-        runner.setVariable("crlf", "\r\n");
+        runner.setEnvironmentSystemVariableValue("schema", "RequireHashCode(" + hashcode + "), RequireSubStr(\"test\")");
+        runner.setEnvironmentSystemVariableValue("comma", ",");
+        runner.setEnvironmentSystemVariableValue("quote", "\"");
+        runner.setEnvironmentSystemVariableValue("crlf", "\r\n");
 
         runner.enqueue("test,test");
         runner.run();

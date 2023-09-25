@@ -1003,10 +1003,6 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
                 results.add(port.getTargetId(), "RPG Output Port Target ID");
             }
         }
-        for (final Map.Entry<String, String> entry : group.getVariables().entrySet()) {
-            results.add(entry.getKey(), "Variable Name");
-            results.add(entry.getValue(), "Value of Variable " + entry.getKey());
-        }
         results.add(group.getParameterContextName(), "Parameter Context Name");
 
         for (final VersionedConnection connection : group.getConnections()) {

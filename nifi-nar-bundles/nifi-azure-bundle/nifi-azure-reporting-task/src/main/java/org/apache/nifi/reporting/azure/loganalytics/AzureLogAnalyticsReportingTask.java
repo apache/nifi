@@ -57,7 +57,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
     static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
             .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
             .defaultValue("nifimetrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

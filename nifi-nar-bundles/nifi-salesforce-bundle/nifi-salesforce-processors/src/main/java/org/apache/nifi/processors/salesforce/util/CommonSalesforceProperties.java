@@ -29,7 +29,7 @@ public final class CommonSalesforceProperties {
             .description("The URL of the Salesforce instance including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
@@ -39,7 +39,7 @@ public final class CommonSalesforceProperties {
                     "The version number of the Salesforce REST API appended to the URL after the services/data path. See Salesforce documentation for supported versions")
             .required(true)
             .addValidator(StandardValidators.NUMBER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("54.0")
             .build();
 
@@ -50,7 +50,7 @@ public final class CommonSalesforceProperties {
             .required(true)
             .defaultValue("15 s")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor TOKEN_PROVIDER = new PropertyDescriptor.Builder()

@@ -111,7 +111,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     + "with different values for the parameters. If this property is set to zero, the cache is effectively disabled.")
             .defaultValue("0")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 

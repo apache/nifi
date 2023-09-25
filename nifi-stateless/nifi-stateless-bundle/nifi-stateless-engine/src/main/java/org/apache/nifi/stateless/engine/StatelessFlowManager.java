@@ -68,7 +68,6 @@ import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.queue.StatelessFlowFileQueue;
@@ -222,8 +221,6 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ProcessGroup createProcessGroup(final String id) {
-        final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(statelessEngine.getRootVariableRegistry());
-
         return new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
             statelessEngine.getPropertyEncryptor(),
@@ -231,7 +228,6 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getStateManagerProvider(),
             this,
             statelessEngine.getReloadComponent(),
-            mutableVariableRegistry,
             new StatelessNodeTypeProvider(),
             null,
             group -> null);
@@ -395,7 +391,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext =
-                    new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null, statelessEngine.getRootVariableRegistry());
+                    new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
         }
 

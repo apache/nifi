@@ -31,7 +31,6 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -45,7 +44,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -53,6 +51,7 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,10 +141,10 @@ public class TestPrometheusRecordSink {
         final PrometheusRecordSink task = new PrometheusRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
-        final MockVariableRegistry variableRegistry = new MockVariableRegistry();
+        final Map<String,String> variableRegistry = new HashMap<String,String>();
         final PropertyValue pValue = mock(StandardPropertyValue.class);
 
-        variableRegistry.setVariable(new VariableDescriptor("port"), portString);
+        variableRegistry.put("port", portString);
         when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue("${port}", null, variableRegistry));
         when(context.getProperty(PrometheusRecordSink.SSL_CONTEXT)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);

@@ -93,7 +93,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "Available event types are " + Arrays.deepToString(ProvenanceEventType.values()) + ". If no filter is set, all the events are sent. If "
                     + "multiple filters are set, the filters are cumulative.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -105,7 +105,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "multiple filters are set, the filters are cumulative. If an event type is included in Event Type to Include and excluded here, then the "
                     + "exclusion takes precedence and the event will not be sent.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -115,7 +115,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
                     + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
@@ -126,7 +126,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
                     + "If a component type is included in Component Type to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
@@ -136,7 +136,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
                     + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -147,7 +147,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in "
                     + "Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -157,7 +157,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             .description("Regular expression to filter the provenance events based on the component name. Only the events matching the regular "
                     + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
@@ -168,7 +168,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
                     + "If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 

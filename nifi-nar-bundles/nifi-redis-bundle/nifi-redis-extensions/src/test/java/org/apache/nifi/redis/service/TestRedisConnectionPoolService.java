@@ -120,7 +120,7 @@ public class TestRedisConnectionPoolService {
     private JedisConnectionFactory getJedisConnectionFactory() {
         MockProcessContext processContext = ((StandardProcessorTestRunner) testRunner).getProcessContext();
         MockConfigurationContext configContext = new MockConfigurationContext(processContext.getControllerServices()
-                .get(redisService.getIdentifier()).getProperties(), processContext);
+                .get(redisService.getIdentifier()).getProperties(), processContext, null);
         SSLContext providedSslContext = null;
         if (configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
             final SSLContextService sslContextService = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -140,7 +140,7 @@ public class TestRedisConnectionPoolService {
         testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "${redis.connection}");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setVariable("redis.connection", "localhost:6379");
+        testRunner.setEnvironmentSystemVariableValue("redis.connection", "localhost:6379");
         testRunner.assertValid(redisService);
 
         testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost");

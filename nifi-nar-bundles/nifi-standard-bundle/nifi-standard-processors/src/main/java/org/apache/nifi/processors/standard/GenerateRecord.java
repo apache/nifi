@@ -118,7 +118,7 @@ public class GenerateRecord extends AbstractProcessor {
             .displayName("Number of Records")
             .description("Specifies how many records will be generated for each outgoing FlowFile.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
@@ -138,7 +138,7 @@ public class GenerateRecord extends AbstractProcessor {
             .description("The percent probability (0-100%) that a generated value for any nullable field will be null. Set this property to zero to have no null values, or 100 to have all " +
                     "null values.")
             .addValidator(StandardValidators.createLongValidator(0L, 100L, true))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .defaultValue("0")
             .dependsOn(NULLABLE_FIELDS, "true")
@@ -149,7 +149,7 @@ public class GenerateRecord extends AbstractProcessor {
             .displayName("Schema Text")
             .description("The text of an Avro-formatted Schema used to generate record data. If this property is set, any user-defined properties are ignored.")
             .addValidator(new AvroSchemaValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 

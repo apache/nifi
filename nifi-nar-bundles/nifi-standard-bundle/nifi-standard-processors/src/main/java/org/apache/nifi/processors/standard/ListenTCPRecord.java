@@ -120,7 +120,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             .description("The port to listen on for communication.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
@@ -159,7 +159,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Reader")
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
 
@@ -168,7 +167,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data before writing to a FlowFile")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
 
@@ -189,7 +187,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Batch Size")
             .description("The maximum number of records to write to a single FlowFile.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
             .defaultValue("1000")
             .required(true)
             .build();

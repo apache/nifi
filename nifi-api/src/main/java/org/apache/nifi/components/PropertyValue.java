@@ -23,7 +23,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.EnvironmentSystemRegistry;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -139,7 +139,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
@@ -157,12 +157,12 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
      * @param attributes a Map of attributes that the Expression can reference.
-     * These will take precedence over any underlying variable registry values.
+     * These will take precedence over any underlying env/syst properties values.
      *
      * @return a PropertyValue with the new value
      *
@@ -178,7 +178,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
@@ -201,13 +201,13 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
      * @param flowFile to evaluate attributes of. It's flow file properties and
      * then flow file attributes will take precedence over any underlying
-     * variable registry.
+     * env/syst properties.
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
@@ -222,17 +222,17 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
      * @param flowFile to evaluate attributes of. It's flow file properties and
      * then flow file attributes will take precedence over any underlying
-     * variable registry.
+     * env/syst properties.
      * @param additionalAttributes a Map of additional attributes that the
      * Expression can reference. These attributes will take precedence over any
      * conflicting attributes in the provided flowfile or any underlying
-     * variable registry.
+     * env/syst properties.
      *
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
@@ -248,17 +248,17 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
      * @param flowFile to evaluate attributes of. It's flow file properties and
      * then flow file attributes will take precedence over any underlying
-     * variable registry.
+     * env/syst properties.
      * @param additionalAttributes a Map of additional attributes that the
      * Expression can reference. These attributes will take precedence over any
      * conflicting attributes in the provided flowfile or any underlying
-     * variable registry.
+     * env/syst properties.
      * @param decorator the decorator to use in order to update the values
      * returned after variable substitution and expression language evaluation.
      *
@@ -300,7 +300,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *
@@ -321,7 +321,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link VariableRegistry} will
+     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
      * be substituted with their values.
      * </p>
      *

@@ -102,7 +102,7 @@ import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceE
 @DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
         description = "Additional configuration property for the Connection Factory. It can be used when the Connection Factory is being configured via the 'JNDI *' or the 'JMS *'" +
                 "properties of the processor. For more information, see the Additional Details page.",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @Restricted(

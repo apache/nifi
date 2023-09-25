@@ -35,7 +35,7 @@ public interface KafkaClientComponent {
             .description("Comma-separated list of Kafka Brokers in the format host:port")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("localhost:9092")
             .build();
 
@@ -65,7 +65,7 @@ public interface KafkaClientComponent {
             .description("Username provided with configured password when using PLAIN or SCRAM SASL Mechanisms")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(
                     SASL_MECHANISM,
                     SaslMechanism.PLAIN.getValue(),
@@ -81,7 +81,7 @@ public interface KafkaClientComponent {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(
                     SASL_MECHANISM,
                     SaslMechanism.PLAIN.getValue(),
@@ -131,7 +131,7 @@ public interface KafkaClientComponent {
             .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS configuration")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()

@@ -51,8 +51,6 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -115,7 +113,6 @@ public class TestStandardControllerServiceProvider {
         }
     };
 
-    private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private static NiFiProperties niFiProperties;
     private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
@@ -170,7 +167,6 @@ public class TestStandardControllerServiceProvider {
             .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
             .validationTrigger(Mockito.mock(ValidationTrigger.class))
             .reloadComponent(Mockito.mock(ReloadComponent.class))
-            .variableRegistry(variableRegistry)
             .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
             .buildControllerService();
@@ -406,14 +402,14 @@ public class TestStandardControllerServiceProvider {
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
 
         final Processor processor = new DummyProcessor();
-        final MockProcessContext context = new MockProcessContext(processor, Mockito.mock(StateManager.class), variableRegistry);
+        final MockProcessContext context = new MockProcessContext(processor, Mockito.mock(StateManager.class));
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);
 
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, mockInitContext.getIdentifier(),
-                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider,
-                new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
+                new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider,
+                reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
         final FlowController flowController = Mockito.mock(FlowController.class );

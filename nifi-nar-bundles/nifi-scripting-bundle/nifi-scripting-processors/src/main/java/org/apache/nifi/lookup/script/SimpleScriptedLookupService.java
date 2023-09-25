@@ -40,7 +40,7 @@ import java.util.Set;
         + "though it will be ignored, as SimpleScriptedLookupService returns String as the value type on the script's behalf. Please note that due to "
         + "a bug in Jython that remains unresolved, it is not possible to use Jython to write a script for this service in Python.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {

@@ -37,7 +37,6 @@ import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
@@ -102,7 +101,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, serviceImplClass, serviceNode.getIdentifier())) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, VariableRegistry.EMPTY_REGISTRY);
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
     }

@@ -43,7 +43,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .name("hive-metastore-uri")
             .displayName("Hive Metastore URI")
             .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. The default port for the Hive metastore is 9043.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .build();
 
@@ -51,7 +51,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .name("warehouse-location")
             .displayName("Default Warehouse Location")
             .description("Location of default database for the warehouse. This field sets or overrides the 'hive.metastore.warehouse.dir' configuration property.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 

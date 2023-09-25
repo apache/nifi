@@ -101,7 +101,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
                     " 'Folder' should match the following regular expression pattern: /.*|id:.* ." +
                     " Example for folder identifier: id:odTlUvbpIEAAAAAAAAAGGQ." +
                     " Example for folder path: /Team1/Task1.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("/.*|id:.*")))
             .defaultValue("/")

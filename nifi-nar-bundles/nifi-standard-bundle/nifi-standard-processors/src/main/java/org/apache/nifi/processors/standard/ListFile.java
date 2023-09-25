@@ -86,7 +86,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_INTEGER_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
 
@@ -140,7 +140,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .description("The input directory from which files to pull files")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor RECURSE = new Builder()
@@ -240,7 +240,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             "this property will result in less heap utilization, while a larger value may provide more accurate insights into how the disk access operations are performing")
         .required(true)
         .addValidator(POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("100000")
         .build();
 
@@ -251,7 +251,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             "generated for each operation that exceeds this amount of time.")
         .required(false)
         .addValidator(TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .defaultValue("10 secs")
         .build();
 
@@ -263,7 +263,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             "that exceeds this amount of time.")
         .required(false)
         .addValidator(TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .defaultValue("3 mins")
         .build();
 

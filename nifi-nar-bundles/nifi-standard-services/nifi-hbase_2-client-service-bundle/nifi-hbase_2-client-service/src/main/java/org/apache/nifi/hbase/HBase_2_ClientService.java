@@ -131,28 +131,28 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             " such as hbase-site.xml and core-site.xml for kerberos, " +
             "including full paths to the files.")
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     static final PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
         .name("ZooKeeper Quorum")
         .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     static final PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
         .name("ZooKeeper Client Port")
         .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
         .addValidator(StandardValidators.PORT_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     static final PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
         .name("ZooKeeper ZNode Parent")
         .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     static final PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
@@ -160,7 +160,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .defaultValue("1")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     // This property is never referenced directly but is necessary so that the classpath will be dynamically modified.
@@ -168,7 +168,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         .name("Phoenix Client JAR Location")
         .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .dynamicallyModifiesClasspath(true)
         .build();
 

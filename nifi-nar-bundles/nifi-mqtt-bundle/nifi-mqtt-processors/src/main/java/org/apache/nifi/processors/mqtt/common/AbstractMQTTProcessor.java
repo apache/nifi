@@ -113,7 +113,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                     "In order to use 'ssl', the SSL Context Service property must be set. When a comma-separated URI list is set (e.g., tcp://localhost:1883,tcp://localhost:1884), " +
                     "the processor will use a round-robin algorithm to connect to the brokers on connection failure.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -121,7 +121,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Client ID")
             .description("MQTT client ID to use. If not set, a UUID will be generated.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -129,7 +129,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Username")
             .description("Username to use when connecting to the broker")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -245,7 +245,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .displayName("Message Demarcator")
             .required(false)
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     @Override

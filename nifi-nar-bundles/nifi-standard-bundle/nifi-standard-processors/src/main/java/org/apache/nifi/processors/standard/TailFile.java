@@ -90,7 +90,7 @@ import java.util.zip.Checksum;
 
 import static java.util.stream.Collectors.toList;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSION_VALIDATOR;
 
@@ -145,7 +145,7 @@ public class TailFile extends AbstractProcessor {
             .name("tail-base-directory")
             .displayName("Base directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .required(false)
             .build();
@@ -167,7 +167,7 @@ public class TailFile extends AbstractProcessor {
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
                     + "to tail in the base directory. In case recursivity is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .required(true)
             .build();

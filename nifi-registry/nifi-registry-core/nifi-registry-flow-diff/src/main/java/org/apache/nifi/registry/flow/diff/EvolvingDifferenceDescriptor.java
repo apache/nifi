@@ -59,12 +59,6 @@ public class EvolvingDifferenceDescriptor implements DifferenceDescriptor {
             case PROPERTY_PARAMETERIZATION_REMOVED:
                 description = String.format("Property '%s' is no longer a parameter reference", fieldName);
                 break;
-            case VARIABLE_ADDED:
-                description = String.format("Variable '%s' was added to Process Group with ID %s", fieldName, componentB.getIdentifier());
-                break;
-            case VARIABLE_REMOVED:
-                description = String.format("Variable '%s' was removed from Process Group with ID %s", fieldName, componentA.getIdentifier());
-                break;
             default:
                 description = String.format("%s for %s with ID %s from '%s' to '%s'",
                     type.getDescription(), componentA.getComponentType().getTypeName(), componentA.getIdentifier(), valueA, valueB);

@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.EnvironmentSystemRegistry;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,26 +32,26 @@ import java.util.Set;
 /**
  * A convenience class to encapsulate the logic of variable substitution
  * based first on any additional variable maps, then flow file properties,
- * then flow file attributes, and finally the provided variable registry.
+ * then flow file attributes, and finally the provided system and env
+ * variable registry.
  */
 final class ValueLookup implements Map<String, String> {
 
     private final List<Map<String, String>> maps = new ArrayList<>();
-    private final VariableRegistry registry;
+    private final EnvironmentSystemRegistry environmentSystemRegistry = EnvironmentSystemRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
     /**
      * Constructs a ValueLookup where values are looked up first based any
      * provided additional maps, then flowfile properties, then flowfile
-     * attributes, then based on the provided variable registry. The lookup is
-     * immutable and operations which attempt to alter state will throw
-     * UnsupportedOperationException
+     * attributes, then based on the provided system and env variable
+     * registry. The lookup is immutable and operations which attempt to
+     * alter state will throw UnsupportedOperationException
      *
-     * @param registry the variable registry to lookup from; may be null
      * @param flowFile the flowFile to pull attributes from; may be null
      * @param additionalMaps the maps to pull values from; may be null or empty
      */
     @SuppressWarnings("unchecked")
-    ValueLookup(final VariableRegistry registry, final FlowFile flowFile, final Map<String, String>... additionalMaps) {
+    ValueLookup(final FlowFile flowFile, final Map<String, String>... additionalMaps) {
         for (final Map<String, String> map : additionalMaps) {
             if (map != null && !map.isEmpty()) {
                 maps.add(map);
@@ -62,8 +62,6 @@ final class ValueLookup implements Map<String, String> {
             maps.add(ValueLookup.extractFlowFileProperties(flowFile));
             maps.add(flowFile.getAttributes());
         }
-
-        this.registry = registry == null ? VariableRegistry.EMPTY_REGISTRY : registry;
     }
 
     static final Map<String, String> extractFlowFileProperties(final FlowFile flowFile) {
@@ -89,7 +87,7 @@ final class ValueLookup implements Map<String, String> {
                 return false;
             }
         }
-        return registry.getVariableMap().isEmpty();
+        return environmentSystemRegistry.getEnvironmentSystemVariableMap().isEmpty();
     }
 
     @Override
@@ -100,7 +98,7 @@ final class ValueLookup implements Map<String, String> {
         if (maps.stream().anyMatch((map) -> (map.containsKey(key)))) {
             return true;
         }
-        return registry.getVariableKey(key.toString()) != null;
+        return environmentSystemRegistry.getEnvironmentSystemVariableKey(key.toString()) != null;
     }
 
     @Override
@@ -125,7 +123,7 @@ final class ValueLookup implements Map<String, String> {
                 return val;
             }
         }
-        return registry.getVariableValue(key.toString());
+        return environmentSystemRegistry.getEnvironmentSystemVariableValue(key.toString());
     }
 
     @Override
@@ -177,8 +175,8 @@ final class ValueLookup implements Map<String, String> {
     @Override
     public Set<Entry<String, String>> entrySet() {
         final Map<String, String> newMap = new HashMap<>();
-        //put variable registry entries first
-        for (final Map.Entry<VariableDescriptor, String> entry : registry.getVariableMap().entrySet()) {
+        //put syst/env variable registry entries first
+        for (final Map.Entry<VariableDescriptor, String> entry : environmentSystemRegistry.getEnvironmentSystemVariableMap().entrySet()) {
             newMap.put(entry.getKey().getName(), entry.getValue());
         }
         //put attribute maps in reverse order

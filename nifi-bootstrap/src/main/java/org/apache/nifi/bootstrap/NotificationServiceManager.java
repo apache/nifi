@@ -30,7 +30,6 @@ import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,15 +62,8 @@ public class NotificationServiceManager {
 
     private final ScheduledExecutorService notificationExecutor;
     private int maxAttempts = 5;
-    private final VariableRegistry variableRegistry;
 
-
-    public NotificationServiceManager() {
-        this(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
-    }
-
-    NotificationServiceManager(final VariableRegistry variableRegistry){
-        this.variableRegistry = variableRegistry;
+    public NotificationServiceManager(){
         notificationExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(final Runnable r) {
@@ -144,7 +136,7 @@ public class NotificationServiceManager {
                 }
 
                 // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
+                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
                 final Collection<ValidationResult> validationResults = service.validate(validationContext);
                 final List<String> invalidReasons = new ArrayList<>();
 
@@ -182,7 +174,7 @@ public class NotificationServiceManager {
                 @Override
                 public void run() {
                     // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
+                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
                     final Collection<ValidationResult> validationResults = service.validate(validationContext);
                     final List<String> invalidReasons = new ArrayList<>();
 
@@ -251,7 +243,7 @@ public class NotificationServiceManager {
                 }
 
                 final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-                return new StandardPropertyValue(resourceContext, configuredValue, null, ParameterLookup.EMPTY, variableRegistry);
+                return new StandardPropertyValue(resourceContext, configuredValue, null, ParameterLookup.EMPTY);
             }
 
             @Override
@@ -372,7 +364,7 @@ public class NotificationServiceManager {
                     }
 
                     final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-                    return new StandardPropertyValue(resourceContext, value, null, ParameterLookup.EMPTY, variableRegistry);
+                    return new StandardPropertyValue(resourceContext, value, null, ParameterLookup.EMPTY);
                 }
 
                 @Override

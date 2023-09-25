@@ -687,8 +687,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     String text = "Supports Expression Language: true";
-                    final String perFF = " (will be evaluated using flow file attributes and variable registry)";
-                    final String registry = " (will be evaluated using variable registry only)";
+                    final String perFF = " (will be evaluated using flow file attributes and Environment variables)";
+                    final String registry = " (will be evaluated using Environment variables only)";
                     final InputRequirement inputRequirement = configurableComponent.getClass().getAnnotation(InputRequirement.class);
 
                     switch(property.getExpressionLanguageScope()) {
@@ -699,7 +699,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                                 text += perFF;
                             }
                             break;
-                        case VARIABLE_REGISTRY:
+                        case ENVIRONMENT:
                             text += registry;
                             break;
                         case NONE:
@@ -873,10 +873,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 } else {
                     switch(dynamicProperty.expressionLanguageScope()) {
                         case FLOWFILE_ATTRIBUTES:
-                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and variable registry)";
+                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and Environment variables)";
                             break;
-                        case VARIABLE_REGISTRY:
-                            text = "Supports Expression Language: true (will be evaluated using variable registry only)";
+                        case ENVIRONMENT:
+                            text = "Supports Expression Language: true (will be evaluated using Environment variables only)";
                             break;
                         default:
                             text = "Supports Expression Language: false";
