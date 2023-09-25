@@ -2084,7 +2084,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             parameters.put(versionedParameter.getName(), parameter);
         }
 
-        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList(), null);
+        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), versionedParameterContext.getDescription(),
+                                                               parameters, Collections.emptyList(), null);
     }
 
     private ParameterProviderConfiguration getParameterProviderConfiguration(final VersionedParameterContext context) {
@@ -2107,7 +2108,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final AtomicReference<ParameterContext> contextReference = new AtomicReference<>();
         context.getFlowManager().withParameterContextResolution(() -> {
-            final ParameterContext created = context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, parameterContextRefs,
+            final ParameterContext created = context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(),
+                                                                                             versionedParameterContext.getDescription(), parameters, parameterContextRefs,
                     getParameterProviderConfiguration(versionedParameterContext));
             contextReference.set(created);
         });

@@ -507,8 +507,8 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
-                                                   final List<String> inheritedContextIds,
+    public ParameterContext createParameterContext(final String id, final String name, final String description,
+                                                   final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
                                                    final ParameterProviderConfiguration parameterProviderConfiguration) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
@@ -527,6 +527,7 @@ public abstract class AbstractFlowManager implements FlowManager {
                 .parameterProviderConfiguration(parameterProviderConfiguration)
                 .build();
         parameterContext.setParameters(parameters);
+        parameterContext.setDescription(description);
 
         if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {
             if (!withParameterContextResolution.get()) {

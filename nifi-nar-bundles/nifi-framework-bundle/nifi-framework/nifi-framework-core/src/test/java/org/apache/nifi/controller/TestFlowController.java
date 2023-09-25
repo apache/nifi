@@ -120,6 +120,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -485,7 +486,7 @@ public class TestFlowController {
             parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
 
             // No problem since there are no inherited parameter contexts
-            controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.emptyList(), null);
+            controller.getFlowManager().createParameterContext("id", "name", "description", parameters, Collections.emptyList(), null);
 
             final ParameterContext existingParameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
             final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
@@ -494,12 +495,35 @@ public class TestFlowController {
 
             // This is not wrapped in FlowManager#withParameterContextResolution(Runnable), so it will throw an exception
             assertThrows(IllegalStateException.class, () ->
-                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
+                    controller.getFlowManager().createParameterContext("id", "name", "description", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
             // Instead, this is how it should be called
             controller.getFlowManager().withParameterContextResolution(() -> controller
-                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
+                    .getFlowManager().createParameterContext("id2", "name2", "description2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test
+    public void testCreateParameterContextLoadsDescription() throws IOException {
+        final String authFingerprint = authorizer.getFingerprint();
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow-description.json");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        try {
+            controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+            controller.initializeFlow();
+
+            ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
+            assertNotNull(parameterContext);
+            assertNull(parameterContext.getDescription());
+
+            ParameterContext parameterContext2 = controller.getFlowManager().getParameterContextManager().getParameterContext("context2");
+            assertNotNull(parameterContext2);
+            assertEquals("description", parameterContext2.getDescription());
         } finally {
             purgeFlow();
         }
