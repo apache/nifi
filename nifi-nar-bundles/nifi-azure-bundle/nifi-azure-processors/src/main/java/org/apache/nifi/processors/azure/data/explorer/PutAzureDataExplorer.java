@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Set;
 
 @Tags({"Azure", "Kusto", "ADX", "Explorer", "Data"})
-@CapabilityDescription("The Azure ADX Ingest Processor acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
+@CapabilityDescription("The PutAzureDataExplorer acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster.")
 @ReadsAttributes({
         @ReadsAttribute(attribute = "DB_NAME", description = "Specifies the name of the ADX database where the data needs to be stored."),
@@ -65,7 +65,7 @@ import java.util.Set;
                 "In case of applications that need high throughput it is recommended to keep the default value as false. Default is set to false." +
                 "This property should be set to true during Queued Ingestion for near realtime micro-batches of data that require acknowledgement of ingestion status.")
 })
-public class IngestAzureDataExplorer extends AbstractProcessor {
+public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final String FETCH_TABLE_COMMAND = "%s | count";
     public static final String STREAMING_POLICY_SHOW_COMMAND = ".show %s %s policy streamingingestion";
@@ -356,21 +356,19 @@ public class IngestAzureDataExplorer extends AbstractProcessor {
 
             KustoIngestionResult result = service.ingestData(new KustoIngestionRequest(isStreamingEnabled, pollOnIngestionStatus, inputStream, ingestionProperties));
             getLogger().info("Poll on Ingestion Status {} and Operation status: {} ", pollOnIngestionStatus, result.toString());
+
             if (result == KustoIngestionResult.SUCCEEDED) {
                 getLogger().info("Operation status Succeeded - {}", result.toString());
-            }
-
-            if (result == KustoIngestionResult.FAILED) {
+            } else if (result == KustoIngestionResult.FAILED) {
                 getLogger().error("Operation status Error - {}", result.toString());
                 isError = true;
-            }
-
-            if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
+            } else if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
                 getLogger().error("Operation status Partially succeeded - {}", result.toString());
                 isError = true;
             }
+
         } catch (IOException | URISyntaxException e) {
-            getLogger().error("Non Transactional/Streaming Ingestion mode : Exception occurred while ingesting data into ADX with exception {} ", e);
+            getLogger().error("Exception occurred while ingesting data into ADX ", e);
             isError = true;
         }
 
@@ -384,7 +382,7 @@ public class IngestAzureDataExplorer extends AbstractProcessor {
     }
 
     protected void checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {
-        KustoQueryResponse kustoQueryResponse = service.executeQuery(database, String.format(STREAMING_POLICY_SHOW_COMMAND, IngestAzureDataExplorer.DATABASE, entityName));
+        KustoQueryResponse kustoQueryResponse = service.executeQuery(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
         if (kustoQueryResponse.isError()) {
             throw new ProcessException("Error occurred while checking if streaming policy is enabled for the table");
         }

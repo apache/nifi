@@ -35,7 +35,7 @@ import java.net.URISyntaxException;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class IngestAzureDataExplorerTest {
+public class PutAzureDataExplorerTest {
 
     private static final String SERVICE_ID = KustoIngestService.class.getName();
 
@@ -59,7 +59,7 @@ public class IngestAzureDataExplorerTest {
 
     @BeforeEach
     void setRunner() throws InitializationException {
-        runner = TestRunners.newTestRunner(IngestAzureDataExplorer.class);
+        runner = TestRunners.newTestRunner(PutAzureDataExplorer.class);
         runner.setValidateExpressionUsage(false);
         when(kustoIngestService.getIdentifier()).thenReturn(SERVICE_ID);
         runner.addControllerService(SERVICE_ID, kustoIngestService);
@@ -70,22 +70,22 @@ public class IngestAzureDataExplorerTest {
     void testProperties() {
         runner.assertNotValid();
 
-        runner.setProperty(IngestAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(IngestAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(IngestAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
 
         runner.assertValid();
     }
 
     @Test
     void testRunSuccessNonTransactional() throws URISyntaxException {
-        runner.setProperty(IngestAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(IngestAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(IngestAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
 
         runner.enqueue(EMPTY);
 
@@ -96,16 +96,16 @@ public class IngestAzureDataExplorerTest {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(IngestAzureDataExplorer.SUCCESS);
+        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.SUCCESS);
     }
 
     @Test
     void testRunFailureNonTransactional() throws URISyntaxException {
-        runner.setProperty(IngestAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(IngestAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(IngestAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
 
         runner.enqueue(EMPTY);
 
@@ -116,17 +116,17 @@ public class IngestAzureDataExplorerTest {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(IngestAzureDataExplorer.SUCCESS);
+        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.SUCCESS);
     }
 
     @Test
     void testRunSuccessStreaming() throws URISyntaxException{
-        runner.setProperty(IngestAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(IngestAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(IngestAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
-        runner.setProperty(IngestAzureDataExplorer.IS_STREAMING_ENABLED, "true");
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, "true");
 
         runner.enqueue(EMPTY);
 
@@ -137,17 +137,17 @@ public class IngestAzureDataExplorerTest {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(IngestAzureDataExplorer.SUCCESS);
+        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.SUCCESS);
     }
 
     @Test
     void testRunSuccessStreamingFailure() throws URISyntaxException{
-        runner.setProperty(IngestAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(IngestAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(IngestAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(IngestAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
-        runner.setProperty(IngestAzureDataExplorer.IS_STREAMING_ENABLED, "true");
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, "true");
 
         runner.enqueue(EMPTY);
 
@@ -159,7 +159,7 @@ public class IngestAzureDataExplorerTest {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(IngestAzureDataExplorer.FAILURE);
+        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.FAILURE);
     }
 
 

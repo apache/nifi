@@ -51,12 +51,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
@@ -114,11 +108,11 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-                    AUTHENTICATION_STRATEGY,
-                    APPLICATION_CLIENT_ID,
-                    APPLICATION_KEY,
-                    APPLICATION_TENANT_ID,
-                    CLUSTER_URI));
+            AUTHENTICATION_STRATEGY,
+            APPLICATION_CLIENT_ID,
+            APPLICATION_KEY,
+            APPLICATION_TENANT_ID,
+            CLUSTER_URI));
 
     public static final Pair<String, String> NIFI_SINK = Pair.of("processor", "nifi-sink");
 
@@ -167,7 +161,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.queuedIngestClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Queued Ingest Client failed with: " + e.getMessage(), e);
+                getLogger().error("Closing Azure ADX Queued Ingest Client failed ", e);
             } finally {
                 this.queuedIngestClient = null;
             }
@@ -176,7 +170,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.managedStreamingIngestClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Managed Streaming Ingest Client failed with: " + e.getMessage(), e);
+                getLogger().error("Closing Azure ADX Managed Streaming Ingest Client failed", e);
             } finally {
                 this.managedStreamingIngestClient = null;
             }
@@ -185,7 +179,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.executionClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Execution Client failed with: " + e.getMessage(), e);
+                getLogger().error("Closing Azure ADX Execution Client failed", e);
             } finally {
                 this.executionClient = null;
             }
@@ -197,76 +191,61 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                                                                final String appId,
                                                                final String appKey,
                                                                final String appTenant,
-                                                   final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
+                                                               final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
         ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
         return IngestClientFactory.createClient(ingestConnectionStringBuilder);
     }
 
     protected ManagedStreamingIngestClient createKustoStreamingIngestClient(final String clusterUrl,
-                                                         final String appId,
-                                                         final String appKey,
-                                                         final String appTenant,
-                                                         final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
+                                                                            final String appId,
+                                                                            final String appKey,
+                                                                            final String appTenant,
+                                                                            final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
         ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
         ConnectionStringBuilder streamingConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
         return IngestClientFactory.createManagedStreamingIngestClient(ingestConnectionStringBuilder, streamingConnectionStringBuilder);
     }
 
-    public KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) {
+    public KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) throws URISyntaxException {
         StreamSourceInfo info = new StreamSourceInfo(kustoIngestionRequest.getInputStream());
         //ingest data
         IngestionResult ingestionResult;
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         try {
             if (kustoIngestionRequest.isStreamingEnabled()) {
                 ingestionResult = managedStreamingIngestClient.ingestFromStream(info, kustoIngestionRequest.getIngestionProperties());
             } else {
                 ingestionResult = queuedIngestClient.ingestFromStream(info, kustoIngestionRequest.getIngestionProperties());
             }
-            if(kustoIngestionRequest.pollOnIngestionStatus()){
+            if (kustoIngestionRequest.pollOnIngestionStatus()) {
                 List<IngestionStatus> statuses;
-                CompletableFuture<List<IngestionStatus>> future = new CompletableFuture<>();
-                Runnable task = () -> {
-                    try {
-                        List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
-                        if (statuses1.get(0).status == OperationStatus.Succeeded
-                                || statuses1.get(0).status == OperationStatus.Failed
-                                || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
-                            future.complete(statuses1);
-                        }
-                    } catch (Exception e) {
-                        future.completeExceptionally(new ProcessException("Error occurred while checking ingestion status", e));
+                long startTime = System.currentTimeMillis();
+                long timeoutMillis = 600 * 1800; // 10 Minutes timeout
+                while (true) {
+                    // Get the status of the ingestion operation
+                    List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
+                    if (statuses1.get(0).status == OperationStatus.Succeeded
+                            || statuses1.get(0).status == OperationStatus.Failed
+                            || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
+                        statuses = statuses1;
+                        break;
                     }
-                };
-                scheduler.scheduleWithFixedDelay(task, 1, 2, TimeUnit.SECONDS);
-                statuses = future.get(1800, TimeUnit.SECONDS);
+                    // Check if the timeout has been exceeded
+                    if (System.currentTimeMillis() - startTime >= timeoutMillis) {
+                        throw new ProcessException("Timeout exceeded while waiting for ingestion status");
+                    }
+
+                    // Sleep for 5 seconds before checking again
+                    Thread.sleep(5000);
+                }
                 return KustoIngestionResult.fromString(statuses.get(0).status.toString());
-            }else{
+            } else {
                 return KustoIngestionResult.SUCCEEDED;
             }
         } catch (IngestionClientException | IngestionServiceException e) {
             throw new ProcessException("Error occurred while ingesting data into ADX", e);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new ProcessException("Error occurred while checking ingestion status", e);
-        } finally {
-            shutDownScheduler(scheduler);
-        }
-    }
-
-    public void shutDownScheduler(ScheduledExecutorService executorService) {
-        executorService.shutdown();
-        try {
-            // Wait a while for existing tasks to terminate
-            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-                // Cancel currently executing tasks forcefully
-                executorService.shutdownNow();
-                // Wait a while for tasks to respond to being cancelled
-                if (!executorService.awaitTermination(60, TimeUnit.SECONDS))
-                    getLogger().error("Scheduler did not terminate");
-            }
-        } catch (InterruptedException ex) {
-            // (Re-)Cancel if current thread also interrupted
-            executorService.shutdownNow();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); //Restore interrupted status
+            throw new ProcessException("Error occurred while waiting for ingestion status", e);
         }
     }
 
@@ -276,9 +255,9 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                                                                       final String appTenant,
                                                                       final KustoAuthenticationStrategy kustoAuthStrategy) {
         final ConnectionStringBuilder builder;
-        if(KustoAuthenticationStrategy.APPLICATION_CREDENTIALS == kustoAuthStrategy){
+        if (KustoAuthenticationStrategy.APPLICATION_CREDENTIALS == kustoAuthStrategy) {
             builder = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, appId, appKey, appTenant);
-        }else{
+        } else {
             builder = ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, appId);
         }
 
