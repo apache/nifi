@@ -41,7 +41,7 @@
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jaxb.version>2.3.2</jaxb.version>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>6.7.0.202309050840-r</jgit.version>
         <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
     </properties>
 
