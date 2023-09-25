@@ -58,7 +58,6 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import static org.apache.nifi.processors.iceberg.PutIceberg.UnmatchedColumnBehavior;
 
 import java.io.File;
 import java.io.IOException;
@@ -135,6 +134,24 @@ public class TestIcebergRecordConverter {
             Types.NestedField.optional(1, "integer", Types.IntegerType.get()),
             Types.NestedField.optional(2, "float", Types.FloatType.get()),
             Types.NestedField.optional(3, "long", Types.LongType.get()),
+            Types.NestedField.optional(4, "double", Types.DoubleType.get()),
+            Types.NestedField.optional(5, "decimal", Types.DecimalType.of(10, 2)),
+            Types.NestedField.optional(6, "boolean", Types.BooleanType.get()),
+            Types.NestedField.optional(7, "fixed", Types.FixedType.ofLength(5)),
+            Types.NestedField.optional(8, "binary", Types.BinaryType.get()),
+            Types.NestedField.optional(9, "date", Types.DateType.get()),
+            Types.NestedField.optional(10, "time", Types.TimeType.get()),
+            Types.NestedField.optional(11, "timestamp", Types.TimestampType.withZone()),
+            Types.NestedField.optional(12, "timestampTz", Types.TimestampType.withoutZone()),
+            Types.NestedField.optional(13, "uuid", Types.UUIDType.get()),
+            Types.NestedField.optional(14, "choice", Types.IntegerType.get())
+    );
+
+    private static final Schema PRIMITIVES_SCHEMA_WITH_REQUIRED_FIELDS = new Schema(
+            Types.NestedField.optional(0, "string", Types.StringType.get()),
+            Types.NestedField.required(1, "integer", Types.IntegerType.get()),
+            Types.NestedField.required(2, "float", Types.FloatType.get()),
+            Types.NestedField.required(3, "long", Types.LongType.get()),
             Types.NestedField.optional(4, "double", Types.DoubleType.get()),
             Types.NestedField.optional(5, "decimal", Types.DecimalType.of(10, 2)),
             Types.NestedField.optional(6, "boolean", Types.BooleanType.get()),
@@ -225,7 +242,7 @@ public class TestIcebergRecordConverter {
     private static RecordSchema getPrimitivesSchema() {
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("integer", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("integer", RecordFieldType.INT.getDataType(), true));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
         fields.add(new RecordField("long", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
@@ -587,6 +604,18 @@ public class TestIcebergRecordConverter {
         assertNull(resultRecord.get(10, LocalTime.class));
         assertNull(resultRecord.get(11, OffsetDateTime.class));
         assertNull(resultRecord.get(14, Integer.class));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @ParameterizedTest
+    @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
+    public void testPrimitivesMissingRequiredFields(FileFormat format) {
+        RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
+        Record record = setupPrimitivesTestRecordMissingFields();
+        MockComponentLogger mockComponentLogger = new MockComponentLogger();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new IcebergRecordConverter(PRIMITIVES_SCHEMA_WITH_REQUIRED_FIELDS, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, mockComponentLogger));
     }
 
     @DisabledOnOs(WINDOWS)

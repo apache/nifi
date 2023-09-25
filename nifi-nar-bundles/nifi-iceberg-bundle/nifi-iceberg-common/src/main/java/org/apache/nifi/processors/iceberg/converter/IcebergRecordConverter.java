@@ -26,6 +26,7 @@ import org.apache.iceberg.schema.SchemaWithPartnerVisitor;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.iceberg.UnmatchedColumnBehavior;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -34,8 +35,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-
-import static org.apache.nifi.processors.iceberg.PutIceberg.UnmatchedColumnBehavior;
 
 import java.util.HashMap;
 import java.util.List;
@@ -185,7 +184,14 @@ public class IcebergRecordConverter {
                     }
                 }
                 // If the field is missing, use the expected type from the schema (converted to a DataType)
-                return GenericDataConverters.convertSchemaTypeToDataType(schema.findField(fieldId).type());
+                final Types.NestedField schemaField = schema.findField(fieldId);
+                final Type schemaFieldType = schemaField.type();
+                if(schemaField.isRequired()) {
+                    // Iceberg requires a non-null value for required fields
+                    throw new IllegalArgumentException("Iceberg requires a non-null value for required fields, field: "
+                            + schemaField.name() + ", type: " + schemaFieldType);
+                }
+                return GenericDataConverters.convertSchemaTypeToDataType(schemaFieldType);
             }
             final Optional<RecordField> recordField = recordType.getChildSchema().getField(mappedFieldName.get());
             final RecordField field = recordField.get();
