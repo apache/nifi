@@ -32,7 +32,6 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.validation.RuleViolationsManager;
@@ -46,18 +45,18 @@ public class StandardFlowAnalysisRuleNode extends AbstractFlowAnalysisRuleNode i
 
     public StandardFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final String id, final FlowController controller,
                                         final ValidationContextFactory validationContextFactory, final RuleViolationsManager ruleViolationsManager,
-                                        final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                        final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
                                         final ValidationTrigger validationTrigger) {
-        super(flowAnalysisRule, id, controller.getControllerServiceProvider(), validationContextFactory, ruleViolationsManager, variableRegistry, reloadComponent, extensionManager, validationTrigger);
+        super(flowAnalysisRule, id, controller.getControllerServiceProvider(), validationContextFactory, ruleViolationsManager, reloadComponent, extensionManager, validationTrigger);
         this.flowController = controller;
     }
 
     public StandardFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final String id, final FlowController controller,
                                         final ValidationContextFactory validationContextFactory, final RuleViolationsManager ruleViolationsManager,
-                                        final String componentType, final String canonicalClassName, final ComponentVariableRegistry variableRegistry,
-                                        final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+                                        final String componentType, final String canonicalClassName, final ReloadComponent reloadComponent,
+                                        final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         super(flowAnalysisRule, id, controller.getControllerServiceProvider(), validationContextFactory, ruleViolationsManager, componentType, canonicalClassName,
-            variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
+            reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.flowController = controller;
     }
 
@@ -94,8 +93,7 @@ public class StandardFlowAnalysisRuleNode extends AbstractFlowAnalysisRuleNode i
             this,
             getEffectivePropertyValues(),
             flowController,
-            ParameterLookup.EMPTY,
-            getVariableRegistry()
+            ParameterLookup.EMPTY
         );
     }
 

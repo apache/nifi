@@ -61,7 +61,7 @@ public class TestExcelSchemaInference {
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         try (final InputStream inputStream = getResourceStream("/excel/numbers.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
@@ -94,7 +94,7 @@ public class TestExcelSchemaInference {
     public void testInferenceIncludesAllRecords() throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         final RecordSchema schema;
         try (final InputStream inputStream = getResourceStream("/excel/simpleDataFormatting.xlsx")) {
@@ -122,7 +122,7 @@ public class TestExcelSchemaInference {
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         properties.put(ExcelReader.REQUIRED_SHEETS, "${required.sheets}");
         properties.put(ExcelReader.STARTING_ROW, "${rows.to.skip}");
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("required.sheets", "Sheet1");
         attributes.put("rows.to.skip", "2");

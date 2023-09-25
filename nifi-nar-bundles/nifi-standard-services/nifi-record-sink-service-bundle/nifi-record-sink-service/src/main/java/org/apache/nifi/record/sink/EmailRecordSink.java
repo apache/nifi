@@ -67,7 +67,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("From")
             .description("Specifies the Email address to use as the sender. " + RFC822)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
@@ -75,7 +75,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("To")
             .description("The recipients to include in the To-Line of the email. " + RFC822)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
@@ -83,7 +83,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("CC")
             .description("The recipients to include in the CC-Line of the email. " + RFC822)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
@@ -91,7 +91,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("BCC")
             .description("The recipients to include in the BCC-Line of the email. " + RFC822)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
@@ -99,7 +99,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("Subject")
             .description("The email subject")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("Message from NiFi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -116,7 +116,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .description("The Port used for SMTP communications")
             .required(true)
             .defaultValue("25")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_AUTH = new PropertyDescriptor.Builder()
@@ -124,7 +124,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("SMTP Auth")
             .description("Flag indicating whether authentication should be used")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("true")
             .build();
@@ -132,7 +132,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .name("smtp-username")
             .displayName("SMTP Username")
             .description("Username for the SMTP account")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .dependsOn(SMTP_AUTH, "true")
@@ -141,7 +141,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .name("smtp-password")
             .displayName("SMTP Password")
             .description("Password for the SMTP account")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .sensitive(true)
@@ -153,7 +153,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .description("Flag indicating whether STARTTLS should be enabled. "
                     + "If the server does not support STARTTLS, the connection continues without the use of TLS")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
@@ -162,7 +162,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("SMTP SSL")
             .description("Flag indicating whether SSL should be enabled")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("false")
             .build();
@@ -171,7 +171,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .displayName("SMTP X-Mailer Header")
             .description("X-Mailer used in the header of the outgoing email")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("NiFi")
             .build();
@@ -308,7 +308,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
         final Properties properties = new Properties();
 
         for (Map.Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
-            // Evaluate the property descriptor against the variable registry
+            // Evaluate the property descriptor against the env/sys variable registry
             String property = entry.getKey();
             String propValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions().getValue();
 

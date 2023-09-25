@@ -48,7 +48,7 @@ public interface OAuth2TokenProvider extends ControllerService {
             .required(true)
             .defaultValue("")
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(

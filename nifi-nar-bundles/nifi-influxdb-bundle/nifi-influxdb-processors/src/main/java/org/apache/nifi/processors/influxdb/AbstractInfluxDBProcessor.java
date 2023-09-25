@@ -51,7 +51,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .description("InfluxDB URL to connect to. Eg: http://influxdb:8086")
             .defaultValue("http://localhost:8086")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -79,7 +79,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Username")
             .required(false)
             .description("Username for accessing InfluxDB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -88,7 +88,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Password")
             .required(false)
             .description("Password for user")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -97,7 +97,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
             .description("Maximum size of records allowed to be posted in one batch")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("1 MB")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)

@@ -116,7 +116,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "and means there is no limit.")
             .defaultValue("0")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -126,7 +126,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
             .defaultValue("0")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -141,7 +141,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor OUTPUT_FORMAT = new PropertyDescriptor.Builder()

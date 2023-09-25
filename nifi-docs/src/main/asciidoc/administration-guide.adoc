@@ -4276,25 +4276,6 @@ As a result, if we set the value of this property higher, up to a value of `100`
 
 In order to view these metrics, we can gather diagnostics by running the command `nifi.sh diagnostics <filename>` and inspecting the generated file. See <<nifi_diagnostics>> for more information.
 
-[[custom_properties]]
-=== Custom Properties
-
-To configure custom properties for use with NiFi’s Expression Language:
-
-* Create the custom property. Ensure that:
-** Each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
-** Each node in a clustered environment is configured with the same custom properties.
-* Update `nifi.variable.registry.properties` with the location of the custom property file(s):
-
-|====
-|*Property*|*Description*
-|`nifi.variable.registry.properties`|This is a comma-separated list of file location paths for one or more custom property files.
-|====
-
-* Restart your NiFi instance(s) for the updates to be picked up.
-
-Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
-
 [[nar_provider_properties]]
 === NAR Provider Properties
 

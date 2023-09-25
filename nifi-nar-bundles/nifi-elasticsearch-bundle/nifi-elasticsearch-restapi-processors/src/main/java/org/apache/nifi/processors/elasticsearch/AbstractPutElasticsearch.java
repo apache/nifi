@@ -59,7 +59,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .description("The preferred number of FlowFiles to send over in a single batch.")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

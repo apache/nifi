@@ -220,8 +220,6 @@ can be published to the host.
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
 | JVM Debugger             | java.arg.debug                | 8000  |
 
-The Variable Registry can be configured for the docker image using the `NIFI_VARIABLE_REGISTRY_PROPERTIES` environment variable.
-
 The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP_INIT` and `NIFI_JVM_HEAP_MAX` environment variables. These use values acceptable to the JVM `Xmx` and `Xms` parameters such as `1g` or `512m`.
 
 The JVM Debugger can be enabled by setting the environment variable NIFI_JVM_DEBUGGER to any value.

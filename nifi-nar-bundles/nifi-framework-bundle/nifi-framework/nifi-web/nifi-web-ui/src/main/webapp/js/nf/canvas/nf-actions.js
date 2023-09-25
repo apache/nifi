@@ -33,7 +33,6 @@
                 'nf.GoTo',
                 'nf.ng.Bridge',
                 'nf.Shell',
-                'nf.VariableRegistry',
                 'nf.ComponentState',
                 'nf.FlowVersion',
                 'nf.Draggable',
@@ -58,8 +57,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -77,7 +76,6 @@
                 require('nf.GoTo'),
                 require('nf.ng.Bridge'),
                 require('nf.Shell'),
-                require('nf.VariableRegistry'),
                 require('nf.ComponentState'),
                 require('nf.FlowVersion'),
                 require('nf.Draggable'),
@@ -117,7 +115,6 @@
             root.nf.GoTo,
             root.nf.ng.Bridge,
             root.nf.Shell,
-            root.nf.VariableRegistry,
             root.nf.ComponentState,
             root.nf.FlowVersion,
             root.nf.Draggable,
@@ -143,7 +140,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -1855,22 +1852,6 @@
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 nfFlowVersion.stopVersionControl(selectionData.id);
-            }
-        },
-
-        /**
-         * Opens the variable registry for the specified selection of the current group if the selection is emtpy.
-         *
-         * @param {selection} selection
-         */
-        openVariableRegistry: function (selection) {
-            if (selection.empty()) {
-                nfVariableRegistry.showVariables(nfCanvasUtils.getGroupId());
-            } else if (selection.size() === 1) {
-                var selectionData = selection.datum();
-                if (nfCanvasUtils.isProcessGroup(selection)) {
-                    nfVariableRegistry.showVariables(selectionData.id);
-                }
             }
         },
 

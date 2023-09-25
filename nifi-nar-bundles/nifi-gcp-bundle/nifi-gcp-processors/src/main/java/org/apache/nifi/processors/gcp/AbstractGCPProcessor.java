@@ -53,7 +53,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Project ID")
             .description("Google Cloud Project ID")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -74,7 +74,7 @@ public abstract class AbstractGCPProcessor<
                     "-Djdk.http.auth.tunneling.disabledSchemes=\n" +
                     "-Djdk.http.auth.proxying.disabledSchemes=")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -83,7 +83,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Proxy port")
             .description("Proxy port number")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -92,7 +92,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("HTTP Proxy Username")
             .description("HTTP Proxy Username")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 
@@ -101,7 +101,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("HTTP Proxy Password")
             .description("HTTP Proxy Password")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .sensitive(true)
             .build();

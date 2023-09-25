@@ -75,7 +75,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .name("User Name")
             .description("User Name used for authentication and authorization.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -107,7 +107,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                          "Please see JMS spec for further details")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Session Cache size")
@@ -182,7 +182,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                 .description("Additional configuration property for the Connection Factory")
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

@@ -30,7 +30,6 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 
 import java.util.Collections;
@@ -44,28 +43,25 @@ public class StandardConfigurationContext implements ConfigurationContext {
     private final ComponentNode component;
     private final ControllerServiceLookup serviceLookup;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final VariableRegistry variableRegistry;
     private final String schedulingPeriod;
     private final Long schedulingNanos;
     private final Map<PropertyDescriptor, String> properties;
     private final String annotationData;
 
-    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
-                                        final VariableRegistry variableRegistry) {
-        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData());
+    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod) {
+        this(component, serviceLookup, schedulingPeriod, component.getEffectivePropertyValues(), component.getAnnotationData());
     }
 
     public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
-                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry) {
-        this(component, serviceLookup, schedulingPeriod, variableRegistry, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride);
+                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod) {
+        this(component, serviceLookup, schedulingPeriod, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride);
     }
 
     public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
-                                        final VariableRegistry variableRegistry, final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
+                                        final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
         this.component = component;
         this.serviceLookup = serviceLookup;
         this.schedulingPeriod = schedulingPeriod;
-        this.variableRegistry = variableRegistry;
         this.properties = Collections.unmodifiableMap(propertyValues);
         this.annotationData = annotationData;
 
@@ -127,7 +123,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(resourceContext, resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property));
     }
 
     @Override

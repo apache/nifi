@@ -136,8 +136,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
         // call OnRemoved for the existing service using the previous instance class loader
-        final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, flowController.getControllerServiceProvider(),
-            null, flowController.getVariableRegistry());
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, flowController.getControllerServiceProvider(), null);
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {

@@ -176,9 +176,9 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
+        MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client1.onEnabled(clientContext1);
-        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup());
+        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup(), null);
         client2.onEnabled(clientContext2);
 
         try {
@@ -258,7 +258,7 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
+        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         try {
@@ -350,7 +350,7 @@ public class TestDistributedMapServerAndClient {
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
-        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         return client;

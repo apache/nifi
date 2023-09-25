@@ -28,7 +28,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -740,7 +739,7 @@ public class TestQuery {
         when(mockFlowFile.getSize()).thenReturn(1L);
         when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
 
-        final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
+        final ValueLookup lookup = new ValueLookup(mockFlowFile);
         return Query.evaluateExpressions(queryString, lookup, ParameterLookup.EMPTY);
     }
 

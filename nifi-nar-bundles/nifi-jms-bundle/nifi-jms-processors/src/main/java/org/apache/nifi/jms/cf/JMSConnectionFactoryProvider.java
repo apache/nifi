@@ -49,7 +49,7 @@ import java.util.List;
         description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
                 + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
                 + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.",
-                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+                expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
 @Restricted(
         restrictions = {

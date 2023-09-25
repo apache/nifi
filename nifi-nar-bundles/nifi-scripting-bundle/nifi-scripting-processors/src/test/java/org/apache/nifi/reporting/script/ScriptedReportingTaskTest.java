@@ -22,7 +22,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
@@ -74,8 +73,8 @@ class ScriptedReportingTaskTest {
     public void setUp(@Mock ComponentLog logger) {
         task = new MockScriptedReportingTask();
         properties = new HashMap<>();
-        configurationContext = new MockConfigurationContext(properties, null);
-        reportingContext = new MockReportingContext(new LinkedHashMap<>(), null, VariableRegistry.EMPTY_REGISTRY);
+        configurationContext = new MockConfigurationContext(properties, null, null);
+        reportingContext = new MockReportingContext(new LinkedHashMap<>(), null);
         when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(initContext.getLogger()).thenReturn(logger);
     }

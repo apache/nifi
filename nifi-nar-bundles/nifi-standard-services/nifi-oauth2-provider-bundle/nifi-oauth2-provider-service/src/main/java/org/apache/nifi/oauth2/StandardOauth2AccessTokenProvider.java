@@ -71,7 +71,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .description("The URL of the authorization server that issues access tokens.")
         .required(true)
         .addValidator(StandardValidators.URL_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor CLIENT_AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
@@ -117,7 +117,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .dependsOn(GRANT_TYPE, RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE)
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -138,7 +138,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
@@ -146,7 +146,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .displayName("Client ID")
         .required(false)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor CLIENT_SECRET = new PropertyDescriptor.Builder()

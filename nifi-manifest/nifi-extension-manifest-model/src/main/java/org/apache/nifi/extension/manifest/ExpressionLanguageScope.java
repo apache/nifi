@@ -27,9 +27,9 @@ public enum ExpressionLanguageScope {
     NONE,
 
     /**
-     * Expression language is evaluated against variables in registry
+     * Expression language is evaluated against system and environment variables
      */
-    VARIABLE_REGISTRY,
+    ENVIRONMENT,
 
     /**
      * Expression language is evaluated per flow file using attributes

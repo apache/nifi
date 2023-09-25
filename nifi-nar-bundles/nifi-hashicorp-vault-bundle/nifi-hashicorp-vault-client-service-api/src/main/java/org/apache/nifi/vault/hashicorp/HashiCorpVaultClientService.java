@@ -51,7 +51,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .description("The URI of the HashiCorp Vault server (e.g., http://localhost:8200).  Required if not specified in the " +
                     "Bootstrap HashiCorp Vault Configuration File.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .dependsOn(CONFIGURATION_STRATEGY, DIRECT_PROPERTIES)
             .build();

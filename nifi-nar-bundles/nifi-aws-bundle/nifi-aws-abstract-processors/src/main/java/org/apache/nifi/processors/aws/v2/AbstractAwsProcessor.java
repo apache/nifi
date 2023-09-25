@@ -103,7 +103,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
             .description("Proxy host name or IP")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -111,7 +111,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
     public static final PropertyDescriptor PROXY_HOST_PORT = new PropertyDescriptor.Builder()
             .name("Proxy Host Port")
             .description("Proxy host port")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
@@ -120,7 +120,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
             .name("proxy-user-name")
             .displayName("Proxy Username")
             .description("Proxy username")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -129,7 +129,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
             .name("proxy-user-password")
             .displayName("Proxy Password")
             .description("Proxy password")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
@@ -161,7 +161,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
             .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
                     "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
                     "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();

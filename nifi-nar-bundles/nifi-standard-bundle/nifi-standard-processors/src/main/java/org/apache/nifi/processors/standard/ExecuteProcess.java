@@ -96,7 +96,7 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command")
     .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
     .required(true)
-    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -104,14 +104,14 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command Arguments")
     .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
     .required(false)
-    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
     .name("Working Directory")
     .description("The directory to use as the current working directory when executing the command")
-    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
     .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
     .required(false)
     .build();

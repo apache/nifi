@@ -48,7 +48,6 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -85,22 +84,22 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-                                     final ValidationContextFactory validationContextFactory, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
+                                     final ValidationContextFactory validationContextFactory, final ReloadComponent reloadComponent,
+                                     final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
                 reportingTask.getComponent().getClass().getSimpleName(), reportingTask.getComponent().getClass().getCanonicalName(),
-                variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
+                reloadComponent, extensionManager, validationTrigger, false);
     }
 
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
+                                     final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                     final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
                                      final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.reportingTaskRef = new AtomicReference<>(new ReportingTaskDetails(reportingTask));
         this.processScheduler = processScheduler;
@@ -201,7 +200,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), getVariableRegistry());
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
     }
 
     @Override

@@ -45,7 +45,7 @@ public class EvaluatePropertiesWithDifferentELScopes extends AbstractProcessor {
         .description("The value of the property will be evaluated with only with the Variable Registry")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor EVALUATE_NO_EL_CONTEXT = new PropertyDescriptor.Builder()
         .name("Expression Language Not Evaluated")

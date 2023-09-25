@@ -22,7 +22,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flowanalysis.FlowAnalysisContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Map;
 
@@ -36,10 +35,9 @@ public class StandardFlowAnalysisRuleContext extends AbstractFlowAnalysisRuleCon
             final StandardFlowAnalysisRuleNode flowAnalysisRuleNode,
             final Map<PropertyDescriptor, String> properties,
             final FlowController flowController,
-            final ParameterLookup parameterLookup,
-            final VariableRegistry variableRegistry
+            final ParameterLookup parameterLookup
     ) {
-        super(flowAnalysisRuleNode, properties, flowController.getControllerServiceProvider(), parameterLookup, variableRegistry);
+        super(flowAnalysisRuleNode, properties, flowController.getControllerServiceProvider(), parameterLookup);
         this.ruleName = ruleName;
         this.flowController = flowController;
         this.flowAnalysisContext = new StandardFlowAnalysisContext(flowController);

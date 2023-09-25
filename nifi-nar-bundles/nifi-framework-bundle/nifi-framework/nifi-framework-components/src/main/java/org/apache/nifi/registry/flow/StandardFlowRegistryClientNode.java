@@ -44,7 +44,6 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
@@ -82,12 +81,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final ControllerServiceProvider serviceProvider,
             final String componentType,
             final String componentCanonicalClass,
-            final ComponentVariableRegistry variableRegistry,
             final ReloadComponent reloadComponent,
             final ExtensionManager extensionManager,
             final ValidationTrigger validationTrigger,
             final boolean isExtensionMissing) {
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.parent = parent;
         this.flowManager = flowManager;
         this.serviceProvider = serviceProvider;
@@ -338,7 +336,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             group.setProcessGroups(contents.getProcessGroups());
             group.setProcessors(contents.getProcessors());
             group.setRemoteProcessGroups(contents.getRemoteProcessGroups());
-            group.setVariables(contents.getVariables());
             group.setParameterContextName(contents.getParameterContextName());
             group.setFlowFileConcurrency(contents.getFlowFileConcurrency());
             group.setFlowFileOutboundPolicy(contents.getFlowFileOutboundPolicy());

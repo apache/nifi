@@ -38,7 +38,7 @@ public class DummyScheduledReportingTask extends AbstractReportingTask {
         .name("Test with default value")
         .description("Test with default value")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -47,7 +47,7 @@ public class DummyScheduledReportingTask extends AbstractReportingTask {
         .name("Test without default value")
         .description("Test without default value")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 

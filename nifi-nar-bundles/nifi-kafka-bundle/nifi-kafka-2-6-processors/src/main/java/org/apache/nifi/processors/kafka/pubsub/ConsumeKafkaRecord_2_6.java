@@ -92,7 +92,7 @@ import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFK
         description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso({ConsumeKafka_2_6.class, PublishKafka_2_6.class, PublishKafkaRecord_2_6.class})
 public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaClientComponent, VerifiableProcessor {
 
@@ -108,7 +108,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TOPIC_TYPE = new Builder()
@@ -144,7 +144,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new Builder()
@@ -360,7 +360,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
                 .name(propertyDescriptorName)
                 .addValidator(new DynamicPropertyValidator(ConsumerConfig.class))
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 

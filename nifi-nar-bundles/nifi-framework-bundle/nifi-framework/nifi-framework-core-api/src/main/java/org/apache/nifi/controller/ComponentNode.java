@@ -39,7 +39,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 
 import java.net.URL;
 import java.util.Collection;
@@ -213,11 +212,6 @@ public interface ComponentNode extends ComponentAuthorizable {
     default boolean isSupportsSensitiveDynamicProperties() {
         return getComponent().getClass().isAnnotationPresent(SupportsSensitiveDynamicProperties.class);
     }
-
-    /**
-     * @return the variable registry for this component
-     */
-    ComponentVariableRegistry getVariableRegistry();
 
     /**
      * Returns the processor's current Validation Status

@@ -72,8 +72,6 @@ import org.apache.nifi.parameter.mock.PlaceholderParameterProvider;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -140,7 +138,6 @@ public class TestFlowController {
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
-    private VariableRegistry variableRegistry;
     private ExtensionDiscoveringManager extensionManager;
     private StatusHistoryRepository statusHistoryRepository;
     private FlowSynchronizer standardFlowSynchronizer;
@@ -209,11 +206,10 @@ public class TestFlowController {
         policies1.add(policy2);
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
-        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-                auditService, encryptor, bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository,
+                auditService, encryptor, bulletinRepo, extensionManager, statusHistoryRepository,
                 mock(RuleViolationsManager.class));
 
         final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
@@ -591,7 +587,7 @@ public class TestFlowController {
 
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-                auditService, encryptor, bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository, null);
+                auditService, encryptor, bulletinRepo, extensionManager, statusHistoryRepository, null);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
@@ -1395,7 +1391,6 @@ public class TestFlowController {
         rootGroup.setLabels(Collections.emptySet());
         rootGroup.setFunnels(Collections.emptySet());
         rootGroup.setControllerServices(Collections.emptySet());
-        rootGroup.setVariables(Collections.emptyMap());
         rootGroup.setDefaultFlowFileExpiration("0 sec");
         rootGroup.setDefaultBackPressureObjectThreshold(10000L);
         rootGroup.setDefaultBackPressureDataSizeThreshold("1 GB");

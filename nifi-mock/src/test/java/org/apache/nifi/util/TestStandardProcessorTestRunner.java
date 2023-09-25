@@ -43,7 +43,6 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -164,19 +163,6 @@ public class TestStandardProcessorTestRunner {
     }
 
     @Test
-    public void testVariables() {
-        final AddAttributeProcessor proc = new AddAttributeProcessor();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        assertNull(runner.getVariableValue("hello"));
-
-        runner.setVariable("hello", "world");
-        assertEquals("world", runner.getVariableValue("hello"));
-
-        assertEquals("world", runner.removeVariable("hello"));
-        assertNull(runner.getVariableValue("hello"));
-    }
-
-    @Test
     public void testControllerServiceUpdateShouldCallOnSetProperty() {
         // Arrange
         final ControllerService testService = new SimpleTestService();
@@ -220,7 +206,6 @@ public class TestStandardProcessorTestRunner {
         final AddAttributeProcessor proc = new AddAttributeProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         final String serviceIdentifier = "test";
-        final String pdName = "name";
         final String pdValue = "exampleName";
         try {
             runner.addControllerService(serviceIdentifier, testService);

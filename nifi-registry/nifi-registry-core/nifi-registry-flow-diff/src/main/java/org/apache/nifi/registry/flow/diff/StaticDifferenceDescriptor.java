@@ -65,14 +65,6 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
             case SCHEDULED_STATE_CHANGED:
                 description = String.format("%s %s has a Scheduled State of %s in %s but %s in %s", componentA.getComponentType(), getId(componentA), valueA, flowAName, valueB, flowBName);
                 break;
-            case VARIABLE_ADDED:
-                description = String.format("Variable '%s' exists for Process Group with ID %s in %s but not in %s",
-                    fieldName, getId(componentB), flowBName, flowAName);
-                break;
-            case VARIABLE_REMOVED:
-                description = String.format("Variable '%s' exists for Process Group with ID %s in %s but not in %s",
-                    fieldName, getId(componentA), flowAName, flowBName);
-                break;
             case VERSIONED_FLOW_COORDINATES_CHANGED:
                 if (valueA instanceof VersionedFlowCoordinates && valueB instanceof VersionedFlowCoordinates) {
                     final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) valueA;

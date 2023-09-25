@@ -47,7 +47,7 @@ public class JndiJmsConnectionFactoryProperties {
             .description("The fully qualified class name of the JNDI Initial Context Factory Class (java.naming.factory.initial).")
             .required(true)
             .addValidator(NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JNDI_PROVIDER_URL = new Builder()
@@ -56,7 +56,7 @@ public class JndiJmsConnectionFactoryProperties {
             .description("The URL of the JNDI Provider to use as the value for java.naming.provider.url. See additional details documentation for allowed URL schemes.")
             .required(true)
             .addValidator(new JndiJmsProviderUrlValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JNDI_CONNECTION_FACTORY_NAME = new Builder()
@@ -65,7 +65,7 @@ public class JndiJmsConnectionFactoryProperties {
             .description("The name of the JNDI Object to lookup for the Connection Factory.")
             .required(true)
             .addValidator(NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JNDI_CLIENT_LIBRARIES = new Builder()
@@ -76,7 +76,7 @@ public class JndiJmsConnectionFactoryProperties {
                     " will be included, but subdirectories will not be included (i.e., it is not recursive).")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -86,7 +86,7 @@ public class JndiJmsConnectionFactoryProperties {
             .description("The Principal to use when authenticating with JNDI (java.naming.security.principal).")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JNDI_CREDENTIALS = new Builder()
@@ -120,7 +120,7 @@ public class JndiJmsConnectionFactoryProperties {
                 .required(false)
                 .dynamic(true)
                 .addValidator(Validator.VALID)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 

@@ -104,7 +104,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .defaultValue(API_V0_BASE_URL)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 
@@ -123,7 +123,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .displayName("Base ID")
             .description("The ID of the Airtable base to be queried.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -132,7 +132,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .displayName("Table ID")
             .description("The name or the ID of the Airtable table to be queried.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -140,7 +140,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .name("fields")
             .displayName("Fields")
             .description("Comma-separated list of fields to query from the table. Both the field's name and ID can be used.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -148,7 +148,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .name("custom-filter")
             .displayName("Custom Filter")
             .description("Filter records by Airtable's formulas.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -159,7 +159,7 @@ public class QueryAirtableTable extends AbstractProcessor {
                     + " and Airtable servers' clock are not in sync. Must be greater than or equal to 1 second.")
             .defaultValue("3 s")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -175,7 +175,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .name("query-page-size")
             .displayName("Query Page Size")
             .description("Number of records to be fetched in a page. Should be between 1 and 100 inclusively.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createLongValidator(1, 100, true))
             .build();
 
@@ -184,7 +184,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .displayName("Max Records Per FlowFile")
             .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
                     + " result sets into multiple FlowFiles. If no value specified, then all records are returned in a single FlowFile.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 

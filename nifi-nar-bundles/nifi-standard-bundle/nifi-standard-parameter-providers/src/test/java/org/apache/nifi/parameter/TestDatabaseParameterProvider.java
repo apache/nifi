@@ -130,7 +130,7 @@ public class TestDatabaseParameterProvider {
         );
         mockTableResults(new MockTable(TABLE_NAME, rows));
 
-        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext);
+        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext, null);
         final List<ParameterGroup> groups = parameterProvider.fetchParameters(context);
         assertEquals(2, groups.size());
 
@@ -191,7 +191,7 @@ public class TestDatabaseParameterProvider {
         );
         mockTableResults(new MockTable("KAFKA", kafkaRows), new MockTable("S3", s3Rows));
 
-        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext);
+        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext, null);
         final List<ParameterGroup> groups = parameterProvider.fetchParameters(context);
         assertEquals(2, groups.size());
 
@@ -236,7 +236,7 @@ public class TestDatabaseParameterProvider {
     }
 
     public void runTestWithExpectedFailure(final Map<PropertyDescriptor, String> properties) {
-        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext);
+        final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext, null);
         assertThrows(IllegalStateException.class, () -> parameterProvider.fetchParameters(context));
     }
 

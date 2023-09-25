@@ -128,7 +128,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("Base Path")
         .description("Base path for incoming connections")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("contentListener")
         .addValidator(StandardValidators.URI_VALIDATOR)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
@@ -137,7 +137,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("Listening Port")
         .description("The Port to listen on for incoming connections")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .build();
     public static final PropertyDescriptor HEALTH_CHECK_PORT = new PropertyDescriptor.Builder()
@@ -152,7 +152,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
                     "If the processor is set to use one-way SSL, one-way SSL will be used on this port. " +
                     "If the processor is set to use two-way SSL, one-way SSL will be used on this port (client authentication not required).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()

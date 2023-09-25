@@ -101,7 +101,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .required(false)
             .sensitive(true)
             .addValidator((subject, input, context) -> new ValidationResult.Builder().valid(true).build()) // will be validated in customValidate()
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KMS_REGION = new PropertyDescriptor.Builder()

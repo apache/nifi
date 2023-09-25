@@ -182,7 +182,6 @@ import org.apache.nifi.python.DisabledPythonBridge;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -303,7 +302,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final StatusHistoryRepository statusHistoryRepository;
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
-    private final VariableRegistry variableRegistry;
     private final RevisionManager revisionManager;
 
     private final ConnectionLoadBalanceServer loadBalanceServer;
@@ -417,7 +415,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final AuditService auditService,
             final PropertyEncryptor encryptor,
             final BulletinRepository bulletinRepo,
-            final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository,
             final RuleViolationsManager ruleViolationsManager) {
@@ -434,7 +431,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 /* cluster coordinator */ null,
                 /* heartbeat monitor */ null,
                 /* leader election manager */ null,
-                /* variable registry */ variableRegistry,
                 extensionManager,
                 null,
                 statusHistoryRepository,
@@ -452,7 +448,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
-            final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
@@ -470,7 +465,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 clusterCoordinator,
                 heartbeatMonitor,
                 leaderElectionManager,
-                variableRegistry,
                 extensionManager,
                 revisionManager,
                 statusHistoryRepository,
@@ -492,7 +486,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
-            final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
@@ -538,7 +531,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         bulletinRepository = bulletinRepo;
-        this.variableRegistry = variableRegistry == null ? VariableRegistry.EMPTY_REGISTRY : variableRegistry;
 
         try {
             this.provenanceAuthorizableFactory = new StandardProvenanceAuthorizableFactory(this);
@@ -558,7 +550,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         try {
-            this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, this.variableRegistry, extensionManager, ParameterLookup.EMPTY);
+            this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, extensionManager, ParameterLookup.EMPTY);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
@@ -1128,7 +1120,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
-                final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
+                final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
             }
         }
@@ -2326,10 +2318,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ControllerServiceResolver getControllerServiceResolver() {
         return controllerServiceResolver;
-    }
-
-    public VariableRegistry getVariableRegistry() {
-        return variableRegistry;
     }
 
     public PythonBridge getPythonBridge() {

@@ -45,7 +45,7 @@ public class ExternalHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .description("Addresses of one or more the Hazelcast instances, using {host:port} format, separated by comma.")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor HAZELCAST_RETRY_BACKOFF_INITIAL = new PropertyDescriptor.Builder()

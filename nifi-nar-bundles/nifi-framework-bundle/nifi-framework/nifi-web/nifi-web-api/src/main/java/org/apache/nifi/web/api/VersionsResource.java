@@ -1201,7 +1201,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                                                    final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
         logger.info("Updating Process Group with ID {} to version {} of the Versioned Flow", groupId, flowSnapshot.getSnapshotMetadata().getVersion());
 
-        // Step 10-11. Update Process Group to the new flow and update variable registry with any Variables that were added or removed
+        // Step 10-11. Update Process Group to the new flow
         final VersionControlInformationDTO requestVci = requestEntity.getVersionControlInformation();
 
         final FlowRegistryBucket bucket = flowSnapshot.getBucket();

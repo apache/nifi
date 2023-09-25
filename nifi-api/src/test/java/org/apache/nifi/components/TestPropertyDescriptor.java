@@ -149,7 +149,7 @@ public class TestPropertyDescriptor {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
             .name("dir")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 
@@ -167,7 +167,7 @@ public class TestPropertyDescriptor {
             return propertyValue;
         });
 
-        // Should not be valid because Expression Language scope is VARIABLE_REGISTRY, so the ${TestPropertyDescriptor.Var1} will be replaced with
+        // Should not be valid because Expression Language scope is ENVIRONMENT, so the ${TestPropertyDescriptor.Var1} will be replaced with
         // __my_var__, and __my_var__ does not exist.
         assertFalse(descriptor.validate("${TestPropertyDescriptor.Var1}", validationContext).isValid());
 

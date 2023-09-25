@@ -78,7 +78,7 @@ public class TestEnvironmentVariableParameterProvider {
         properties.put(EnvironmentVariableParameterProvider.PARAMETER_GROUP_NAME, "environment variables");
         properties.put(EnvironmentVariableParameterProvider.INCLUDE_ENVIRONMENT_VARIABLES, includeEnvironmentVariables);
         properties.put(EnvironmentVariableParameterProvider.ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY, strategy);
-        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null, null);
 
         // Verify parameter fetching
         final List<ParameterGroup> parameterGroups = parameterProvider.fetchParameters(mockConfigurationContext);

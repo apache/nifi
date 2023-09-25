@@ -56,8 +56,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.dto.VariableDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
@@ -107,9 +105,6 @@ import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
-import org.apache.nifi.web.api.entity.VariableEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -132,8 +127,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class NiFiClientUtil {
     private static final Logger logger = LoggerFactory.getLogger(NiFiClientUtil.class);
@@ -1455,44 +1448,6 @@ public class NiFiClientUtil {
         flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
 
         return getConnectionClient().getFlowFileContent(connectionId, uuid, nodeId);
-    }
-
-    public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {
-        final Set<VariableEntity> variableEntities = new HashSet<>();
-        for (final Map.Entry<String, String> entry : variables.entrySet()) {
-            final VariableEntity entity = new VariableEntity();
-            variableEntities.add(entity);
-
-            final VariableDTO dto = new VariableDTO();
-            dto.setName(entry.getKey());
-            dto.setValue(entry.getValue());
-            dto.setProcessGroupId(processGroup.getId());
-            entity.setVariable(dto);
-        }
-
-        final VariableRegistryDTO variableRegistryDto = new VariableRegistryDTO();
-        variableRegistryDto.setProcessGroupId(processGroup.getId());
-        variableRegistryDto.setVariables(variableEntities);
-
-        final VariableRegistryEntity registryEntity = new VariableRegistryEntity();
-        registryEntity.setProcessGroupRevision(processGroup.getRevision());
-        registryEntity.setVariableRegistry(variableRegistryDto);
-
-        VariableRegistryUpdateRequestEntity updateRequestEntity = nifiClient.getProcessGroupClient().updateVariableRegistry(processGroup.getId(), registryEntity);
-        while (!updateRequestEntity.getRequest().isComplete()) {
-            try {
-                Thread.sleep(100L);
-            } catch (final InterruptedException ie) {
-                throw new RuntimeException("Interrupted while waiting for variable registry to update");
-            }
-
-            updateRequestEntity = nifiClient.getProcessGroupClient().getVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
-        }
-
-        assertNull(updateRequestEntity.getRequest().getFailureReason());
-
-        nifiClient.getProcessGroupClient().deleteVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
-        return updateRequestEntity;
     }
 
     public List<ConfigVerificationResultDTO> verifyParameterProviderConfig(final String taskId, final Map<String, String> properties)

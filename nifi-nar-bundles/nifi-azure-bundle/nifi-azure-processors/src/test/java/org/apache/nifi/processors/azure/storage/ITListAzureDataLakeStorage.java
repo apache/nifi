@@ -221,7 +221,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithFileFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file${suffix}$");
-        runner.setVariable("suffix", "1.*");
+        runner.setEnvironmentVariableValue("suffix", "1.*");
 
         runProcessor();
 
@@ -232,7 +232,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithFileFilterWithELWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file${suffix}$");
-        runner.setVariable("suffix", "1.*");
+        runner.setEnvironmentVariableValue("suffix", "1.*");
         runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
@@ -270,8 +270,8 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListRootWithPathFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
-        runner.setVariable("prefix", "^dir");
-        runner.setVariable("suffix", "1.*$");
+        runner.setEnvironmentVariableValue("prefix", "^dir");
+        runner.setEnvironmentVariableValue("suffix", "1.*$");
 
         runProcessor();
 
@@ -282,8 +282,8 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListRootWithPathFilterWithELWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
-        runner.setVariable("prefix", "^dir");
-        runner.setVariable("suffix", "1.*$");
+        runner.setEnvironmentVariableValue("prefix", "^dir");
+        runner.setEnvironmentVariableValue("suffix", "1.*$");
         runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();

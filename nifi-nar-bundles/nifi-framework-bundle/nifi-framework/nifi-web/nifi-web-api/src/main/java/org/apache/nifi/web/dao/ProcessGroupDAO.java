@@ -22,7 +22,6 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 
@@ -166,14 +165,6 @@ public interface ProcessGroupDAO {
      * @return the corresponding Process Group
      */
     ProcessGroup disconnectVersionControl(String groupId);
-
-    /**
-     * Updates the specified variable registry
-     *
-     * @param variableRegistry the Variable Registry
-     * @return the Process Group that was updated
-     */
-    ProcessGroup updateVariableRegistry(VariableRegistryDTO variableRegistry);
 
     /**
      * Verifies that the specified updates to a current Process Group can be applied at this time

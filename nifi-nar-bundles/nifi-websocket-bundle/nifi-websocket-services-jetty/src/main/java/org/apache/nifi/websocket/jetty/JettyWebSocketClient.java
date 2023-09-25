@@ -101,7 +101,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("Connection Timeout")
             .description("The timeout to connect the WebSocket URI.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("3 sec")
             .build();
@@ -111,7 +111,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("Connection Attempt Count")
             .description("The number of times to try and establish a connection.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("3")
             .build();
@@ -126,7 +126,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     " so that a WebSocket client can reuse the same session id transparently after it reconnects successfully. " +
                     " The maintenance activity is executed until corresponding processors or this controller service is stopped.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 sec")
             .build();
@@ -136,7 +136,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("User Name")
             .description("The user name for Basic Authentication.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -145,7 +145,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("User Password")
             .description("The user password for Basic Authentication.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .sensitive(true)
             .build();
@@ -155,7 +155,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("Authentication Header Charset")
             .description("The charset for Basic Authentication header base64 string.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .defaultValue("US-ASCII")
             .build();
@@ -167,7 +167,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     "Configures a custom HTTP Authorization Header as described in RFC 7235 Section 4.2." +
                     " Setting a custom Authorization Header excludes configuring the User Name and User Password properties for Basic Authentication.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -178,7 +178,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("HTTP Proxy Host")
             .description("The host name of the HTTP Proxy.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -187,7 +187,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("HTTP Proxy Port")
             .description("The port number of the HTTP Proxy.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 

@@ -25,7 +25,6 @@ import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 
 import java.util.Map;
@@ -38,13 +37,11 @@ public class StandardSearchContext implements SearchContext {
     private final String searchTerm;
     private final ProcessorNode processorNode;
     private final ControllerServiceLookup controllerServiceLookup;
-    private final VariableRegistry variableRegistry;
 
-    public StandardSearchContext(final String searchTerm, final ProcessorNode processorNode, final ControllerServiceLookup controllerServiceLookup, VariableRegistry variableRegistry) {
+    public StandardSearchContext(final String searchTerm, final ProcessorNode processorNode, final ControllerServiceLookup controllerServiceLookup) {
         this.searchTerm = searchTerm;
         this.processorNode = processorNode;
         this.controllerServiceLookup = controllerServiceLookup;
-        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -61,7 +58,7 @@ public class StandardSearchContext implements SearchContext {
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = processorNode.getRawPropertyValue(property);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, ParameterLookup.EMPTY, variableRegistry);
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, ParameterLookup.EMPTY);
     }
 
     @Override

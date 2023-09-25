@@ -150,7 +150,6 @@ public class RegistryUtil {
             group.setProcessGroups(contents.getProcessGroups());
             group.setProcessors(contents.getProcessors());
             group.setRemoteProcessGroups(contents.getRemoteProcessGroups());
-            group.setVariables(contents.getVariables());
             group.setFlowFileConcurrency(contents.getFlowFileConcurrency());
             group.setFlowFileOutboundPolicy(contents.getFlowFileOutboundPolicy());
             group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());

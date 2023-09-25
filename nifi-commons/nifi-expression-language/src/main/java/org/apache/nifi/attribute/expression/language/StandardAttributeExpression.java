@@ -21,20 +21,17 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Collections;
 
 public class StandardAttributeExpression implements AttributeExpression {
 
     private final Query query;
-    private final VariableRegistry variableRegistry;
     private final ParameterLookup parameterLookup;
 
 
-    public StandardAttributeExpression(final Query query, final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
+    public StandardAttributeExpression(final Query query, final ParameterLookup parameterLookup) {
         this.query = query;
-        this.variableRegistry = variableRegistry;
         this.parameterLookup = parameterLookup;
     }
 
@@ -60,7 +57,7 @@ public class StandardAttributeExpression implements AttributeExpression {
 
     @Override
     public String evaluate(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
-        final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile);
+        final ValueLookup lookup = new ValueLookup(flowFile);
         final EvaluationContext evaluationContext = new StandardEvaluationContext(lookup, Collections.emptyMap(), parameterLookup);
 
         final Object evaluationResult = query.evaluate(evaluationContext).getValue();

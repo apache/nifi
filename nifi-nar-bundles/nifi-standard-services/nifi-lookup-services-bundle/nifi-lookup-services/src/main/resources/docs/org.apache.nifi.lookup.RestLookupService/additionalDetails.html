@@ -52,10 +52,10 @@
     </ul>
     <p>Would dynamically produce an endpoint of <em>http://example.com/service/john.smith/friend/12345</em></p>
 
-    <h3>Using Variable Registry with URLs</h3>
+    <h3>Using Environment Properties with URLs</h3>
 
-    <p>In addition to the lookup key/value pairs, Variable Registry can be referred from expression languages configured at the URL property.</p>
-    <p>Ex. URL: <em>http://${apiServerHostname}:${apiServerPort}/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths, and variable registry:</p>
+    <p>In addition to the lookup key/value pairs, environment properties / system variables can be referred from expression languages configured at the URL property.</p>
+    <p>Ex. URL: <em>http://${apiServerHostname}:${apiServerPort}/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths, and environment properties:</p>
     <ul>
         <li>apiServerHostname => "test.example.com"</li>
         <li>apiServerPort => "8080"</li>

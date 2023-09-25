@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 @Tags({"lookup", "enrich", "key", "value"})
 @CapabilityDescription("Allows users to add key/value pairs as User-defined Properties. Each property that is added can be looked up by Property Name. "
     + "The coordinates that are passed to the lookup must contain the key 'key'.")
-@DynamicProperty(name = "A key that can be looked up", value = "The value for the key", expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+@DynamicProperty(name = "A key that can be looked up", value = "The value for the key", expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Allows users to add key/value pairs as User-defined Properties. Each property that is added can be looked up by Property Name. "
                 + "The coordinates that are passed to the lookup must contain the key 'key'.")
 public class SimpleKeyValueLookupService extends AbstractControllerService implements StringLookupService {
@@ -52,7 +52,7 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
             .required(false)
             .dynamic(true)
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     }
 

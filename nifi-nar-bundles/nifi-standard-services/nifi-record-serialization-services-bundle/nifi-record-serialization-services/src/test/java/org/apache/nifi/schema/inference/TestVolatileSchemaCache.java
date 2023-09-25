@@ -42,7 +42,7 @@ public class TestVolatileSchemaCache {
             fields.add(new RecordField(String.valueOf(i), RecordFieldType.STRING.getDataType()));
         }
 
-        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null);
+        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null, null);
         final VolatileSchemaCache cache = new VolatileSchemaCache();
         cache.initialize(new MockControllerServiceInitializationContext(cache, "id"));
         cache.setup(configContext);
@@ -62,7 +62,7 @@ public class TestVolatileSchemaCache {
             intFields.add(new RecordField(String.valueOf(i), RecordFieldType.INT.getDataType()));
         }
 
-        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null);
+        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null, null);
         final VolatileSchemaCache cache = new VolatileSchemaCache();
         cache.initialize(new MockControllerServiceInitializationContext(cache, "id"));
         cache.setup(configContext);
@@ -82,7 +82,7 @@ public class TestVolatileSchemaCache {
             intFields.add(new RecordField(String.valueOf(i), RecordFieldType.INT.getDataType()));
         }
 
-        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null);
+        final ConfigurationContext configContext = new MockConfigurationContext(Collections.singletonMap(VolatileSchemaCache.MAX_SIZE, "100"), null, null);
         final VolatileSchemaCache cache = new VolatileSchemaCache() {
             @Override
             protected String createIdentifier(final RecordSchema schema) {

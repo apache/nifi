@@ -23,7 +23,6 @@ Core Properties:
   administrative yield duration: 30 sec
   bored yield duration: 10 millis
   max concurrent threads: 1
-  variable registry properties: additional.properties
 FlowFile Repository:
   partitions: 256
   checkpoint interval: 2 mins

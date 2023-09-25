@@ -234,7 +234,6 @@
         "processGroups": [],
         "processors": [],
         "remoteProcessGroups": [],
-        "variables": {},
         "versionedFlowCoordinates": {
           "bucketId": "6e767fa6-5113-46f0-9b7e-8024b75a40c1",
           "flowId": "2192834e-60d7-413b-9ea9-dc4187824a41",
@@ -245,8 +244,7 @@
       }
     ],
     "processors": [],
-    "remoteProcessGroups": [],
-    "variables": {}
+    "remoteProcessGroups": []
   },
   "flowEncodingVersion": "1.0",
   "parameterContexts": {},

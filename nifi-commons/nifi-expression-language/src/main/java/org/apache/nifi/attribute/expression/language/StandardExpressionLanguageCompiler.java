@@ -21,22 +21,19 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 
 public class StandardExpressionLanguageCompiler implements ExpressionLanguageCompiler {
 
-    private final VariableRegistry variableRegistry;
     private final ParameterLookup parameterLookup;
 
-    public StandardExpressionLanguageCompiler(final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
-        this.variableRegistry = variableRegistry;
+    public StandardExpressionLanguageCompiler(final ParameterLookup parameterLookup) {
         this.parameterLookup = parameterLookup;
     }
 
     @Override
     public AttributeExpression compile(final String expression) throws IllegalArgumentException {
         try {
-            return new StandardAttributeExpression(Query.compile(expression), variableRegistry, parameterLookup);
+            return new StandardAttributeExpression(Query.compile(expression), parameterLookup);
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw new IllegalArgumentException(e.getMessage());
         }

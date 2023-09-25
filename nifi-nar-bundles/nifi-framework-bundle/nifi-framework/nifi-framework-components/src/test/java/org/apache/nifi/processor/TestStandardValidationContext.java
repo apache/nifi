@@ -23,7 +23,6 @@ import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.parameter.StandardParameterTokenList;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.registry.VariableRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -60,7 +59,7 @@ public class TestStandardValidationContext {
         final Map<PropertyDescriptor, PropertyConfiguration> properties = new HashMap<>();
         properties.put(descriptorB, configurationB);
 
-        StandardValidationContext context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", VariableRegistry.EMPTY_REGISTRY, null, false);
+        StandardValidationContext context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", null, false);
 
         // Property B's dependency should be satisfied because A = "abc"
         assertTrue(context.isDependencySatisfied(descriptorB, propertyLookup));
@@ -69,7 +68,7 @@ public class TestStandardValidationContext {
         assertTrue(context.isDependencySatisfied(descriptorA, propertyLookup));
 
         properties.put(descriptorA, new PropertyConfiguration("xyz", new StandardParameterTokenList("xyz", Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED));
-        context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", VariableRegistry.EMPTY_REGISTRY, null, false);
+        context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", null, false);
 
         // Should not be satisfied because A = "xyz".
         assertFalse(context.isDependencySatisfied(descriptorB, propertyLookup));

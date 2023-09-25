@@ -197,7 +197,7 @@ public class GetElasticsearchTest {
     public void testEmptyId() {
         runner.setProperty("refresh", "true");
         runner.setProperty("_source", "${source}");
-        runner.setVariable("source", "msg");
+        runner.setEnvironmentVariableValue("source", "msg");
         runProcessor(runner);
 
         final TestElasticsearchClientService service = getService(runner);

@@ -30,7 +30,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.util.FormatUtils;
 
 import java.util.Map;
@@ -41,7 +41,6 @@ public class StandardPropertyValue implements PropertyValue {
     private final String rawValue;
     private final ControllerServiceLookup serviceLookup;
     private final PreparedQuery preparedQuery;
-    private final VariableRegistry variableRegistry;
     private final ParameterLookup parameterLookup;
     private final ResourceContext resourceContext;
 
@@ -51,12 +50,7 @@ public class StandardPropertyValue implements PropertyValue {
     }
 
     public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup) {
-        this(resourceContext, rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), VariableRegistry.EMPTY_REGISTRY);
-    }
-
-    public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup,
-                                 final VariableRegistry variableRegistry) {
-        this(resourceContext, rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), variableRegistry);
+        this(resourceContext, rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue));
     }
 
     /**
@@ -64,7 +58,7 @@ public class StandardPropertyValue implements PropertyValue {
      * lookup and indicates whether or not the rawValue contains any NiFi
      * Expressions. If it is unknown whether or not the value contains any NiFi
      * Expressions, the
-     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, VariableRegistry)}
+     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, EnvironmentVariables)}
      * constructor should be used or <code>true</code> should be passed.
      * However, if it is known that the value contains no NiFi Expression, that
      * information should be provided so that calls to
@@ -75,14 +69,12 @@ public class StandardPropertyValue implements PropertyValue {
      * @param serviceLookup lookup
      * @param  parameterLookup the parameter lookup
      * @param preparedQuery query
-     * @param variableRegistry variableRegistry
      */
     public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup,
-                                 final PreparedQuery preparedQuery, final VariableRegistry variableRegistry) {
+                                 final PreparedQuery preparedQuery) {
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.preparedQuery = preparedQuery;
-        this.variableRegistry = variableRegistry;
         this.parameterLookup = parameterLookup == null ? ParameterLookup.EMPTY : parameterLookup;
         this.resourceContext = resourceContext;
     }
@@ -175,11 +167,11 @@ public class StandardPropertyValue implements PropertyValue {
             return this;
         }
 
-        final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile, additionalAttributes);
+        final ValueLookup lookup = new ValueLookup(flowFile, additionalAttributes);
         final EvaluationContext evaluationContext = new StandardEvaluationContext(lookup, stateValues, parameterLookup);
         final String evaluated = preparedQuery.evaluateExpressions(evaluationContext, decorator);
 
-        return new StandardPropertyValue(resourceContext, evaluated, serviceLookup, parameterLookup, new EmptyPreparedQuery(evaluated), null);
+        return new StandardPropertyValue(resourceContext, evaluated, serviceLookup, parameterLookup, new EmptyPreparedQuery(evaluated));
     }
 
     @Override

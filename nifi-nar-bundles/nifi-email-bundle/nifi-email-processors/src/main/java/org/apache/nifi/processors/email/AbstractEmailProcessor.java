@@ -76,7 +76,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .displayName("Host Name")
             .description("Network address of Email server (e.g., pop.gmail.com, imap.gmail.com . . .)")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -84,7 +84,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .displayName("Port")
             .description("Numeric value identifying Port of Email server (e.g., 993)")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor AUTHORIZATION_MODE = new PropertyDescriptor.Builder()
@@ -108,7 +108,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .displayName("User Name")
             .description("User Name used for authentication and authorization with Email server.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -117,7 +117,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .description("Password used for authentication and authorization with Email server.")
             .dependsOn(AUTHORIZATION_MODE, PASSWORD_BASED_AUTHORIZATION_MODE)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -126,7 +126,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .displayName("Folder")
             .description("Email folder to retrieve messages from (e.g., INBOX)")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("INBOX")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -135,7 +135,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .displayName("Fetch Size")
             .description("Specify the maximum number of Messages to fetch per call to Email Server.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
@@ -154,7 +154,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .description("The amount of time to wait to connect to Email server")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("30 sec")
             .build();
 

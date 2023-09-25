@@ -37,7 +37,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .description("A comma-separated list of HTTP hosts that host Elasticsearch query nodes. " +
                     "Note that the Host is included in requests as a header (typically including domain and port, e.g. elasticsearch:9200).")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -68,7 +68,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .description("The username to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -79,7 +79,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

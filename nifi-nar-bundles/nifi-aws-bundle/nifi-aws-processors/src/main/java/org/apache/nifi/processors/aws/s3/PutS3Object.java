@@ -273,7 +273,7 @@ public class PutS3Object extends AbstractS3Processor {
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .defaultValue("${java.io.tmpdir}")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(

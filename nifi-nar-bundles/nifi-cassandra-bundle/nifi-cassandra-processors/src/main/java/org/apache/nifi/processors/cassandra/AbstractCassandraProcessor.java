@@ -80,7 +80,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                     + "comma-separated and in hostname:port format. Example node1:port,node2:port,...."
                     + " The default client port for Cassandra is 9042, but the port(s) must be explicitly specified.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
@@ -91,7 +91,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                     "if the processor exposes the 'Table' property, the keyspace name has to be provided with the " +
                     "table name in the form of <KEYSPACE>.<TABLE>")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -117,7 +117,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .name("Username")
             .description("Username to access the Cassandra cluster")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -126,7 +126,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .description("Password to access the Cassandra cluster")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

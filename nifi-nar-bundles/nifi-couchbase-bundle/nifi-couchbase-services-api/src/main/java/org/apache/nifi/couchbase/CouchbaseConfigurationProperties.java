@@ -37,7 +37,7 @@ public class CouchbaseConfigurationProperties {
             .required(true)
             .addValidator(Validator.VALID)
             .defaultValue("default")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
@@ -55,6 +55,6 @@ public class CouchbaseConfigurationProperties {
             .description("The Sub-Document lookup path within the target JSON document.")
             .required(false)
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 }

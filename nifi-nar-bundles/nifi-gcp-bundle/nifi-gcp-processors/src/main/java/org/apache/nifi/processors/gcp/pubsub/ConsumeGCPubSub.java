@@ -92,7 +92,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .description("Name of the Google Cloud Pub/Sub Subscription")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private SubscriberStub subscriber = null;

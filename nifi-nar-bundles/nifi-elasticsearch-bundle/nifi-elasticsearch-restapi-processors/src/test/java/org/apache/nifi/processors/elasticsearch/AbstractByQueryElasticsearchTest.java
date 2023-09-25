@@ -194,7 +194,7 @@ public abstract class AbstractByQueryElasticsearchTest {
         runner.setProperty(AbstractByQueryElasticsearch.QUERY_ATTRIBUTE, queryAttr());
         runner.setProperty("refresh", "true");
         runner.setProperty("slices", "${slices}");
-        runner.setVariable("slices", "auto");
+        runner.setEnvironmentVariableValue("slices", "auto");
         runner.setIncomingConnection(false);
         runner.assertValid();
         runner.run();

@@ -137,7 +137,6 @@ import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -243,7 +242,6 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
@@ -326,8 +324,6 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.api.entity.VariableEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
@@ -1234,98 +1230,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(remoteProcessGroupNode));
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         return entityFactory.createRemoteProcessGroupPortEntity(snapshot.getComponent(), updatedRevision, permissions, operatePermissions);
-    }
-
-    @Override
-    public Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup group = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        if (group == null) {
-            throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistryDto.getProcessGroupId());
-        }
-
-        final Map<String, String> variableMap = new HashMap<>();
-        variableRegistryDto.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
-            .map(VariableEntity::getVariable)
-            .forEach(var -> variableMap.put(var.getName(), var.getValue()));
-
-        final Set<AffectedComponentDTO> affectedComponentDtos = new HashSet<>();
-
-        final Set<String> updatedVariableNames = getUpdatedVariables(group, variableMap);
-        for (final String variableName : updatedVariableNames) {
-            final Set<ComponentNode> affectedComponents = group.getComponentsAffectedByVariable(variableName);
-
-            for (final ComponentNode component : affectedComponents) {
-                if (component instanceof ProcessorNode) {
-                    final ProcessorNode procNode = (ProcessorNode) component;
-                    if (procNode.isRunning()) {
-                        affectedComponentDtos.add(dtoFactory.createAffectedComponentDto(procNode));
-                    }
-                } else if (component instanceof ControllerServiceNode) {
-                    final ControllerServiceNode serviceNode = (ControllerServiceNode) component;
-                    if (serviceNode.isActive()) {
-                        affectedComponentDtos.add(dtoFactory.createAffectedComponentDto(serviceNode));
-                    }
-                } else {
-                    throw new RuntimeException("Found unexpected type of Component [" + component.getCanonicalClassName() + "] dependending on variable");
-                }
-            }
-        }
-
-        return affectedComponentDtos;
-    }
-
-    @Override
-    public Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup group = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        if (group == null) {
-            throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistryDto.getProcessGroupId());
-        }
-
-        final Map<String, String> variableMap = new HashMap<>();
-        variableRegistryDto.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
-                .map(VariableEntity::getVariable)
-                .forEach(var -> variableMap.put(var.getName(), var.getValue()));
-
-        final Set<AffectedComponentEntity> affectedComponentEntities = new HashSet<>();
-
-        final Set<String> updatedVariableNames = getUpdatedVariables(group, variableMap);
-        for (final String variableName : updatedVariableNames) {
-            final Set<ComponentNode> affectedComponents = group.getComponentsAffectedByVariable(variableName);
-            affectedComponentEntities.addAll(dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager));
-        }
-
-        return affectedComponentEntities;
-    }
-
-    private Set<String> getUpdatedVariables(final ProcessGroup group, final Map<String, String> newVariableValues) {
-        final Set<String> updatedVariableNames = new HashSet<>();
-
-        final ComponentVariableRegistry registry = group.getVariableRegistry();
-        for (final Map.Entry<String, String> entry : newVariableValues.entrySet()) {
-            final String varName = entry.getKey();
-            final String newValue = entry.getValue();
-
-            final String curValue = registry.getVariableValue(varName);
-            if (!Objects.equals(newValue, curValue)) {
-                updatedVariableNames.add(varName);
-            }
-        }
-
-        return updatedVariableNames;
-    }
-
-
-    @Override
-    public VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        final RevisionUpdate<VariableRegistryDTO> snapshot = updateComponent(revision,
-            processGroupNode,
-            () -> processGroupDAO.updateVariableRegistry(variableRegistryDto),
-            processGroup -> dtoFactory.createVariableRegistryDto(processGroup, revisionManager));
-
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
-        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
-        return entityFactory.createVariableRegistryEntity(snapshot.getComponent(), updatedRevision, permissions);
     }
 
     public void verifyCreateParameterContext(final ParameterContextDTO parameterContextDto) {
@@ -4781,56 +4685,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VariableRegistryEntity getVariableRegistry(final String groupId, final boolean includeAncestorGroups) {
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        if (processGroup == null) {
-            throw new ResourceNotFoundException("Could not find group with ID " + groupId);
-        }
-
-        return createVariableRegistryEntity(processGroup, includeAncestorGroups);
-    }
-
-    private VariableRegistryEntity createVariableRegistryEntity(final ProcessGroup processGroup, final boolean includeAncestorGroups) {
-        final Set<String> variablesToIgnore = new HashSet<>();
-
-        final VariableRegistryDTO registryDto = dtoFactory.createVariableRegistryDto(processGroup, revisionManager);
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
-
-        if (includeAncestorGroups) {
-            ProcessGroup parent = processGroup.getParent();
-            while (parent != null) {
-                final PermissionsDTO parentPerms = dtoFactory.createPermissionsDto(parent);
-                if (Boolean.TRUE.equals(parentPerms.getCanRead())) {
-                    final VariableRegistryDTO parentRegistryDto = dtoFactory.createVariableRegistryDto(parent, revisionManager, variablesToIgnore);
-                    final Set<VariableEntity> parentVariables = parentRegistryDto.getVariables();
-                    registryDto.getVariables().addAll(parentVariables);
-                    registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
-                }
-
-                parent = parent.getParent();
-            }
-        }
-
-        return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);
-    }
-
-    @Override
-    public VariableRegistryEntity populateAffectedComponents(final VariableRegistryDTO variableRegistryDto) {
-        final String groupId = variableRegistryDto.getProcessGroupId();
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        if (processGroup == null) {
-            throw new ResourceNotFoundException("Could not find group with ID " + groupId);
-        }
-
-        final VariableRegistryDTO registryDto = dtoFactory.populateAffectedComponents(variableRegistryDto, processGroup, revisionManager);
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);
-    }
-
-    @Override
     public Set<ControllerServiceEntity> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups,
                                                               final boolean includeReferencingComponents) {
         final Set<ControllerServiceNode> serviceNodes = controllerServiceDAO.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
@@ -5465,7 +5319,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowManager flowManager = controllerFacade.getFlowManager();
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
-            .filter(difference -> !FlowDifferenceFilters.isVariableValueChange(difference))
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))

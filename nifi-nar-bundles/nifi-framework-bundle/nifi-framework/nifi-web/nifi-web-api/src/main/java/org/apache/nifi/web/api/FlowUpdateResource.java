@@ -177,11 +177,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         //    was removed, unless it currently has no incoming connections. Ensure that no Output Port was removed,
         //    unless it currently has no outgoing connections. Checking ports & connections could be done before
         //    stopping everything, but removal of Connections cannot.
-        // 10. Update variable registry to include new variables
-        //    (only new variables so don't have to worry about affected components? Or do we need to in case a processor
-        //    is already referencing the variable? In which case we need to include the affected components above in the
-        //    set of affected components before stopping/disabling.).
-        // 11. Update components in the Process Group; update Version Control Information (registry version change only).
+        // 10.-11. Update components in the Process Group; update Version Control Information (registry version change only).
         // 12. Re-Enable all affected Controller Services that were not removed.
         // 13. Re-Start all Processors, Funnels, Ports that are affected and not removed.
 
@@ -425,7 +421,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 final RevisionDTO currentGroupRevisionDto = serviceFacade.getProcessGroup(groupId).getRevision();
                 final Revision currentGroupRevision = new Revision(currentGroupRevisionDto.getVersion(), currentGroupRevisionDto.getClientId(), groupId);
 
-                // Step 10-11. Update Process Group to the new flow and update variable registry with any Variables that were added or removed.
+                // Step 10-11. Update Process Group to the new flow.
                 // Each concrete class defines its own update flow functionality
                 try {
                     performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);

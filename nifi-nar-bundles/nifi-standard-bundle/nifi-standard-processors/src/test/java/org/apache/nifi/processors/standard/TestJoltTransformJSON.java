@@ -329,7 +329,7 @@ public class TestJoltTransformJSON {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/defaultrELSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.DEFAULTR);
-        runner.setVariable("quota","5");
+        runner.setEnvironmentVariableValue("quota","5");
         runner.enqueue(JSON_INPUT);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
@@ -436,7 +436,7 @@ public class TestJoltTransformJSON {
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"${CUSTOM_JOLT_CLASS}");
         runner.setProperty(JoltTransformJSON.MODULES, "${CUSTOM_JAR}");
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM,JoltTransformJSON.CUSTOMR);
-        runner.setVariable("CUSTOM_JAR", customJarPath);
+        runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
         runner.enqueue(JSON_INPUT, customSpecs);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);

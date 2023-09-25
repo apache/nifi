@@ -40,7 +40,6 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Answers;
@@ -258,8 +257,8 @@ public class TestAbstractComponentNode {
                 .useConstructor(
                         "id", mock(ValidationContextFactory.class),
                         serviceProvider, "componentType", "componentClass",
-                        mock(ComponentVariableRegistry.class), mock(ReloadComponent.class),
-                        mock(ExtensionManager.class), mock(ValidationTrigger.class), false));
+                        mock(ReloadComponent.class), mock(ExtensionManager.class),
+                        mock(ValidationTrigger.class), false));
         when(componentNode.getControllerServiceProvider()).thenReturn(serviceProvider);
         when(componentNode.getComponent()).thenReturn(processor);
 
@@ -393,7 +392,7 @@ public class TestAbstractComponentNode {
 
         public LocalComponentNode(final ControllerServiceProvider controllerServiceProvider, final ValidationTrigger validationTrigger) {
             super("id", mock(ValidationContextFactory.class), controllerServiceProvider, "unit test component",
-                ValidationControlledAbstractComponentNode.class.getCanonicalName(), mock(ComponentVariableRegistry.class), mock(ReloadComponent.class),
+                ValidationControlledAbstractComponentNode.class.getCanonicalName(), mock(ReloadComponent.class),
                 mock(ExtensionManager.class), validationTrigger, false);
         }
 

@@ -86,7 +86,7 @@ public class ScanAttribute extends AbstractProcessor {
                     + "the text file are loaded into memory when the processor is scheduled and reloaded when the contents are modified.")
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
             .name("Dictionary Filter Pattern")

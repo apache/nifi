@@ -150,6 +150,6 @@ public class CSVUtilsTest {
         properties.put(CSVUtils.COMMENT_MARKER, commentMarker);
         properties.put(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES, allowDuplicateHeaderNames);
 
-        return new MockConfigurationContext(properties, null);
+        return new MockConfigurationContext(properties, null, null);
     }
 }

@@ -615,7 +615,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     private boolean isStateful(final ControllerServiceNode controllerServiceNode) {
         final ControllerService controllerService = controllerServiceNode.getControllerServiceImplementation();
-        final ConfigurationContext context = new StandardConfigurationContext(controllerServiceNode, controllerServiceProvider, null, rootGroup.getVariableRegistry());
+        final ConfigurationContext context = new StandardConfigurationContext(controllerServiceNode, controllerServiceProvider, null);
         return controllerService.isStateful(context);
     }
 

@@ -24,7 +24,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
@@ -40,7 +39,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -980,15 +978,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
 
     /**
-     * Ensures that the given variables can be updated
-     *
-     * @param updatedVariables the new set of variable names and values
-     *
-     * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
-     */
-    void verifyCanUpdateVariables(Map<String, String> updatedVariables);
-
-    /**
      * Ensures that the contents of the Process Group can be updated to match the given new flow
      *
      * @param updatedFlow the proposed updated flow
@@ -1021,29 +1010,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
      */
     void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String saveAction);
-
-    /**
-     * Updates the variables that are provided by this Process Group
-     *
-     * @param variables the variables to provide
-     * @throws IllegalStateException if the Process Group is not in a state that allows the variables to be updated
-     */
-    void setVariables(Map<String, String> variables);
-
-    /**
-     * Returns the Variable Registry for this Process Group
-     *
-     * @return the Variable Registry for this Process Group
-     */
-    ComponentVariableRegistry getVariableRegistry();
-
-    /**
-     * Returns a set of all components that are affected by the variable with the given name
-     *
-     * @param variableName the name of the variable
-     * @return a set of all components that are affected by the variable with the given name
-     */
-    Set<ComponentNode> getComponentsAffectedByVariable(String variableName);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

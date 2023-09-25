@@ -53,7 +53,7 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
             .defaultValue("nifi") // Hazelcast's default is "dev", "nifi" overwrites this.
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private volatile HazelcastInstance instance;

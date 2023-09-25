@@ -58,7 +58,6 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -102,7 +101,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final AtomicReference<String> annotationData = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final ComponentVariableRegistry variableRegistry;
     private final ReloadComponent reloadComponent;
     private final ExtensionManager extensionManager;
 
@@ -122,8 +120,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                 final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+                                 final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                 final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
@@ -131,7 +129,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.reloadComponent = reloadComponent;
-        this.variableRegistry = variableRegistry;
         this.validationTrigger = validationTrigger;
         this.extensionManager = extensionManager;
         this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
@@ -193,7 +190,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 if (!StringUtils.isEmpty(value)) {
                     final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup());
                     final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
                     additionalUrls.addAll(references.asURLs());
                 }
@@ -1363,11 +1360,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         } finally {
             lock.unlock();
         }
-    }
-
-    @Override
-    public ComponentVariableRegistry getVariableRegistry() {
-        return this.variableRegistry;
     }
 
     protected ReloadComponent getReloadComponent() {

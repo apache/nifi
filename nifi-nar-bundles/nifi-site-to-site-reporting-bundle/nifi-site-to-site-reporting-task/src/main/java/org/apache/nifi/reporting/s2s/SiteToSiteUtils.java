@@ -46,7 +46,7 @@ public class SiteToSiteUtils {
                     + "of http(s)://host:port/nifi. This destination URL will only be used to initiate the Site-to-Site connection. The "
                     + "data sent by this reporting task will be load-balanced on all the nodes of the destination (if clustered).")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(new NiFiUrlValidator())
             .build();
     public static final PropertyDescriptor PORT_NAME = new PropertyDescriptor.Builder()
@@ -54,7 +54,7 @@ public class SiteToSiteUtils {
             .displayName("Input Port Name")
             .description("The name of the Input Port to deliver data to.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
@@ -69,7 +69,7 @@ public class SiteToSiteUtils {
             .displayName("Instance URL")
             .description("The URL of this instance to use in the Content URI of each event.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("http://${hostname(true)}:8080/nifi")
             .addValidator(new NiFiUrlValidator())
             .build();
@@ -139,7 +139,7 @@ public class SiteToSiteUtils {
             .name("Platform")
             .description("The value to use for the platform field in each event.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

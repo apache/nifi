@@ -28,8 +28,6 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -70,7 +68,6 @@ public class StandardFlowServiceTest {
     private AuditService mockAuditService;
     private PropertyEncryptor mockEncryptor;
     private RevisionManager revisionManager;
-    private VariableRegistry variableRegistry;
     private ExtensionDiscoveringManager extensionManager;
     private StatusHistoryRepository statusHistoryRepository;
 
@@ -82,17 +79,13 @@ public class StandardFlowServiceTest {
     @BeforeEach
     public void setup() throws Exception {
         properties = NiFiProperties.createBasicNiFiProperties(null);
-
-
-
-        variableRegistry = new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths());
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
         authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
         revisionManager = mock(RevisionManager.class);
         extensionManager = mock(ExtensionDiscoveringManager.class);
         flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
-                                        new VolatileBulletinRepository(), variableRegistry, extensionManager, statusHistoryRepository, null);
+                                        new VolatileBulletinRepository(), extensionManager, statusHistoryRepository, null);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, revisionManager, authorizer,
                 FlowSerializationStrategy.WRITE_XML_AND_JSON);
         statusHistoryRepository = mock(StatusHistoryRepository.class);

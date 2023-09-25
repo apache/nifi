@@ -27,7 +27,6 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
@@ -51,7 +50,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private PropertyEncryptor encryptor;
     private BulletinRepository bulletinRepository;
     private ClusterCoordinator clusterCoordinator;
-    private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
     private ExtensionDiscoveringManager extensionManager;
     private RevisionManager revisionManager;
@@ -77,7 +75,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     clusterCoordinator,
                     heartbeatMonitor,
                     leaderElectionManager,
-                    variableRegistry,
                     extensionManager,
                     revisionManager,
                     statusHistoryRepository,
@@ -90,7 +87,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     auditService,
                     encryptor,
                     bulletinRepository,
-                    variableRegistry,
                     extensionManager,
                     statusHistoryRepository,
                     ruleViolationsManager);
@@ -135,10 +131,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
-    }
-
-    public void setVariableRegistry(VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
     }
 
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {

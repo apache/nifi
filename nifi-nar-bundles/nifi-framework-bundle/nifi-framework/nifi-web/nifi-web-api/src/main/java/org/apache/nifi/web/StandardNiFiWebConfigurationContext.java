@@ -40,7 +40,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
@@ -93,7 +92,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private ReportingTaskProvider reportingTaskProvider;
     private AuditService auditService;
     private Authorizer authorizer;
-    private VariableRegistry variableRegistry;
 
     private void authorizeFlowAccess(final NiFiUser user) {
         // authorize access
@@ -1165,9 +1163,5 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
-    }
-
-    public void setVariableRegistry(final VariableRegistry variableRegistry){
-        this.variableRegistry = variableRegistry;
     }
 }

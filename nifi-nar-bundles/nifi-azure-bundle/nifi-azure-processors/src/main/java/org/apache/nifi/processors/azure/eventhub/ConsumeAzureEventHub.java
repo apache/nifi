@@ -114,7 +114,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Event Hub Namespace")
             .description("The namespace that the Azure Event Hubs is assigned to. This is generally equal to <Event Hub Names>-ns.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
@@ -122,7 +122,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Event Hub Name")
             .description("The name of the event hub to pull messages from.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
@@ -131,7 +131,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
@@ -144,7 +144,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Consumer Group")
             .description("The name of the consumer group to use.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("$Default")
             .required(true)
             .build();
@@ -153,7 +153,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Consumer Hostname")
             .description("DEPRECATED: This property is no longer used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 
@@ -202,7 +202,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     " https://github.com/Azure/azure-event-hubs-java/issues/125")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("300")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -216,7 +216,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     " The higher number, the higher throughput, but possibly less consistent.")
             .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor RECEIVE_TIMEOUT = new PropertyDescriptor.Builder()
@@ -225,7 +225,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .description("The amount of time this consumer should wait to receive the Prefetch Count before returning.")
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
@@ -233,7 +233,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .displayName("Storage Account Name")
             .description("Name of the Azure Storage account to store event hub consumer group state.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
@@ -242,7 +242,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .description("The Azure Storage account key to store event hub consumer group state.")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
     static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
@@ -252,7 +252,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .sensitive(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(SAS_TOKEN_PATTERN, true,
                     "Token must start with a ? character."))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
@@ -261,7 +261,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .description("Name of the Azure Storage container to store the event hub consumer group state." +
                     " If not specified, event hub name is used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 

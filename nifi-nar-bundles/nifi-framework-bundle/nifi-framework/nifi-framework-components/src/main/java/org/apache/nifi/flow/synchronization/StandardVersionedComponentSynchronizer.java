@@ -92,8 +92,6 @@ import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
@@ -157,16 +155,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
 
-    private Set<String> preExistingVariables = new HashSet<>();
     private FlowSynchronizationOptions syncOptions;
     private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
 
     public StandardVersionedComponentSynchronizer(final VersionedFlowSynchronizationContext context) {
         this.context = context;
-    }
-
-    private void setPreExistingVariables(final Set<String> preExistingVariables) {
-        this.preExistingVariables = preExistingVariables;
     }
 
     private void setUpdatedVersionedComponentIds(final Set<String> updatedVersionedComponentIds) {
@@ -249,18 +242,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
-        final Set<String> knownVariables = getKnownVariableNames(group);
-
-        preExistingVariables.clear();
-
-        // If we don't want to update existing variables, we need to populate the pre-existing variables so that we know which variables already existed.
-        // We can't do this when updating the Variable Registry for a Process Group because variables are inherited, and the variables of the parent group
-        // may already have been updated when we get to the point of updating a child's Variable Registry. As a result, we build up a Set of all known
-        // Variables before we update the Variable Registries.
-        if (!options.isUpdateExistingVariables()) {
-            preExistingVariables.addAll(knownVariables);
-        }
-
         context.getFlowManager().withParameterContextResolution(() -> {
             try {
                 final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
@@ -306,7 +287,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
-        updateVariableRegistry(group, proposed);
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
             FlowFileConcurrency.valueOf(proposed.getFlowFileConcurrency());
@@ -545,14 +525,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, context.getComponentIdGenerator(), preExistingVariables,
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, context.getComponentIdGenerator(),
                         versionedParameterContexts, parameterProviderReferences, topLevelGroup);
                 context.getFlowManager().onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, group);
             } else if (childCoordinates == null || syncOptions.isUpdateDescendantVersionedFlows()) {
                 final StandardVersionedComponentSynchronizer sync = new StandardVersionedComponentSynchronizer(context);
-                sync.setPreExistingVariables(preExistingVariables);
                 sync.setUpdatedVersionedComponentIds(updatedVersionedComponentIds);
                 final FlowSynchronizationOptions options = FlowSynchronizationOptions.Builder.from(syncOptions)
                     .updateGroupSettings(true)
@@ -1183,7 +1162,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
-    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final ComponentIdGenerator componentIdGenerator, final Set<String> variablesToSkip,
+    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final ComponentIdGenerator componentIdGenerator,
                                          final Map<String, VersionedParameterContext> versionedParameterContexts,
                                          final Map<String, ParameterProviderReference> parameterProviderReferences, ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
         final String id = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
@@ -1195,7 +1174,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         destination.addProcessGroup(group);
 
         final StandardVersionedComponentSynchronizer sync = new StandardVersionedComponentSynchronizer(context);
-        sync.setPreExistingVariables(variablesToSkip);
         sync.setUpdatedVersionedComponentIds(updatedVersionedComponentIds);
 
         final FlowSynchronizationOptions options = FlowSynchronizationOptions.Builder.from(syncOptions)
@@ -1771,27 +1749,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             }
 
-            // Determine which components must be stopped based on changes to Variable Registry.
-            final Set<String> updatedVariableNames = getUpdatedVariableNames(groupToUpdate.getVariableRegistry(), proposed.getVariables() == null ? Collections.emptyMap() : proposed.getVariables());
-            if (!updatedVariableNames.isEmpty()) {
-                for (final String variableName : updatedVariableNames) {
-                    final Set<ComponentNode> affectedComponents = groupToUpdate.getComponentsAffectedByVariable(variableName);
-                    for (final ComponentNode component : affectedComponents) {
-                        if (component instanceof ProcessorNode) {
-                            final ProcessorNode processor = (ProcessorNode) component;
-                            if (processor.isRunning()) {
-                                processorsToStop.add(processor);
-                            }
-                        } else if (component instanceof ControllerServiceNode) {
-                            final ControllerServiceNode service = (ControllerServiceNode) component;
-                            if (service.isActive()) {
-                                controllerServicesToStop.add(service);
-                            }
-                        }
-                    }
-                }
-            }
-
             try {
                 // Stop all necessary running processors
                 stopOrTerminate(processorsToStop, timeout, synchronizationOptions);
@@ -1813,7 +1770,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 groupToUpdate.setFlowFileOutboundPolicy(proposed.getFlowFileOutboundPolicy() == null ? FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE :
                     FlowFileOutboundPolicy.valueOf(proposed.getFlowFileOutboundPolicy()));
                 groupToUpdate.setParameterContext(parameterContext);
-                groupToUpdate.setVariables(proposed.getVariables());
                 groupToUpdate.setComments(proposed.getComments());
                 groupToUpdate.setName(proposed.getName());
                 groupToUpdate.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
@@ -1916,33 +1872,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             .anyMatch(connection -> connection.getSource() != processor);
     }
 
-    private Set<String> getUpdatedVariableNames(final ComponentVariableRegistry variableRegistry, final Map<String, String> updatedVariables) {
-        final Set<String> updatedVariableNames = new HashSet<>();
-
-        final Map<String, String> currentVariables = new HashMap<>();
-        variableRegistry.getVariableMap().forEach((key, value) -> currentVariables.put(key.getName(), value));
-
-        // If there's any value in the updated variables that differs from the current variables, add the variable name to our Set
-        for (final Map.Entry<String, String> entry : updatedVariables.entrySet()) {
-            final String key = entry.getKey();
-            final String updatedValue = entry.getValue();
-            final String currentValue = currentVariables.get(key);
-
-            if (!Objects.equals(currentValue, updatedValue)) {
-                updatedVariableNames.add(key);
-            }
-        }
-
-        // For any variable that currently exists but doesn't exist in the updated variables, add it to our Set
-        for (final String key : currentVariables.keySet()) {
-            if (!updatedVariables.containsKey(key)) {
-                updatedVariableNames.add(key);
-            }
-        }
-
-        return updatedVariableNames;
-    }
-
 
     private void verifyNotInherited(final String parameterContextId) {
         for (final ParameterContext parameterContext : context.getFlowManager().getParameterContextManager().getParameterContexts()) {
@@ -2024,39 +1953,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
         versionedParameterContext.setParameterProvider(parameterProviderIdToSet);
-    }
-
-    private void updateVariableRegistry(final ProcessGroup group, final VersionedProcessGroup proposed) {
-        // Determine which variables have been added/removed and add/remove them from this group's variable registry.
-        // We don't worry about if a variable value has changed, because variables are designed to be 'environment specific.'
-        // As a result, once imported, we won't update variables to match the remote flow, but we will add any missing variables
-        // and remove any variables that are no longer part of the remote flow.
-        final Map<String, String> existingVariableMap = new HashMap<>();
-        group.getVariableRegistry().getVariableMap().forEach((descriptor, value) -> existingVariableMap.put(descriptor.getName(), value));
-
-        final Map<String, String> updatedVariableMap = new HashMap<>();
-
-        // If any new variables exist in the proposed flow, add those to the variable registry.
-        for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
-            final String variableName = entry.getKey();
-            final String proposedValue = entry.getValue();
-            final String existingValue = existingVariableMap.get(variableName);
-            final boolean alreadyAccessible = existingVariableMap.containsKey(variableName) || preExistingVariables.contains(variableName);
-            final boolean newVariable = !alreadyAccessible;
-
-            if (newVariable || (syncOptions.isUpdateExistingVariables() && !Objects.equals(proposedValue, existingValue))) {
-                updatedVariableMap.put(variableName, proposedValue);
-            }
-        }
-
-        // If any variables were removed from the proposed flow, add those as null values to remove them from the variable registry.
-        for (final String existingVariableName : existingVariableMap.keySet()) {
-            if (!proposed.getVariables().containsKey(existingVariableName)) {
-                updatedVariableMap.put(existingVariableName, null);
-            }
-        }
-
-        group.setVariables(updatedVariableMap);
     }
 
     private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
@@ -2639,19 +2535,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         return stoppedComponents;
-    }
-
-    private Set<Connectable> getDownstreamComponents(final Connectable component, final boolean includeSelf) {
-        final Set<Connectable> components = new HashSet<>();
-        if (includeSelf) {
-            components.add(component);
-        }
-
-        for (final Connection connection : component.getConnections()) {
-            components.add(connection.getDestination());
-        }
-
-        return components;
     }
 
     private <T extends Connectable> Set<T> stopOrTerminate(final Set<T> components, final long timeout, final FlowSynchronizationOptions synchronizationOptions)
@@ -3835,23 +3718,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // child group successfully matched, recurse into verification of its contents
                 verifyCanRemoveMissingComponents(childGroup, proposedChildGroup, verifyConnectionRemoval);
             }
-        }
-    }
-
-    private Set<String> getKnownVariableNames(final ProcessGroup group) {
-        final Set<String> variableNames = new HashSet<>();
-        populateKnownVariableNames(group, variableNames);
-        return variableNames;
-    }
-
-    private void populateKnownVariableNames(final ProcessGroup group, final Set<String> knownVariables) {
-        group.getVariableRegistry().getVariableMap().keySet().stream()
-            .map(VariableDescriptor::getName)
-            .forEach(knownVariables::add);
-
-        final ProcessGroup parent = group.getParent();
-        if (parent != null) {
-            populateKnownVariableNames(parent, knownVariables);
         }
     }
 

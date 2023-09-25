@@ -35,7 +35,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.HashMap;
 import java.util.List;
@@ -49,38 +48,40 @@ public class MockPropertyValue implements PropertyValue {
     private final MockControllerServiceLookup serviceLookup;
     private final PropertyDescriptor propertyDescriptor;
     private final PropertyValue stdPropValue;
-    private final VariableRegistry variableRegistry;
+
+    // This is only for testing purposes as we don't want to set env/sys variables in the tests
+    private Map<String, String> environmentVariables;
 
     private boolean expressionsEvaluated;
 
     public MockPropertyValue(final String rawValue) {
-        this(rawValue, null);
+        this(rawValue, null, null);
     }
 
-    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
-        this(rawValue, serviceLookup, VariableRegistry.EMPTY_REGISTRY, null);
+    public MockPropertyValue(final String rawValue, final Map<String, String> environmentVariables) {
+        this(rawValue, null, environmentVariables);
     }
 
-    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final VariableRegistry variableRegistry) {
-        this(rawValue, serviceLookup, variableRegistry, null);
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> environmentVariables) {
+        this(rawValue, serviceLookup, null, environmentVariables);
     }
 
-    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, VariableRegistry variableRegistry, final PropertyDescriptor propertyDescriptor) {
-        this(rawValue, serviceLookup, propertyDescriptor, false, variableRegistry);
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
+            final Map<String, String> environmentVariables) {
+        this(rawValue, serviceLookup, propertyDescriptor, false, environmentVariables);
     }
 
-    protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor, final boolean alreadyEvaluated,
-            final VariableRegistry variableRegistry) {
-
+    protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
+            final boolean alreadyEvaluated, final Map<String, String> environmentVariables) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), propertyDescriptor);
-        this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, ParameterLookup.EMPTY, variableRegistry);
+        this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, ParameterLookup.EMPTY);
         this.rawValue = rawValue;
         this.serviceLookup = (MockControllerServiceLookup) serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();
         this.expressionLanguageScope = propertyDescriptor == null ? null : propertyDescriptor.getExpressionLanguageScope();
         this.propertyDescriptor = propertyDescriptor;
         this.expressionsEvaluated = alreadyEvaluated;
-        this.variableRegistry = variableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
     private void ensureExpressionsEvaluated() {
@@ -207,15 +208,15 @@ public class MockPropertyValue implements PropertyValue {
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile) throws ProcessException {
         /*
          * The reason for this null check is that somewhere in the test API, it automatically assumes that a null FlowFile
-         * should be treated as though it were evaluated with the VARIABLE_REGISTRY scope instead of the flowfile scope. When NiFi
+         * should be treated as though it were evaluated with the ENVIRONMENT scope instead of the flowfile scope. When NiFi
          * is running, it doesn't care when it's evaluating EL against a null flowfile. However, the testing framework currently
          * raises an error which makes it not mimick real world behavior.
          */
         if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
             return evaluateAttributeExpressions(new HashMap<>());
-        } else if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.VARIABLE_REGISTRY) {
+        } else if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.ENVIRONMENT) {
             return evaluateAttributeExpressions(); //Added this to get around a similar edge case where the a null flowfile is passed
-                                                    //and the scope is to the registry
+                                                    //and the scope is to the sys/env variable registry
         }
 
         return evaluateAttributeExpressions(flowFile, null, null);
@@ -260,8 +261,18 @@ public class MockPropertyValue implements PropertyValue {
             validateExpressionScope(flowFile != null || additionalAttributes != null);
         }
 
-        final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator, stateValues);
-        return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, variableRegistry);
+        if(additionalAttributes == null ) {
+            additionalAttributes = new HashMap<String,String>();
+        }
+        // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes
+        final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes);
+
+        if(environmentVariables != null) {
+            attAndEnvVarRegistry.putAll(environmentVariables);
+        }
+
+        final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, attAndEnvVarRegistry, decorator, stateValues);
+        return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, environmentVariables);
     }
 
     @Override

@@ -58,7 +58,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
             .description("Lookup value column.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private volatile ConcurrentMap<String, String> cache;

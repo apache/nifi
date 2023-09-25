@@ -81,7 +81,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinit
 @DynamicProperties({
         @DynamicProperty(name = "JDBC property name",
                 value = "JDBC property value",
-                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
                 description = "JDBC driver property name and value applied to JDBC connections."),
         @DynamicProperty(name = "SENSITIVE.JDBC property name",
                 value = "JDBC property value",
@@ -120,7 +120,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
@@ -259,7 +259,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
             builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
         } else {
-            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
+            builder.expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT);
         }
 
         return builder.build();

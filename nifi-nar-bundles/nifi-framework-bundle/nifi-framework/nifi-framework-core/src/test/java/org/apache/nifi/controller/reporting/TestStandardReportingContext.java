@@ -37,8 +37,6 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
@@ -66,7 +64,6 @@ public class TestStandardReportingContext {
     private Bundle systemBundle;
     private ExtensionDiscoveringManager extensionManager;
     private BulletinRepository bulletinRepo;
-    private VariableRegistry variableRegistry;
     private StatusHistoryRepository statusHistoryRepository;
     private volatile String propsFile = TestStandardReportingContext.class.getResource("/flowcontrollertest.nifi.properties").getFile();
 
@@ -125,11 +122,10 @@ public class TestStandardReportingContext {
         policies1.add(policy2);
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
-        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor,
-                bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository, null);
+                bulletinRepo, extensionManager, statusHistoryRepository, null);
     }
 
     @AfterEach

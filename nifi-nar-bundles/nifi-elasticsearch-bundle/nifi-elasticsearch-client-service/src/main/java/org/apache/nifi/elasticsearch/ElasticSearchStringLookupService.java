@@ -53,7 +53,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
             .displayName("Index")
             .description("The name of the index to read from")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
@@ -61,7 +61,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
             .displayName("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(CLIENT_SERVICE, INDEX, TYPE);

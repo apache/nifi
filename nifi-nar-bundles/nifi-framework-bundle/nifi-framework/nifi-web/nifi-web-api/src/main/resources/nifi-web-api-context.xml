@@ -93,10 +93,8 @@
     <bean id="propertyMatcher" class="org.apache.nifi.web.search.attributematchers.PropertyMatcher" />
     <bean id="searchableMatcher" class="org.apache.nifi.web.search.attributematchers.SearchableMatcher">
         <property name="flowController" ref="flowController" />
-        <property name="variableRegistry" ref="variableRegistry" />
     </bean>
     <bean id="processGroupMatcher" class="org.apache.nifi.web.search.attributematchers.ProcessGroupMatcher" />
-    <bean id="variableRegistryMatcher" class="org.apache.nifi.web.search.attributematchers.VariableRegistryMatcher" />
     <bean id="connectionMatcher" class="org.apache.nifi.web.search.attributematchers.ConnectionMatcher" />
     <bean id="prioritiesMatcher" class="org.apache.nifi.web.search.attributematchers.PrioritiesMatcher" />
     <bean id="expirationMatcher" class="org.apache.nifi.web.search.attributematchers.ExpirationMatcher" />
@@ -134,7 +132,6 @@
         <constructor-arg>
             <util:list>
                 <ref bean="processGroupMatcher" />
-                <ref bean="variableRegistryMatcher" />
             </util:list>
         </constructor-arg>
     </bean>
@@ -382,7 +379,6 @@
         <property name="controllerServiceProvider" ref="controllerServiceProvider"/>
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="authorizer" ref="authorizer"/>
-        <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
 
     <bean id="nameCollisionResolver" class="org.apache.nifi.web.util.ParameterContextNameCollisionResolver" />

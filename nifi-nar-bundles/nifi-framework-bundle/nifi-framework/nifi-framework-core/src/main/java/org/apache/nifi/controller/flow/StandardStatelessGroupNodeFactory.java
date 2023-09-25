@@ -57,7 +57,6 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -242,7 +241,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .stateManagerProvider(stateManagerProvider)
             .kerberosConfiguration(kerberosConfig)
             .statusTaskInterval(null)
-            .variableRegistry(VariableRegistry.EMPTY_REGISTRY)
             .build();
 
         final BulletinRepository bulletinRepository = flowController.getBulletinRepository();

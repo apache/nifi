@@ -29,7 +29,6 @@ import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -70,7 +69,7 @@ public class StandardPropertyContext implements PropertyContext {
         final String resolvedValue = (configuredValue == null) ? resolvedDescriptor.getDefaultValue() : configuredValue;
 
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, resolvedValue, controllerServiceLookup, ParameterLookup.EMPTY, preparedQueries.get(property), VariableRegistry.EMPTY_REGISTRY);
+        return new StandardPropertyValue(resourceContext, resolvedValue, controllerServiceLookup, ParameterLookup.EMPTY, preparedQueries.get(property));
     }
 
     @Override

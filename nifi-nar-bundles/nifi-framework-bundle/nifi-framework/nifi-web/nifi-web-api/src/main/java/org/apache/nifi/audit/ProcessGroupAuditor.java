@@ -31,7 +31,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -275,24 +274,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateAction(groupId, operation);
-    }
-
-    /**
-     * Audits the update of process group variable registry.
-     *
-     * @param proceedingJoinPoint join point
-     * @param variableRegistry variable registry
-     * @throws Throwable ex
-     */
-    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(org.apache.nifi.groups.ProcessGroup updateVariableRegistry(org.apache.nifi.web.api.dto.VariableRegistryDTO)) && "
-        + "args(variableRegistry)")
-    public ProcessGroup updateVariableRegistryAdvice(final ProceedingJoinPoint proceedingJoinPoint, final VariableRegistryDTO variableRegistry) throws Throwable {
-        final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
-
-        saveUpdateAction(variableRegistry.getProcessGroupId(), Operation.Configure);
-
-        return updatedProcessGroup;
     }
 
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "

@@ -74,7 +74,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinit
 @DynamicProperties({
         @DynamicProperty(name = "JDBC property name",
                 value = "Snowflake JDBC property value",
-                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
                 description = "Snowflake JDBC driver property name and value applied to JDBC connections.")
 })
 @RequiresInstanceClassLoading
@@ -140,7 +140,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .displayName("Warehouse")
             .description("The warehouse to use by default. The same as passing 'warehouse=WAREHOUSE' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
@@ -184,7 +184,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
                 .name(propertyDescriptorName)
                 .required(false)
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR);
 

@@ -54,13 +54,13 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
                     .description("Path to a CSV File in which the key value pairs can be looked up.")
                     .required(true)
                     .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .build();
 
     public static final PropertyDescriptor CHARSET =
             new PropertyDescriptor.Builder()
                     .fromPropertyDescriptor(CSVUtils.CHARSET)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .name("Character Set")
                     .description("The Character Encoding that is used to decode the CSV file.")
                     .build();
@@ -82,7 +82,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
                             "This is the field that will be matched against the property specified in the lookup processor.")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .build();
 
     public static final PropertyDescriptor IGNORE_DUPLICATES =

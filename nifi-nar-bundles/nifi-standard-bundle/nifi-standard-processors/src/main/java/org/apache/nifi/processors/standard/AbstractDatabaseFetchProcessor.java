@@ -170,7 +170,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .description("A custom SQL query used to retrieve data. Instead of building a SQL query from "
                     + "other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

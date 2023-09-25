@@ -94,7 +94,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
@@ -322,7 +322,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new Builder()

@@ -28,7 +28,6 @@ import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 
@@ -43,21 +42,18 @@ public abstract class AbstractFlowAnalysisRuleContext implements FlowAnalysisRul
     private final ControllerServiceProvider serviceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final ParameterLookup parameterLookup;
-    private final VariableRegistry variableRegistry;
 
     public AbstractFlowAnalysisRuleContext(
             FlowAnalysisRuleNode flowAnalysisRule,
             Map<PropertyDescriptor, String> properties,
             ControllerServiceProvider controllerServiceProvider,
-            ParameterLookup parameterLookup,
-            VariableRegistry variableRegistry
+            ParameterLookup parameterLookup
     ) {
         this.flowAnalysisRuleNode = flowAnalysisRule;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = controllerServiceProvider;
         this.preparedQueries = new HashMap<>();
         this.parameterLookup = parameterLookup;
-        this.variableRegistry = variableRegistry;
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
@@ -98,7 +94,8 @@ public abstract class AbstractFlowAnalysisRuleContext implements FlowAnalysisRul
 
         final String configuredValue = properties.get(property);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-        return new StandardPropertyValue(resourceContext, configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property),
-            variableRegistry);
+        return new StandardPropertyValue(resourceContext,
+                configuredValue == null
+                ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property));
     }
 }

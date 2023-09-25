@@ -81,7 +81,6 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
@@ -236,8 +235,6 @@ public class NiFiRegistryFlowMapper {
         final InstantiatedVersionedProcessGroup versionedGroup =
                 mapGroup(group, serviceProvider, applyVersionControlInfo, true, allIncludedGroupsIds, externalControllerServiceReferences);
 
-        populateReferencedAncestorVariables(group, versionedGroup);
-
         return versionedGroup;
     }
 
@@ -318,50 +315,11 @@ public class NiFiRegistryFlowMapper {
                 .map(this::mapConnection)
                 .collect(Collectors.toCollection(LinkedHashSet::new)));
 
-        versionedGroup.setVariables(group.getVariableRegistry().getVariableMap().entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().getName(), Map.Entry::getValue)));
-
         if (topLevel) {
             versionedGroup.setExternalControllerServiceReferences(externalControllerServiceReferences);
         }
 
         return versionedGroup;
-    }
-
-    private void populateReferencedAncestorVariables(final ProcessGroup group, final VersionedProcessGroup versionedGroup) {
-        final Set<String> ancestorVariableNames = new HashSet<>();
-        populateVariableNames(group.getParent(), ancestorVariableNames);
-
-        final Map<String, String> implicitlyDefinedVariables = new HashMap<>();
-        for (final String variableName : ancestorVariableNames) {
-            final boolean isReferenced = !group.getComponentsAffectedByVariable(variableName).isEmpty();
-            if (isReferenced) {
-                final String value = group.getVariableRegistry().getVariableValue(variableName);
-                implicitlyDefinedVariables.put(variableName, value);
-            }
-        }
-
-        if (!implicitlyDefinedVariables.isEmpty()) {
-            // Merge the implicit variables with the explicitly defined variables for the Process Group
-            // and set those as the Versioned Group's variables.
-            if (versionedGroup.getVariables() != null) {
-                implicitlyDefinedVariables.putAll(versionedGroup.getVariables());
-            }
-
-            versionedGroup.setVariables(implicitlyDefinedVariables);
-        }
-    }
-
-    private void populateVariableNames(final ProcessGroup group, final Set<String> variableNames) {
-        if (group == null) {
-            return;
-        }
-
-        group.getVariableRegistry().getVariableMap().keySet().stream()
-                .map(VariableDescriptor::getName)
-                .forEach(variableNames::add);
-
-        populateVariableNames(group.getParent(), variableNames);
     }
 
     private String getId(final Optional<String> currentVersionedId, final String componentId) {

@@ -37,7 +37,7 @@ import java.util.List;
         " that is added to this Controller Service will be added as an Environment configuration/variable to this Context.",
     name = "The name of a JNDI Initial Context environment variable.",
     value = "The value of the JNDI Initial Context environment variable.",
-    expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+    expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS", "org.apache.nifi.jms.cf.JMSConnectionFactoryProvider"})
 public class JndiJmsConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 

@@ -292,9 +292,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
 
-    // expression language properties
-    public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
-
     // analytics properties
     public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
     public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
@@ -1624,28 +1621,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     public Integer getFlowConfigurationArchiveMaxCount() {
         return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
-    }
-
-    public String getVariableRegistryProperties() {
-        return getProperty(VARIABLE_REGISTRY_PROPERTIES);
-    }
-
-    public Path[] getVariableRegistryPropertiesPaths() {
-        final List<Path> vrPropertiesPaths = new ArrayList<>();
-
-        final String vrPropertiesFiles = getVariableRegistryProperties();
-        if (!StringUtils.isEmpty(vrPropertiesFiles)) {
-
-            final String[] vrPropertiesFileList = vrPropertiesFiles.split(",");
-
-            for (String propertiesFile : vrPropertiesFileList) {
-                vrPropertiesPaths.add(Paths.get(propertiesFile));
-            }
-
-            return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
-        } else {
-            return new Path[]{};
-        }
     }
 
     /**

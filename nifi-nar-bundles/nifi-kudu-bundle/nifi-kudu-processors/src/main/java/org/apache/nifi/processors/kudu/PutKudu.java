@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @SupportsBatching
@@ -231,7 +231,7 @@ public class PutKudu extends AbstractKuduProcessor {
         .defaultValue("1")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .build();
 
     protected static final PropertyDescriptor BATCH_SIZE = new Builder()
@@ -243,7 +243,7 @@ public class PutKudu extends AbstractKuduProcessor {
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .build();
 
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()

@@ -21,15 +21,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class TestVariableRegistry {
+public class TestEnvironmentVariables {
 
     @Test
     public void testSystemProp() {
         assertNull(System.getProperty("ALKJAFLKJDFLSKJSDFLKJSDF"));
-        final VariableRegistry sysEvnReg = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
+        final EnvironmentVariables sysEvnReg = EnvironmentVariables.ENVIRONMENT_VARIABLES;
         System.setProperty("ALKJAFLKJDFLSKJSDFLKJSDF", "here now");
         //should not be in Variable Registry
-        assertNull(sysEvnReg.getVariableValue("ALKJAFLKJDFLSKJSDFLKJSDF"));
+        assertNull(sysEvnReg.getEnvironmentVariableValue("ALKJAFLKJDFLSKJSDFLKJSDF"));
         //should be in System properties now though...
         assertEquals("here now", System.getProperty("ALKJAFLKJDFLSKJSDFLKJSDF"));
 
@@ -38,13 +38,13 @@ public class TestVariableRegistry {
         final String vendorUrl = System.getProperty("java.vendor.url");
         if (vendorUrl != null) { // we can run this extra test
             //var reg value matches system property
-            assertEquals(vendorUrl, sysEvnReg.getVariableValue("java.vendor.url"));
+            assertEquals(vendorUrl, sysEvnReg.getEnvironmentVariableValue("java.vendor.url"));
             //change system property
             System.setProperty("java.vendor.url", "http://fake.vendor.url/");
             //changed in system properties
             assertEquals("http://fake.vendor.url/", System.getProperty("java.vendor.url"));
             //var reg value matches system property still
-            assertEquals(vendorUrl, sysEvnReg.getVariableValue("java.vendor.url"));
+            assertEquals(vendorUrl, sysEvnReg.getEnvironmentVariableValue("java.vendor.url"));
             //restore to its old value
             System.setProperty("java.vendor.url", vendorUrl);
         }

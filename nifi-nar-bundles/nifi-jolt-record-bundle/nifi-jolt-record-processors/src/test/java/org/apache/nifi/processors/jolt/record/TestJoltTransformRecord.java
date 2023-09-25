@@ -511,7 +511,7 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setVariable("quota", "5");
+        runner.setEnvironmentVariableValue("quota", "5");
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
@@ -646,7 +646,7 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
-        runner.setVariable("CUSTOM_JAR", customJarPath);
+        runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
         Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", spec);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);

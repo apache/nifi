@@ -51,7 +51,7 @@ public class TestCSVHeaderSchemaStrategy {
         properties.put(CSVUtils.QUOTE_CHAR, "\"");
         properties.put(CSVUtils.ESCAPE_CHAR, "\\");
 
-        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
 
         final RecordSchema schema;
@@ -79,7 +79,7 @@ public class TestCSVHeaderSchemaStrategy {
         properties.put(CSVUtils.QUOTE_CHAR, "\"");
         properties.put(CSVUtils.ESCAPE_CHAR, "\\");
 
-        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
 
         final RecordSchema schema;
@@ -112,7 +112,7 @@ public class TestCSVHeaderSchemaStrategy {
         variables.put("csv.quote", "'");
         variables.put("csv.escape", "^");
 
-        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
 
         final RecordSchema schema;

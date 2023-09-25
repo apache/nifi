@@ -76,9 +76,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
@@ -275,12 +273,11 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ProcessGroup createProcessGroup(final String id) {
-        final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(flowController.getVariableRegistry());
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
-            flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties, statelessGroupNodeFactory);
+            flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory);
         onProcessGroupAdded(group);
 
         return group;
@@ -345,7 +342,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
@@ -410,7 +406,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .nodeTypeProvider(flowController)
                 .validationTrigger(flowController.getValidationTrigger())
                 .reloadComponent(flowController.getReloadComponent())
-                .variableRegistry(flowController.getVariableRegistry())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
                 .flowController(flowController)
@@ -430,7 +425,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
                 if (flowController.isInitialized()) {
                     final ConfigurationContext configurationContext = new StandardConfigurationContext(
-                            clientNode, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+                            clientNode, flowController.getControllerServiceProvider(), null);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, clientNode.getComponent(), configurationContext);
                 }
             } catch (final Exception e) {
@@ -459,7 +454,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final Class<?> clientClass = clientNode.getComponent().getClass();
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), clientClass, clientNode.getComponent().getIdentifier())) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(clientNode, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(clientNode, flowController.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, clientNode.getComponent(), configurationContext);
         }
 
@@ -489,7 +484,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
@@ -553,7 +547,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
@@ -612,7 +605,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .nodeTypeProvider(flowController)
                 .validationTrigger(flowController.getValidationTrigger())
                 .reloadComponent(flowController.getReloadComponent())
-                .variableRegistry(flowController.getVariableRegistry())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
                 .flowController(flowController)
@@ -672,10 +664,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         service.verifyCanDelete();
 
         final ExtensionManager extensionManager = flowController.getExtensionManager();
-        final VariableRegistry variableRegistry = flowController.getVariableRegistry();
 
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, flowController.getControllerServiceProvider(), null, variableRegistry);
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, flowController.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
 
@@ -719,7 +710,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
@@ -740,7 +730,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             if (flowController.isInitialized()) {
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                     final ConfigurationContext configurationContext =
-                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
                 }
             }

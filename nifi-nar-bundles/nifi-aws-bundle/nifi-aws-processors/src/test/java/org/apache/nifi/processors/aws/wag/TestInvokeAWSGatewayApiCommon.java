@@ -1267,10 +1267,10 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         setupEndpointAndRegion();
         URL proxyURL = mockWebServer.url("/").url();
 
-        runner.setVariable("proxy.host", proxyURL.getHost());
-        runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
-        runner.setVariable("proxy.username", "username");
-        runner.setVariable("proxy.password", "password");
+        runner.setEnvironmentVariableValue("proxy.host", proxyURL.getHost());
+        runner.setEnvironmentVariableValue("proxy.port", String.valueOf(proxyURL.getPort()));
+        runner.setEnvironmentVariableValue("proxy.username", "username");
+        runner.setEnvironmentVariableValue("proxy.password", "password");
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");

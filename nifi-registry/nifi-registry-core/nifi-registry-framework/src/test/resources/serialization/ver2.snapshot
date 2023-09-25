@@ -91,7 +91,6 @@
     "labels": [],
     "funnels": [],
     "controllerServices": [],
-    "variables": {},
     "componentType": "PROCESS_GROUP"
   }
 }

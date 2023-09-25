@@ -79,9 +79,9 @@ public class GetMongoIT extends AbstractMongoIT {
     @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(GetMongo.class);
-        runner.setVariable("uri", MONGO_CONTAINER.getConnectionString());
-        runner.setVariable("db", DB_NAME);
-        runner.setVariable("collection", COLLECTION_NAME);
+        runner.setEnvironmentVariableValue("uri", MONGO_CONTAINER.getConnectionString());
+        runner.setEnvironmentVariableValue("db", DB_NAME);
+        runner.setEnvironmentVariableValue("collection", COLLECTION_NAME);
         clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
@@ -147,7 +147,7 @@ public class GetMongoIT extends AbstractMongoIT {
         assertTrue(results.iterator().next().toString().contains("is invalid because"));
 
         // invalid projection
-        runner.setVariable("projection", "{a: x,y,z}");
+        runner.setEnvironmentVariableValue("projection", "{a: x,y,z}");
         runner.setProperty(GetMongo.QUERY, "{\"a\": 1}");
         runner.setProperty(GetMongo.PROJECTION, "{a: z}");
         runner.enqueue(new byte[0]);
@@ -174,7 +174,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testCleanJson() throws Exception {
-        runner.setVariable("query", "{\"_id\": \"doc_2\"}");
+        runner.setEnvironmentVariableValue("query", "{\"_id\": \"doc_2\"}");
         runner.setProperty(GetMongo.QUERY, "${query}");
         runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
         runner.run();
@@ -192,7 +192,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testReadOneDocument() {
-        runner.setVariable("query", "{a: 1, b: 3}");
+        runner.setEnvironmentVariableValue("query", "{a: 1, b: 3}");
         runner.setProperty(GetMongo.QUERY, "${query}");
         runner.run();
 
@@ -227,7 +227,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testSort() {
-        runner.setVariable("sort", "{a: -1, b: -1, c: 1}");
+        runner.setEnvironmentVariableValue("sort", "{a: -1, b: -1, c: 1}");
         runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.SORT, "${sort}");
         runner.run();
@@ -243,7 +243,7 @@ public class GetMongoIT extends AbstractMongoIT {
     public void testLimit() {
         runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.LIMIT, "${limit}");
-        runner.setVariable("limit", "1");
+        runner.setEnvironmentVariableValue("limit", "1");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
@@ -254,7 +254,7 @@ public class GetMongoIT extends AbstractMongoIT {
     @Test
     public void testResultsPerFlowfile() {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "${results.per.flowfile}");
-        runner.setVariable("results.per.flowfile", "2");
+        runner.setEnvironmentVariableValue("results.per.flowfile", "2");
         runner.enqueue("{}");
         runner.setIncomingConnection(true);
         runner.run();
@@ -269,7 +269,7 @@ public class GetMongoIT extends AbstractMongoIT {
     public void testBatchSize() {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
         runner.setProperty(GetMongo.BATCH_SIZE, "${batch.size}");
-        runner.setVariable("batch.size", "1");
+        runner.setEnvironmentVariableValue("batch.size", "1");
         runner.enqueue("{}");
         runner.setIncomingConnection(true);
         runner.run();
@@ -491,8 +491,6 @@ public class GetMongoIT extends AbstractMongoIT {
     @Test
     public void testDatabaseEL() throws InitializationException {
         runner.clearTransferState();
-        runner.removeVariable("collection");
-        runner.removeVariable("db");
         runner.setIncomingConnection(true);
 
         String[] collections = new String[] { "a", "b", "c" };
@@ -612,8 +610,8 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testInvalidQueryGoesToFailure() {
-        //Test variable registry mode
-        runner.setVariable("badattribute", "<<?>>");
+        //Test environment properties mode
+        runner.setEnvironmentVariableValue("badattribute", "<<?>>");
         runner.setProperty(GetMongo.QUERY, "${badattribute}");
         runner.run();
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
@@ -622,8 +620,8 @@ public class GetMongoIT extends AbstractMongoIT {
 
         runner.clearTransferState();
 
-        //Test that it doesn't blow up with variable registry values holding a proper value
-        runner.setVariable("badattribute", "{}");
+        //Test that it doesn't blow up with env properties values holding a proper value
+        runner.setEnvironmentVariableValue("badattribute", "{}");
         runner.run();
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);

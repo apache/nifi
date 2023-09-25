@@ -79,7 +79,7 @@ import java.util.stream.IntStream;
         + "processor is intended to be run on the Primary Node only.\n\n"
         + "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided:\n"
         + "  - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many "
-        + "fields, but no FlowFile attributes are available. However the properties will be evaluated using the Variable Registry.\n"
+        + "fields, but no FlowFile attributes are available. However the properties will be evaluated using the Environment/System properties.\n"
         + "  - If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.\n"
         + "  - If incoming connection(s) are specified and a FlowFile is available to a processor task, the FlowFile's attributes may be used in Expression Language for such fields "
         + "as Table Name and others. However, the Max-Value Columns and Columns to Return fields must be empty or refer to columns that are available in each specified table.")

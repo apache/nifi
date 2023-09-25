@@ -510,10 +510,6 @@ public class StandardFlowSnippet implements FlowSnippet {
                 childGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(outboundPolicyName));
             }
 
-            if (groupDTO.getVariables() != null) {
-                childGroup.setVariables(groupDTO.getVariables());
-            }
-
             final ParameterContextReferenceEntity parameterContextReference = groupDTO.getParameterContext();
             if (parameterContextReference != null) {
                 final ParameterContext parameterContext = flowManager.getParameterContextManager().getParameterContext(parameterContextReference.getId());

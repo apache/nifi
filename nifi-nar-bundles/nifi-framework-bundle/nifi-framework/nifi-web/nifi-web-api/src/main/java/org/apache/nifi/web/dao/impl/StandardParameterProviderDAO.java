@@ -239,7 +239,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
         final ConfigurationContext configurationContext = new StandardConfigurationContext(parameterProviderNode, properties, parameterProviderNode.getAnnotationData(),
-                parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+                parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = parameterProviderNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()

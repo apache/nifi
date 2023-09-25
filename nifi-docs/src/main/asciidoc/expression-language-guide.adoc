@@ -138,10 +138,8 @@ will search for the value.
 The current hierarchy in NiFi is as follows:
 
 1. Search FlowFile for attribute/key
-2. Search Process Group Variables for attribute/key
-3. Search File Registry file for attribute/key
-4. Search NiFi JVM Properties for attribute/key
-5. Search System Environment Variables for attribute/key
+2. Search NiFi JVM Properties for attribute/key
+3. Search System Environment Variables for attribute/key
 
 NiFi will search for, and return, the first occurrence of a matching property. If no matching property is found, `null` is returned.
 
@@ -161,17 +159,12 @@ image:iconInfo.png["Info"]
 provides helpful information about the Property. This information includes a description of the Property,
 the default value (if any), historically configured values (if any), and the evaluation scope of this
 property for expression language. There are three values and the evaluation scope of the expression
-language is hierarchical: NONE -> VARIABLE_REGISTRY -> FLOWFILE_ATTRIBUTES.
+language is hierarchical: NONE -> ENVIRONMENT -> FLOWFILE_ATTRIBUTES.
 
 * NONE - expression language is not supported for this property
-* VARIABLE_REGISTRY is hierarchically constructed as below:
-** Variables defined at process group level and then, recursively, up to the higher process group until
-the root process group.
-** Variables defined in custom properties files through the nifi.variable.registry.properties property
-in nifi.properties file.
-** Environment variables defined at JVM level and system properties.
+* ENVIRONMENT - will use environment variables defined at JVM level and system properties.
 * FLOWFILE_ATTRIBUTES - will use attributes of each individual flow file, as well as those variables defined
-by the Variable Registry, as described above.
+by the Environment, as described above.
 
 [[escaping]]
 === Escaping Expression Language

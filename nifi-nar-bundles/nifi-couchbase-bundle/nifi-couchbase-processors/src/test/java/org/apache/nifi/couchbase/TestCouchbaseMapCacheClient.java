@@ -63,7 +63,7 @@ public class TestCouchbaseMapCacheClient {
         when(couchbaseService.openBucket(eq("bucketA"))).thenReturn(bucket);
         when(bucket.get(any(BinaryDocument.class))).thenReturn(doc);
 
-        final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext);
+        final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, null);
         client.configure(context);
         final String cacheEntry = client.get("key", stringSerializer, stringDeserializer);
 

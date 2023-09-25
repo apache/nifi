@@ -349,7 +349,7 @@ public class StandardValidators {
     };
 
     /**
-     * This validator will evaluate an expression using ONLY environment and variable registry properties,
+     * This validator will evaluate an expression using ONLY environment properties,
      * then validate that the result is a supported character set.
      */
     public static final Validator CHARACTER_SET_VALIDATOR_WITH_EVALUATION = new Validator() {

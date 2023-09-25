@@ -297,9 +297,9 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     public void testAggregationsUsingExpressionLanguage() throws Exception {
         final TestRunner runner = createRunner(true);
         String query = Files.readString(Paths.get(TEST_DIR, "matchAllAggregationWithDefaultTermsInExpressionLanguageQuery.json"));
-        runner.setVariable("fieldValue", "msg");
-        runner.setVariable("es.index", INDEX_NAME);
-        runner.setVariable("es.type", "msg");
+        runner.setEnvironmentVariableValue("fieldValue", "msg");
+        runner.setEnvironmentVariableValue("es.index", INDEX_NAME);
+        runner.setEnvironmentVariableValue("es.type", "msg");
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, query);
         runner.setProperty(AbstractJsonQueryElasticsearch.INDEX, "${es.index}");
         runner.setProperty(AbstractJsonQueryElasticsearch.TYPE, "${es.type}");
@@ -366,7 +366,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
         runner.setProperty("refresh", "true");
         runner.setProperty("slices", "${slices}");
-        runner.setVariable("slices", "auto");
+        runner.setEnvironmentVariableValue("slices", "auto");
 
         runOnce(runner);
 

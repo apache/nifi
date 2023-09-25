@@ -63,7 +63,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
         " for load testing, configuration, and simulation." + " Also see DuplicateFlowFile for additional load testing.")
 @DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
         " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
 @WritesAttributes({
@@ -113,7 +113,7 @@ public class GenerateFlowFile extends AbstractProcessor {
                     + "FlowFiles and the File Size will be ignored. Finally, if Expression Language is used, evaluation will be performed only once "
                     + "per batch of generated FlowFiles")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -170,7 +170,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamic(true)
             .build();
     }

@@ -94,7 +94,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The hostname (or IP address) of the Livy server.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor LIVY_PORT = new PropertyDescriptor.Builder()
@@ -103,7 +103,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The port number for the Livy server.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("8998")
             .build();
 
@@ -114,7 +114,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SESSION_TYPE = new PropertyDescriptor.Builder()
@@ -134,7 +134,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JARS = new PropertyDescriptor.Builder()
@@ -143,7 +143,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("JARs to be used in the Spark session.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor FILES = new PropertyDescriptor.Builder()
@@ -152,7 +152,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("Files to be used in the Spark session.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue(null)
             .build();
 

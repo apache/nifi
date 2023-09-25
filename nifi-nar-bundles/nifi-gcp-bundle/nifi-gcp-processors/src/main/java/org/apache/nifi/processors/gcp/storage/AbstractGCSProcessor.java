@@ -77,7 +77,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
             .description("Overrides the default storage URL. Configuring an alternative Storage API URL also overrides the "
                     + "HTTP Host header on requests as described in the Google documentation for Private Service Connections.")
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 

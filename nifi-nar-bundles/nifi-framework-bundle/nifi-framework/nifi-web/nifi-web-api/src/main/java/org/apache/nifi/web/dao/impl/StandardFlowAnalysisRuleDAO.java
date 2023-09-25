@@ -274,7 +274,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
         final ConfigurationContext configurationContext = new StandardConfigurationContext(ruleNode, properties, ruleNode.getAnnotationData(),
-            parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+            parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = ruleNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()

@@ -127,7 +127,7 @@ public class GetSmbFile extends AbstractProcessor {
             "path after the share: \\\\hostname\\share\\[dir1\\dir2].")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
             .name("Domain")

@@ -369,11 +369,6 @@ public class AffectedComponentSet {
             addComponentsForInheritedParameterContextChange(difference);
         }
 
-        if (differenceType == DifferenceType.VARIABLE_CHANGED || differenceType == DifferenceType.VARIABLE_ADDED || differenceType == DifferenceType.VARIABLE_REMOVED) {
-            addComponentsForVariableChange(difference.getComponentA().getInstanceIdentifier(), difference.getFieldName().orElse(null));
-            return;
-        }
-
         if (differenceType == DifferenceType.RPG_URL_CHANGED) {
             final String instanceId = difference.getComponentA().getInstanceIdentifier();
             final RemoteProcessGroup rpg = flowManager.getRootGroup().findRemoteProcessGroup(instanceId);
@@ -402,26 +397,6 @@ public class AffectedComponentSet {
         processGroup.getOutputPorts().forEach(this::addOutputPort);
         processGroup.getRemoteProcessGroups().forEach(this::addRemoteProcessGroup);
         processGroup.getProcessGroups().forEach(child -> addAllComponentsWithinGroup(child.getIdentifier()));
-    }
-
-    private void addComponentsForVariableChange(final String groupId, final String variableName) {
-        if (groupId == null || variableName == null) {
-            return;
-        }
-
-        final ProcessGroup group = flowManager.getGroup(groupId);
-        if (group == null) {
-            return;
-        }
-
-        final Set<ComponentNode> affectedComponents = group.getComponentsAffectedByVariable(variableName);
-        for (final ComponentNode component : affectedComponents) {
-            if (component instanceof ProcessorNode) {
-                addProcessor((ProcessorNode) component);
-            } else if (component instanceof ControllerServiceNode) {
-                addControllerService((ControllerServiceNode) component);
-            }
-        }
     }
 
     private void addComponentsForInheritedParameterContextChange(final FlowDifference difference) {
