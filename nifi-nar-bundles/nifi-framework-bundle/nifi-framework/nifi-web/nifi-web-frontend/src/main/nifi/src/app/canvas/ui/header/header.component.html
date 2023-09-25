@@ -51,15 +51,76 @@
                     iconClass="icon-label"
                     iconHoverClass="icon-label-add"></new-canvas-item>
             </div>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center gap-x-1">
                 <div class="flex flex-col justify-between items-end gap-y-1" *ngIf="currentUser$ | async as user">
                     <div class="current-user">{{ user.identity }}</div>
                     <a href="#" *ngIf="allowLogin(user)">log in</a>
                     <a href="#" *ngIf="allowLogout(user)">log out</a>
                 </div>
-                <button class="h-16 w-16 flex items-center justify-center icon">
+                <button
+                    mat-button
+                    [matMenuTriggerFor]="globalMenu"
+                    class="h-16 w-16 flex items-center justify-center icon global-menu">
                     <i class="fa fa-navicon"></i>
                 </button>
+                <mat-menu #globalMenu="matMenu" xPosition="before">
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-table mr-2"></i>
+                        Summary
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="icon fa-fw icon-counter mr-2"></i>
+                        Counter
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-sticky-note-o mr-2"></i>
+                        Bulletin Board
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="icon fa-fw icon-provenance mr-2"></i>
+                        Data Provenance
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-wrench mr-2"></i>
+                        Controller Settings
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw mr-2"></i>
+                        Parameter Contexts
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-cubes mr-2"></i>
+                        Cluster
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-history mr-2"></i>
+                        Flow Configuration History
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-area-chart mr-2"></i>
+                        Node Status History
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-users mr-2"></i>
+                        Users
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-key mr-2"></i>
+                        Policies
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-question-circle mr-2"></i>
+                        Help
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-info-circle mr-2"></i>
+                        About
+                    </button>
+                </mat-menu>
             </div>
         </div>
     </nav>

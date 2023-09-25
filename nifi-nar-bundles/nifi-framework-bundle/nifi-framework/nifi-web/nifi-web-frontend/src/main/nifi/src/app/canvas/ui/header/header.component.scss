@@ -41,4 +41,23 @@
         font-size: 12px;
         text-transform: uppercase;
     }
+
+    .global-menu {
+        height: 64px;
+        width: 64px;
+        border-radius: 0;
+    }
+
+    .global-menu:hover {
+        background-color: #e3e8eb;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+}
+
+button.global-menu-item {
+    .fa,
+    .icon {
+        text-align: start;
+        color: #728e9b;
+    }
 }

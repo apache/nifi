@@ -31,8 +31,7 @@
             {{ getBreadcrumbLabel(breadcrumb) }}
         </a>
         <ng-template #notCurrentProcessGroup>
-            <a
-                [routerLink]="['/process-groups', breadcrumb.id]">
+            <a [routerLink]="['/process-groups', breadcrumb.id]">
                 {{ getBreadcrumbLabel(breadcrumb) }}
             </a>
         </ng-template>

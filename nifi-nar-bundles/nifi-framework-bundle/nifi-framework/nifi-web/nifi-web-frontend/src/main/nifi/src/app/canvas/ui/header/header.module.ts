@@ -21,10 +21,13 @@ import { HeaderComponent } from './header.component';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.component';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 @NgModule({
     declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus],
     exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, CdkDrag]
+    imports: [CommonModule, NgOptimizedImage, CdkDrag, MatButtonModule, MatMenuModule, MatDividerModule]
 })
 export class HeaderModule {}
