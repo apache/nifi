@@ -94,6 +94,15 @@ public class ConvertEventToLuceneDocument {
         // be stored so that we know how to lookup the event in the store.
         doc.add(new UnIndexedLongField(SearchableFields.Identifier.getSearchableFieldName(), eventId));
 
+        final List<Long> previousEventIDs = record.getPreviousEventIds();
+        if (previousEventIDs != null) {
+            for (Long previousEventID : previousEventIDs) {
+                doc.add(new UnIndexedLongField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), previousEventID));
+            }
+        } else {
+            doc.add(new UnIndexedLongField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), -1L));
+        }
+
         // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.
         final ProvenanceEventType eventType = record.getEventType();
         if (eventType == ProvenanceEventType.FORK || eventType == ProvenanceEventType.CLONE || eventType == ProvenanceEventType.REPLAY) {
@@ -141,7 +150,7 @@ public class ConvertEventToLuceneDocument {
 
         public UnIndexedLongField(String name, long value) {
             super(name, TYPE);
-            fieldsData = Long.valueOf(value);
+            fieldsData = value;
         }
     }
 }

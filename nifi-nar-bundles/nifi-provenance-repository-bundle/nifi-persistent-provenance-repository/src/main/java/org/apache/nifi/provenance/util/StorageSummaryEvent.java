@@ -38,6 +38,16 @@ public class StorageSummaryEvent implements ProvenanceEventRecord {
     }
 
     @Override
+    public List<Long> getPreviousEventIds() {
+        return event.getPreviousEventIds();
+    }
+
+    @Override
+    public void setPreviousEventIds(List<Long> previousEventIds) {
+        event.setPreviousEventIds(previousEventIds);
+    }
+
+    @Override
     public long getEventTime() {
         return event.getEventTime();
     }

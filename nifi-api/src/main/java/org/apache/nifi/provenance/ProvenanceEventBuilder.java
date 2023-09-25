@@ -273,7 +273,7 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder setDetails(String details);
 
     /**
-     * Sets the to which the FlowFile was routed for
+     * Sets the relationship to which the FlowFile was routed for
      * {@link ProvenanceEventType#ROUTE} events. This is valid only for
      * {@link ProvenanceEventType#ROUTE} events and will be ignored for any
      * other event types.
@@ -282,6 +282,13 @@ public interface ProvenanceEventBuilder {
      * @return the builder
      */
     ProvenanceEventBuilder setRelationship(Relationship relationship);
+
+    /**
+     * Sets the IDs for the event that happened previously to this event for the given FlowFile
+     * @param previousEventIds The previous event IDs (usually one except for JOIN events and such)
+     * @return the builder
+     */
+    ProvenanceEventBuilder setPreviousEventIds(List<Long> previousEventIds);
 
     /**
      * Populates the builder with as much information as it can from the given
@@ -297,7 +304,7 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventRecord#getEventId()} on the
      * {@link ProvenanceEventRecord} that is returned will yield
      * <code>-1</code>. This is because the implementation of the Event may
-     * depend on the {@link ProvevenanceEventRepository} to generate the unique
+     * depend on the {@link ProvenanceEventRepository} to generate the unique
      * identifier.
      *
      * @return the event

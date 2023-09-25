@@ -19,6 +19,7 @@ package org.apache.nifi.graph;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -34,6 +35,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -137,12 +139,25 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
 
     @Override
     public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
+        getLogger().info("Executing Query:\n" + query);
         final ArcadeDbRequestBody body = new ArcadeDbRequestBody(language, query, parameters);
         final HttpResponseEntity httpResponseEntity = getHttpResponseEntity(body);
 
+        final int responseStatusCode = httpResponseEntity.statusCode();
+        // TODO be more specific with error codes?
+        if (responseStatusCode < 200 || responseStatusCode >= 300) {
+            StringWriter stringWriter = new StringWriter();
+            try {
+                IOUtils.copy(httpResponseEntity.body(), stringWriter, "UTF-8");
+                getLogger().error("Error returned in response: " + stringWriter.getBuffer().toString());
+            } catch (IOException ioe) {
+                getLogger().error("Error reading body of response", ioe);
+            }
+        }
         try (final JsonParser jsonParser = MAPPER.getFactory().createParser(httpResponseEntity.body())) {
             long count = 0;
-            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+            JsonToken jsonToken = jsonParser.nextToken();
+            while ( jsonToken != null && jsonToken != JsonToken.END_OBJECT) {
                 final String token = jsonParser.getCurrentName();
                 if (RESULT_TOKEN.equals(token)) {
                     jsonParser.nextToken();
@@ -158,6 +173,7 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
                         }
                     }
                 }
+                jsonToken = jsonParser.nextToken();
             }
 
             final Map<String, String> resultAttributes = new HashMap<>();
@@ -209,14 +225,14 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
     @Override
     public List<GraphQuery> buildQueryFromNodes(final List<Map<String, Object>> nodeList, final Map<String, Object> parameters) {
         // Build queries from event list
-            if (GraphClientService.GREMLIN.equals(language)) {
-                return new GremlinQueryFromNodesBuilder().getQueries(nodeList);
-            } else if (GraphClientService.SQL.equals(language)) {
-                return new SqlQueryFromNodesBuilder().getQueries(nodeList);
-            } else if (GraphClientService.CYPHER.equals(language)) {
-                return new CypherQueryFromNodesBuilder().getQueries(nodeList);
-            }
-            return Collections.emptyList();
+        if (GraphClientService.GREMLIN.equals(language)) {
+            return new GremlinQueryFromNodesBuilder().getQueries(nodeList);
+        } else if (GraphClientService.SQL.equals(language)) {
+            return new SqlQueryFromNodesBuilder().getQueries(nodeList);
+        } else if (GraphClientService.CYPHER.equals(language)) {
+            return new CypherQueryFromNodesBuilder().getQueries(nodeList);
+        }
+        return Collections.emptyList();
     }
 
     private static class ArcadeDbRequestBody {

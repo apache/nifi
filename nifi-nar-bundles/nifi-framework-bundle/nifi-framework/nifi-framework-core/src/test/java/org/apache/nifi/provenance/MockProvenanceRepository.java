@@ -33,7 +33,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MockProvenanceRepository implements ProvenanceRepository {
+public class MockProvenanceRepository extends AbstractProvenanceRepository {
+
     private final List<ProvenanceEventRecord> records = new ArrayList<>();
     private final AtomicLong idGenerator = new AtomicLong(0L);
 

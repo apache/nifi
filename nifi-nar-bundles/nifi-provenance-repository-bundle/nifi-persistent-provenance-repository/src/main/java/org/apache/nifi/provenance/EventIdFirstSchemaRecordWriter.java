@@ -34,6 +34,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,6 +62,9 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     private static final List<String> eventTypeNames;
 
     private long firstEventId;
+
+    private final Map<String, List<Long>> previousEventIdsMap = new HashMap<>();
+
     private long systemTimeOffset;
 
     static {
@@ -98,6 +102,8 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         int totalBytes = 0;
 
         for (final ProvenanceEventRecord event : events) {
+            event.setPreviousEventIds(this.previousEventIdsMap.get(event.getFlowFileUuid()));
+
             final byte[] serialized = serializeEvent(event);
             serializedEvents.put(event, serialized);
             totalBytes += serialized.length;
@@ -136,6 +142,7 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
 
             try {
                 recordIdentifier = event.getEventId() == -1 ? getIdGenerator().getAndIncrement() : event.getEventId();
+                updateEvent(event, recordIdentifier);
                 startBytes = getBytesWritten();
 
                 ensureStreamState(recordIdentifier, startBytes);
@@ -221,5 +228,45 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     @Override
     protected String getSerializationName() {
         return SERIALIZATION_NAME;
+    }
+
+    private void updateEvent(ProvenanceEventRecord event, long recordIdentifier) {
+        final String flowFileUUID = event.getFlowFileUuid();
+        List<Long> previousEventIds = previousEventIdsMap.get(flowFileUUID);
+        switch (event.getEventType()) {
+            case CREATE:
+            case RECEIVE:
+                event.setPreviousEventIds(Collections.singletonList(-1L));
+                previousEventIdsMap.put(flowFileUUID, Collections.singletonList(recordIdentifier));
+                break;
+            case DROP:
+            case EXPIRE:
+                event.setPreviousEventIds(previousEventIds);
+                previousEventIdsMap.remove(flowFileUUID);
+                break;
+            case FORK:
+            case CLONE:
+            case REPLAY:
+                event.setPreviousEventIds(previousEventIds);
+                for (final String childUUID : event.getChildUuids()) {
+                    // Add the child FlowFiles to the previous event ID map with this event's entry in the map
+                    previousEventIdsMap.put(childUUID, Collections.singletonList(recordIdentifier));
+                }
+                break;
+            case JOIN:
+                List<String> parents = event.getParentUuids();
+                List<Long> parentEventIds = new ArrayList<>(parents.size());
+                for (final String parentUUID : parents) {
+                    parentEventIds.addAll(previousEventIdsMap.get(parentUUID));
+                }
+                event.setPreviousEventIds(parentEventIds);
+                previousEventIdsMap.put(flowFileUUID, Collections.singletonList(recordIdentifier));
+                break;
+
+            default:
+                event.setPreviousEventIds(previousEventIds);
+                previousEventIdsMap.put(flowFileUUID, Collections.singletonList(recordIdentifier));
+                break;
+        }
     }
 }

@@ -28,12 +28,14 @@ import java.util.Map;
 public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     private final String componentId;
     private final long eventId;
+    private List<Long> previousEventIds;
     private final long eventTime;
     private final String flowFileUuid;
 
     public PlaceholderProvenanceEvent(final ProvenanceEventRecord original) {
         this.componentId = original.getComponentId();
         this.eventId = original.getEventId();
+        this.previousEventIds = original.getPreviousEventIds();
         this.eventTime = original.getEventTime();
         this.flowFileUuid = original.getFlowFileUuid();
     }
@@ -41,6 +43,16 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public long getEventId() {
         return eventId;
+    }
+
+    @Override
+    public List<Long> getPreviousEventIds() {
+        return previousEventIds;
+    }
+
+    @Override
+    public void setPreviousEventIds(List<Long> previousEventIds) {
+        this.previousEventIds = previousEventIds;
     }
 
     @Override

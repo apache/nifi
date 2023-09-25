@@ -64,7 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-public class VolatileProvenanceRepository implements ProvenanceRepository {
+public class VolatileProvenanceRepository extends AbstractProvenanceRepository {
 
     // properties
     public static final String BUFFER_SIZE = "nifi.provenance.repository.buffer.size";
@@ -799,6 +799,16 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         @Override
         public long getEventId() {
             return id;
+        }
+
+        @Override
+        public List<Long> getPreviousEventIds() {
+            return record.getPreviousEventIds();
+        }
+
+        @Override
+        public void setPreviousEventIds(List<Long> previousEventIds) {
+            record.setPreviousEventIds(previousEventIds);
         }
 
         @Override

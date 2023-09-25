@@ -25,6 +25,7 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -169,4 +170,13 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     return null;
   }
 
+  @Override
+  public List<Long> getPreviousEventIds(String flowFileUUID) {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public void updatePreviousEventIds(ProvenanceEventRecord record, List<Long> previousIds) {
+    // Do nothing
+  }
 }

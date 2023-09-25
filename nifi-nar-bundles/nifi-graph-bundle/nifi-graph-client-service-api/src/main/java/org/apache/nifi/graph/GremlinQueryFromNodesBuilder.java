@@ -25,10 +25,10 @@ public class GremlinQueryFromNodesBuilder {
         final List<GraphQuery> queryList = new ArrayList<>(nodeList.size());
         for (final Map<String, Object> eventNode : nodeList) {
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("g.V()has(\"NiFiProvenanceEvent\", \"");
-            queryBuilder.append("eventId\", \"");
+            queryBuilder.append("g.V().has('NiFiProvenanceEvent', ");
+            queryBuilder.append("'eventId', '");
             queryBuilder.append(eventNode.get("eventId"));
-            queryBuilder.append("\").fold().coalesce(unfold(), addV(\"NiFiProvenanceEvent\")");
+            queryBuilder.append("').fold().coalesce(unfold(), addV('NiFiProvenanceEvent')");
 
             for (final Map.Entry<String, Object> properties : eventNode.entrySet()) {
                 queryBuilder.append(".property(\"");
@@ -37,9 +37,21 @@ public class GremlinQueryFromNodesBuilder {
                 queryBuilder.append(properties.getValue());
                 queryBuilder.append("\")");
             }
-            queryBuilder.append(")");
-
+            queryBuilder.append(");\n");
             queryList.add(new GraphQuery(queryBuilder.toString(), GraphClientService.GREMLIN));
+
+            // Add edges
+            List<Long> previousEventIds = (List<Long>) eventNode.remove("previousEventIds");
+            for (Long previousEventId : previousEventIds) {
+                queryBuilder = new StringBuilder();
+                queryBuilder.append("g.V().has('NiFiProvenanceEvent', ");
+                queryBuilder.append("'eventId', '");
+                queryBuilder.append(eventNode.get("eventId"));
+                queryBuilder.append("'.as('v1').V().has('NiFiProvenanceEvent','eventId','");
+                queryBuilder.append(previousEventId);
+                queryBuilder.append("'.as('v2').mergeE([(from):outV, (to): inV, label: 'next']).option(outV, select('v1')).option(inV, select('v2'));\n");
+                queryList.add(new GraphQuery(queryBuilder.toString(), GraphClientService.GREMLIN));
+            }
         }
         return queryList;
     }

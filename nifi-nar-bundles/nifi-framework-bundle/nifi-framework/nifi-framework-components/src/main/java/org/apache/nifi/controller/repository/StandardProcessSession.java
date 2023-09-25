@@ -922,7 +922,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final boolean newFlowFile = repoRecord.getOriginal() == null;
             if (contentChanged && !newFlowFile) {
-                recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CONTENT_MODIFIED).build());
+                ProvenanceEventRecord record = provenanceReporter.generateModifyContentEvent(curFlowFile, "Session detected change in content");
+                recordsToSubmit.add(record);
                 addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.CONTENT_MODIFIED);
                 eventAdded = true;
             }
@@ -943,7 +944,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
 
                 if (!creationEventRegistered) {
-                    recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CREATE).build());
+                    recordsToSubmit.add(provenanceReporter.generateCreateEvent(curFlowFile, "Session detected no CREATE event present, auto-generating a CREATE event"));
                     eventAdded = true;
                 }
             }
@@ -955,7 +956,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 // event is redundant if another already exists.
                 // We don't generate ATTRIBUTES_MODIFIED event for retry.
                 if (!eventTypesPerFlowFileId.containsKey(flowFileId)) {
-                    recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).build());
+                    recordsToSubmit.add(
+                            provenanceReporter.generateModifyAttributesEvent(curFlowFile, "Session detected no provenance event created, auto-generating an ATTRIBUTES_MODIFIED event")
+                    );
                     addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.ATTRIBUTES_MODIFIED);
                 }
             }
