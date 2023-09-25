@@ -53,7 +53,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             "The CSV writer implementation from the FastCSV library. NOTE: This writer only officially supports RFC-4180, so it recommended to "
                     + "set the 'CSV Format' property to 'RFC 4180'. It does handle some non-compliant CSV data, for that case set the 'CSV Format' property to "
                     + "'CUSTOM' and the other custom format properties (such as 'Trim Fields', 'Trim double quote', etc.) as appropriate. Be aware that this "
-                    + "may cause errors if FastCSV doesn't handle the property settings correctly (such as 'Ignore Header'), but otherwise may process the output as expected even "
+                    + "may cause errors if FastCSV doesn't handle the property settings correctly (such as 'Quote Mode'), but otherwise may process the output as expected even "
                     + "if the data is not fully RFC-4180 compliant.");
     public static final PropertyDescriptor CSV_WRITER = new PropertyDescriptor.Builder()
             .name("csv-writer")
