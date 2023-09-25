@@ -32,6 +32,10 @@ if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
     uncomment "java.arg.debug" ${nifi_bootstrap_file}
 fi
 
+# Setup NiFi to use Python
+uncomment "nifi.python.command" ${nifi_props_file}
+prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"

@@ -76,6 +76,7 @@ RUN curl -fSL ${MIRROR_BASE_URL}/${NIFI_BINARY_PATH} -o ${NIFI_BASE_DIR}/nifi-${
     && mkdir -p ${NIFI_HOME}/flowfile_repository \
     && mkdir -p ${NIFI_HOME}/content_repository \
     && mkdir -p ${NIFI_HOME}/provenance_repository \
+    && mkdir -p ${NIFI_HOME}/python_extensions \
     && mkdir -p ${NIFI_HOME}/state \
     && mkdir -p ${NIFI_LOG_DIR} \
     && ln -s ${NIFI_HOME} ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}
@@ -86,13 +87,14 @@ VOLUME ${NIFI_LOG_DIR} \
        ${NIFI_HOME}/flowfile_repository \
        ${NIFI_HOME}/content_repository \
        ${NIFI_HOME}/provenance_repository \
+       ${NIFI_HOME}/python_extensions \
        ${NIFI_HOME}/state
 
 # Clear nifi-env.sh in favour of configuring all environment variables in the Dockerfile
 RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
 
 # Web HTTP(s) & Socket Site-to-Site Ports
-EXPOSE 8443 10000 8000
+EXPOSE 8443/tcp 10000/tcp 8000/tcp
 
 WORKDIR ${NIFI_HOME}
 
