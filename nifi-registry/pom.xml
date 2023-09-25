@@ -42,7 +42,7 @@
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <groovy.eclipse.compiler.version>3.7.0</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
-        <jgit.version>5.13.1.202206130422-r</jgit.version>
+        <jgit.version>5.13.2.202306221912-r</jgit.version>
         <!-- JGit 5.13 requires SSHD 2.9.2 or earlier -->
         <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
     </properties>
