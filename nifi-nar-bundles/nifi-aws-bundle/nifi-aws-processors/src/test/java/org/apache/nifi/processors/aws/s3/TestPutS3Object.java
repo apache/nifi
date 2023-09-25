@@ -80,7 +80,7 @@ public class TestPutS3Object {
         runner = TestRunners.newTestRunner(putS3Object);
 
         // MockPropertyValue does not evaluate system properties, set it in a variable with the same name
-        runner.setEnvironmentSystemVariableValue("java.io.tmpdir", System.getProperty("java.io.tmpdir"));
+        runner.setEnvironmentVariableValue("java.io.tmpdir", System.getProperty("java.io.tmpdir"));
     }
 
     @Test

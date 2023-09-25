@@ -58,7 +58,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -102,7 +102,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
     private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
     public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
-    private final EnvironmentSystemRegistry environmentSystemRegistry = EnvironmentSystemRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
+    private final EnvironmentVariables environmentSystemRegistry = EnvironmentVariables.ENVIRONMENT_VARIABLES;
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
@@ -618,7 +618,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     @Override
-    public EnvironmentSystemRegistry getEnvironmentSystemRegistry() {
+    public EnvironmentVariables getEnvironmentSystemRegistry() {
         return environmentSystemRegistry;
     }
 

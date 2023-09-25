@@ -41,7 +41,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.jupiter.api.Assertions;
@@ -100,7 +100,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private boolean validateExpressionUsage = true;
 
     // This only for testing purposes as we don't want to set env/sys variables in the tests
-    private final Map<String, String> envSysVariableRegistry = new HashMap<>();
+    private final Map<String, String> environmentVariables = new HashMap<>();
 
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
@@ -126,7 +126,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
 
-        this.context = new MockProcessContext(processor, processorName, processorStateManager, envSysVariableRegistry);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables);
         this.kerberosContext = kerberosContext;
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);
@@ -254,6 +254,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
     }
 
+    @Override
     public void unSchedule() {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
@@ -262,6 +263,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
     }
 
+    @Override
     public void stop() {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
@@ -724,7 +726,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         try {
             // Create a config context to pass into the controller service's OnDisabled method (it will be ignored if the controller service has no arguments)
-            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, envSysVariableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
             configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service, configContext);
         } catch (final Exception e) {
@@ -760,7 +762,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, envSysVariableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
             configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
@@ -988,18 +990,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public String getEnvironmentSystemVariableValue(final String name) {
+    public String getEnvironmentVariableValue(final String name) {
         Objects.requireNonNull(name);
-        if(envSysVariableRegistry.containsKey(name)) {
-            return envSysVariableRegistry.get(name);
+        if(environmentVariables.containsKey(name)) {
+            return environmentVariables.get(name);
         } else {
-            return EnvironmentSystemRegistry.ENVIRONMENT_SYSTEM_REGISTRY.getEnvironmentSystemVariableValue(name);
+            return EnvironmentVariables.ENVIRONMENT_VARIABLES.getEnvironmentVariableValue(name);
         }
     }
 
     @Override
-    public void setEnvironmentSystemVariableValue(String name, String value) {
-        envSysVariableRegistry.put(name, value);
+    public void setEnvironmentVariableValue(String name, String value) {
+        environmentVariables.put(name, value);
     }
 
     /**

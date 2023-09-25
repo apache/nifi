@@ -59,9 +59,9 @@ public class MongoWriteTestBase extends AbstractMongoIT {
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);
-        runner.setEnvironmentSystemVariableValue("uri", MONGO_CONTAINER.getConnectionString());
-        runner.setEnvironmentSystemVariableValue("db", DATABASE_NAME);
-        runner.setEnvironmentSystemVariableValue("collection", COLLECTION_NAME);
+        runner.setEnvironmentVariableValue("uri", MONGO_CONTAINER.getConnectionString());
+        runner.setEnvironmentVariableValue("db", DATABASE_NAME);
+        runner.setEnvironmentVariableValue("collection", COLLECTION_NAME);
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         return runner;

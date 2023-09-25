@@ -80,7 +80,7 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
 
     @Test
     public void testValidSinglePointWithTimeAndUrlExpression() {
-        runner.setEnvironmentSystemVariableValue("influxDBUrl", "http://localhost:8086");
+        runner.setEnvironmentVariableValue("influxDBUrl", "http://localhost:8086");
         runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "${influxDBUrl}");
         QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
         assertEquals(null, result.getResults().iterator().next().getSeries(), "Should have no results");
@@ -100,7 +100,7 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
 
     @Test
     public void testValidSinglePointWithUsernameEL() {
-        runner.setEnvironmentSystemVariableValue("influxdb.username", "admin");
+        runner.setEnvironmentVariableValue("influxdb.username", "admin");
         runner.setProperty(PutInfluxDB.USERNAME, "${influxdb.username}");
         QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
         assertEquals(null, result.getResults().iterator().next().getSeries(), "Should have no results");
@@ -113,7 +113,7 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
 
     @Test
     public void testValidSinglePointWithPasswordEL() {
-        runner.setEnvironmentSystemVariableValue("influxdb.password", "admin");
+        runner.setEnvironmentVariableValue("influxdb.password", "admin");
         runner.setProperty(PutInfluxDB.PASSWORD, "${influxdb.password}");
         QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
         assertEquals(null, result.getResults().iterator().next().getSeries(), "Should have no results");

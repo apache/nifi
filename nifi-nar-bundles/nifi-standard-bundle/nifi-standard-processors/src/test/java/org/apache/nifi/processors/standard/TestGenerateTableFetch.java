@@ -906,8 +906,8 @@ public class TestGenerateTableFetch {
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
 
-        runner.setEnvironmentSystemVariableValue("tableName", "TEST_QUERY_DB_TABLE");
-        runner.setEnvironmentSystemVariableValue("maxValueCol", "id");
+        runner.setEnvironmentVariableValue("tableName", "TEST_QUERY_DB_TABLE");
+        runner.setEnvironmentVariableValue("maxValueCol", "id");
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
@@ -1059,7 +1059,7 @@ public class TestGenerateTableFetch {
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        runner.setEnvironmentSystemVariableValue("maxval.id", "1");
+        runner.setEnvironmentVariableValue("maxval.id", "1");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);

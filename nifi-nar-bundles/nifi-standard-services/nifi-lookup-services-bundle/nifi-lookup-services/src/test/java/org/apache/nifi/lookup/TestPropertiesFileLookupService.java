@@ -64,7 +64,7 @@ public class TestPropertiesFileLookupService {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PropertiesFileLookupService service = new PropertiesFileLookupService();
 
-        runner.setEnvironmentSystemVariableValue("myFile", "src/test/resources/test.properties");
+        runner.setEnvironmentVariableValue("myFile", "src/test/resources/test.properties");
 
         runner.addControllerService("properties-file-lookup-service", service);
         runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "${myFile}");

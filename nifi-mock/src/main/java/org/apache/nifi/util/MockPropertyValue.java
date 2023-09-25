@@ -50,7 +50,7 @@ public class MockPropertyValue implements PropertyValue {
     private final PropertyValue stdPropValue;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> envSysVariableRegistry;
+    private Map<String, String> environmentVariables;
 
     private boolean expressionsEvaluated;
 
@@ -58,21 +58,21 @@ public class MockPropertyValue implements PropertyValue {
         this(rawValue, null, null);
     }
 
-    public MockPropertyValue(final String rawValue, final Map<String, String> envSysVariableRegistry) {
-        this(rawValue, null, envSysVariableRegistry);
+    public MockPropertyValue(final String rawValue, final Map<String, String> environmentVariables) {
+        this(rawValue, null, environmentVariables);
     }
 
-    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> envSysVariableRegistry) {
-        this(rawValue, serviceLookup, null, envSysVariableRegistry);
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> environmentVariables) {
+        this(rawValue, serviceLookup, null, environmentVariables);
     }
 
     public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
-            final Map<String, String> envSysVariableRegistry) {
-        this(rawValue, serviceLookup, propertyDescriptor, false, envSysVariableRegistry);
+            final Map<String, String> environmentVariables) {
+        this(rawValue, serviceLookup, propertyDescriptor, false, environmentVariables);
     }
 
     protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
-            final boolean alreadyEvaluated, final Map<String, String> envSysVariableRegistry) {
+            final boolean alreadyEvaluated, final Map<String, String> environmentVariables) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), propertyDescriptor);
         this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, ParameterLookup.EMPTY);
         this.rawValue = rawValue;
@@ -81,7 +81,7 @@ public class MockPropertyValue implements PropertyValue {
         this.expressionLanguageScope = propertyDescriptor == null ? null : propertyDescriptor.getExpressionLanguageScope();
         this.propertyDescriptor = propertyDescriptor;
         this.expressionsEvaluated = alreadyEvaluated;
-        this.envSysVariableRegistry = envSysVariableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
     private void ensureExpressionsEvaluated() {
@@ -267,12 +267,12 @@ public class MockPropertyValue implements PropertyValue {
         // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes
         final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes);
 
-        if(envSysVariableRegistry != null) {
-            attAndEnvVarRegistry.putAll(envSysVariableRegistry);
+        if(environmentVariables != null) {
+            attAndEnvVarRegistry.putAll(environmentVariables);
         }
 
         final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, attAndEnvVarRegistry, decorator, stateValues);
-        return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, envSysVariableRegistry);
+        return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, environmentVariables);
     }
 
     @Override

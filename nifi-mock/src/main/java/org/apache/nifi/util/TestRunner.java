@@ -1002,7 +1002,7 @@ public interface TestRunner {
      *
      * @throws NullPointerException if the name is null
      */
-    String getEnvironmentSystemVariableValue(String name);
+    String getEnvironmentVariableValue(String name);
 
     /**
      * Sets the value of the variable with the given name to be the given value. This exposes the variable
@@ -1016,7 +1016,7 @@ public interface TestRunner {
      *
      * @throws NullPointerException if either the name or the value is null
      */
-    void setEnvironmentSystemVariableValue(String name, String value);
+    void setEnvironmentVariableValue(String name, String value);
 
     /**
      * Asserts that all FlowFiles meet all conditions.

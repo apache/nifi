@@ -140,7 +140,7 @@ public class TestRedisConnectionPoolService {
         testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "${redis.connection}");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setEnvironmentSystemVariableValue("redis.connection", "localhost:6379");
+        testRunner.setEnvironmentVariableValue("redis.connection", "localhost:6379");
         testRunner.assertValid(redisService);
 
         testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost");

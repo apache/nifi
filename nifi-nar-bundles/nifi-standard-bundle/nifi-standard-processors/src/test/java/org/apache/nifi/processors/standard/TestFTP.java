@@ -300,8 +300,8 @@ public class TestFTP {
         fs.add(fileEntry);
 
         final TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
-        runner.setEnvironmentSystemVariableValue("host", LOCALHOST_ADDRESS);
-        runner.setEnvironmentSystemVariableValue("port", Integer.toString(ftpPort));
+        runner.setEnvironmentVariableValue("host", LOCALHOST_ADDRESS);
+        runner.setEnvironmentVariableValue("port", Integer.toString(ftpPort));
 
         runner.setProperty(ListFTP.HOSTNAME, "${host}");
         runner.setProperty(FTPTransfer.PORT, "${port}");

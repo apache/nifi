@@ -119,7 +119,7 @@ public class TestPutTCP {
     @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutTCP.class);
-        runner.setEnvironmentSystemVariableValue(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
+        runner.setEnvironmentVariableValue(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
     }
 
     @AfterEach

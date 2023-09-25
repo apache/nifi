@@ -79,7 +79,7 @@ public class TestValidateXml {
     public void testValidEL() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
-        runner.setEnvironmentSystemVariableValue("my.schema", "src/test/resources/TestXml/XmlBundle.xsd");
+        runner.setEnvironmentVariableValue("my.schema", "src/test/resources/TestXml/XmlBundle.xsd");
 
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
         runner.run();

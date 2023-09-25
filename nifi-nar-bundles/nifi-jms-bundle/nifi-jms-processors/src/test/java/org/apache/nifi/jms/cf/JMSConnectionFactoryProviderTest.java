@@ -110,8 +110,8 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
-        runner.setEnvironmentSystemVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
-        runner.setEnvironmentSystemVariableValue("client.lib", dummyResource);
+        runner.setEnvironmentVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
+        runner.setEnvironmentVariableValue("client.lib", dummyResource);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "${broker.uri}");
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, "${client.lib}");
@@ -128,8 +128,8 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
-        runner.setEnvironmentSystemVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
-        runner.setEnvironmentSystemVariableValue("client.lib", allDummyResources);
+        runner.setEnvironmentVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
+        runner.setEnvironmentVariableValue("client.lib", allDummyResources);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "${broker.uri}");
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, "${client.lib}");
@@ -571,7 +571,7 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
-        runner.setEnvironmentSystemVariableValue("test", "dynamicValue");
+        runner.setEnvironmentVariableValue("test", "dynamicValue");
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);

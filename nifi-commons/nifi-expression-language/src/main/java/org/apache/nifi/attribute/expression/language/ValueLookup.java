@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +38,7 @@ import java.util.Set;
 final class ValueLookup implements Map<String, String> {
 
     private final List<Map<String, String>> maps = new ArrayList<>();
-    private final EnvironmentSystemRegistry environmentSystemRegistry = EnvironmentSystemRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
+    private final EnvironmentVariables environmentVariables = EnvironmentVariables.ENVIRONMENT_VARIABLES;
 
     /**
      * Constructs a ValueLookup where values are looked up first based any
@@ -87,7 +87,7 @@ final class ValueLookup implements Map<String, String> {
                 return false;
             }
         }
-        return environmentSystemRegistry.getEnvironmentSystemVariableMap().isEmpty();
+        return environmentVariables.getEnvironmentVariablesMap().isEmpty();
     }
 
     @Override
@@ -98,7 +98,7 @@ final class ValueLookup implements Map<String, String> {
         if (maps.stream().anyMatch((map) -> (map.containsKey(key)))) {
             return true;
         }
-        return environmentSystemRegistry.getEnvironmentSystemVariableKey(key.toString()) != null;
+        return environmentVariables.getEnvironmentVariableKey(key.toString()) != null;
     }
 
     @Override
@@ -123,7 +123,7 @@ final class ValueLookup implements Map<String, String> {
                 return val;
             }
         }
-        return environmentSystemRegistry.getEnvironmentSystemVariableValue(key.toString());
+        return environmentVariables.getEnvironmentVariableValue(key.toString());
     }
 
     @Override
@@ -176,7 +176,7 @@ final class ValueLookup implements Map<String, String> {
     public Set<Entry<String, String>> entrySet() {
         final Map<String, String> newMap = new HashMap<>();
         //put syst/env variable registry entries first
-        for (final Map.Entry<VariableDescriptor, String> entry : environmentSystemRegistry.getEnvironmentSystemVariableMap().entrySet()) {
+        for (final Map.Entry<VariableDescriptor, String> entry : environmentVariables.getEnvironmentVariablesMap().entrySet()) {
             newMap.put(entry.getKey().getName(), entry.getValue());
         }
         //put attribute maps in reverse order

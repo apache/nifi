@@ -94,8 +94,8 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.setProperty(ListAzureBlobStorage_v12.CONTAINER, String.format("${%s}", EL_CONTAINER_NAME));
         runner.setProperty(ListAzureBlobStorage_v12.BLOB_NAME_PREFIX, String.format("${%s}", EL_BLOB_NAME_PREFIX));
 
-        runner.setEnvironmentSystemVariableValue(EL_CONTAINER_NAME, getContainerName());
-        runner.setEnvironmentSystemVariableValue(EL_BLOB_NAME_PREFIX, "dir1/dir");
+        runner.setEnvironmentVariableValue(EL_CONTAINER_NAME, getContainerName());
+        runner.setEnvironmentVariableValue(EL_BLOB_NAME_PREFIX, "dir1/dir");
 
         runProcessor();
 

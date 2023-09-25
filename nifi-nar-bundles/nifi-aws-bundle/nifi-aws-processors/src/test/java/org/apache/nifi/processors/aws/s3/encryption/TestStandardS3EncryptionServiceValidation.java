@@ -302,6 +302,6 @@ public class TestStandardS3EncryptionServiceValidation {
     }
 
     private void configureVariable(String name, String value) {
-        runner.setEnvironmentSystemVariableValue(name, value);
+        runner.setEnvironmentVariableValue(name, value);
     }
 }

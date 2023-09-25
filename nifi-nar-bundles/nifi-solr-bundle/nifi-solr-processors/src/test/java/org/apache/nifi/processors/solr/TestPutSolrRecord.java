@@ -599,13 +599,13 @@ public class TestPutSolrRecord {
         runner.setProperty(SolrUtils.BASIC_USERNAME, "${solr.user}");
         runner.assertNotValid();
 
-        runner.setEnvironmentSystemVariableValue("solr.user", "solrRocks");
+        runner.setEnvironmentVariableValue("solr.user", "solrRocks");
         runner.assertValid();
 
         runner.setProperty(SolrUtils.BASIC_PASSWORD, "${solr.password}");
         runner.assertNotValid();
 
-        runner.setEnvironmentSystemVariableValue("solr.password", "solrRocksPassword");
+        runner.setEnvironmentVariableValue("solr.password", "solrRocksPassword");
         runner.assertValid();
     }
 

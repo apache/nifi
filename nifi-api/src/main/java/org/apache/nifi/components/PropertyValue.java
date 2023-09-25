@@ -23,7 +23,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -139,7 +139,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -157,7 +157,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -178,7 +178,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -201,7 +201,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -222,7 +222,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -248,7 +248,7 @@ public interface PropertyValue {
      * Replaces values in the Property Value using the NiFi Expression Language;
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -300,7 +300,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *
@@ -321,7 +321,7 @@ public interface PropertyValue {
      * The supplied decorator is then given a chance to decorate the value, and
      * a PropertyValue with the new value is then returned, supporting call
      * chaining. Before executing the expression language statement any
-     * variables names found within any underlying {@link EnvironmentSystemRegistry} will
+     * variables names found within any underlying {@link EnvironmentVariables} will
      * be substituted with their values.
      * </p>
      *

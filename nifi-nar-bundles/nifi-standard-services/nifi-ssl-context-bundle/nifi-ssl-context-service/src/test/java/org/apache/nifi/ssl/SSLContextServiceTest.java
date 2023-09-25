@@ -138,8 +138,8 @@ public class SSLContextServiceTest {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         SSLContextService service = new StandardSSLContextService();
         runner.addControllerService("test-good1", service);
-        runner.setEnvironmentSystemVariableValue("keystore", tlsConfiguration.getKeystorePath());
-        runner.setEnvironmentSystemVariableValue("truststore", tlsConfiguration.getTruststorePath());
+        runner.setEnvironmentVariableValue("keystore", tlsConfiguration.getKeystorePath());
+        runner.setEnvironmentVariableValue("truststore", tlsConfiguration.getTruststorePath());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "${keystore}");
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().getType());

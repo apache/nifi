@@ -97,7 +97,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, null, true, context.getEnvSysVariableRegistry());
+        return new MockPropertyValue(rawValue, this, null, true, context.getEnvironmentVariables());
     }
 
     @Override
@@ -107,7 +107,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, context.getEnvSysVariableRegistry());
+        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, context.getEnvironmentVariables());
         final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager);
         serviceValidationContext.setValidateExpressions(validateExpressions);
         return serviceValidationContext;

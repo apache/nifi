@@ -59,9 +59,9 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(RunMongoAggregation.class);
-        runner.setEnvironmentSystemVariableValue("uri", MONGO_CONTAINER.getConnectionString());
-        runner.setEnvironmentSystemVariableValue("db", DB_NAME);
-        runner.setEnvironmentSystemVariableValue("collection", COLLECTION_NAME);
+        runner.setEnvironmentVariableValue("uri", MONGO_CONTAINER.getConnectionString());
+        runner.setEnvironmentVariableValue("db", DB_NAME);
+        runner.setEnvironmentVariableValue("collection", COLLECTION_NAME);
         clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
@@ -133,7 +133,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
 
     @Test
     public void testExpressionLanguageSupport() throws Exception {
-        runner.setEnvironmentSystemVariableValue("fieldName", "$val");
+        runner.setEnvironmentVariableValue("fieldName", "$val");
         runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
                 "    {\n" +
                 "        \"$project\": {\n" +

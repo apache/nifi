@@ -74,7 +74,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile boolean isConnected = true;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> envSysVariableRegistry;
+    private Map<String, String> environmentVariables;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, null, new MockStateManager(component), null);
@@ -97,16 +97,16 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     public MockProcessContext(final ControllerService component,
                               final MockProcessContext context,
                               final StateManager stateManager,
-                              final Map<String, String> envSysVariableRegistry) {
-        this(component, null, context, stateManager, envSysVariableRegistry);
+                              final Map<String, String> environmentVariables) {
+        this(component, null, context, stateManager, environmentVariables);
     }
 
     public MockProcessContext(final ControllerService component,
                               final String componentName,
                               final MockProcessContext context,
                               final StateManager stateManager,
-                              final Map<String, String> envSysVariableRegistry) {
-        this(component, componentName, stateManager, envSysVariableRegistry);
+                              final Map<String, String> environmentVariables) {
+        this(component, componentName, stateManager, environmentVariables);
 
         try {
             annotationData = context.getControllerServiceAnnotationData(component);
@@ -130,12 +130,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     public MockProcessContext(final ConfigurableComponent component,
                               final String componentName,
                               final StateManager stateManager,
-                              final Map<String, String> envSysVariableRegistry) {
+                              final Map<String, String> environmentVariables) {
         this.component = Objects.requireNonNull(component);
         this.componentName = componentName == null ? "" : componentName;
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
-        this.envSysVariableRegistry = envSysVariableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
 
@@ -154,7 +154,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String setPropertyValue = properties.get(canonicalDescriptor);
         final String propValue = (setPropertyValue == null) ? canonicalDescriptor.getDefaultValue() : setPropertyValue;
 
-        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, canonicalDescriptor, true, envSysVariableRegistry);
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, canonicalDescriptor, true, environmentVariables);
         return propertyValue;
     }
 
@@ -169,13 +169,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
         final boolean alreadyEvaluated = !this.allowExpressionValidation;
-        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, envSysVariableRegistry);
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, environmentVariables);
         return propertyValue;
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, envSysVariableRegistry);
+        return new MockPropertyValue(rawValue, this, environmentVariables);
     }
 
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
@@ -577,7 +577,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return false;
     }
 
-    public Map<String, String> getEnvSysVariableRegistry() {
-        return envSysVariableRegistry;
+    public Map<String, String> getEnvironmentVariables() {
+        return environmentVariables;
     }
 }

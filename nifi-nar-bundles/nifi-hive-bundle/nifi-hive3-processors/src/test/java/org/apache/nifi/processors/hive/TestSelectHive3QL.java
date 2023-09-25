@@ -482,7 +482,7 @@ public class TestSelectHive3QL {
         runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
         runner.setProperty(SelectHive3QL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
         runner.setProperty(SelectHive3QL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.AVRO);
-        runner.setEnvironmentSystemVariableValue(MAX_ROWS_KEY, "9");
+        runner.setEnvironmentVariableValue(MAX_ROWS_KEY, "9");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 12);
@@ -547,7 +547,7 @@ public class TestSelectHive3QL {
         runner.setIncomingConnection(true);
         runner.setProperty(SelectHive3QL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
         runner.setProperty(SelectHive3QL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.AVRO);
-        runner.setEnvironmentSystemVariableValue(MAX_ROWS_KEY, "9");
+        runner.setEnvironmentVariableValue(MAX_ROWS_KEY, "9");
 
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("hiveql.args.1.value", "1");

@@ -63,7 +63,7 @@ public class TestPutUDP {
     @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutUDP.class);
-        runner.setEnvironmentSystemVariableValue(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
+        runner.setEnvironmentVariableValue(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
         createTestServer(VALID_LARGE_FILE_SIZE);
     }
 

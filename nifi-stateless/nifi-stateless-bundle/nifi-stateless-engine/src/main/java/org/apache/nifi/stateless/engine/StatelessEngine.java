@@ -29,7 +29,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
@@ -52,7 +52,7 @@ public interface StatelessEngine {
 
     FlowManager getFlowManager();
 
-    EnvironmentSystemRegistry getEnvironmentSystemRegistry();
+    EnvironmentVariables getEnvironmentSystemRegistry();
 
     ProcessScheduler getProcessScheduler();
 

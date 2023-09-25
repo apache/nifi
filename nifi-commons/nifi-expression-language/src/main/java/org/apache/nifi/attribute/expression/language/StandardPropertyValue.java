@@ -30,7 +30,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.EnvironmentSystemRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.util.FormatUtils;
 
 import java.util.Map;
@@ -58,7 +58,7 @@ public class StandardPropertyValue implements PropertyValue {
      * lookup and indicates whether or not the rawValue contains any NiFi
      * Expressions. If it is unknown whether or not the value contains any NiFi
      * Expressions, the
-     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, EnvironmentSystemRegistry)}
+     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, EnvironmentVariables)}
      * constructor should be used or <code>true</code> should be passed.
      * However, if it is known that the value contains no NiFi Expression, that
      * information should be provided so that calls to

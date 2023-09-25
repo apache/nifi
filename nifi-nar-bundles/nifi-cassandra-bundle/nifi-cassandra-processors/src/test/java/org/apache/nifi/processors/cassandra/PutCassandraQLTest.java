@@ -134,11 +134,11 @@ public class PutCassandraQLTest {
         testRunner.setProperty(PutCassandraQL.STATEMENT_TIMEOUT, "${timeout}");
         testRunner.assertValid();
 
-        testRunner.setEnvironmentSystemVariableValue("hosts", "localhost:9042");
-        testRunner.setEnvironmentSystemVariableValue("user", "username");
-        testRunner.setEnvironmentSystemVariableValue("pass", "password");
-        testRunner.setEnvironmentSystemVariableValue("charset", "UTF-8");
-        testRunner.setEnvironmentSystemVariableValue("timeout", "30 sec");
+        testRunner.setEnvironmentVariableValue("hosts", "localhost:9042");
+        testRunner.setEnvironmentVariableValue("user", "username");
+        testRunner.setEnvironmentVariableValue("pass", "password");
+        testRunner.setEnvironmentVariableValue("charset", "UTF-8");
+        testRunner.setEnvironmentVariableValue("timeout", "30 sec");
 
         testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
                 new HashMap<String, String>() {

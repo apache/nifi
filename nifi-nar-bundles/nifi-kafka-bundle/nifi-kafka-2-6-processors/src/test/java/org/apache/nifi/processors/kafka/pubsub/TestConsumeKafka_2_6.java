@@ -103,7 +103,7 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertValid();
 
-        runner.setEnvironmentSystemVariableValue("service", "kafka");
+        runner.setEnvironmentVariableValue("service", "kafka");
         runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }

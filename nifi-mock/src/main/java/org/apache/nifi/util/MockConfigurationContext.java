@@ -35,22 +35,22 @@ public class MockConfigurationContext implements ConfigurationContext {
     private volatile boolean validateExpressions;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> envSysVariableRegistry;
+    private Map<String, String> environmentVariables;
 
     public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
             final ControllerServiceLookup serviceLookup,
-            final Map<String, String> envSysVariableRegistry) {
-        this(null, properties, serviceLookup, envSysVariableRegistry);
+            final Map<String, String> environmentVariables) {
+        this(null, properties, serviceLookup, environmentVariables);
     }
 
     public MockConfigurationContext(final ControllerService service,
             final Map<PropertyDescriptor, String> properties,
             final ControllerServiceLookup serviceLookup,
-            final Map<String, String> envSysVariableRegistry) {
+            final Map<String, String> environmentVariables) {
         this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup == null ? new EmptyControllerServiceLookup() : serviceLookup;
-        this.envSysVariableRegistry = envSysVariableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
     public void setValidateExpressions(final boolean validate) {
@@ -66,7 +66,7 @@ public class MockConfigurationContext implements ConfigurationContext {
         }
 
         final boolean alreadyEvaluated = !validateExpressions;
-        return new MockPropertyValue(value, serviceLookup, canonicalDescriptor, alreadyEvaluated, envSysVariableRegistry);
+        return new MockPropertyValue(value, serviceLookup, canonicalDescriptor, alreadyEvaluated, environmentVariables);
     }
 
     @Override

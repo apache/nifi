@@ -604,7 +604,7 @@ public class TestConsumeMQTT {
     @Test
     public void testSslContextService() throws InitializationException, TlsException {
         testRunner = initializeTestRunner();
-        testRunner.setEnvironmentSystemVariableValue("brokerURI",  "ssl://localhost:8883");
+        testRunner.setEnvironmentVariableValue("brokerURI",  "ssl://localhost:8883");
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
 
         final String identifier = addSSLContextService(testRunner);
