@@ -17,12 +17,6 @@
 
 package org.apache.nifi.serialization;
 
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,6 +25,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
@@ -188,11 +187,16 @@ public class SimpleRecordSchema implements RecordSchema {
     public int hashCode() {
         int computed = this.hashCode;
         if (computed == 0) {
-            computed = this.hashCode = 143 + 3 * fields.hashCode();
+            computed = this.hashCode = calculateHashCode();
         }
 
         return computed;
     }
+
+    private int calculateHashCode() {
+        return 143 + 3 * fields.hashCode();
+    }
+
 
     private static String createText(final List<RecordField> fields) {
         final StringBuilder sb = new StringBuilder("[");
@@ -264,18 +268,15 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public void removeField(final String fieldName) {
-        final List<RecordField> remainingFields = fields.stream()
-                .filter(field -> !field.getFieldName().equals(fieldName)).collect(Collectors.toList());
+        final List<RecordField> remainingFields = new ArrayList<>();
+        for (final RecordField field : fields) {
+            if (!field.getFieldName().equals(fieldName)) {
+                remainingFields.add(field);
+            }
+        }
 
         if (remainingFields.size() != fields.size()) {
-            fields = null;
-            setFields(remainingFields);
-            text.set(createText(fields));
-            textAvailable = true;
-            schemaFormat = null;
-            schemaIdentifier = SchemaIdentifier.EMPTY;
-            hashCode = 0; // set to 0 to trigger re-calculation
-            hashCode = hashCode();
+            resetFields(remainingFields);
         }
     }
 
@@ -287,6 +288,41 @@ public class SimpleRecordSchema implements RecordSchema {
             getField(path.head()).ifPresent(field -> field.getDataType().removePath(path.tail()));
         }
     }
+
+
+    @Override
+    public boolean renameField(final String currentName, final String newName) {
+        final List<RecordField> updatedFields = new ArrayList<>(fields.size());
+
+        boolean renamed = false;
+        for (final RecordField recordField : fields) {
+            if (recordField.getFieldName().equals(currentName)) {
+                final RecordField updated = new RecordField(newName, recordField.getDataType(), recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
+                updatedFields.add(updated);
+                renamed = true;
+            } else {
+                updatedFields.add(recordField);
+            }
+        }
+
+        if (!renamed) {
+            return false;
+        }
+
+        resetFields(updatedFields);
+        return true;
+    }
+
+    private void resetFields(final List<RecordField> updatedFields) {
+        this.fields = null;
+        setFields(updatedFields);
+        textAvailable = false;
+        text.set(null);
+        schemaFormat = null;
+        schemaIdentifier = SchemaIdentifier.EMPTY;
+        hashCode = calculateHashCode();
+    }
+
 
     @Override
     public boolean isRecursive() {

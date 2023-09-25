@@ -17,12 +17,11 @@
 
 package org.apache.nifi.serialization.record;
 
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public interface Record {
 
@@ -151,6 +150,17 @@ public interface Record {
      * @param field the field that should be removed from the record
      */
     void remove(RecordField field);
+
+    /**
+     * Renames the given field to the new name
+     *
+     * @param field   the RecordField to update
+     * @param newName the new name for the field
+     * @return <code>true</code> if the field was renamed, <code>false</code> if the field could not be found
+     * @throws IllegalArgumentException if unable to rename field due to a naming conflict, such as the new name already existing in the schema
+     */
+    boolean rename(RecordField field, String newName);
+
 
     /**
      * Creates a new schema for the Record based on the Record's field types.

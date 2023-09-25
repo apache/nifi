@@ -25,7 +25,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -254,9 +252,8 @@ public class MockFlowFile implements FlowFileRecord {
      * @throws IOException if io error occurs while comparing content
      */
     public void assertContentEquals(final Path path) throws IOException {
-        try (final InputStream in = Files.newInputStream(path, StandardOpenOption.READ)) {
-            assertContentEquals(in);
-        }
+        final String contents = Files.readString(path);
+        assertContentEquals(contents);
     }
 
     /**
