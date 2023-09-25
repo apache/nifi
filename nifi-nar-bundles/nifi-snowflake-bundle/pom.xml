@@ -40,7 +40,8 @@
             <dependency>
                 <groupId>net.snowflake</groupId>
                 <artifactId>snowflake-jdbc</artifactId>
-                <version>3.14.1</version>
+                <!-- please check snowflake-ingest-sdk compatibility before upgrade -->
+                <version>3.13.33</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
