@@ -99,7 +99,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
             final ParameterProviderConfiguration parameterProviderConfiguration = createParameterProviderConfiguration(parameterProviderConfigurationEntity);
             final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
-                    parameters, referencedIds, parameterProviderConfiguration);
+                    parameterContextDto.getDescription(), parameters, referencedIds, parameterProviderConfiguration);
             if (parameterContextDto.getDescription() != null) {
                 parameterContext.setDescription(parameterContextDto.getDescription());
             }
