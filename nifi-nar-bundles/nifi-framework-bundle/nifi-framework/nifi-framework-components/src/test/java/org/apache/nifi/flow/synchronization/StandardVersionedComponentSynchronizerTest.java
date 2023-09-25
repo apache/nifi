@@ -181,10 +181,14 @@ public class StandardVersionedComponentSynchronizerTest {
                     .parameterReferenceManager(parameterReferenceManager)
                     .build();
 
-            final Map<String, Parameter> parameterMap = invocation.getArgument(2, Map.class);
+            final String description = invocation.getArgument(2, String.class);
+            parameterContext.setDescription(description);
+
+            final Map<String, Parameter> parameterMap = invocation.getArgument(3, Map.class);
             parameterContext.setParameters(parameterMap);
 
-            final List<String> inheritedContextIds = invocation.getArgument(3, List.class);
+
+            final List<String> inheritedContextIds = invocation.getArgument(4, List.class);
             final List<ParameterContext> inheritedContexts = inheritedContextIds.stream()
                 .map(parameterContextManager::getParameterContext)
                 .collect(Collectors.toList());
@@ -193,7 +197,7 @@ public class StandardVersionedComponentSynchronizerTest {
             parameterContextManager.addParameterContext(parameterContext);
 
             return parameterContext;
-        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
+        }).when(flowManager).createParameterContext(anyString(), anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
 
         final VersionedFlowSynchronizationContext context = new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)

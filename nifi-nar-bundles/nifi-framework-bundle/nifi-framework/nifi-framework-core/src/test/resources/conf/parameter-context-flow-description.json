@@ -1,0 +1,60 @@
+{
+    "encodingVersion": {
+        "majorVersion": 2,
+        "minorVersion": 0
+    },
+    "maxTimerDrivenThreadCount": 10,
+    "registries": [],
+    "parameterContexts": [
+        {
+            "identifier": "e5033705-0219-3aa5-88d4-542cd7f1c13d",
+            "instanceIdentifier": "context",
+            "name": "context",
+            "parameters": [],
+            "inheritedParameterContexts": [],
+            "componentType": "PARAMETER_CONTEXT"
+        },
+        {
+            "identifier": "8304c86e-2662-3f0b-9b54-153015055f25",
+            "instanceIdentifier": "context2",
+            "name": "context2",
+            "parameters": [],
+            "inheritedParameterContexts": [],
+            "description": "description",
+            "componentType": "PARAMETER_CONTEXT"
+        }
+    ],
+    "parameterProviders": [],
+    "controllerServices": [],
+    "reportingTasks": [],
+    "flowAnalysisRules": [],
+    "rootGroup": {
+        "identifier": "55cf3437-cecb-3f77-806a-b742995a79b9",
+        "instanceIdentifier": "e6bf1066-018a-1000-97f3-ca4c6fe9e05c",
+        "name": "NiFi Flow",
+        "comments": "",
+        "position": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [],
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "scheduledState": "ENABLED",
+        "executionEngine": "INHERITED",
+        "maxConcurrentTasks": 1,
+        "statelessFlowTimeout": "1 min",
+        "componentType": "PROCESS_GROUP",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "flowFileConcurrency": "UNBOUNDED"
+    }
+}

@@ -815,8 +815,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             parameterProviderConfiguration = new StandardParameterProviderConfiguration(versionedParameterContext.getParameterProvider(),
                     versionedParameterContext.getParameterGroupName(), versionedParameterContext.isSynchronized());
         }
-        flowManager.createParameterContext(versionedParameterContext.getInstanceIdentifier(), versionedParameterContext.getName(), parameters, referenceIds,
-                parameterProviderConfiguration);
+        flowManager.createParameterContext(versionedParameterContext.getInstanceIdentifier(), versionedParameterContext.getName(), versionedParameterContext.getDescription(),
+                parameters, referenceIds, parameterProviderConfiguration);
         logger.info("Added Parameter Context {}", versionedParameterContext.getName());
     }
 
