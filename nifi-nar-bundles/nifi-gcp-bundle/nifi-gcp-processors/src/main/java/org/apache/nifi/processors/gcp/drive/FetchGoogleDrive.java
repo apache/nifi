@@ -20,11 +20,20 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -42,17 +51,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
@@ -82,6 +80,33 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
+@MultiProcessorUseCase(
+    description = "Retrieve all files in a Google Drive folder",
+    keywords = {"google", "drive", "google cloud", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListGoogleDrive.class,
+            configuration = """
+                The "Folder ID" property should be set to the ID of the Google Drive folder that files reside in. \
+                    See processor documentation / additional details for more information on how to determine a Google Drive folder's ID.
+                    If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{GOOGLE_DRIVE_FOLDER_ID}`.
+
+                The "GCP Credentials Provider Service" property should specify an instance of the GCPCredentialsService in order to provide credentials for accessing the folder.
+
+                The 'success' Relationship of this Processor is then connected to FetchGoogleDrive.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchGoogleDrive.class,
+            configuration = """
+                "File ID" = "${drive.id}"
+
+                The "GCP Credentials Provider Service" property should specify an instance of the GCPCredentialsService in order to provide credentials for accessing the bucket.
+                """
+        )
+    }
+)
 public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
 
     // Google Docs Export Types
@@ -195,8 +220,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
 
 
-
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile will be routed here for each successfully fetched File.")
@@ -207,7 +230,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
         GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
         FILE_ID,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS),
@@ -215,12 +238,9 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         GOOGLE_SPREADSHEET_EXPORT_TYPE,
         GOOGLE_PRESENTATION_EXPORT_TYPE,
         GOOGLE_DRAWING_EXPORT_TYPE
-    ));
+    );
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS,
-        REL_FAILURE
-    )));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private volatile Drive driveService;
 
@@ -279,20 +299,14 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             return null;
         }
 
-        switch (mimeType) {
-            case "application/vnd.google-apps.document":
-                return context.getProperty(GOOGLE_DOC_EXPORT_TYPE).getValue();
-            case "application/vnd.google-apps.spreadsheet":
-                return context.getProperty(GOOGLE_SPREADSHEET_EXPORT_TYPE).getValue();
-            case "application/vnd.google-apps.presentation":
-                return context.getProperty(GOOGLE_PRESENTATION_EXPORT_TYPE).getValue();
-            case "application/vnd.google-apps.drawing":
-                return context.getProperty(GOOGLE_DRAWING_EXPORT_TYPE).getValue();
-            case "application/vnd.google-apps.script":
-                return "application/vnd.google-apps.script+json";
-            default:
-                return null;
-        }
+        return switch (mimeType) {
+            case "application/vnd.google-apps.document" -> context.getProperty(GOOGLE_DOC_EXPORT_TYPE).getValue();
+            case "application/vnd.google-apps.spreadsheet" -> context.getProperty(GOOGLE_SPREADSHEET_EXPORT_TYPE).getValue();
+            case "application/vnd.google-apps.presentation" -> context.getProperty(GOOGLE_PRESENTATION_EXPORT_TYPE).getValue();
+            case "application/vnd.google-apps.drawing" -> context.getProperty(GOOGLE_DRAWING_EXPORT_TYPE).getValue();
+            case "application/vnd.google-apps.script" -> "application/vnd.google-apps.script+json";
+            default -> null;
+        };
     }
 
     private FlowFile fetchFile(final String fileId, final ProcessSession session, final ProcessContext context, final FlowFile flowFile, final Map<String, String> attributeMap) throws IOException {

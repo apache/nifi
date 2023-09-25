@@ -20,12 +20,13 @@ package org.apache.nifi.processors.standard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -48,6 +49,36 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     @WritesAttribute(attribute = "filename", description = "The filename is updated to point to the filename fo the remote file"),
     @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute")
 })
+@MultiProcessorUseCase(
+    description = "Retrieve all files in a directory of an SFTP Server",
+    keywords = {"sftp", "secure", "file", "transform", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListSFTP.class,
+            configuration = """
+                The "Hostname" property should be set to the fully qualified hostname of the FTP Server. It's a good idea to parameterize \
+                    this property by setting it to something like `#{SFTP_SERVER}`.
+                The "Remote Path" property must be set to the directory on the FTP Server where the files reside. If the flow being built is to be reused elsewhere, \
+                    it's a good idea to parameterize this property by setting it to something like `#{SFTP_REMOTE_PATH}`.
+                Configure the "Username" property to the appropriate username for logging into the FTP Server. It's usually a good idea to parameterize this property \
+                    by setting it to something like `#{SFTP_USERNAME}`.
+                Configure the "Password" property to the appropriate password for the provided username. It's usually a good idea to parameterize this property \
+                    by setting it to something like `#{SFTP_PASSWORD}`.
+
+                The 'success' Relationship of this Processor is then connected to FetchSFTP.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchSFTP.class,
+            configuration = """
+                "Hostname" = "${sftp.remote.host}"
+                "Remote File" = "${path}/${filename}"
+                "Username" = "${sftp.listing.user}"
+                "Password" = "#{SFTP_PASSWORD}"
+                """
+        )
+    }
+)
 public class FetchSFTP extends FetchFileTransfer {
 
     @Override
