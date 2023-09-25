@@ -23,6 +23,7 @@ import {
     selectClusterSummary,
     selectControllerBulletins,
     selectControllerStatus,
+    selectCurrentProcessGroupId,
     selectLastRefreshed
 } from '../../state/flow/flow.selectors';
 import { selectUser } from '../../../state/user/user.selectors';
@@ -41,6 +42,7 @@ export class HeaderComponent {
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
     currentUser$ = this.store.select(selectUser);
+    currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 
     constructor(private store: Store<CanvasState>) {}
 

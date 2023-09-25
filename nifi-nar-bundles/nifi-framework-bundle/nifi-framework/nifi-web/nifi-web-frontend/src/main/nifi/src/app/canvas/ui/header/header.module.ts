@@ -24,10 +24,30 @@ import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.compon
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { Search } from './search/search.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
+import { RouterLink } from '@angular/router';
 
 @NgModule({
-    declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus],
+    declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus, Search],
     exports: [HeaderComponent],
-    imports: [CommonModule, NgOptimizedImage, CdkDrag, MatButtonModule, MatMenuModule, MatDividerModule]
+    imports: [
+        CommonModule,
+        NgOptimizedImage,
+        CdkDrag,
+        MatButtonModule,
+        MatMenuModule,
+        MatDividerModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatAutocompleteModule,
+        CdkConnectedOverlay,
+        CdkOverlayOrigin,
+        RouterLink
+    ]
 })
 export class HeaderModule {}

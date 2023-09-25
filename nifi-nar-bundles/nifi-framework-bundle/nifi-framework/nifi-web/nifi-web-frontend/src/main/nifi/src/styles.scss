@@ -370,3 +370,8 @@ a:hover {
     fill: #aabec7 !important;
     text-shadow: none !important;
 }
+
+.blank, .unset, .sensitive {
+    font-weight: normal !important;
+    color: #a8a8a8 !important;
+}

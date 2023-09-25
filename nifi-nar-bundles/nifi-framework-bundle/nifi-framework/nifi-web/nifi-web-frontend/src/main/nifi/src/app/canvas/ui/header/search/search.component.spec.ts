@@ -15,38 +15,24 @@
  * limitations under the License.
  */
 
-.flow-status {
-    border-bottom: 1px solid #aabbc3;
-    box-sizing: content-box;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-    position: relative;
-    z-index: 2;
-    font-size: 15px;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-    .fa,
-    .icon {
-        font-style: normal;
-        color: #728e9b;
-    }
+import { Search } from './search.component';
 
-    .status-value {
-        white-space: nowrap;
-        font-weight: 500;
-        color: #775351;
-        text-shadow: none;
-    }
+describe('Search', () => {
+    let component: Search;
+    let fixture: ComponentFixture<Search>;
 
-    .controller-bulletins {
-        border-left: 1px solid #aabbc3;
-        background-color: #728e9b;
-        cursor: default;
-    }
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [Search]
+        });
+        fixture = TestBed.createComponent(Search);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-    .controller-bulletins.has-bulletins {
-        background-color: #ba554a;
-    }
-
-    .controller-bulletins .fa {
-        color: #fff;
-    }
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

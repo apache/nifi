@@ -97,10 +97,7 @@
             </div>
         </div>
         <div class="flex">
-            <div class="h-8 flex justify-around search-container" [class.open]="searchVisible">
-                <button class="w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search"></i></button>
-                <input type="text" placeholder="Search" class="search-input" [class.open]="searchVisible" />
-            </div>
+            <search [currentProcessGroupId]="currentProcessGroupId"></search>
             <button
                 class="h-8 w-8 controller-bulletins"
                 [class.has-bulletins]="hasBulletins()"

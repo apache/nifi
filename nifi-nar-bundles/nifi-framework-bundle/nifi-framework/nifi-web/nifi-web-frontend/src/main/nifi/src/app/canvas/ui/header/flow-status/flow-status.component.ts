@@ -30,8 +30,7 @@ export class FlowStatus {
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary = initialState.clusterSummary;
     @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
-
-    searchVisible = false;
+    @Input() currentProcessGroupId: string = initialState.id;
 
     private closeTimer: number = -1;
     private tooltipRef: ComponentRef<BulletinsTip> | undefined;
@@ -105,10 +104,6 @@ export class FlowStatus {
             return 'zero';
         }
         return activeStyle;
-    }
-
-    toggleSearchVisibility() {
-        this.searchVisible = !this.searchVisible;
     }
 
     hasBulletins(): boolean {
