@@ -371,7 +371,9 @@ a:hover {
     text-shadow: none !important;
 }
 
-.blank, .unset, .sensitive {
+.blank,
+.unset,
+.sensitive {
     font-weight: normal !important;
     color: #a8a8a8 !important;
 }

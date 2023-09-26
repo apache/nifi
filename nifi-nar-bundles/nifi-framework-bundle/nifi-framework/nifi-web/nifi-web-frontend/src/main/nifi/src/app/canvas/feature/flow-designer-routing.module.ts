@@ -19,6 +19,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { FlowDesignerComponent } from './flow-designer.component';
 import { EditCanvasItemComponent } from '../ui/edit-canvas-item/edit-canvas-item.component';
+import { SelectCanvasItemComponent } from '../ui/select-canvas-item/select-canvas-item.component';
 
 const routes: Routes = [
     {
@@ -28,7 +29,7 @@ const routes: Routes = [
             { path: 'bulk/:ids', component: FlowDesignerComponent },
             {
                 path: ':type/:id',
-                component: FlowDesignerComponent,
+                component: SelectCanvasItemComponent,
                 children: [{ path: 'edit', component: EditCanvasItemComponent }]
             }
         ]

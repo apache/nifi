@@ -26,6 +26,10 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
+import { Store } from '@ngrx/store';
+import { CanvasState } from '../../../state';
+import { Router } from '@angular/router';
+import { ComponentType } from '../../../state/shared';
 
 @Component({
     selector: 'search',
@@ -33,6 +37,8 @@ import {
     styleUrls: ['./search.component.scss']
 })
 export class Search implements OnInit {
+    protected readonly ComponentType = ComponentType;
+
     @Input() currentProcessGroupId: string = initialState.id;
     @ViewChild('searchInput') searchInput!: CdkOverlayOrigin;
 
@@ -68,17 +74,19 @@ export class Search implements OnInit {
 
     constructor(
         private formBuilder: FormBuilder,
+        private store: Store<CanvasState>,
         private searchService: SearchService
     ) {
         this.searchForm = this.formBuilder.group({ searchBar: '' });
     }
 
     ngOnInit(): void {
-        this.searchForm.get('searchBar')?.valueChanges
-            .pipe(
+        this.searchForm
+            .get('searchBar')
+            ?.valueChanges.pipe(
                 filter((data) => data?.trim().length > 0),
                 debounceTime(500),
-                tap(() => this.searching = true),
+                tap(() => (this.searching = true)),
                 switchMap((query: string) => this.searchService.search(query, this.currentProcessGroupId))
             )
             .subscribe((response) => {
@@ -114,7 +122,8 @@ export class Search implements OnInit {
     }
 
     hasResults(): boolean {
-        return this.processorResults.length > 0 ||
+        return (
+            this.processorResults.length > 0 ||
             this.connectionResults.length > 0 ||
             this.processGroupResults.length > 0 ||
             this.inputPortResults.length > 0 ||
@@ -125,7 +134,8 @@ export class Search implements OnInit {
             this.controllerServiceNodeResults.length > 0 ||
             this.parameterContextResults.length > 0 ||
             this.parameterProviderNodeResults.length > 0 ||
-            this.parameterResults.length > 0;
+            this.parameterResults.length > 0
+        );
     }
 
     backdropClicked() {

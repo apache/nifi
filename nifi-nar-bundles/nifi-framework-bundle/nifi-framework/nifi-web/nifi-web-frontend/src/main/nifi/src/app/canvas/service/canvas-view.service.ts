@@ -24,14 +24,13 @@ import { setTransform } from '../state/transform/transform.actions';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../state/transform/transform.reducer';
 import { ProcessGroupManager } from './manager/process-group-manager.service';
 import { FunnelManager } from './manager/funnel-manager.service';
-import { selectRenderRequired } from '../state/flow/flow.selectors';
 import { LabelManager } from './manager/label-manager.service';
 import { ProcessorManager } from './manager/processor-manager.service';
 import { PortManager } from './manager/port-manager.service';
 import { RemoteProcessGroupManager } from './manager/remote-process-group-manager.service';
 import { ConnectionManager } from './manager/connection-manager.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { deselectAllComponents } from '../state/flow/flow.actions';
+import { CanvasUtils } from './canvas-utils.service';
 
 @Injectable({
     providedIn: 'root'
@@ -53,6 +52,7 @@ export class CanvasView {
 
     constructor(
         private store: Store<CanvasState>,
+        private canvasUtils: CanvasUtils,
         private processorManager: ProcessorManager,
         private processGroupManager: ProcessGroupManager,
         private remoteProcessGroupManager: RemoteProcessGroupManager,
@@ -60,16 +60,7 @@ export class CanvasView {
         private funnelManager: FunnelManager,
         private labelManager: LabelManager,
         private connectionManager: ConnectionManager
-    ) {
-        this.store
-            .select(selectRenderRequired)
-            .pipe(takeUntilDestroyed())
-            .subscribe((renderRequired) => {
-                if (renderRequired) {
-                    this.updateCanvasVisibility();
-                }
-            });
-    }
+    ) {}
 
     public init(viewContainerRef: ViewContainerRef, svg: any, canvas: any): void {
         WebFont.load({
@@ -206,7 +197,7 @@ export class CanvasView {
         }
     }
 
-    private updateCanvasVisibility(): void {
+    public updateCanvasVisibility(): void {
         const self: CanvasView = this;
         const canvasContainer: any = document.getElementById('canvas-container');
         let translate = [this.x, this.y];
@@ -315,6 +306,103 @@ export class CanvasView {
      */
     private shouldRenderPerScale(): boolean {
         return this.k >= CanvasView.MIN_SCALE_TO_RENDER;
+    }
+
+    public centerSelectedComponentIfOffscreen(): void {
+        const selection: any = this.canvasUtils.getSelection();
+        if (selection.size() === 1) {
+            const canvasContainer: any = document.getElementById('canvas-container');
+            let translate: number[] = [this.x, this.y];
+            const scale: number = this.k;
+
+            // scale the translation
+            translate = [translate[0] / scale, translate[1] / scale];
+
+            // get the normalized screen width and height
+            const screenWidth: number = canvasContainer.offsetWidth / scale;
+            const screenHeight: number = canvasContainer.offsetHeight / scale;
+
+            // calculate the screen bounds one screens worth in each direction
+            const screenLeft: number = -translate[0];
+            const screenTop: number = -translate[1];
+            const screenRight: number = screenLeft + screenWidth;
+            const screenBottom: number = screenTop + screenHeight;
+
+            const selectionData = selection.datum();
+            if (this.canvasUtils.isConnection(selection)) {
+                let x, y;
+                if (selectionData.bends.length > 0) {
+                    const i: number = Math.min(Math.max(0, selectionData.labelIndex), selectionData.bends.length - 1);
+                    x = selectionData.bends[i].x;
+                    y = selectionData.bends[i].y;
+                } else {
+                    x = (selectionData.start.x + selectionData.end.x) / 2;
+                    y = (selectionData.start.y + selectionData.end.y) / 2;
+                }
+
+                // center on the connection if it is currently offscreen
+                const isOnScreen: boolean = screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
+                if (!isOnScreen) {
+                    this.centerBoundingBox({
+                        x: x,
+                        y: y,
+                        width: 1,
+                        height: 1
+                    });
+                }
+            } else {
+                const selectionPosition = selectionData.position;
+                const left: number = selectionPosition.x;
+                const top: number = selectionPosition.y;
+                const right: number = left + selectionData.dimensions.width;
+                const bottom: number = top + selectionData.dimensions.height;
+
+                // center on the component if it is currently offscreen
+                const isOnScreen: boolean =
+                    screenLeft < right && screenRight > left && screenTop < bottom && screenBottom > top;
+                if (!isOnScreen) {
+                    this.centerBoundingBox({
+                        x: selectionPosition.x,
+                        y: selectionPosition.y,
+                        width: selectionData.dimensions.width,
+                        height: selectionData.dimensions.height
+                    });
+                }
+            }
+        }
+    }
+
+    private centerBoundingBox(boundingBox: any): void {
+        let scale: number = this.k;
+        if (boundingBox.scale != null) {
+            scale = boundingBox.scale;
+        }
+
+        const center: number[] = this.getCenterForBoundingBox(boundingBox);
+
+        // calculate the difference between the center point and the position of this component and convert to screen space
+        this.transform([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale], scale);
+    }
+
+    /**
+     * Gets the coordinates necessary to center a bounding box on the screen.
+     *
+     * @param {type} boundingBox
+     * @returns {number[]}
+     */
+    private getCenterForBoundingBox(boundingBox: any): number[] {
+        let scale: number = this.k;
+        if (boundingBox.scale != null) {
+            scale = boundingBox.scale;
+        }
+
+        // get the canvas normalized width and height
+        const canvasContainer: any = document.getElementById('canvas-container');
+        const screenWidth: number = canvasContainer.offsetWidth / scale;
+        const screenHeight: number = canvasContainer.offsetHeight / scale;
+
+        // determine the center location for this component in canvas space
+        return [screenWidth / 2 - boundingBox.width / 2, screenHeight / 2 - boundingBox.height / 2];
     }
 
     /**

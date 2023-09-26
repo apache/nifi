@@ -311,7 +311,6 @@ export interface FlowState {
     controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
     transitionRequired: boolean;
-    renderRequired: boolean;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }

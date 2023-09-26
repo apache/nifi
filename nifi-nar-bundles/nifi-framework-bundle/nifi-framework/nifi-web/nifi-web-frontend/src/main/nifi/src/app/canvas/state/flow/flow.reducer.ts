@@ -21,11 +21,9 @@ import {
     createComponentComplete,
     createComponentSuccess,
     loadProcessGroup,
-    loadProcessGroupComplete,
     loadProcessGroupSuccess,
     flowApiError,
     setDragging,
-    setRenderRequired,
     setTransitionRequired,
     updateComponentFailure,
     updateComponentSuccess,
@@ -106,7 +104,6 @@ export const initialState: FlowState = {
         reportingTaskBulletins: []
     },
     dragging: false,
-    renderRequired: false,
     transitionRequired: false,
     error: null,
     status: 'pending'
@@ -128,10 +125,6 @@ export const flowReducer = createReducer(
         controllerBulletins: response.controllerBulletins,
         error: null,
         status: 'success' as const
-    })),
-    on(loadProcessGroupComplete, (state, { response }) => ({
-        ...state,
-        renderRequired: true
     })),
     on(flowApiError, (state, { error }) => ({
         ...state,
@@ -181,7 +174,6 @@ export const flowReducer = createReducer(
     }),
     on(createComponentComplete, (state) => ({
         ...state,
-        renderRequired: true,
         dragging: false
     })),
     on(updateComponentSuccess, (state, { response }) => {
@@ -313,9 +305,5 @@ export const flowReducer = createReducer(
     on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
         transitionRequired: transitionRequired
-    })),
-    on(setRenderRequired, (state, { renderRequired }) => ({
-        ...state,
-        renderRequired: renderRequired
     }))
 );

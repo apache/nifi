@@ -44,13 +44,11 @@ import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.
 import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { UnorderedListTip } from '../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { canvasFeatureKey, reducers } from '../state';
-import { EditCanvasItemComponent } from '../ui/edit-canvas-item/edit-canvas-item.component';
 
 @NgModule({
     declarations: [
         FlowDesignerComponent,
         Banner,
-        EditCanvasItemComponent,
         CreatePort,
         EditPort,
         ValidationErrorsTip,

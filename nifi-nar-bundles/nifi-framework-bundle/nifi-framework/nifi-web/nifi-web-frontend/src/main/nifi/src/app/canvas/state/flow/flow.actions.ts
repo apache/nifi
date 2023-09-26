@@ -88,6 +88,8 @@ export const removeSelectedComponents = createAction(
     props<{ request: SelectComponents }>()
 );
 
+export const centerSelectedComponent = createAction('[Canvas] Center Selected Components');
+
 /*
     Create Component Actions
  */
@@ -168,5 +170,3 @@ export const setTransitionRequired = createAction(
     '[Canvas] Set Transition Required',
     props<{ transitionRequired: boolean }>()
 );
-
-export const setRenderRequired = createAction('[Canvas] Set Render Required', props<{ renderRequired: boolean }>());

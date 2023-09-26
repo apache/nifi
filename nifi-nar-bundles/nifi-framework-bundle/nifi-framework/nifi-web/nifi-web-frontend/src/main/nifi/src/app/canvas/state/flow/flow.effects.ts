@@ -54,6 +54,7 @@ import { Router } from '@angular/router';
 import { selectUrl } from '../../../state/router/router.selectors';
 import { Client } from '../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
+import { CanvasView } from '../../service/canvas-view.service';
 
 @Injectable()
 export class FlowEffects {
@@ -63,6 +64,7 @@ export class FlowEffects {
         private flowService: FlowService,
         private client: Client,
         private canvasUtils: CanvasUtils,
+        private canvasView: CanvasView,
         private connectionManager: ConnectionManager,
         private router: Router,
         private dialog: MatDialog
@@ -131,10 +133,9 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.loadProcessGroupComplete),
             switchMap(() => {
-                return of(
-                    FlowActions.setRenderRequired({ renderRequired: false }),
-                    FlowActions.setTransitionRequired({ transitionRequired: false })
-                );
+                this.canvasView.updateCanvasVisibility();
+
+                return of(FlowActions.setTransitionRequired({ transitionRequired: false }));
             })
         )
     );
@@ -270,8 +271,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createComponentComplete),
             map((action) => action.response),
-            switchMap((response) =>
-                of(
+            switchMap((response) => {
+                this.canvasView.updateCanvasVisibility();
+
+                return of(
                     FlowActions.selectComponents({
                         request: {
                             components: [
@@ -281,10 +284,9 @@ export class FlowEffects {
                                 }
                             ]
                         }
-                    }),
-                    FlowActions.setRenderRequired({ renderRequired: false })
-                )
-            )
+                    })
+                );
+            })
         )
     );
 
@@ -675,6 +677,17 @@ export class FlowEffects {
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([action, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    centerSelectedComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.centerSelectedComponent),
+                tap(() => {
+                    this.canvasView.centerSelectedComponentIfOffscreen();
                 })
             ),
         { dispatch: false }

@@ -15,17 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { CanvasComponent } from './canvas.component';
-import { ContextMenu } from './context-menu/context-menu.component';
-import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
-import { EditCanvasItemComponent } from '../edit-canvas-item/edit-canvas-item.component';
-import { SelectCanvasItemComponent } from '../select-canvas-item/select-canvas-item.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [CanvasComponent, ContextMenu, EditCanvasItemComponent, SelectCanvasItemComponent],
-    exports: [CanvasComponent],
-    imports: [CommonModule, CdkMenu, CdkMenuItem, CdkMenuTrigger, CdkContextMenuTrigger]
-})
-export class CanvasModule {}
+import { SelectCanvasItemComponent } from './select-canvas-item.component';
+
+describe('EditCanvasItemComponent', () => {
+    let component: SelectCanvasItemComponent;
+    let fixture: ComponentFixture<SelectCanvasItemComponent>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [SelectCanvasItemComponent]
+        });
+        fixture = TestBed.createComponent(SelectCanvasItemComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

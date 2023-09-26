@@ -51,20 +51,18 @@ export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, 
 
 export const selectSelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
     const ids: string[] = [];
-    if (route) {
-        // handle either bulk or individual component routes
-        if (route.params.ids) {
-            ids.push(...route.params.ids.split(','));
-        } else if (route.params.id) {
-            ids.push(route.params.id);
-        }
+    // handle either bulk or individual component routes
+    if (route?.params.ids) {
+        ids.push(...route.params.ids.split(','));
+    } else if (route?.params.id) {
+        ids.push(route.params.id);
     }
     return ids;
 });
 
 export const selectSelectedComponent = createSelector(selectCurrentRoute, (route) => {
     let selectedComponent: SelectedComponent | null = null;
-    if (route.params.id && route.params.type) {
+    if (route?.params.id && route?.params.type) {
         selectedComponent = {
             id: route.params.id,
             componentType: route.params.type
@@ -87,8 +85,6 @@ export const selectEditedComponent = createSelector(selectCurrentRoute, (route) 
 });
 
 export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);
-
-export const selectRenderRequired = createSelector(selectFlowState, (state: FlowState) => state.renderRequired);
 
 export const selectDragging = createSelector(selectFlowState, (state: FlowState) => state.dragging);
 
