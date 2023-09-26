@@ -264,7 +264,7 @@ public class ITRedisDistributedMapCacheClientService {
         // create, configure, and enable the RedisDistributedMapCacheClient service
         RedisDistributedMapCacheClientService redisMapCacheClientService = new RedisDistributedMapCacheClientService();
         testRunner.addControllerService("redis-map-cache-client", redisMapCacheClientService);
-        testRunner.setProperty(redisMapCacheClientService, RedisDistributedMapCacheClientService.REDIS_CONNECTION_POOL, "redis-connection-pool");
+        testRunner.setProperty(redisMapCacheClientService, RedisUtils.REDIS_CONNECTION_POOL, "redis-connection-pool");
         testRunner.enableControllerService(redisMapCacheClientService);
         testRunner.setProperty(TestRedisProcessor.REDIS_MAP_CACHE, "redis-map-cache-client");
     }
