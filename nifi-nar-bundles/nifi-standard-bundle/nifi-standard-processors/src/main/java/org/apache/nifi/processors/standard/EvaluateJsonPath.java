@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
@@ -37,6 +38,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -147,6 +149,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private volatile String returnType;
     private volatile String pathNotFound;
     private volatile String nullDefaultValue;
+    private volatile Configuration jsonPathConfiguration;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -161,6 +164,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         props.add(RETURN_TYPE);
         props.add(PATH_NOT_FOUND);
         props.add(NULL_VALUE_DEFAULT_REPRESENTATION);
+        props.add(MAX_STRING_LENGTH);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -248,6 +252,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         }
         pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
         nullDefaultValue = NULL_REPRESENTATION_MAP.get(processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue());
+
+        final int maxStringLength = processContext.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        jsonPathConfiguration = createConfiguration(maxStringLength);
     }
 
     @OnUnscheduled
@@ -266,7 +273,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         DocumentContext documentContext;
         try {
-            documentContext = validateAndEstablishJsonContext(processSession, flowFile);
+            documentContext = validateAndEstablishJsonContext(processSession, flowFile, jsonPathConfiguration);
         } catch (InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", flowFile);
             processSession.transfer(flowFile, REL_FAILURE);
@@ -316,7 +323,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                     }
                 }
 
-                final String resultRepresentation = getResultRepresentation(result, nullDefaultValue);
+                final String resultRepresentation = getResultRepresentation(jsonPathConfiguration.jsonProvider(), result, nullDefaultValue);
                 if (destinationIsAttribute) {
                     jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
                 } else {
