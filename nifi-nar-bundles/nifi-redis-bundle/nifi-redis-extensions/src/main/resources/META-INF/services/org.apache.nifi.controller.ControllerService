@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.redis.service.RedisConnectionPoolService
 org.apache.nifi.redis.service.RedisDistributedMapCacheClientService
+org.apache.nifi.redis.service.SimpleRedisDistributedMapCacheClientService
