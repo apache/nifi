@@ -172,6 +172,7 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}
 
   macos-build-jp:
     timeout-minutes: 150
@@ -235,6 +236,7 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}
 
   windows-build:
     timeout-minutes: 150
@@ -300,3 +302,4 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}
