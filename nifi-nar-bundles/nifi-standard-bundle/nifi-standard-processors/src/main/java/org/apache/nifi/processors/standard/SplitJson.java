@@ -16,18 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -36,6 +29,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -47,16 +41,24 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
@@ -114,12 +116,14 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
     private final AtomicReference<JsonPath> JSON_PATH_REF = new AtomicReference<>();
     private volatile String nullDefaultValue;
+    private volatile Configuration jsonPathConfiguration;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ARRAY_JSON_PATH_EXPRESSION);
         properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
+        properties.add(MAX_STRING_LENGTH);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -170,6 +174,9 @@ public class SplitJson extends AbstractJsonPathProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext processContext) {
         nullDefaultValue = NULL_REPRESENTATION_MAP.get(processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue());
+
+        final int maxStringLength = processContext.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        jsonPathConfiguration = createConfiguration(maxStringLength);
     }
 
     @Override
@@ -183,7 +190,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         DocumentContext documentContext;
         try {
-            documentContext = validateAndEstablishJsonContext(processSession, original);
+            documentContext = validateAndEstablishJsonContext(processSession, original, jsonPathConfiguration);
         } catch (InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
             processSession.transfer(original, REL_FAILURE);
@@ -218,7 +225,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
             Object resultSegment = resultList.get(i);
             FlowFile split = processSession.create(original);
             split = processSession.write(split, (out) -> {
-                        String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
+                        String resultSegmentContent = getResultRepresentation(jsonPathConfiguration.jsonProvider(), resultSegment, nullDefaultValue);
                         out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                     }
             );

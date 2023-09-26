@@ -16,20 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -38,7 +32,17 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
@@ -48,10 +52,6 @@ import org.apache.nifi.util.StringUtils;
  * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
-
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
-
-    private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
     static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
 
@@ -71,14 +71,33 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             .defaultValue(EMPTY_STRING_OPTION)
             .build();
 
-    static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
+    public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
+            .name("max-string-length")
+            .displayName("Max String Length")
+            .description("The maximum allowed length of a string value when parsing the JSON document")
+            .required(true)
+            .defaultValue("20 MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    static Configuration createConfiguration(final int maxStringLength) {
+        final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
+
+        final JsonProvider jsonProvider = new JacksonJsonProvider(objectMapper);
+        return Configuration.builder().jsonProvider(jsonProvider).build();
+    }
+
+    static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile, Configuration jsonPathConfiguration) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
         final AtomicReference<DocumentContext> contextHolder = new AtomicReference<>(null);
         processSession.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(InputStream in) throws IOException {
                 try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                    DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(bufferedInputStream);
+                    DocumentContext ctx = JsonPath.using(jsonPathConfiguration).parse(bufferedInputStream);
                     contextHolder.set(ctx);
                 } catch (IllegalArgumentException iae) {
                     // The JsonPath.parse() above first parses the json, then creates a context object from the parsed
@@ -109,11 +128,11 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return !(obj instanceof Map || obj instanceof List);
     }
 
-    static String getResultRepresentation(Object jsonPathResult, String defaultValue) {
+    static String getResultRepresentation(JsonProvider jsonProvider, Object jsonPathResult, String defaultValue) {
         if (isJsonScalar(jsonPathResult)) {
             return Objects.toString(jsonPathResult, defaultValue);
         }
-        return JSON_PROVIDER.toJson(jsonPathResult);
+        return jsonProvider.toJson(jsonPathResult);
     }
 
     abstract static class JsonPathValidator implements Validator {
