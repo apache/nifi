@@ -18,8 +18,7 @@
 <section id="flow-analysis-drawer">
     <div class="flow-analysis-header">
         <div class="flow-analysis-refresh-container">
-            <div class="flow-analysis-refresh">Next check in: <span class="flow-analysis-check-in"></span>s</div>
-            <button id="flow-analysis-check-now-btn" class="flow-analysis-check-now-btn">Check Now</button>
+            <button id="flow-analysis-check-now-btn" class="flow-analysis-check-now-btn">Start a new analysis</button>
         </div>
     </div>
     <div class="flow-analysis-flow-guide-container">

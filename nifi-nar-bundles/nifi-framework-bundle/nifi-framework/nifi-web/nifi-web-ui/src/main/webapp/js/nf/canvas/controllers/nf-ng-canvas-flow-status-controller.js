@@ -770,7 +770,8 @@
                     var drawer = this.getDrawerContainer();
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
-                    var flowAnalysisRefreshIntervalSeconds = 30;
+                    var newFlowAnalsysisBtnEl = $('#flow-analysis-check-now-btn');
+                    var flowAnalysisRefreshIntervalSeconds = 5;
 
                     this.getDrawerButton().click(function () {
                         drawer.toggleClass('opened');
@@ -834,31 +835,13 @@
                             close: function () {}
                         }
                     });
-                    this.loadFlowPolicies();
 
-                    var checkInEl = $('.flow-analysis-check-in');
-                    var checkInTimer;
-                    var initializeTimer = function() {
-                        var i = flowAnalysisRefreshIntervalSeconds;
-                        checkInTimer = setInterval(function() {
-                            checkInEl.text(i);
-                            i--;
-                        }, 1000);
-                    }
-                    initializeTimer();
-                    setInterval(function () { 
-                        flowAnalysisCtrl.loadFlowPolicies.bind(flowAnalysisCtrl);
-                        clearInterval(checkInTimer);
-                        initializeTimer();
-                    }, flowAnalysisRefreshIntervalSeconds * 1000);
+                    this.loadFlowPolicies();
+                    setInterval(this.loadFlowPolicies.bind(this), flowAnalysisRefreshIntervalSeconds * 1000);
 
                     // add click event listener to refresh button
-                    $('#flow-analysis-check-now-btn').on('click', function() {
-                        flowAnalysisCtrl.createNewFlowAnalysisRequest();
-                        clearInterval(checkInTimer);
-                        initializeTimer();
-                    });
-
+                    newFlowAnalsysisBtnEl.on('click', this.createNewFlowAnalysisRequest);
+                    
                     this.toggleOnlyViolations(false);
                     // handle show only violations checkbox
                     $('#show-only-violations').on('change', function(event) {
@@ -894,7 +877,7 @@
                     var groupId = nfCanvasUtils.getGroupId();
                     return $.ajax({
                         type: 'POST',
-                        url: '../nifi-api/process-groups/flow-analysis/' + groupId,
+                        url: '../nifi-api/process-groups/' + groupId + '/flow-analysis-requests',
                         dataType: 'json'
                     }).done(function (response) {
                         console.log(response);
