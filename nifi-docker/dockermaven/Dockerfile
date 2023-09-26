@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +16,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
+ARG IMAGE_NAME=bellsoft/liberica-openjdk-debian
+ARG IMAGE_TAG=21
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
@@ -57,16 +57,17 @@ RUN mkdir -p ${NIFI_HOME}/conf \
     && mkdir -p ${NIFI_HOME}/flowfile_repository \
     && mkdir -p ${NIFI_HOME}/content_repository \
     && mkdir -p ${NIFI_HOME}/provenance_repository \
+    && mkdir -p ${NIFI_HOME}/python_extensions \
     && mkdir -p ${NIFI_HOME}/state \
     && mkdir -p ${NIFI_LOG_DIR}
 
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
-
+#
 ARG UID=1000
 ARG GID=1000
-
+#
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
@@ -78,6 +79,9 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && apt-get update \
     && apt-get install -y jq xmlstarlet procps \
+    && apt-get install -y python3 \
+    && apt-get install -y python3-pip \
+    && apt-get install -y python3-venv \
     && apt-get -y autoremove \
     && apt-get clean autoclean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -90,6 +94,7 @@ VOLUME ${NIFI_LOG_DIR} \
        ${NIFI_HOME}/flowfile_repository \
        ${NIFI_HOME}/content_repository \
        ${NIFI_HOME}/provenance_repository \
+       ${NIFI_HOME}/python_extensions \
        ${NIFI_HOME}/state
 
 USER nifi
@@ -98,7 +103,7 @@ USER nifi
 RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
 
 # Web HTTP(s) & Socket Site-to-Site Ports
-EXPOSE 8080 8443 10000 8000
+EXPOSE 8443/tcp 10000/tcp 8000/tcp
 
 WORKDIR ${NIFI_HOME}
 

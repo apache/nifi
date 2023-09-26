@@ -44,15 +44,17 @@ docker run -d --name "nifi-${TAG}-integration-test" "apache/nifi:${TAG}"
 IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "nifi-${TAG}-integration-test")
 
 for i in $(seq 1 10) :; do
-    echo "Iteration: ${i}"
+    echo "Waiting for NiFi startup - iteration: ${i}"
     if docker exec "nifi-${TAG}-integration-test" bash -c " echo Running < /dev/tcp/${IP}/8443"; then
+        echo "NiFi found active on port 8443"
         break
     fi
     sleep 10
 done
 
 echo "Checking NiFi REST API Access"
-test "200" = "$(docker exec "nifi-${TAG}-integration-test" bash -c "curl -s -o /dev/null -w %{http_code} -k https://${IP}:8443/nifi-api/access")"
+# Return code is 400 instead of 200 because of an invalid SNI
+test "400" = "$(docker exec "nifi-${TAG}-integration-test" bash -c "curl -s -o /dev/null -w %{http_code} -k https://${IP}:8443/nifi-api/access")"
 
 echo "Stopping NiFi container"
 time docker stop "nifi-${TAG}-integration-test"
