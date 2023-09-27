@@ -27,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.csv.CSVUtils;
@@ -73,6 +74,9 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = "convertexceltocsvprocessor.error", description = "Error message that was encountered on a per Excel sheet basis. This attribute is" +
                 " only populated if an error was occured while processing the particular sheet. Having the error present at the sheet level will allow for the end" +
                 " user to better understand what syntax errors in their excel doc on a larger scale caused the error.")})
+@DeprecationNotice(reason = "ConvertExcelToCSVProcessor is no longer needed since there is now the ExcelReader which along with CSVRecordSetWriter" +
+        " can be used in ConvertRecord to achieve the same thing.",
+        classNames = {"org.apache.nifi.excel.ExcelReader", "org.apache.nifi.csv.CSVRecordSetWriter", "org.apache.nifi.processors.standard.ConvertRecord"})
 public class ConvertExcelToCSVProcessor
         extends AbstractProcessor {
 
