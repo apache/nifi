@@ -179,6 +179,41 @@ volume to provide certificates on the host system to the container instance.
     -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
+### Standalone Instance secured with HTTPS and OpenID Authentication
+In this configuration, the user will need to provide certificates and associated configuration information. 
+Of particular note, is the `AUTH` environment variable which is set to `oidc`. Additionally, the user must provide a
+in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be used to seed the instance with an initial 
+user with administrative privileges.
+
+### For a minimal, connection to an OpenID server
+
+    docker run --name nifi \
+      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -p 8443:8443 \
+      -e AUTH=oidc \
+      -e KEYSTORE_PATH=/opt/certs/keystore.jks \
+      -e KEYSTORE_TYPE=JKS \
+      -e KEYSTORE_PASSWORD=QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs \
+      -e TRUSTSTORE_PATH=/opt/certs/truststore.jks \
+      -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
+      -e TRUSTSTORE_TYPE=JKS \
+      -e INITIAL_ADMIN_IDENTITY='test' \
+      -e NIFI_SECURITY_USER_OIDC_DISCOVERY_URL: http://OPENID_SERVER_URL/auth/realms/OPENID_REALM/.well-known/openid-configuration \
+      -e NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT: 10000 \
+      -e NIFI_SECURITY_USER_OIDC_READ_TIMEOUT: 10000 \
+      -e NIFI_SECURITY_USER_OIDC_CLIENT_ID: nifi \
+      -e NIFI_SECURITY_USER_OIDC_CLIENT_SECRET: tU47ugXO308WZqf5TtylyoMX3xH6W0kN \
+      -e NIFI_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM: RS256 \
+      -e NIFI_SECURITY_USER_OIDC_ADDITIONAL_SCOPES: email \
+      -e NIFI_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER: preferred_username \
+      -e NIFI_SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER: email \
+      -e NIFI_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY: PKIX \
+      -d \
+      apache/nifi:latest
+
+- Make sure you've created realm, client and user in OpenID Server before with the same user name defined in `INITIAL_ADMIN_IDENTITY` environment variable
+- You can read more information about theses Nifi security OIDC configurations in this following link: [https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect)
+
 #### Clustering can be enabled by using the following properties to Docker environment variable mappings.
 
 ##### nifi.properties
