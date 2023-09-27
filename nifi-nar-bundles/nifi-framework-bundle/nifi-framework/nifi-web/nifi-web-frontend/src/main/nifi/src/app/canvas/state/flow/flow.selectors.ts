@@ -44,7 +44,18 @@ export const selectParentProcessGroupId = createSelector(
 
 export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
+        // always select the process group from the route
         return route.params.processGroupId;
+    }
+    return null;
+});
+
+export const selectProcessGroupRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        // only select the process group from the route when not selecting components
+        if (route.params.ids == null && route.params.type == null) {
+            return route.params.processGroupId;
+        }
     }
     return null;
 });

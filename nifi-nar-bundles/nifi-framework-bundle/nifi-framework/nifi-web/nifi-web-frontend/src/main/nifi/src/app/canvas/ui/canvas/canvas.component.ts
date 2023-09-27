@@ -32,7 +32,14 @@ import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transfor
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectedComponent } from '../../state/flow';
-import { selectProcessGroupIdFromRoute } from '../../state/flow/flow.selectors';
+import {
+    selectCurrentProcessGroupId,
+    selectFlowLoadingStatus,
+    selectProcessGroupIdFromRoute,
+    selectProcessGroupRoute
+} from '../../state/flow/flow.selectors';
+import { filter, switchMap, take } from 'rxjs';
+import { restoreViewport } from '../../state/transform/transform.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -60,18 +67,35 @@ export class CanvasComponent implements OnInit, OnDestroy {
 
         this.store
             .select(selectProcessGroupIdFromRoute)
-            .pipe(takeUntilDestroyed())
+            .pipe(
+                filter((processGroupId) => processGroupId != null),
+                takeUntilDestroyed()
+            )
             .subscribe((processGroupId) => {
-                if (processGroupId) {
-                    this.store.dispatch(
-                        loadProcessGroup({
-                            request: {
-                                id: processGroupId,
-                                transitionRequired: false
-                            }
-                        })
-                    );
-                }
+                this.store.dispatch(
+                    loadProcessGroup({
+                        request: {
+                            id: processGroupId,
+                            transitionRequired: false
+                        }
+                    })
+                );
+            });
+
+        this.store
+            .select(selectProcessGroupRoute)
+            .pipe(
+                // ensure there is a selected component
+                filter((processGroupRoute) => processGroupRoute != null),
+                switchMap(() => this.store.select(selectFlowLoadingStatus)),
+                // only emit once the flow loads
+                filter((status) => status === 'success'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                filter((processGroupId) => processGroupId != null),
+                take(1)
+            )
+            .subscribe(() => {
+                this.store.dispatch(restoreViewport());
             });
     }
 

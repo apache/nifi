@@ -18,19 +18,69 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as TransformActions from './transform.actions';
-import { of, switchMap } from 'rxjs';
+import { map, tap, withLatestFrom } from 'rxjs';
+import { Storage } from '../../../service/storage.service';
+import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
+import { Store } from '@ngrx/store';
+import { CanvasState } from '../index';
+import { CanvasView } from '../../service/canvas-view.service';
 
 @Injectable()
 export class TransformEffects {
-    constructor(private actions$: Actions) {}
+    private static readonly VIEW_PREFIX: string = 'nifi-view-';
+
+    constructor(
+        private actions$: Actions,
+        private store: Store<CanvasState>,
+        private storage: Storage,
+        private canvasView: CanvasView
+    ) {}
 
     setTransform$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(TransformActions.setTransform),
-                switchMap((transform) => {
-                    // TODO - persist user viewport
-                    return of(transform);
+                map((action) => action.transform),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([transform, processGroupId]) => {
+                    const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
+
+                    // create the item to store
+                    const item = {
+                        scale: transform.scale,
+                        translateX: transform.translate.x,
+                        translateY: transform.translate.y
+                    };
+
+                    // store the item
+                    this.storage.setItem(name, item);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    restoreViewport$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.restoreViewport),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([action, processGroupId]) => {
+                    console.log('restoring viewport');
+                    try {
+                        // see if we can restore the view position from storage
+                        const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
+                        const item = this.storage.getItem(name);
+
+                        // ensure the item is valid
+                        if (item) {
+                            if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
+                                // restore previous view
+                                this.canvasView.transform([item.translateX, item.translateY], item.scale);
+                            }
+                        }
+                    } catch (e) {
+                        // likely could not parse item... ignoring
+                    }
                 })
             ),
         { dispatch: false }

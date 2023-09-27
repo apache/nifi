@@ -15,9 +15,19 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { TestBed } from '@angular/core/testing';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+import { Storage } from './storage.service';
 
-export const restoreViewport = createAction('[Transform] Restore Viewport');
+describe('Storage', () => {
+    let service: Storage;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(Storage);
+    });
+
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
+});
