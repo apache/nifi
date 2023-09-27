@@ -653,21 +653,21 @@ public class TestFlowController {
         syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
     }
 
-//    @Test
-//    public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
-//        final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
-//        logRepository.removeAllObservers();
-//
-//        // first sync should work because we are syncing to an empty flow controller
-//        syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
-//
-//        controller.initializeFlow();
-//
-//        // second sync should fail because the bundle of the processor is different
-//        assertThrows(UninheritableFlowException.class,
-//                () -> syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.json",
-//                        flowSynchronizer));
-//    }
+    @Test
+    public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
+        final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
+        logRepository.removeAllObservers();
+
+        // first sync should work because we are syncing to an empty flow controller
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
+
+        controller.initializeFlow();
+
+        // second sync should fail because the bundle of the processor is different
+        assertThrows(UninheritableFlowException.class,
+                () -> syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.json",
+                        flowSynchronizer));
+    }
 
     private void syncFlow(String flowXmlFile, FlowSynchronizer standardFlowSynchronizer) throws IOException {
         String flowString = null;
@@ -681,7 +681,7 @@ public class TestFlowController {
         final byte[] authFingerprintBytes = authFingerprint.getBytes(StandardCharsets.UTF_8);
         final DataFlow proposedDataFlow1 = new StandardDataFlow(flowBytes, null, authFingerprintBytes, Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class), BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL);
     }
 
     @Test

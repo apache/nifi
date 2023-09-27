@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.tests.system.clustering;
 
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
@@ -25,9 +27,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
-import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -35,7 +35,6 @@ import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Disabled;
@@ -54,7 +53,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
@@ -97,23 +95,20 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         node2.stop();
 
         final File node2ConfDir = new File(node2.getInstanceDirectory(), "conf");
-        final File flowXmlFile = new File(node2ConfDir, "flow.json.gz");
-        Files.deleteIfExists(flowXmlFile.toPath());
-        Files.copy(Paths.get("src/test/resources/flows/mismatched-flows/flow2.json.gz"), flowXmlFile.toPath());
+        final File flowJsonFile = new File(node2ConfDir, "flow.json.gz");
+        Files.deleteIfExists(flowJsonFile.toPath());
+        Files.copy(Paths.get("src/test/resources/flows/mismatched-flows/flow2.json.gz"), flowJsonFile.toPath());
 
         node2.start(true);
 
+        while (getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream().filter(n -> n.getStatus().equals("CONNECTED")).count() != 2) {
+            Thread.sleep(3000);
+        }
+
         final File backupFile = getBackupFile(node2ConfDir);
-        final NodeDTO node2Dto = getNodeDtoByApiPort(5672);
-
-//        verifyFlowContentsOnDisk(backupFile);
-        disconnectNode(node2Dto);
+        verifyFlowContentsOnDisk(backupFile);
         verifyInMemoryFlowContents();
-
-        // Reconnect the node so that we can properly shutdown
-        reconnectNode(node2Dto);
     }
-
 
     private List<File> getFlowJsonFiles(final File confDir) {
         final File[] flowJsonFileArray = confDir.listFiles(file -> file.getName().startsWith("flow") && file.getName().endsWith(".json.gz"));
@@ -122,76 +117,35 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     }
 
     private File getBackupFile(final File confDir) throws InterruptedException {
-        waitFor(() -> getFlowJsonFiles(confDir).size() == 2);
+        waitFor(() -> getFlowJsonFiles(confDir).size() == 1);
 
         final List<File> flowXmlFiles = getFlowJsonFiles(confDir);
-        assertEquals(2, flowXmlFiles.size());
-
-        flowXmlFiles.removeIf(file -> file.getName().equals("flow.json.gz"));
-
         assertEquals(1, flowXmlFiles.size());
-        final File backupFile = flowXmlFiles.get(0);
-        return backupFile;
+
+        return flowXmlFiles.iterator().next();
     }
 
-    // TODO we need a JSON analogue for this
-//    private void verifyFlowContentsOnDisk(final File backupFile) throws IOException {
-//        // Read the flow and make sure that the backup looks the same as the original. We don't just do a byte comparison because the compression may result in different
-//        // gzipped bytes and because if the two flows do differ, we want to have the String representation so that we can compare to see how they are different.
-//        final String flowJson = readFlow(backupFile);
-//        final String expectedFlow = readFlow(new File("src/test/resources/flows/mismatched-flows/flow1.json.gz"));
-//
-//        assertEquals(expectedFlow, flowJson);
-//
-//        // Verify some of the values that were persisted to disk
-//        final File confDir = backupFile.getParentFile();
-//        final String loadedFlow = readFlow(new File(confDir, "flow.json.gz"));
-//
-//        final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
-//        final Document document = documentProvider.parse(new ByteArrayInputStream(loadedFlow.getBytes(StandardCharsets.UTF_8)));
-//        final Element rootElement = (Element) document.getElementsByTagName("flowController").item(0);
-//        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
-//
-//        final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
-//        final PropertyEncryptor encryptor = createEncryptorFromProperties(node2.getProperties());
-//        final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-//
-//        final ProcessGroupDTO groupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
-//        final Set<ProcessGroupDTO> childGroupDtos = groupDto.getContents().getProcessGroups();
-//        assertEquals(1, childGroupDtos.size());
-//
-//        final ProcessGroupDTO childGroup = childGroupDtos.iterator().next();
-//        assertFalse(childGroup.getId().endsWith("00"));
-//        final FlowSnippetDTO childContents = childGroup.getContents();
-//
-//        final Set<ProcessorDTO> childProcessors = childContents.getProcessors();
-//        assertEquals(1, childProcessors.size());
-//
-//        final ProcessorDTO procDto = childProcessors.iterator().next();
-//        assertFalse(procDto.getId().endsWith("00"));
-//        assertFalse(procDto.getName().endsWith("00"));
-//    }
+    private void verifyFlowContentsOnDisk(final File backupFile) throws IOException {
+        // Verify some of the values that were persisted to disk
+        final File confDir = backupFile.getParentFile();
+        final String loadedFlow = readFlow(new File(confDir, "flow.json.gz"));
 
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final VersionedDataflow versionedDataflow = objectMapper.readValue(loadedFlow, VersionedDataflow.class);
+        final VersionedProcessGroup rootGroup = versionedDataflow.getRootGroup();
+        assertEquals(1, rootGroup.getProcessGroups().size());
 
-    private void disconnectNode(final NodeDTO nodeDto) throws NiFiClientException, IOException, InterruptedException {
-        // Disconnect Node 2 so that we can go to the node directly via the REST API and ensure that the flow is correct.
-        final NodeEntity nodeEntity = new NodeEntity();
-        nodeEntity.setNode(nodeDto);
+        final VersionedProcessGroup childGroup = rootGroup.getProcessGroups().iterator().next();
+        assertFalse(childGroup.getIdentifier().endsWith("00"));
 
-        getNifiClient().getControllerClient().disconnectNode(nodeDto.getNodeId(), nodeEntity);
+        assertEquals(1, childGroup.getProcessors().size());
+        final VersionedProcessor childProcessor = childGroup.getProcessors().iterator().next();
 
-        // Give the node a second to disconnect
-        Thread.sleep(1000L);
+        assertFalse(childProcessor.getIdentifier().endsWith("00"));
+        assertFalse(childProcessor.getName().endsWith("00"));
     }
 
-    private void reconnectNode(final NodeDTO nodeDto) throws NiFiClientException, IOException {
-        final NodeEntity nodeEntity = new NodeEntity();
-        nodeEntity.setNode(nodeDto);
-        getNifiClient().getControllerClient().connectNode(nodeDto.getNodeId(), nodeEntity);
-        waitForAllNodesConnected();
-    }
-
-    private void verifyInMemoryFlowContents() throws NiFiClientException, IOException, InterruptedException {
+    private void verifyInMemoryFlowContents() throws NiFiClientException, IOException {
         final NiFiClient node2Client = createClient(5672);
         final ProcessGroupFlowDTO rootGroupFlow = node2Client.getFlowClient().getProcessGroup("root").getProcessGroupFlow();
         final FlowDTO flowDto = rootGroupFlow.getFlow();
@@ -208,13 +162,6 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
         assertEquals("1 hour", generateFlowFileEntity.getComponent().getConfig().getSchedulingPeriod());
 
-        String currentState = "RUNNING";
-        while ("RUNNING".equals(currentState)) {
-            Thread.sleep(50L);
-            generateFlowFileEntity = node2Client.getProcessorClient().getProcessor("65b8f293-016e-1000-7b8f-6c6752fa921b");
-            currentState = generateFlowFileEntity.getComponent().getState();
-        }
-
         final ParameterContextDTO contextDto = node2Client.getParamContextClient().getParamContext(paramContextReference.getId(), false).getComponent();
         assertEquals(2, contextDto.getBoundProcessGroups().size());
         assertEquals(1, contextDto.getParameters().size());
@@ -230,18 +177,11 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
         // The original Controller Service, whose UUID ended with 00 should be removed and a new one inherited.
         final ControllerServicesEntity controllerLevelServices = node2Client.getFlowClient().getControllerServices();
-        assertEquals(1, controllerLevelServices.getControllerServices().size());
+        final Set<ControllerServiceEntity> controllerServices = controllerLevelServices.getControllerServices();
+        assertEquals(1, controllerServices.size());
 
-        final ControllerServiceEntity firstService = controllerLevelServices.getControllerServices().iterator().next();
+        final ControllerServiceEntity firstService = controllerServices.iterator().next();
         assertFalse(firstService.getId().endsWith("00"));
-    }
-
-    private PropertyEncryptor createEncryptorFromProperties(Properties properties) {
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-
-        final String propertiesKey = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-        final String propertiesAlgorithm = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        return new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
     }
 
     private String readFlow(final File file) throws IOException {

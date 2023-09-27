@@ -437,7 +437,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         node2.stop();
 
         final File confDir = new File(node2.getInstanceDirectory(), "conf");
-        //assertEquals(1, confDir.listFiles(file -> file.getName().equals("flow.xml.gz")).length);
         assertEquals(1, confDir.listFiles(file -> file.getName().equals("flow.json.gz")).length);
 
         final File jsonFile = new File(confDir, filenameToDelete);
