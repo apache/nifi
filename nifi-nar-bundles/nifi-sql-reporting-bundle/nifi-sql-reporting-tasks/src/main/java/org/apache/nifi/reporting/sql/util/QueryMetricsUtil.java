@@ -70,9 +70,8 @@ public class QueryMetricsUtil {
 
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
 
-            final SqlParser.Config config = SqlParser.configBuilder()
-                    .setLex(Lex.MYSQL_ANSI)
-                    .build();
+            final SqlParser.Config config = SqlParser.config()
+                .withLex(Lex.MYSQL_ANSI);
 
             final SqlParser parser = SqlParser.create(substituted, config);
             try {

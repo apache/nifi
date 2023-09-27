@@ -18,11 +18,10 @@ package org.apache.nifi.registry.flow;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.link.LinkableEntity;
-
+import java.util.Objects;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
-import java.util.Objects;
+import org.apache.nifi.registry.link.LinkableEntity;
 
 /**
  * The metadata information about a VersionedFlowSnapshot. This class implements Comparable in order
@@ -76,7 +75,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.version = version;
     }
 
-    @ApiModelProperty(value = "The timestamp when the flow was saved, as milliseconds since epoch.", readOnly = true)
+    @ApiModelProperty(value = "The timestamp when the flow was saved, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public long getTimestamp() {
         return timestamp;
     }
@@ -85,7 +84,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.timestamp = timestamp;
     }
 
-    @ApiModelProperty(value = "The user that created this snapshot of the flow.", readOnly = true)
+    @ApiModelProperty(value = "The user that created this snapshot of the flow.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getAuthor() {
         return author;
     }

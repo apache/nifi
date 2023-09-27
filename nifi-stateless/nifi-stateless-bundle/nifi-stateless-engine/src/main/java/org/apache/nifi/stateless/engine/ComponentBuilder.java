@@ -17,6 +17,13 @@
 
 package org.apache.nifi.stateless.engine;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -71,13 +78,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class ComponentBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ComponentBuilder.class);
@@ -161,7 +161,7 @@ public class ComponentBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance(), new StandardLoggingContext(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.getDeclaredConstructor().newInstance(), new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
             final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
             final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
@@ -266,7 +266,7 @@ public class ComponentBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
-            final ControllerService serviceImpl = controllerServiceClass.newInstance();
+            final ControllerService serviceImpl = controllerServiceClass.getDeclaredConstructor().newInstance();
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
@@ -321,7 +321,9 @@ public class ComponentBuilder {
         }
     }
 
-    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException,
+        InstantiationException, NoSuchMethodException, InvocationTargetException {
+
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
@@ -338,12 +340,12 @@ public class ComponentBuilder {
                 }
             }
 
-            final Set<URL>  classpathUrls = additionalClassPathUrls == null ? Collections.emptySet() : additionalClassPathUrls;
+            final Set<URL> classpathUrls = additionalClassPathUrls == null ? Collections.emptySet() : additionalClassPathUrls;
             final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle, classpathUrls);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
-            final Object extensionInstance = rawClass.newInstance();
+            final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
             final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 

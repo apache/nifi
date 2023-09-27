@@ -28,7 +28,7 @@ public class CurrentUser {
     private boolean oidcLoginSupported;
     private ResourcePermissions resourcePermissions;
 
-    @ApiModelProperty(value = "The identity of the current user", readOnly = true)
+    @ApiModelProperty(value = "The identity of the current user", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getIdentity() {
         return identity;
     }
@@ -37,7 +37,7 @@ public class CurrentUser {
         this.identity = identity;
     }
 
-    @ApiModelProperty(value = "Indicates if the current user is anonymous", readOnly = true)
+    @ApiModelProperty(value = "Indicates if the current user is anonymous", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public boolean isAnonymous() {
         return anonymous;
     }
@@ -64,7 +64,7 @@ public class CurrentUser {
         this.oidcLoginSupported = oidcLoginSupported;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to top level resources", readOnly = true)
+    @ApiModelProperty(value = "The access that the current user has to top level resources", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public ResourcePermissions getResourcePermissions() {
         return resourcePermissions;
     }

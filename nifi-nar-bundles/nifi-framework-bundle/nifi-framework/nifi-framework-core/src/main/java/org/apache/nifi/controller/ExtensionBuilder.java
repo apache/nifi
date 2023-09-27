@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.controller;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
@@ -83,16 +93,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class ExtensionBuilder {
    private static final Logger logger = LoggerFactory.getLogger(ExtensionBuilder.class);
@@ -603,7 +603,8 @@ public class ExtensionBuilder {
    }
 
    private ControllerServiceNode createControllerServiceNode(final StandardLoggingContext loggingContext)
-           throws ClassNotFoundException, IllegalAccessException, InstantiationException, InitializationException {
+       throws ClassNotFoundException, IllegalAccessException, InstantiationException, InitializationException, NoSuchMethodException, InvocationTargetException {
+
        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
        try {
            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -616,7 +617,7 @@ public class ExtensionBuilder {
            Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
            final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
-           final ControllerService serviceImpl = controllerServiceClass.newInstance();
+           final ControllerService serviceImpl = controllerServiceClass.getDeclaredConstructor().newInstance();
 
            final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
@@ -894,7 +895,8 @@ public class ExtensionBuilder {
    }
 
    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType, LoggingContext loggingContext)
-           throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+       throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+
        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
        try {
            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -907,7 +909,7 @@ public class ExtensionBuilder {
            final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
            Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
-           final Object extensionInstance = rawClass.newInstance();
+           final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
 
            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, loggingContext);
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);

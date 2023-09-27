@@ -17,11 +17,10 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.PermissionsDTO;
-import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
-import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
-
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
+import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
 
 
 /**
@@ -49,9 +48,7 @@ public class FlowAnalysisRuleEntity extends ComponentEntity implements Permissib
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
-    )
+    @ApiModelProperty(value = "The permissions for this component operations.")
     @Override
     public PermissionsDTO getOperatePermissions() {
         return operatePermissions;
@@ -65,10 +62,7 @@ public class FlowAnalysisRuleEntity extends ComponentEntity implements Permissib
     /**
      * @return The status for this FlowAnalysisRule
      */
-    @ApiModelProperty(
-            value = "The status for this FlowAnalysisRule.",
-            readOnly = true
-    )
+    @ApiModelProperty(value = "The status for this FlowAnalysisRule.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public FlowAnalysisRuleStatusDTO getStatus() {
         return status;
     }

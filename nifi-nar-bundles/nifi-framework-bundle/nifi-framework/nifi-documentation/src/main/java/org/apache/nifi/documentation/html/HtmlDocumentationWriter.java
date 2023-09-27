@@ -16,6 +16,20 @@
  */
 package org.apache.nifi.documentation.html;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.xml.stream.FactoryConfigurationError;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -28,10 +42,10 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
-import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
@@ -43,27 +57,11 @@ import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.xml.stream.FactoryConfigurationError;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
@@ -862,27 +860,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
 
                 xmlStreamWriter.writeEmptyElement("br");
-                String text;
 
-                if (dynamicProperty.expressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
-                    if (dynamicProperty.supportsExpressionLanguage()) {
-                        text = "Supports Expression Language: true (undefined scope)";
-                    } else {
-                        text = "Supports Expression Language: false";
-                    }
-                } else {
-                    switch(dynamicProperty.expressionLanguageScope()) {
-                        case FLOWFILE_ATTRIBUTES:
-                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and Environment variables)";
-                            break;
-                        case ENVIRONMENT:
-                            text = "Supports Expression Language: true (will be evaluated using Environment variables only)";
-                            break;
-                        default:
-                            text = "Supports Expression Language: false";
-                            break;
-                    }
-                }
+                final String text = switch (dynamicProperty.expressionLanguageScope()) {
+                    case FLOWFILE_ATTRIBUTES -> "Supports Expression Language: true (will be evaluated using flow file attributes and Environment variables)";
+                    case ENVIRONMENT -> "Supports Expression Language: true (will be evaluated using Environment variables only)";
+                    default -> "Supports Expression Language: false";
+                };
 
                 writeSimpleElement(xmlStreamWriter, "strong", text);
                 xmlStreamWriter.writeEndElement();

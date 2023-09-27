@@ -29,7 +29,7 @@ import com.sun.jna.win32.W32APIOptions;
  * Please see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385772(v=vs.85).aspx for documentation on the methods and data structures.
  */
 public interface WEvtApi extends StdCallLibrary {
-    WEvtApi INSTANCE = (WEvtApi) Native.loadLibrary("wevtapi", WEvtApi.class, W32APIOptions.DEFAULT_OPTIONS);
+    WEvtApi INSTANCE = Native.load("wevtapi", WEvtApi.class, W32APIOptions.DEFAULT_OPTIONS);
 
     WinNT.HANDLE EvtSubscribe(WinNT.HANDLE session, WinNT.HANDLE signalEvent, String channelName, String xpathQuery,
                               WinNT.HANDLE bookmark, WinDef.PVOID context, EVT_SUBSCRIBE_CALLBACK evtSubscribeCallback, int flags);

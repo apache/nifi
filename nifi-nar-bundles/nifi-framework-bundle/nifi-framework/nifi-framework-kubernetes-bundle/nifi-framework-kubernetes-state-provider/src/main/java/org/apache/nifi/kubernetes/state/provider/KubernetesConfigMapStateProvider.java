@@ -24,15 +24,6 @@ import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.Resource;
-import org.apache.nifi.components.AbstractConfigurableComponent;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.components.state.StateProvider;
-import org.apache.nifi.components.state.StateProviderInitializationContext;
-import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
-import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
-import org.apache.nifi.logging.ComponentLog;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
@@ -48,11 +39,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
+import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
  */
 public class KubernetesConfigMapStateProvider extends AbstractConfigurableComponent implements StateProvider {
+    private static final int MAX_UPDATE_ATTEMPTS = 5;
     private static final Scope[] SUPPORTED_SCOPES = { Scope.CLUSTER };
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
@@ -121,17 +121,65 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     public void setState(final Map<String, String> state, final String componentId) throws IOException {
         try {
             final ConfigMap configMap = createConfigMapBuilder(state, componentId).build();
-            final ConfigMap configMapCreated = kubernetesClient.configMaps().resource(configMap).createOrReplace();
+            final Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
+
+            ConfigMap configMapCreated = null;
+
+            // Attempt to create or update, up to 3 times. We expect that we will update more frequently than create
+            // so we first attempt to update. If we get back a 404, then we create it.
+            boolean create = false;
+            for (int attempt = 0; attempt < MAX_UPDATE_ATTEMPTS; attempt++) {
+                try {
+                    if (create) {
+                        configMapCreated = configMapResource.create();
+                    } else {
+                        configMapCreated = configMapResource.update();
+                    }
+
+                    break;
+                } catch (final KubernetesClientException e) {
+                    final int returnCode = e.getCode();
+                    if (returnCode == 404) {
+                        // A 404 return code indicates that we need to create the resource instead of update it.
+                        // Now, we will attempt to create the resource instead of update it, so we'll reset the attempt counter.
+                        attempt = 0;
+                        create = true;
+                        continue;
+                    }
+
+                    if (returnCode >= 500) {
+                        // Server-side error. We should retry, up to some number of attempts.
+                        if (attempt == MAX_UPDATE_ATTEMPTS - 1) {
+                            throw e;
+                        }
+                    } else {
+                        // There's an issue with the request. Throw the Exception.
+                        throw e;
+                    }
+                } catch (final Exception e) {
+                    if (attempt < MAX_UPDATE_ATTEMPTS - 1) {
+                        logger.warn("Failed to update state for component with ID {}. Will attempt to update the resource again.", componentId, e);
+                    } else {
+                        logger.error("Failed to update state for component with ID {}", componentId, e);
+                        throw e;
+                    }
+                }
+            }
+
+            if (configMapCreated == null) {
+                throw new IOException("Exhausted maximum number of attempts (%s) to update state for component with ID %s but could not update it".formatted(MAX_UPDATE_ATTEMPTS, componentId));
+            }
+
             final Optional<String> version = getVersion(configMapCreated);
             logger.debug("Set State Component ID [{}] Version [{}]", componentId, version);
         } catch (final KubernetesClientException e) {
             if (isNotFound(e.getCode())) {
                 logger.debug("State not found for Component ID [{}]", componentId, e);
             } else {
-                throw new IOException(String.format("Set failed for Component ID [%s]", componentId), e);
+                throw new IOException(String.format("Failed to update state for Component with ID [%s]", componentId), e);
             }
         } catch (final RuntimeException e) {
-            throw new IOException(String.format("Set failed for Component ID [%s]", componentId), e);
+            throw new IOException(String.format("Failed to update state for Component with ID [%s]", componentId), e);
         }
     }
 

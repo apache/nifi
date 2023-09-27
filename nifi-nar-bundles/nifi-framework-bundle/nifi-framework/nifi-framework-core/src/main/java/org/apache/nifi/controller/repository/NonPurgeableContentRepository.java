@@ -17,15 +17,13 @@
 
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Set;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 
 public class NonPurgeableContentRepository implements ContentRepository {
     private final ContentRepository delegate;
@@ -92,12 +90,6 @@ public class NonPurgeableContentRepository implements ContentRepository {
     @Override
     public ContentClaim clone(final ContentClaim original, final boolean lossTolerant) throws IOException {
         return delegate.clone(original, lossTolerant);
-    }
-
-    @Override
-    @Deprecated
-    public long merge(final Collection<ContentClaim> claims, final ContentClaim destination, final byte[] header, final byte[] footer, final byte[] demarcator) throws IOException {
-        return delegate.merge(claims, destination, header, footer, demarcator);
     }
 
     @Override

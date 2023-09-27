@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.nar;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.AccessPolicyProvider;
@@ -40,24 +57,6 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.Optional;
 
 /**
  * THREAD SAFE
@@ -195,7 +194,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
-                                throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException {
         return createInstance(extensionManager, implementationClassName, typeDefinition, nifiProperties, UUID.randomUUID().toString());
     }
 
@@ -215,7 +214,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties,
-                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
@@ -232,8 +231,8 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
             Thread.currentThread().setContextClassLoader(instanceClassLoader);
             final Class<?> desiredClass = instanceClass.asSubclass(typeDefinition);
-            if(nifiProperties == null){
-                return typeDefinition.cast(desiredClass.newInstance());
+            if (nifiProperties == null) {
+                return typeDefinition.cast(desiredClass.getDeclaredConstructor().newInstance());
             }
             Constructor<?> constructor = null;
 

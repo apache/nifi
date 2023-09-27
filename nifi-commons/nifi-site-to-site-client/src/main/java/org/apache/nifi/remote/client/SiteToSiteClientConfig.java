@@ -21,9 +21,7 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -31,15 +29,6 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 
 public interface SiteToSiteClientConfig extends Serializable {
-
-    /**
-     * @return the configured URL for the remote NiFi instance
-     * @deprecated This method only returns single URL string even if multiple URLs are set
-     * for backward compatibility for implementations that does not expect multiple URLs.
-     * {@link #getUrls()} should be used instead then should support multiple URLs when making requests.
-     */
-    @Deprecated
-    String getUrl();
 
     /**
      * SiteToSite implementations should support multiple URLs when establishing a SiteToSite connection with a remote

@@ -17,6 +17,23 @@
 
 package org.apache.nifi.stateless.engine;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
@@ -77,24 +94,6 @@ import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -238,7 +237,7 @@ public class StandardStatelessEngine implements StatelessEngine {
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
 
-            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.newInstance();
+            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.getDeclaredConstructor().newInstance();
 
             // Initialize the provider
             final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterValueProvider, parameterValueProvider.getPropertyDescriptors());

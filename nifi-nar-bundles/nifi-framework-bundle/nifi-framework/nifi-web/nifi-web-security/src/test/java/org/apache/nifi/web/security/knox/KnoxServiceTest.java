@@ -24,20 +24,18 @@ import com.nimbusds.oauth2.sdk.auth.PrivateKeyJWT;
 import com.nimbusds.oauth2.sdk.id.Audience;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.JWTID;
-import org.apache.nifi.web.security.InvalidAuthenticationException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -90,11 +88,10 @@ public class KnoxServiceTest {
 
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         final KeyPair pair = keyGen.generateKeyPair();
-        final RSAPrivateKey privateKey = (RSAPrivateKey) pair.getPrivate();
         final RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
 
         final JWTAuthenticationClaimsSet claimsSet = getAuthenticationClaimsSet(subject, AUDIENCE, expiration);
-        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, privateKey, null, null);
+        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, pair.getPrivate(), null, null);
 
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
@@ -110,14 +107,12 @@ public class KnoxServiceTest {
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 
         final KeyPair pair1 = keyGen.generateKeyPair();
-        final RSAPrivateKey privateKey1 = (RSAPrivateKey) pair1.getPrivate();
-
         final KeyPair pair2 = keyGen.generateKeyPair();
         final RSAPublicKey publicKey2 = (RSAPublicKey) pair2.getPublic();
 
         // sign the jwt with pair 1
         final JWTAuthenticationClaimsSet claimsSet = getAuthenticationClaimsSet(subject, AUDIENCE, expiration);
-        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, privateKey1, null, null);
+        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, pair1.getPrivate(), null, null);
 
         // attempt to verify it with pair 2
         final KnoxConfiguration configuration = getConfiguration(publicKey2);
@@ -155,14 +150,13 @@ public class KnoxServiceTest {
 
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         final KeyPair pair = keyGen.generateKeyPair();
-        final RSAPrivateKey privateKey = (RSAPrivateKey) pair.getPrivate();
         final RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
 
         // wait 2 sec
         Thread.sleep(TimeUnit.MILLISECONDS.convert(2, TimeUnit.SECONDS));
 
         final JWTAuthenticationClaimsSet claimsSet = getAuthenticationClaimsSet(subject, AUDIENCE, expiration);
-        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, privateKey, null, null);
+        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, pair.getPrivate(), null, null);
 
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
@@ -177,11 +171,10 @@ public class KnoxServiceTest {
 
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         final KeyPair pair = keyGen.generateKeyPair();
-        final RSAPrivateKey privateKey = (RSAPrivateKey) pair.getPrivate();
         final RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
 
         final JWTAuthenticationClaimsSet claimsSet = getAuthenticationClaimsSet(subject, AUDIENCE, expiration);
-        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, privateKey, null, null);
+        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, pair.getPrivate(), null, null);
 
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         when(configuration.getAudiences()).thenReturn(null);
@@ -197,11 +190,10 @@ public class KnoxServiceTest {
 
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         final KeyPair pair = keyGen.generateKeyPair();
-        final RSAPrivateKey privateKey = (RSAPrivateKey) pair.getPrivate();
         final RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
 
         final JWTAuthenticationClaimsSet claimsSet = getAuthenticationClaimsSet(subject, "incorrect-audience", expiration);
-        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, privateKey, null, null);
+        final PrivateKeyJWT privateKeyJWT = new PrivateKeyJWT(claimsSet, JWSAlgorithm.RS256, pair.getPrivate(), null, null);
 
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);

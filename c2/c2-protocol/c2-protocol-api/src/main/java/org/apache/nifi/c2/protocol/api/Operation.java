@@ -43,7 +43,7 @@ public class Operation extends C2Operation {
 
     @ApiModelProperty(
             value = "The current state of the operation",
-            readOnly = true)
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public OperationState getState() {
         return state;
     }
@@ -62,8 +62,8 @@ public class Operation extends C2Operation {
     }
 
     @ApiModelProperty(value = "The verified identity of the C2 client that created the operation",
-            readOnly = true,
-            notes = "This field is set by the server when an operation request is submitted to identify the origin. " +
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+        notes = "This field is set by the server when an operation request is submitted to identify the origin. " +
                     "When the C2 instance is secured, this is the client principal identity (e.g., certificate DN). " +
                     "When the C2 instances is unsecured, this will be 'anonymous' as client identity can not be authenticated.")
     public String getCreatedBy() {

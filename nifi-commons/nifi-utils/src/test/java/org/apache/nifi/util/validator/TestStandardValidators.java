@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.util.validator;
 
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -23,9 +25,6 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -466,39 +465,10 @@ public class TestStandardValidators {
         assertEquals(2, mockValidator.getValidateCallCount());
     }
 
-    @Test
-    public void testCreateURLorFileValidator() {
-        Validator val = StandardValidators.createURLorFileValidator();
-        ValidationResult vr;
-
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-
-        vr = val.validate("URLorFile", null, validationContext);
-        assertFalse(vr.isValid());
-
-        vr = val.validate("URLorFile", "", validationContext);
-        assertFalse(vr.isValid());
-
-        vr = val.validate("URLorFile", "http://nifi.apache.org", validationContext);
-        assertTrue(vr.isValid());
-
-        vr = val.validate("URLorFile", "http//nifi.apache.org", validationContext);
-        assertFalse(vr.isValid());
-
-        vr = val.validate("URLorFile", "nifi.apache.org", validationContext);
-        assertFalse(vr.isValid());
-
-        vr = val.validate("URLorFile", "src/test/resources/this_file_exists.txt", validationContext);
-        assertTrue(vr.isValid());
-
-        vr = val.validate("URLorFile", "src/test/resources/this_file_does_not_exist.txt", validationContext);
-        assertFalse(vr.isValid());
-
-    }
 
     @Test
     public void testiso8061InstantValidator() {
-        Validator val = StandardValidators.ISO8061_INSTANT_VALIDATOR;
+        Validator val = StandardValidators.ISO8601_INSTANT_VALIDATOR;
         ValidationContext vc = mock(ValidationContext.class);
         ValidationResult vr = val.validate("foo", "", vc);
         assertFalse(vr.isValid());

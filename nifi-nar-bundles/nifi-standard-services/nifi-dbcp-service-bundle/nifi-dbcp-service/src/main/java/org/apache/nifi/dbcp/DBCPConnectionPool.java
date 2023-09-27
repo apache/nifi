@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
@@ -43,17 +53,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
@@ -301,12 +300,12 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             try {
-                final Driver driver = (Driver) clazz.newInstance();
+                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(driver);
                 return DriverManager.getDriver(url);
             } catch (final SQLException e2) {
                 throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
-            } catch (final IllegalAccessException | InstantiationException e2) {
+            } catch (final Exception e2) {
                 throw new ProcessException("Creating driver instance is failed", e2);
             }
         }

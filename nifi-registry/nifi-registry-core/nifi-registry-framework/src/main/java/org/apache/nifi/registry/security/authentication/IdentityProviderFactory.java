@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.registry.security.authentication;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
@@ -36,23 +52,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.lang.Nullable;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 
 @Configuration
 public class IdentityProviderFactory implements IdentityProviderLookup, DisposableBean {
@@ -110,7 +109,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
 
                 // create each login identity provider
                 for (final Provider provider : loginIdentityProviderConfiguration.getProvider()) {
-                    identityProviders.put(provider.getIdentifier(), createLoginIdentityProvider(provider.getIdentifier(), provider.getClazz()));
+                    identityProviders.put(provider.getIdentifier(), createLoginIdentityProvider(provider.getClazz()));
                 }
 
                 // configure each login identity provider
@@ -162,7 +161,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
         }
     }
 
-    private IdentityProvider createLoginIdentityProvider(final String identifier, final String loginIdentityProviderClassName) throws Exception {
+    private IdentityProvider createLoginIdentityProvider(final String loginIdentityProviderClassName) throws Exception {
         final IdentityProvider instance;
 
         final ClassLoader classLoader = extensionManager.getExtensionClassLoader(loginIdentityProviderClassName);
@@ -171,11 +170,11 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
         }
 
         // attempt to load the class
-        Class<?> rawLoginIdentityProviderClass = Class.forName(loginIdentityProviderClassName, true, classLoader);
-        Class<? extends IdentityProvider> loginIdentityProviderClass = rawLoginIdentityProviderClass.asSubclass(IdentityProvider.class);
+        final Class<?> rawLoginIdentityProviderClass = Class.forName(loginIdentityProviderClassName, true, classLoader);
+        final Class<? extends IdentityProvider> loginIdentityProviderClass = rawLoginIdentityProviderClass.asSubclass(IdentityProvider.class);
 
         // otherwise create a new instance
-        Constructor constructor = loginIdentityProviderClass.getConstructor();
+        final Constructor<?> constructor = loginIdentityProviderClass.getConstructor();
         instance = (IdentityProvider) constructor.newInstance();
 
         // method injection
@@ -202,67 +201,55 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
         return new StandardIdentityProviderConfigurationContext(provider.getIdentifier(), this, providerProperties);
     }
 
-    private void performMethodInjection(final IdentityProvider instance, final Class loginIdentityProviderClass)
+    private void performMethodInjection(final IdentityProvider instance, final Class<?> loginIdentityProviderClass)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         for (final Method method : loginIdentityProviderClass.getMethods()) {
             if (method.isAnnotationPresent(IdentityProviderContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
+                final Class<?>[] argumentTypes = method.getParameterTypes();
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
+                // look for setters (single argument)
+                if (argumentTypes.length == 1) {
+                    final Class<?> argumentType = argumentTypes[0];
 
-                    // look for setters (single argument)
-                    if (argumentTypes.length == 1) {
-                        final Class<?> argumentType = argumentTypes[0];
-
-                        // look for well known types
-                        if (NiFiRegistryProperties.class.isAssignableFrom(argumentType)) {
-                            // nifi properties injection
-                            method.invoke(instance, properties);
-                        }
+                    // look for well known types
+                    if (NiFiRegistryProperties.class.isAssignableFrom(argumentType)) {
+                        // nifi properties injection
+                        method.invoke(instance, properties);
                     }
-                } finally {
-                    method.setAccessible(isAccessible);
                 }
             }
         }
 
-        final Class parentClass = loginIdentityProviderClass.getSuperclass();
+        final Class<?> parentClass = loginIdentityProviderClass.getSuperclass();
         if (parentClass != null && IdentityProvider.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }
     }
 
-    private void performFieldInjection(final IdentityProvider instance, final Class loginIdentityProviderClass) throws IllegalArgumentException, IllegalAccessException {
+    private void performFieldInjection(final IdentityProvider instance, final Class<?> loginIdentityProviderClass) throws IllegalArgumentException, IllegalAccessException {
         for (final Field field : loginIdentityProviderClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(IdentityProviderContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = field.isAccessible();
                 field.setAccessible(true);
 
-                try {
-                    // get the type
-                    final Class<?> fieldType = field.getType();
+                // get the type
+                final Class<?> fieldType = field.getType();
 
-                    // only consider this field if it isn't set yet
-                    if (field.get(instance) == null) {
-                        // look for well known types
-                        if (NiFiRegistryProperties.class.isAssignableFrom(fieldType)) {
-                            // nifi properties injection
-                            field.set(instance, properties);
-                        }
+                // only consider this field if it isn't set yet
+                if (field.get(instance) == null) {
+                    // look for well known types
+                    if (NiFiRegistryProperties.class.isAssignableFrom(fieldType)) {
+                        // nifi properties injection
+                        field.set(instance, properties);
                     }
-
-                } finally {
-                    field.setAccessible(isAccessible);
                 }
             }
         }
 
-        final Class parentClass = loginIdentityProviderClass.getSuperclass();
+        final Class<?> parentClass = loginIdentityProviderClass.getSuperclass();
         if (parentClass != null && IdentityProvider.class.isAssignableFrom(parentClass)) {
             performFieldInjection(instance, parentClass);
         }

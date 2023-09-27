@@ -26,18 +26,18 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskEntry;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Set;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -142,6 +142,8 @@ public class PutSmbFileTest {
         return shareAccessSet.getValue();
     }
 
+    private AutoCloseable mockCloseable;
+
     @BeforeEach
     public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(new PutSmbFile() {
@@ -150,8 +152,15 @@ public class PutSmbFileTest {
                 return smbClient;
             }
         });
-        MockitoAnnotations.initMocks(this);
+        mockCloseable = MockitoAnnotations.openMocks(this);
         setupSmbProcessor();
+    }
+
+    @AfterEach
+    public void closeMocks() throws Exception {
+        if (mockCloseable != null) {
+            mockCloseable.close();
+        }
     }
 
     @Test

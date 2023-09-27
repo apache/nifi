@@ -17,10 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration;
 
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toList;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,6 +32,10 @@ import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
 
 public class ConfigurationChangeCoordinator implements Closeable, ConfigurationChangeNotifier {
 
@@ -118,11 +118,11 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
     private void instantiateIngestor(Properties bootstrapProperties, String ingestorClassname) {
         try {
             Class<?> ingestorClass = Class.forName(ingestorClassname);
-            ChangeIngestor changeIngestor = (ChangeIngestor) ingestorClass.newInstance();
+            ChangeIngestor changeIngestor = (ChangeIngestor) ingestorClass.getDeclaredConstructor().newInstance();
             changeIngestor.initialize(bootstrapProperties, runMiNiFi, this);
             changeIngestors.add(changeIngestor);
             LOGGER.info("Initialized ingestor: {}", ingestorClassname);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Instantiating [{}] ingestor failed", ingestorClassname, e);
         }
     }

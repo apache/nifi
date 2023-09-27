@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.reporting.sql.bulletins;
 
+import java.util.Collections;
+import java.util.List;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -35,8 +37,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
-import java.util.List;
-
 /**
  * Relational expression representing a query for bulletin information.
  *
@@ -49,7 +49,7 @@ public class BulletinTableScan extends TableScan implements EnumerableRel {
     final int[] fields;
 
     protected BulletinTableScan(final RelOptCluster cluster, final RelOptTable table, final BulletinTable bulletinTable, final int[] fields) {
-        super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
+        super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), Collections.emptyList(), table);
 
         this.bulletinTable = bulletinTable;
         this.fields = fields;

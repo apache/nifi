@@ -21,19 +21,6 @@ import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.model.Record;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessSession;
-import org.apache.nifi.util.SharedSessionState;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -46,11 +33,22 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.SharedSessionState;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,24 +60,18 @@ public class TestKinesisRecordProcessorRaw {
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Mock
-    private ProcessSessionFactory processSessionFactory;
+    private final ProcessSessionFactory processSessionFactory = mock(ProcessSessionFactory.class);
 
     private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
     private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
 
     private AbstractKinesisRecordProcessor fixture;
 
-    @Mock
-    private IRecordProcessorCheckpointer checkpointer;
-
-    @Mock
-    private Record kinesisRecord;
+    private final IRecordProcessorCheckpointer checkpointer = mock(IRecordProcessorCheckpointer.class);
+    private final Record kinesisRecord = mock(Record.class);
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER);

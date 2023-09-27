@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.util.DiskUtils;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -57,6 +39,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -893,87 +892,6 @@ public class TestFileSystemRepository {
         }
     }
 
-    @Test
-    public void testMergeWithHeaderFooterDemarcator() throws IOException {
-        testMerge("HEADER", "FOOTER", "DEMARCATOR");
-    }
-
-    @Test
-    public void testMergeWithHeaderFooter() throws IOException {
-        testMerge("HEADER", "FOOTER", null);
-    }
-
-    @Test
-    public void testMergeWithHeaderOnly() throws IOException {
-        testMerge("HEADER", null, null);
-    }
-
-    @Test
-    public void testMergeWithFooterOnly() throws IOException {
-        testMerge(null, "FOOTER", null);
-    }
-
-    @Test
-    public void testMergeWithDemarcator() throws IOException {
-        testMerge(null, null, "DEMARCATOR");
-    }
-
-    @Test
-    public void testWithHeaderDemarcator() throws IOException {
-        testMerge("HEADER", null, "DEMARCATOR");
-    }
-
-    @Test
-    public void testMergeWithFooterDemarcator() throws IOException {
-        testMerge(null, "FOOTER", "DEMARCATOR");
-    }
-
-    @Test
-    public void testMergeWithoutHeaderFooterDemarcator() throws IOException {
-        testMerge(null, null, null);
-    }
-
-    private void testMerge(final String header, final String footer, final String demarcator) throws IOException {
-        final int count = 4;
-        final String content = "The quick brown fox jumps over the lazy dog";
-        final List<ContentClaim> claims = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            final ContentClaim claim = repository.create(true);
-            claims.add(claim);
-            try (final OutputStream out = repository.write(claim)) {
-                out.write(content.getBytes());
-            }
-        }
-
-        final ContentClaim destination = repository.create(true);
-        final byte[] headerBytes = header == null ? null : header.getBytes();
-        final byte[] footerBytes = footer == null ? null : footer.getBytes();
-        final byte[] demarcatorBytes = demarcator == null ? null : demarcator.getBytes();
-        repository.merge(claims, destination, headerBytes, footerBytes, demarcatorBytes);
-
-        final StringBuilder sb = new StringBuilder();
-        if (header != null) {
-            sb.append(header);
-        }
-        for (int i = 0; i < count; i++) {
-            sb.append(content);
-            if (demarcator != null && i != count - 1) {
-                sb.append(demarcator);
-            }
-        }
-        if (footer != null) {
-            sb.append(footer);
-        }
-        final String expectedText = sb.toString();
-        final byte[] expected = expectedText.getBytes();
-
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) destination.getLength());
-        try (final InputStream in = repository.read(destination)) {
-            StreamUtils.copy(in, baos);
-        }
-        final byte[] actual = baos.toByteArray();
-        assertArrayEquals(expected, actual);
-    }
 
     private byte[] readFully(final InputStream inStream, final int size) throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(size);

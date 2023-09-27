@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -34,14 +42,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
-
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -161,14 +161,14 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
 
         basicDataSource.setDriver(driver);
-        basicDataSource.setMaxWaitMillis(configuration.getMaxWaitMillis());
+        basicDataSource.setMaxWait(Duration.ofMillis(configuration.getMaxWaitMillis()));
         basicDataSource.setMaxTotal(configuration.getMaxTotal());
         basicDataSource.setMinIdle(configuration.getMinIdle());
         basicDataSource.setMaxIdle(configuration.getMaxIdle());
-        basicDataSource.setMaxConnLifetimeMillis(configuration.getMaxConnLifetimeMillis());
-        basicDataSource.setTimeBetweenEvictionRunsMillis(configuration.getTimeBetweenEvictionRunsMillis());
-        basicDataSource.setMinEvictableIdleTimeMillis(configuration.getMinEvictableIdleTimeMillis());
-        basicDataSource.setSoftMinEvictableIdleTimeMillis(configuration.getSoftMinEvictableIdleTimeMillis());
+        basicDataSource.setMaxConn(Duration.ofMillis(configuration.getMaxConnLifetimeMillis()));
+        basicDataSource.setDurationBetweenEvictionRuns(Duration.ofMillis(configuration.getTimeBetweenEvictionRunsMillis()));
+        basicDataSource.setMinEvictableIdle(Duration.ofMillis(configuration.getMinEvictableIdleTimeMillis()));
+        basicDataSource.setSoftMinEvictableIdle(Duration.ofMillis(configuration.getSoftMinEvictableIdleTimeMillis()));
 
         final String validationQuery = configuration.getValidationQuery();
         if (StringUtils.isNotBlank(validationQuery)) {

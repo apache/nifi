@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.security.auth.login.LoginException;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -46,26 +61,10 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-
-import javax.security.auth.login.LoginException;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Implementation of Database Connection Pooling Service for Hadoop related JDBC Service.
@@ -284,7 +283,6 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .build();
 
 
-    private File kerberosConfigFile = null;
     private KerberosProperties kerberosProperties;
     private List<PropertyDescriptor> properties;
 
@@ -298,7 +296,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
-        kerberosConfigFile = context.getKerberosConfigurationFile();
+        File kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = getKerberosProperties(kerberosConfigFile);
 
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -470,10 +468,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
      * made since the underlying system may still go off-line during normal
      * operation of the connection pool.
      *
-     * @param context
-     *            the configuration context
-     * @throws InitializationException
-     *             if unable to create a database connection
+     * @param context the configuration context
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws IOException {
@@ -543,14 +538,14 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
         dataSource.setUrl(dbUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
-        dataSource.setMaxWaitMillis(maxWaitMillis);
+        dataSource.setMaxWait(Duration.ofMillis(maxWaitMillis));
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMinIdle(minIdle);
         dataSource.setMaxIdle(maxIdle);
-        dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
-        dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
-        dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
-        dataSource.setSoftMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis);
+        dataSource.setMaxConn(Duration.ofMillis(maxConnLifetimeMillis));
+        dataSource.setDurationBetweenEvictionRuns(Duration.ofMillis(timeBetweenEvictionRunsMillis));
+        dataSource.setMinEvictableIdle(Duration.ofMillis(minEvictableIdleTimeMillis));
+        dataSource.setSoftMinEvictableIdle(Duration.ofMillis(softMinEvictableIdleTimeMillis));
 
         if (StringUtils.isEmpty(validationQuery)) {
             dataSource.setValidationQuery(validationQuery);
@@ -570,8 +565,6 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
      * an attempt will still be made to shut down the pool and close open connections.
      *
      * @throws SQLException if there is an error while closing open connections
-     * @throws LoginException if there is an error during the principal log out, and will only be thrown if there was
-     * no exception while closing open connections
      */
     @OnDisabled
     public void shutdown() throws SQLException {
@@ -648,7 +641,4 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
-    BasicDataSource getDataSource() {
-        return dataSource;
-    }
 }

@@ -18,7 +18,6 @@ package org.apache.nifi.registry;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
@@ -34,8 +33,8 @@ public class RegistryConfiguration {
      * and policies in the UI. This value is read only
      */
     @ApiModelProperty(
-            value = "Whether this NiFi Registry supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
-            readOnly = true
+        value = "Whether this NiFi Registry supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsManagedAuthorizer() {
         return supportsManagedAuthorizer;
@@ -49,8 +48,8 @@ public class RegistryConfiguration {
      * @return whether this NiFi Registry supports configurable users and groups. This value is read only
      */
     @ApiModelProperty(
-            value = "Whether this NiFi Registry supports configurable users and groups.",
-            readOnly = true
+        value = "Whether this NiFi Registry supports configurable users and groups.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableUsersAndGroups() {
         return supportsConfigurableUsersAndGroups;
@@ -64,8 +63,8 @@ public class RegistryConfiguration {
      * @return whether this NiFi Registry supports a configurable authorizer. This value is read only
      */
     @ApiModelProperty(
-            value = "Whether this NiFi Registry supports a configurable authorizer.",
-            readOnly = true
+        value = "Whether this NiFi Registry supports a configurable authorizer.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableAuthorizer() {
         return supportsConfigurableAuthorizer;

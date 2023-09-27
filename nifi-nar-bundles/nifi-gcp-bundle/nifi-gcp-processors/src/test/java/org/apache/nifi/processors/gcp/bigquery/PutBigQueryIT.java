@@ -17,6 +17,11 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
+import com.google.auth.Credentials;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.Dataset;
+import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -27,21 +32,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-
-import org.apache.nifi.avro.AvroReader;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.DateTimeUtils;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
+import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -49,9 +40,32 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
+import org.apache.nifi.avro.AvroReader;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
+import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.DateTimeUtils;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.gcp.bigquery.PutBigQuery.BATCH_TYPE;
 import static org.apache.nifi.processors.gcp.bigquery.PutBigQuery.STREAM_TYPE;
@@ -63,7 +77,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Restructured and enhanced version of the existing PutBigQuery Integration Tests. The underlying classes are deprecated so that tests will be removed as well in the future
  *
  */
-public class PutBigQueryIT extends AbstractBigQueryIT {
+public class PutBigQueryIT {
+
+    private static final String CONTROLLER_SERVICE = "GCPCredentialsService";
+    private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi");
+    private static final String SERVICE_ACCOUNT_JSON = System.getProperty("test.gcp.service.account", "/path/to/service/account.json");
+
+    private static BigQuery bigquery;
+    private static Dataset dataset;
+    private static TestRunner runner;
+
+    private static final CredentialsFactory credentialsProviderFactory = new CredentialsFactory();
+
+    @BeforeAll
+    public static void beforeClass() throws IOException {
+        final Map<PropertyDescriptor, String> propertiesMap = new HashMap<>();
+        propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE, SERVICE_ACCOUNT_JSON);
+        Credentials credentials = credentialsProviderFactory.getGoogleCredentials(propertiesMap, new ProxyAwareTransportFactory(null));
+
+        BigQueryOptions bigQueryOptions = BigQueryOptions.newBuilder()
+            .setProjectId(PROJECT_ID)
+            .setCredentials(credentials)
+            .build();
+
+        bigquery = bigQueryOptions.getService();
+
+        DatasetInfo datasetInfo = DatasetInfo.newBuilder(RemoteBigQueryHelper.generateDatasetName()).build();
+        dataset = bigquery.create(datasetInfo);
+    }
+
+    @AfterAll
+    public static void afterClass() {
+        bigquery.delete(dataset.getDatasetId(), BigQuery.DatasetDeleteOption.deleteContents());
+    }
+
+
+    protected TestRunner setCredentialsControllerService(TestRunner runner) throws InitializationException {
+        final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
+
+        final Map<String, String> propertiesMap = new HashMap<>();
+        propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), SERVICE_ACCOUNT_JSON);
+
+        runner.addControllerService(CONTROLLER_SERVICE, credentialsControllerService, propertiesMap);
+        runner.enableControllerService(credentialsControllerService);
+        runner.assertValid(credentialsControllerService);
+
+        return runner;
+    }
 
     private Schema schema;
 

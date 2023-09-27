@@ -20,20 +20,21 @@ package org.apache.nifi.state;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.components.state.StateMap;
 
 public class MockStateMap implements StateMap {
     private final Map<String, String> stateValues;
-    private final long version;
+    private final String version;
 
     public MockStateMap(final Map<String, String> stateValues, final long version) {
         this.stateValues = stateValues == null ? Collections.emptyMap() : new HashMap<>(stateValues);
-        this.version = version;
+        this.version = Long.toString(version);
     }
 
     @Override
-    public long getVersion() {
-        return version;
+    public Optional<String> getStateVersion() {
+        return version.equals("-1") ? Optional.empty() : Optional.of(version);
     }
 
     @Override

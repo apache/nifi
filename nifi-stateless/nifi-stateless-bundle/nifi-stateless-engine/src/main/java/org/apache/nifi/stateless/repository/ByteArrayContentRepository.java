@@ -17,14 +17,6 @@
 
 package org.apache.nifi.stateless.repository;
 
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.ContentRepositoryContext;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,11 +26,16 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class ByteArrayContentRepository implements ContentRepository {
     private ResourceClaimManager resourceClaimManager;
@@ -120,36 +117,6 @@ public class ByteArrayContentRepository implements ContentRepository {
         }
 
         return clone;
-    }
-
-    @Override
-    public long merge(final Collection<ContentClaim> claims, final ContentClaim destination, final byte[] header, final byte[] footer, final byte[] demarcator) throws IOException {
-        if (claims.contains(destination)) {
-            throw new IllegalArgumentException("destination cannot be within claims");
-        }
-
-        try (final ByteCountingOutputStream out = new ByteCountingOutputStream(write(destination))) {
-            if (header != null) {
-                out.write(header);
-            }
-
-            int i = 0;
-            for (final ContentClaim claim : claims) {
-                try (final InputStream in = read(claim)) {
-                    StreamUtils.copy(in, out);
-                }
-
-                if (++i < claims.size() && demarcator != null) {
-                    out.write(demarcator);
-                }
-            }
-
-            if (footer != null) {
-                out.write(footer);
-            }
-
-            return out.getBytesWritten();
-        }
     }
 
     @Override

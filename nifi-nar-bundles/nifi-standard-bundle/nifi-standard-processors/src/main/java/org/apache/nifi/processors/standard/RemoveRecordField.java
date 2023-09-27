@@ -65,7 +65,7 @@ import org.apache.nifi.serialization.record.Record;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SeeAlso({UpdateRecord.class})
 @UseCase(
-    description = "Remove one or more fields from a Record",
+    description = "Remove one or more fields from a Record, where the names of the fields to remove are known.",
     keywords = {"record", "field", "drop", "remove", "delete", "expunge", "recordpath"},
     configuration = """
         Configure the Record Reader according to the incoming data format.

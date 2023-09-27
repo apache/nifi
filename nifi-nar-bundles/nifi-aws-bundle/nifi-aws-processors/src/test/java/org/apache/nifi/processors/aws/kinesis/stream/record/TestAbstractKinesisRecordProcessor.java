@@ -26,6 +26,9 @@ import com.amazonaws.services.kinesis.clientlibrary.types.ExtendedSequenceNumber
 import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
 import com.amazonaws.services.kinesis.model.Record;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -38,12 +41,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -51,6 +48,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,23 +60,16 @@ public class TestAbstractKinesisRecordProcessor {
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Mock
-    private ProcessSessionFactory processSessionFactory;
+    private final ProcessSessionFactory processSessionFactory = mock(ProcessSessionFactory.class);
 
     private final MockProcessSession session = new MockProcessSession(new SharedSessionState(runner.getProcessor(), new AtomicLong(0)), runner.getProcessor());
-
     private AbstractKinesisRecordProcessor fixture;
+    private final IRecordProcessorCheckpointer checkpointer = mock(IRecordProcessorCheckpointer.class);
 
-    @Mock
-    private IRecordProcessorCheckpointer checkpointer;
-
-    @Mock
-    private Record kinesisRecord;
+    private final Record kinesisRecord = mock(Record.class);
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
         when(processSessionFactory.createSession()).thenReturn(session);
 
         // default test fixture will try operations twice with very little wait in between

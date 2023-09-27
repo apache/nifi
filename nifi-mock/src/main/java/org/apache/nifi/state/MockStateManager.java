@@ -17,17 +17,16 @@
 
 package org.apache.nifi.state;
 
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.components.state.StateMap;
-import org.junit.jupiter.api.Assertions;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
+import org.junit.jupiter.api.Assertions;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,14 +109,10 @@ public class MockStateManager implements StateManager {
     }
 
     public long getRetrievalCount(final Scope scope) {
-        switch (scope) {
-            case CLUSTER:
-                return clusterRetrievedCount.get();
-            case LOCAL:
-                return localRetrievedCount.get();
-            default:
-                throw new IllegalArgumentException("Invalid scope: " + scope);
-        }
+        return switch (scope) {
+            case CLUSTER -> clusterRetrievedCount.get();
+            case LOCAL -> localRetrievedCount.get();
+        };
     }
 
     @Override

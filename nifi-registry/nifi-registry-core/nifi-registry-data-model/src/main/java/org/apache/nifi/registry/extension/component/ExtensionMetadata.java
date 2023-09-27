@@ -18,6 +18,12 @@ package org.apache.nifi.extension;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import javax.ws.rs.core.Link;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.extension.manifest.DeprecationNotice;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
@@ -26,13 +32,6 @@ import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
-
-import javax.ws.rs.core.Link;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
 
 @ApiModel
 public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, Comparable<ExtensionMetadata> {
@@ -143,7 +142,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
     @ApiModelProperty(value = "A WebLink to the documentation for this extension.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Link getLinkDocs() {
         return linkDocs;
     }

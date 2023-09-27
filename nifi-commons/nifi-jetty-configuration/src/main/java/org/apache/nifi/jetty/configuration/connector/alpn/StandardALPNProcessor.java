@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.jetty.configuration.connector.alpn;
 
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.function.BiFunction;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
 import org.eclipse.jetty.alpn.server.ALPNServerConnection;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.ssl.ALPNProcessor;
@@ -23,12 +28,6 @@ import org.eclipse.jetty.io.ssl.SslConnection;
 import org.eclipse.jetty.io.ssl.SslHandshakeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSession;
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * Standard ALPN Processor supporting JDK 1.8.0-251 and higher based on Jetty JDK9ServerALPNProcessor
@@ -55,7 +54,7 @@ public class StandardALPNProcessor implements ALPNProcessor.Server, SslHandshake
      */
     @Override
     public void configure(final SSLEngine sslEngine, final Connection connection) {
-        logger.debug("Configuring Connection Remote Address [{}]", connection.getEndPoint().getRemoteAddress());
+        logger.debug("Configuring Connection Remote Address [{}]", connection.getEndPoint().getRemoteSocketAddress());
         final ALPNServerConnection serverConnection = (ALPNServerConnection) connection;
         final ProtocolSelector protocolSelector = new ProtocolSelector(serverConnection);
         sslEngine.setHandshakeApplicationProtocolSelector(protocolSelector);
@@ -84,9 +83,9 @@ public class StandardALPNProcessor implements ALPNProcessor.Server, SslHandshake
             try {
                 serverConnection.select(protocols);
                 protocol = serverConnection.getProtocol();
-                logger.debug("Connection Remote Address [{}] Application Layer Protocol [{}] selected", serverConnection.getEndPoint().getRemoteAddress(), protocol);
+                logger.debug("Connection Remote Address [{}] Application Layer Protocol [{}] selected", serverConnection.getEndPoint().getRemoteSocketAddress(), protocol);
             } catch (final Throwable e) {
-                logger.debug("Connection Remote Address [{}] Application Layer Protocols {} not supported", serverConnection.getEndPoint().getRemoteAddress(), protocols);
+                logger.debug("Connection Remote Address [{}] Application Layer Protocols {} not supported", serverConnection.getEndPoint().getRemoteSocketAddress(), protocols);
             }
             return protocol;
         }
@@ -98,7 +97,7 @@ public class StandardALPNProcessor implements ALPNProcessor.Server, SslHandshake
          */
         @Override
         public void handshakeSucceeded(final Event event) {
-            final InetSocketAddress remoteAddress = serverConnection.getEndPoint().getRemoteAddress();
+            final SocketAddress remoteAddress = serverConnection.getEndPoint().getRemoteSocketAddress();
             final SSLSession session = event.getSSLEngine().getSession();
             logger.debug("Connection Remote Address [{}] Handshake Succeeded [{}] Cipher Suite [{}]", remoteAddress, session.getProtocol(), session.getCipherSuite());
 
@@ -117,7 +116,7 @@ public class StandardALPNProcessor implements ALPNProcessor.Server, SslHandshake
          */
         @Override
         public void handshakeFailed(final Event event, final Throwable failure) {
-            logger.debug("Connection Remote Address [{}] Handshake Failed", serverConnection.getEndPoint().getRemoteAddress(), failure);
+            logger.debug("Connection Remote Address [{}] Handshake Failed", serverConnection.getEndPoint().getRemoteSocketAddress(), failure);
         }
     }
 }

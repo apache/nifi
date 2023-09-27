@@ -202,11 +202,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
         return new KuduClient.KuduClientBuilder(masters)
             .defaultAdminOperationTimeoutMs(adminOperationTimeout)
-                .defaultOperationTimeoutMs(operationTimeout)
-                .saslProtocolName(saslProtocolName)
-                .workerCount(workerCount)
-                .nioExecutor(nioExecutor)
-                .build();
+            .defaultOperationTimeoutMs(operationTimeout)
+            .saslProtocolName(saslProtocolName)
+            .workerCount(workerCount)
+            .nioExecutor(nioExecutor)
+            .build();
     }
 
     protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {

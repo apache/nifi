@@ -16,42 +16,6 @@
  */
 package org.apache.nifi.processors.hl7;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.WordUtils;
-
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import ca.uhn.hl7v2.DefaultHapiContext;
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.HapiContext;
@@ -69,6 +33,39 @@ import ca.uhn.hl7v2.parser.Escaping;
 import ca.uhn.hl7v2.parser.PipeParser;
 import ca.uhn.hl7v2.validation.ValidationContext;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.WordUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.StreamUtils;
 
 @SideEffectFree
 @SupportsBatching
@@ -294,12 +291,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                     fieldName = String.valueOf(i);
                 }
 
-                final String fieldKey = new StringBuilder()
-                    .append(segmentKey)
-                    .append(".")
-                    .append(fieldName)
-                    .toString();
-
+                final String fieldKey = "%s.%s".formatted(segmentKey, fieldName);
                 fields.put(fieldKey, field);
             }
         }
@@ -320,11 +312,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                             final Type type = (Type) PropertyUtils.getProperty(field, propertyName);
                             if (!isEmpty(type)) {
                                 final String componentName = matcher.group(3);
-                                final String typeKey = new StringBuilder()
-                                    .append(fieldKey)
-                                    .append(".")
-                                    .append(componentName)
-                                    .toString();
+                                final String typeKey = "%s.%s".formatted(fieldKey, componentName);
                                 components.put(typeKey, type);
                             }
                         }
@@ -341,13 +329,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                         if (fieldName.equals("CM_MSG")) {
                             fieldName = "CM";
                         }
-                        final String typeKey = new StringBuilder()
-                            .append(fieldKey)
-                            .append(".")
-                            .append(fieldName)
-                            .append(".")
-                            .append(i+1)
-                            .toString();
+                        final String typeKey = "%s.%s.%s".formatted(fieldKey, fieldName, (i + 1));
                         components.put(typeKey, type);
                     }
                 }

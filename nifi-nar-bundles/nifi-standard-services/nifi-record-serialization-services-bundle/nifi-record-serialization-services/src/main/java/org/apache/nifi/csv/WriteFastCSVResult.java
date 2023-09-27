@@ -20,6 +20,13 @@ package org.apache.nifi.csv;
 import de.siegmar.fastcsv.writer.CsvWriter;
 import de.siegmar.fastcsv.writer.LineDelimiter;
 import de.siegmar.fastcsv.writer.QuoteStrategy;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -31,14 +38,6 @@ import org.apache.nifi.serialization.record.RawRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 import static org.apache.commons.csv.QuoteMode.MINIMAL;
 
@@ -72,7 +71,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
 
         streamWriter = new OutputStreamWriter(out, charSet);
         CsvWriter.CsvWriterBuilder builder = CsvWriter.builder()
-                .fieldSeparator(csvFormat.getDelimiter())
+            .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter());
 
         QuoteMode quoteMode = (csvFormat.getQuoteMode() == null) ? MINIMAL : csvFormat.getQuoteMode();

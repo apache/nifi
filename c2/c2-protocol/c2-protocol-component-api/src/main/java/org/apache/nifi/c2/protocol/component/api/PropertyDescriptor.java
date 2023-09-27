@@ -18,11 +18,10 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 
 @ApiModel
@@ -118,7 +117,7 @@ public class PropertyDescriptor implements Serializable {
         this.expressionLanguageScopeDescription = expressionLanguageScope == null ? null : expressionLanguageScope.getDescription();
     }
 
-    @ApiModelProperty(value = "The description of the expression language scope supported by this property", readOnly = true)
+    @ApiModelProperty(value = "The description of the expression language scope supported by this property", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getExpressionLanguageScopeDescription() {
         return expressionLanguageScope == null ? null : expressionLanguageScope.getDescription();
     }

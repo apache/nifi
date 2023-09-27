@@ -17,13 +17,13 @@
 package org.apache.nifi.web.api;
 
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -64,14 +64,19 @@ import org.apache.nifi.web.api.entity.PeersEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+
 /**
  * RESTful endpoint for managing a SiteToSite connection.
  */
 @Path("/site-to-site")
 @Api(
-        value = "/site-to-site",
-        description = "Provide access to site to site with this NiFi"
+    value = "/site-to-site",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Provide access to site to site with this NiFi.")
+})
 public class SiteToSiteResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteToSiteResource.class);

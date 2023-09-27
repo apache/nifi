@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.components;
 
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.controller.ControllerService;
@@ -24,9 +27,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.EnvironmentVariables;
-
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -82,6 +82,13 @@ public interface PropertyValue {
      * <code>null</code>
      */
     Long asTimePeriod(TimeUnit timeUnit);
+
+    /**
+     * Returns the value as a Duration
+     *
+     * @return a Duration representing the value, or <code>null</code> if the value is unset
+     */
+    Duration asDuration();
 
     /**
      *

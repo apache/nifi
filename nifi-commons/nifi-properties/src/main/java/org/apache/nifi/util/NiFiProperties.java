@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.properties.ApplicationProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,6 +36,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.nifi.properties.ApplicationProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -934,13 +933,6 @@ public class NiFiProperties extends ApplicationProperties {
         }
     }
 
-    /**
-     * @deprecated Use getClusterNodeProtocolCorePoolSize() and getClusterNodeProtocolMaxPoolSize() instead
-     */
-    @Deprecated()
-    public int getClusterNodeProtocolThreads() {
-        return getClusterNodeProtocolMaxPoolSize();
-    }
 
     public int getClusterNodeProtocolMaxPoolSize() {
         try {

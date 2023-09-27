@@ -17,9 +17,25 @@
 
 package org.apache.nifi.processor.util.list;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -56,25 +72,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -398,7 +395,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // Check if state already exists for this path. If so, we have already migrated the state.
         final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-        if (!stateMap.getStateVersion().isPresent()) {
+        if (stateMap.getStateVersion().isEmpty()) {
             try {
                 // Migrate state from the old way of managing state (distributed cache service and local file)
                 // to the new mechanism (State Manager).
@@ -444,13 +441,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
 
             // remove entry from distributed cache server
-            if (client != null) {
-                try {
-                    client.remove(path, new StringSerDe());
-                } catch (final IOException ioe) {
-                    getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
-                            + "State Management service, so the Distributed Cache Service is no longer needed.");
-                }
+            try {
+                client.remove(path, new StringSerDe());
+            } catch (final IOException ioe) {
+                getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
+                    + "State Management service, so the Distributed Cache Service is no longer needed.");
             }
         }
 
@@ -513,7 +508,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         return getIdentifier() + ".lastListingTime." + directory;
     }
 
-    private EntityListing deserialize(final String serializedState) throws JsonParseException, JsonMappingException, IOException {
+    private EntityListing deserialize(final String serializedState) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(serializedState, EntityListing.class);
     }

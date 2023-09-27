@@ -18,7 +18,6 @@ package org.apache.nifi.registry.link;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
 import javax.ws.rs.core.Link;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -34,7 +33,7 @@ public abstract class LinkableEntity {
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
     @ApiModelProperty(value = "An WebLink to this entity.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Link getLink() {
         return link;
     }

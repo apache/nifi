@@ -17,6 +17,13 @@
 
 package org.apache.nifi.csv;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.logging.ComponentLog;
@@ -31,14 +38,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestFastCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
     private CSVFormat format;
+    private static final CSVFormat TRIMMED_RFC4180 = CSVFormat.RFC4180.builder().setTrim(true).build();
 
     @BeforeEach
     public void setUp() {
@@ -231,7 +231,7 @@ public class TestFastCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim().withAllowMissingColumnNames(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180.builder().setAllowMissingColumnNames(true).build(), false)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -312,7 +312,7 @@ public class TestFastCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -332,7 +332,7 @@ public class TestFastCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -397,7 +397,7 @@ public class TestFastCSVRecordReader {
     }
 
     @Test
-    public void testFieldInSchemaButNotHeader_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+    public void testFieldInSchemaButNotHeader_withoutDoubleQuoteTrimming() throws IOException {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
@@ -407,10 +407,10 @@ public class TestFastCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
 
             try {
-                final Record record = reader.nextRecord();
+                reader.nextRecord();
                 fail("Should have thrown MalformedRecordException");
             } catch (MalformedRecordException mre) {
                 // Expected behavior
@@ -420,7 +420,7 @@ public class TestFastCSVRecordReader {
         // Create another Record Reader that indicates that the header line is present but should be ignored. This should cause
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, CSVFormat.RFC4180.withTrim(), true, true,
+             final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, TRIMMED_RFC4180, true, true,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
 
             // RFC-4180 does not allow missing column names
@@ -429,7 +429,7 @@ public class TestFastCSVRecordReader {
     }
 
     @Test
-    public void testExtraFieldNotInHeader() throws IOException, MalformedRecordException {
+    public void testExtraFieldNotInHeader() throws IOException {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
@@ -452,7 +452,7 @@ public class TestFastCSVRecordReader {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(delimiter);
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).build();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 

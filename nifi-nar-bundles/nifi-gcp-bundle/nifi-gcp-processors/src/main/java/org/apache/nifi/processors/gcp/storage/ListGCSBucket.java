@@ -21,6 +21,19 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -33,12 +46,12 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -64,20 +77,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
@@ -470,7 +469,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         do {
             for (final Blob blob : blobPage.getValues()) {
-                long lastModified = blob.getUpdateTime();
+                long lastModified = blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli();
                 if (listingAction.skipBlob(blob)) {
                     continue;
                 }
@@ -530,7 +529,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             int pageNr=0;
             do {
                 for (final Blob blob : blobPage.getValues()) {
-                    if (blob.getUpdateTime() >= minTimestampToList) {
+                    if (blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli() >= minTimestampToList) {
                         listedEntities.add(new ListableBlob(
                             blob,
                             pageNr
@@ -628,7 +627,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         @Override
         public boolean skipBlob(final Blob blob) {
-            final long lastModified = blob.getUpdateTime();
+            final long lastModified = blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli();
             return lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName());
         }
 
@@ -694,7 +693,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 int pageNr = -1;
                 for (ListableBlob listableBlob : updatedEntities) {
                     Blob blob = listableBlob.getRawEntity();
-                    int currentPageNr = listableBlob.getPageNr();
+                    int currentPageNr = listableBlob.getPageNumber();
 
                     writer.addToListing(blob);
 
@@ -725,21 +724,18 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     private static class ListableBlob extends ListableEntityWrapper<Blob> {
         private final int pageNr;
 
-        public ListableBlob(
-            Blob blob,
-            int pageNr
-        ) {
+        public ListableBlob(final Blob blob, final int pageNr) {
             super(
                 blob,
                 Blob::getName,
                 Blob::getGeneratedId,
-                Blob::getUpdateTime,
+                gcsBlob -> gcsBlob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli(),
                 Blob::getSize
             );
             this.pageNr = pageNr;
         }
 
-        public int getPageNr() {
+        public int getPageNumber() {
             return pageNr;
         }
     }
@@ -917,8 +913,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             values.put(CONTENT_ENCODING, blob.getContentEncoding());
             values.put(CONTENT_LANGUAGE, blob.getContentLanguage());
             values.put(CRC32C, blob.getCrc32c());
-            values.put(CREATE_TIME, blob.getCreateTime() == null ? null : new Timestamp(blob.getCreateTime()));
-            values.put(UPDATE_TIME, blob.getUpdateTime() == null ? null : new Timestamp(blob.getUpdateTime()));
+            values.put(CREATE_TIME, blob.getCreateTimeOffsetDateTime() == null ? null : new Timestamp(blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli()));
+            values.put(UPDATE_TIME, blob.getUpdateTimeOffsetDateTime() == null ? null : new Timestamp(blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli()));
 
             final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
             if (encryption != null) {

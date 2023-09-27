@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.jasn1;
 
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.StringJoiner;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -30,12 +35,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.io.FileNotFoundException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.StringJoiner;
-
 import static org.apache.nifi.jasn1.JASN1Reader.ASN_FILES;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,9 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,24 +57,24 @@ public class JASN1ReaderTest {
     private ControllerServiceInitializationContext context;
     @Mock
     private ComponentLog logger;
+    private AutoCloseable mockCloseable;
 
     @BeforeEach
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-
+        mockCloseable = MockitoAnnotations.openMocks(this);
         testSubject = new JASN1Reader();
-
         when(context.getLogger()).thenReturn(logger);
-
         testSubject.initialize(context);
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
+        if (mockCloseable != null) {
+            mockCloseable.close();
+        }
+
         assertTrue(testSubject.asnOutDir.toFile().exists());
-
         testSubject.deleteAsnOutDir();
-
         assertTrue(!testSubject.asnOutDir.toFile().exists());
     }
 

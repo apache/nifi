@@ -36,7 +36,7 @@ public class AirtableRestService {
     public static final String API_V0_BASE_URL = "https://api.airtable.com/v0";
 
     private static final int TOO_MANY_REQUESTS = 429;
-    private static final Range<Integer> SUCCESSFUL_RESPONSE_RANGE = Range.between(200, 299);
+    private static final Range<Integer> SUCCESSFUL_RESPONSE_RANGE = Range.of(200, 299);
 
     private final WebClientServiceProvider webClientServiceProvider;
     private final String apiUrl;
