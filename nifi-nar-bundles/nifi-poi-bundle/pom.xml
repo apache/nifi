@@ -28,7 +28,6 @@
         <poi.version>5.2.3</poi.version>
     </properties>
     <modules>
-        <module>nifi-poi-processors</module>
         <module>nifi-poi-nar</module>
         <module>nifi-poi-services</module>
     </modules>
