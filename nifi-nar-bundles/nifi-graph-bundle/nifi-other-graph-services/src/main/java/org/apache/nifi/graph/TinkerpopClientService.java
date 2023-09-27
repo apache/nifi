@@ -17,6 +17,10 @@
 
 package org.apache.nifi.graph;
 
+import groovy.lang.Binding;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.JdkSslContext;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -39,6 +43,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.graph.gremlin.SimpleEntry;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.graph.ExecuteGraphQueryRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
@@ -50,12 +55,6 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import javax.script.Bindings;
-import javax.script.Compilable;
-import javax.script.CompiledScript;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,8 +72,8 @@ import java.util.concurrent.ConcurrentHashMap;
         "Script submission is the default, with the script command being sent to the gremlin server as text. This should only be used for simple interactions with a tinkerpop-compliant server " +
         "such as counts or other operations that do not require the injection of custom classed. " +
         "Bytecode submission allows much more flexibility. When providing a jar, custom serializers can be used and pre-compiled graph logic can be utilized by groovy scripts" +
-        "provided by processors such as the ExecuteGraphQueryRecordProcessor.")
-@SeeAlso(classNames = {"ExecuteGraphQueryRecordProcessor"})
+        "provided by processors such as the ExecuteGraphQueryRecord.")
+@SeeAlso({ExecuteGraphQueryRecord.class})
 @RequiresInstanceClassLoading
 public class TinkerpopClientService extends AbstractControllerService implements GraphClientService {
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
@@ -88,7 +87,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
     );
 
     private static final AllowableValue YAML_SETTINGS = new AllowableValue("yaml-settings", "Yaml Settings",
-            "Connection to the gremlin server will be specified via a yaml file (very flexible)");
+            "Connection to the gremlin server will be specified via a YAML file (very flexible)");
 
     private static final AllowableValue SERVICE_SETTINGS = new AllowableValue("service-settings", "Service-Defined Settings",
             "Connection to the gremlin server will be specified via values on this controller (simpler). " +
@@ -106,7 +105,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
     public static final PropertyDescriptor CONNECTION_SETTINGS = new PropertyDescriptor.Builder()
             .name("connection-settings")
             .displayName("Settings Specification")
-            .description("Selecting \"Service-Defined Settings\" connects using the setting on this service. Selecting \"Yaml Settings\" uses the specified yaml file for connection settings. ")
+            .description("Selecting \"Service-Defined Settings\" connects using the setting on this service. Selecting \"Yaml Settings\" uses the specified YAML file for connection settings. ")
             .allowableValues(SERVICE_SETTINGS, YAML_SETTINGS)
             .defaultValue("service-settings")
             .required(true)
@@ -115,10 +114,10 @@ public class TinkerpopClientService extends AbstractControllerService implements
     public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
             .name("tinkerpop-contact-points")
             .displayName("Contact Points")
-            .description("A comma-separated list of hostnames or IP addresses where an OpenCypher-enabled server can be found.")
+            .description("A comma-separated list of hostnames or IP addresses where an Gremlin-enabled server can be found.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
             .build();
 
@@ -129,7 +128,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .required(true)
             .defaultValue("8182")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
             .build();
 
@@ -140,7 +139,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .required(true)
             .defaultValue("/gremlin")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
             .build();
 
@@ -150,17 +149,17 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .description("An optional property that lets you set the name of the remote traversal instance. " +
                     "This can be really important when working with databases like JanusGraph that support " +
                     "multiple backend traversal configurations simultaneously.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(Validator.VALID)
             .build();
 
     public static final PropertyDescriptor REMOTE_OBJECTS_FILE = new PropertyDescriptor.Builder()
             .name("remote-objects-file")
             .displayName("Remote Objects File")
-            .description("The remote-objects file yaml used for connecting to the gremlin server.")
+            .description("The remote-objects file YAML used for connecting to the gremlin server.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, YAML_SETTINGS)
             .build();
 
@@ -169,9 +168,9 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .displayName("Username")
             .description("The username used to authenticate with the gremlin server." +
                     " Note: when using a remote.yaml file, this username value (if set) will overload any " +
-                    "username set in the yaml file.")
+                    "username set in the YAML file.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -179,7 +178,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .displayName("Password")
             .description("The password used to authenticate with the gremlin server." +
                     " Note: when using a remote.yaml file, this password setting (if set) will override any " +
-                    "password set in the yaml file")
+                    "password set in the YAML file")
             .required(false)
             .sensitive(true)
             .build();
@@ -193,7 +192,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .dependsOn(CONNECTION_SETTINGS, YAML_SETTINGS)
             .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -206,7 +205,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                     "This configuration property has no effect unless a value for the Extension JAR field is " +
                     "also provided.")
             .dependsOn(EXTRA_RESOURCE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, YAML_SETTINGS)
             .required(false)
             .build();
@@ -235,9 +234,10 @@ public class TinkerpopClientService extends AbstractControllerService implements
             SSL_CONTEXT_SERVICE
     ));
 
-    private ScriptEngineManager MANAGER = new ScriptEngineManager();
-    private ScriptEngine engine;
-    private Map<String, CompiledScript> compiledCode;
+//    private ScriptEngineManager MANAGER = new ScriptEngineManager();
+    private GroovyShell groovyShell;
+//    private ScriptEngine engine;
+    private Map<String, Script> compiledCode;
     protected Cluster cluster;
     private String traversalSourceName;
     private GraphTraversalSource traversalSource;
@@ -248,8 +248,9 @@ public class TinkerpopClientService extends AbstractControllerService implements
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         loadClasses(context);
+        GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader());
+        groovyShell = new GroovyShell(loader, new Binding());
         compiledCode = new ConcurrentHashMap<>();
-        engine = MANAGER.getEngineByName("groovy");
 
         if (context.getProperty(TRAVERSAL_SOURCE_NAME).isSet()) {
             traversalSourceName = context.getProperty(TRAVERSAL_SOURCE_NAME).evaluateAttributeExpressions()
@@ -265,7 +266,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
     public void shutdown() {
         try {
             compiledCode = null;
-            engine = null;
             if (traversalSource != null) {
                 traversalSource.close();
             }
@@ -320,22 +320,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
             } catch (Exception ex) {
                 results.add(new ValidationResult.Builder().subject(EXTENSION_CLASSES.getDisplayName()).valid(false).explanation(ex.toString()).build());
             }
-        }
-
-        boolean standardConfigIsSet = context.getProperty(CONTACT_POINTS).isSet()
-                && context.getProperty(PATH).isSet()
-                && context.getProperty(PORT).isSet();
-        boolean fileIsSet = context.getProperty(REMOTE_OBJECTS_FILE).isSet();
-
-        if (standardConfigIsSet && fileIsSet) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Cannot set the configuration file and connection details properties at the same time.")
-                    .valid(false)
-                    .build());
-        }
-        if (!standardConfigIsSet && !fileIsSet) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Connection details properties or the configuration file must be set.").valid(false).build());
         }
 
         if (context.getProperty(USER_NAME).isSet() && !context.getProperty(PASSWORD).isSet()) {
@@ -459,7 +443,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
 
     protected Map<String, String> bytecodeSubmission(String s, Map<String, Object> map, GraphQueryResultCallback graphQueryResultCallback) {
         String hash = DigestUtils.sha256Hex(s);
-        CompiledScript compiled;
+        Script compiled;
 
         if (this.traversalSource == null) {
             this.traversalSource = createTraversal();
@@ -469,24 +453,20 @@ public class TinkerpopClientService extends AbstractControllerService implements
         if (compiledCode.containsKey(hash)) {
             compiled = compiledCode.get(hash);
         } else {
-            try {
-                compiled = ((Compilable) engine).compile(s);
-                compiledCode.put(s, compiled);
-            } catch (ScriptException e) {
-                throw new ProcessException(e);
-            }
+            compiled = groovyShell.parse(s);
+            compiledCode.put(s, compiled);
         }
 
         if (getLogger().isDebugEnabled()) {
             getLogger().debug(map.toString());
         }
 
-        Bindings bindings = engine.createBindings();
-        bindings.putAll(map);
-        bindings.put("g", traversalSource);
-        bindings.put("log", getLogger());
+        Binding bindings = new Binding();
+        map.forEach(bindings::setProperty);
+        bindings.setProperty("g", traversalSource);
+        bindings.setProperty("log", getLogger());
         try {
-            Object result = compiled.eval(bindings);
+            Object result = groovyShell.parse(s, bindings).run();
             if (result instanceof Map) {
                 Map<String, Object> resultMap = (Map<String, Object>) result;
                 if (!resultMap.isEmpty()) {
