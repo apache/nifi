@@ -26,6 +26,8 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -149,9 +151,12 @@ import org.slf4j.LoggerFactory;
 */
 @Path("/process-groups")
 @Api(
-       value = "/process-groups",
-       description = "Endpoint for managing a Process Group."
+    value = "/process-groups",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for managing a Process Group.")
+})
 public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportEntity, ProcessGroupReplaceRequestEntity> {
 
    private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);

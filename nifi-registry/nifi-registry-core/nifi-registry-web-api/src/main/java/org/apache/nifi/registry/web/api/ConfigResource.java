@@ -23,26 +23,30 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
-import org.apache.nifi.registry.RegistryConfiguration;
-import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.nifi.registry.RegistryConfiguration;
+import org.apache.nifi.registry.event.EventService;
+import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 @Path("/config")
 @Api(
-        value = "config",
-        description = "Retrieves the configuration for this NiFi Registry.",
-        authorizations = { @Authorization("Authorization") }
+    value = "config",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Retrieves the configuration for this NiFi Registry.")
+})
 public class ConfigResource extends ApplicationResource {
 
     @Autowired

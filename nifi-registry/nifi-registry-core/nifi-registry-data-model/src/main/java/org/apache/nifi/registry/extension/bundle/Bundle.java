@@ -18,13 +18,12 @@ package org.apache.nifi.registry.extension.bundle;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.bucket.BucketItem;
-import org.apache.nifi.registry.bucket.BucketItemType;
-
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.registry.bucket.BucketItem;
+import org.apache.nifi.registry.bucket.BucketItemType;
 
 /**
  * Represents an extension bundle identified by a group and artifact id with in a bucket.
@@ -83,7 +82,7 @@ public class Bundle extends BucketItem {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The number of versions of this extension bundle.", readOnly = true)
+    @ApiModelProperty(value = "The number of versions of this extension bundle.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public long getVersionCount() {
         return versionCount;
     }

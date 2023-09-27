@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.processor;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -28,17 +38,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -708,39 +707,6 @@ public interface ProcessSession {
      */
     InputStream read(FlowFile flowFile);
 
-    /**
-     * Executes the given callback against the contents corresponding to the
-     * given FlowFile.
-     *
-     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
-     * will not be accessible once this method has completed its execution.
-     *
-     * @param source flowfile to retrieve content of
-     * @param allowSessionStreamManagement allow session to hold the stream open for performance reasons
-     * @param reader that will be called to read the flowfile content
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a write callback of another method (i.e., from within the callback
-     *             that is passed to {@link #write(FlowFile, OutputStreamCallback)} or {@link #write(FlowFile, StreamCallback)})
-     *             or has an OutputStream open (via a call to {@link #write(FlowFile)}) in this session and for
-     *             the given FlowFile(s). Said another way, it is not permissible to call this method while writing to
-     *             the same FlowFile.
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content; if an attempt is made to access the InputStream
-     *             provided to the given InputStreamCallback after this method completed its
-     *             execution
-     *
-     * @deprecated Restricting the ProcessSession's ability to manage its own streams should not be used. The need for this
-     * capability was obviated by the introduction of the {@link #migrate(ProcessSession, Collection)} and {@link #migrate(ProcessSession)} methods.
-     */
-    @Deprecated
-    void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException;
 
     /**
      * Combines the content of all given source FlowFiles into a single given

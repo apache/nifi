@@ -18,13 +18,12 @@ package org.apache.nifi.registry.bucket;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.authorization.Permissions;
-import org.apache.nifi.registry.link.LinkableEntity;
-
+import java.util.Objects;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.Objects;
+import org.apache.nifi.registry.authorization.Permissions;
+import org.apache.nifi.registry.link.LinkableEntity;
 
 @ApiModel
 public abstract class BucketItem extends LinkableEntity {
@@ -59,7 +58,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "An ID to uniquely identify this object.", readOnly = true)
+    @ApiModelProperty(value = "An ID to uniquely identify this object.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }
@@ -95,7 +94,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.bucketIdentifier = bucketIdentifier;
     }
 
-    @ApiModelProperty(value = "The name of the bucket this items belongs to.", readOnly = true)
+    @ApiModelProperty(value = "The name of the bucket this items belongs to.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getBucketName() {
         return bucketName;
     }
@@ -104,7 +103,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the item was created, as milliseconds since epoch.", readOnly = true)
+    @ApiModelProperty(value = "The timestamp of when the item was created, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public long getCreatedTimestamp() {
         return createdTimestamp;
     }
@@ -113,7 +112,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.createdTimestamp = createdTimestamp;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the item was last modified, as milliseconds since epoch.", readOnly = true)
+    @ApiModelProperty(value = "The timestamp of when the item was last modified, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public long getModifiedTimestamp() {
         return modifiedTimestamp;
     }
@@ -127,7 +126,7 @@ public abstract class BucketItem extends LinkableEntity {
         return type;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to the bucket containing this item.", readOnly = true)
+    @ApiModelProperty(value = "The access that the current user has to the bucket containing this item.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getPermissions() {
         return permissions;
     }

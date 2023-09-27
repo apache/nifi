@@ -17,35 +17,31 @@
 package org.apache.nifi.processors.cassandra;
 
 import com.datastax.driver.core.Statement;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.Tuple;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.Tuple;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PutCassandraRecordUpdateTest {
     private PutCassandraRecord testSubject;
 
-    @Mock
-    private RecordSchema schema;
+    private final RecordSchema schema = mock(RecordSchema.class);
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
         testSubject = new PutCassandraRecord();
     }
+
 
     @Test
     public void testGenerateUpdateWithEmptyKeyList() {

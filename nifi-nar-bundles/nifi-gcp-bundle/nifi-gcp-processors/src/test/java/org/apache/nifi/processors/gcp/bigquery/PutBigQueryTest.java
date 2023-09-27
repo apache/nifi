@@ -20,6 +20,7 @@ package org.apache.nifi.processors.gcp.bigquery;
 import com.google.api.core.ApiFutures;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
@@ -31,39 +32,47 @@ import com.google.cloud.bigquery.storage.v1.StreamWriter;
 import com.google.cloud.bigquery.storage.v1.TableFieldSchema;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
+import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
 import com.google.protobuf.Descriptors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVUtils;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.apache.nifi.processors.gcp.bigquery.PutBigQuery.BATCH_TYPE;
 import static org.apache.nifi.processors.gcp.bigquery.PutBigQuery.STREAM_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,12 +80,20 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link PutBigQuery}.
  */
-public class PutBigQueryTest extends AbstractBQTest {
+@ExtendWith(MockitoExtension.class)
+public class PutBigQueryTest {
 
     private static final String FIELD_1_NAME = "id";
     private static final String FIELD_2_NAME = "value";
     private static final String CSV_HEADER = FIELD_1_NAME + "," + FIELD_2_NAME;
     private static final String VALUE_PREFIX = "mySpecialValue";
+    private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
+    private static final Integer RETRIES = 9;
+
+    static final String DATASET = RemoteBigQueryHelper.generateDatasetName();
+    @Mock
+    protected BigQuery bq;
+
 
     private TestRunner runner;
 
@@ -98,7 +115,40 @@ public class PutBigQueryTest extends AbstractBQTest {
     @Captor
     private ArgumentCaptor<BatchCommitWriteStreamsRequest> batchCommitRequestCaptor;
 
-    @Override
+
+    public static TestRunner buildNewRunner(Processor processor) throws Exception {
+        final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
+
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("gcpCredentialsControllerService", credentialsService);
+        runner.enableControllerService(credentialsService);
+
+        runner.setProperty(AbstractBigQueryProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
+        runner.setProperty(AbstractBigQueryProcessor.PROJECT_ID, PROJECT_ID);
+        runner.setProperty(AbstractBigQueryProcessor.RETRY_COUNT, String.valueOf(RETRIES));
+
+        runner.assertValid(credentialsService);
+
+        return runner;
+    }
+
+    @Test
+    public void testBiqQueryOptionsConfiguration() throws Exception {
+        reset(bq);
+        final TestRunner runner = buildNewRunner(getProcessor());
+
+        final AbstractBigQueryProcessor processor = getProcessor();
+        final GoogleCredentials mockCredentials = mock(GoogleCredentials.class);
+
+        final BigQueryOptions options = processor.getServiceOptions(runner.getProcessContext(),
+            mockCredentials);
+
+        assertEquals(PROJECT_ID, options.getProjectId(), "Project IDs should match");
+        assertEquals(RETRIES.intValue(), options.getRetrySettings().getMaxAttempts(), "Retry counts should match");
+        assertSame(mockCredentials, options.getCredentials(), "Credentials should be configured correctly");
+    }
+
+
     public AbstractBigQueryProcessor getProcessor() {
         return new PutBigQuery() {
             @Override
@@ -123,7 +173,6 @@ public class PutBigQueryTest extends AbstractBQTest {
         };
     }
 
-    @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
         runner.setProperty(PutBigQuery.DATASET, DATASET);
         runner.setProperty(PutBigQuery.TABLE_NAME, "tableName");

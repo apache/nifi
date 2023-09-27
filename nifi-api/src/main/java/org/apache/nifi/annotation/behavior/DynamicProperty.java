@@ -38,9 +38,6 @@ public @interface DynamicProperty {
 
     String name();
 
-    @Deprecated
-    boolean supportsExpressionLanguage() default false;
-
     String value();
 
     String description();

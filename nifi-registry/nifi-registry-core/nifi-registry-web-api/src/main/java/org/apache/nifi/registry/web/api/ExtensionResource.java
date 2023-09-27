@@ -22,18 +22,11 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
-import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.registry.extension.bundle.BundleTypeValues;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.ExtensionMetadataContainer;
-import org.apache.nifi.extension.TagCount;
-import org.apache.nifi.extension.manifest.ExtensionType;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
-import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.springframework.stereotype.Component;
-
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.util.Collections;
+import java.util.Set;
+import java.util.SortedSet;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -41,17 +34,28 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Collections;
-import java.util.Set;
-import java.util.SortedSet;
+import org.apache.nifi.extension.ExtensionFilterParams;
+import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.extension.ExtensionMetadataContainer;
+import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.event.EventService;
+import org.apache.nifi.registry.extension.bundle.BundleType;
+import org.apache.nifi.registry.extension.bundle.BundleTypeValues;
+import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.springframework.stereotype.Component;
 
 @Component
 @Path("/extensions")
 @Api(
-        value = "extensions",
-        description = "Find and retrieve extensions. ",
-        authorizations = { @Authorization("Authorization") }
+    value = "extensions",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Find and retrieve extensions.")
+})
 public class ExtensionResource extends ApplicationResource {
 
     public ExtensionResource(final ServiceFacade serviceFacade, final EventService eventService) {

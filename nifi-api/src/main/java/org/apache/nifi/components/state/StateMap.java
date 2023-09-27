@@ -24,18 +24,6 @@ import java.util.Optional;
  * Provides a representation of a component's state at some point in time.
  */
 public interface StateMap {
-    /**
-     * Each time that a component's state is updated, the state is assigned a new version.
-     * This version can then be used to atomically update state by the backing storage mechanism.
-     * Though this number is monotonically increasing, it should not be expected to increment always
-     * from X to X+1. I.e., version numbers may be skipped.
-     *
-     * @deprecated This method should be replaced with getStateVersion()
-     *
-     * @return the version associated with the state
-     */
-    @Deprecated
-    long getVersion();
 
     /**
      * Get state version is not guaranteed to be numeric, but can be used to compare against an expected version.
@@ -43,10 +31,7 @@ public interface StateMap {
      *
      * @return State version or empty when not known
      */
-    default Optional<String> getStateVersion() {
-        final long version = getVersion();
-        return version == -1 ? Optional.empty() : Optional.of(String.valueOf(version));
-    }
+    Optional<String> getStateVersion();
 
     /**
      * Returns the value associated with the given key

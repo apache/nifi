@@ -19,10 +19,10 @@ package org.apache.nifi.processors.gcp.storage;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 /**
  * Common attributes being written and accessed through Google Cloud Storage.
@@ -149,8 +149,10 @@ public class StorageAttributes {
 
         addAttribute(attributes, URI_ATTR, blob.getSelfLink());
         addAttribute(attributes, CoreAttributes.FILENAME.key(), blob.getName());
-        addAttribute(attributes, CREATE_TIME_ATTR, blob.getCreateTime());
-        addAttribute(attributes, UPDATE_TIME_ATTR, blob.getUpdateTime());
+
+        final OffsetDateTime created = blob.getCreateTimeOffsetDateTime();
+        addAttribute(attributes, CREATE_TIME_ATTR, blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli());
+        addAttribute(attributes, UPDATE_TIME_ATTR, blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli());
 
         return attributes;
     }

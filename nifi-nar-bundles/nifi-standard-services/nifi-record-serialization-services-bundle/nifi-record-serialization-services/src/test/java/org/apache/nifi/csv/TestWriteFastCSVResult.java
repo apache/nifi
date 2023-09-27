@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.csv;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.QuoteMode;
-import org.apache.nifi.schema.access.SchemaNameAsAttribute;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -44,14 +31,32 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestWriteFastCSVResult {
+    private final CSVFormat defaultFormat = CSVFormat.DEFAULT.builder()
+        .setEscape('\"')
+        .setQuoteMode(QuoteMode.NONE)
+        .setRecordSeparator("\n")
+        .build();
+
 
     @Test
     public void testDataTypes() throws IOException {
-    final CSVFormat csvFormat = CSVFormat.RFC4180.withQuoteMode(QuoteMode.NON_NUMERIC).withRecordSeparator("\n");
+        final CSVFormat csvFormat = CSVFormat.RFC4180.builder().setQuoteMode(QuoteMode.NON_NUMERIC).setRecordSeparator("\n").build();
 
         final StringBuilder headerBuilder = new StringBuilder();
         final List<RecordField> fields = new ArrayList<>();
@@ -103,7 +108,7 @@ public class TestWriteFastCSVResult {
             result.write(rs);
         }
 
-        final String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
 
         headerBuilder.deleteCharAt(headerBuilder.length() - 1);
         final String headerLine = headerBuilder.toString();
@@ -117,18 +122,15 @@ public class TestWriteFastCSVResult {
         final String timestampValue = getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
 
         final String values = splits[1];
-        final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue +
-                "\",\"" + dateValue + "\",\"" + timeValue + "\",\"8bb20bf2-ec41-4b94-80a4-922f4dba009c\",\"c\",,\"a孟bc李12儒3\",,\"48\",,");
 
-        final String expectedValues = expectedBuilder.toString();
+        final String expectedValues = "\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue +
+            "\",\"" + dateValue + "\",\"" + timeValue + "\",\"8bb20bf2-ec41-4b94-80a4-922f4dba009c\",\"c\",,\"a孟bc李12儒3\",,\"48\",,";
 
         assertEquals(expectedValues, values);
     }
 
     @Test
     public void testExtraFieldInWriteRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
@@ -140,7 +142,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -155,7 +157,6 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testExtraFieldInWriteRawRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
@@ -168,7 +169,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -183,7 +184,6 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testMissingFieldWriteRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -195,7 +195,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -210,7 +210,6 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testMissingFieldWriteRawRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -222,7 +221,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -238,7 +237,6 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testMissingAndExtraFieldWriteRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -251,7 +249,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -266,7 +264,6 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testMissingAndExtraFieldWriteRawRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuoteMode(QuoteMode.NONE).withRecordSeparator("\n");
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -279,7 +276,7 @@ public class TestWriteFastCSVResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
-        try (final WriteFastCSVResult writer = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+        try (final WriteFastCSVResult writer = new WriteFastCSVResult(defaultFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
@@ -294,7 +291,7 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testEscapeCharInValueWriteRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\"').withQuote("\"".charAt(0)).withRecordSeparator("\n");
+        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').build();
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -322,7 +319,7 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testEmptyEscapeCharWriteRecord() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.RFC4180.withEscape(null).withQuote("\"".charAt(0)).withRecordSeparator("\n");
+        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').build();
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));

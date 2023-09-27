@@ -116,7 +116,7 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name) {
         try {
-            return newTestRunner(processorClass.newInstance(), name);
+            return newTestRunner(processorClass.getDeclaredConstructor().newInstance(), name);
         } catch (final Exception e) {
             System.err.println("Could not instantiate instance of class " + processorClass.getName() + " due to: " + e);
             throw new RuntimeException(e);
@@ -133,7 +133,7 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name, MockComponentLog logger) {
         try {
-            return newTestRunner(processorClass.newInstance(), name, logger);
+            return newTestRunner(processorClass.getDeclaredConstructor().newInstance(), name, logger);
         } catch (final Exception e) {
             System.err.println("Could not instantiate instance of class " + processorClass.getName() + " due to: " + e);
             throw new RuntimeException(e);

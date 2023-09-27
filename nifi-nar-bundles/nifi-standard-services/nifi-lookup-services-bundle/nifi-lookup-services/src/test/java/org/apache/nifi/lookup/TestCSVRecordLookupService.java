@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.lookup;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Optional;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
@@ -23,10 +26,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordLookupService {
 
-    private final static Optional<Record> EMPTY_RECORD = Optional.empty();
 
     @Test
     public void testSimpleCsvRecordLookupService() throws InitializationException, IOException, LookupFailureException {
@@ -66,7 +64,7 @@ public class TestCSVRecordLookupService {
         assertEquals("2017-04-02", property2.get().getAsString("created_at"));
 
         final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
-        assertEquals(EMPTY_RECORD, property3);
+        assertTrue(property3.isEmpty());
     }
 
     @Test

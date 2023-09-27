@@ -34,7 +34,7 @@ public class AccessPolicySummary implements RevisableEntity {
     private Boolean configurable;
     private RevisionInfo revision;
 
-    @ApiModelProperty(value = "The id of the policy. Set by server at creation time.", readOnly = true)
+    @ApiModelProperty(value = "The id of the policy. Set by server at creation time.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     @Override
     public String getIdentifier() {
         return identifier;
@@ -68,7 +68,7 @@ public class AccessPolicySummary implements RevisableEntity {
         this.action = action;
     }
 
-    @ApiModelProperty(value = "Indicates if this access policy is configurable, based on which Authorizer has been configured to manage it.", readOnly = true)
+    @ApiModelProperty(value = "Indicates if this access policy is configurable, based on which Authorizer has been configured to manage it.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Boolean getConfigurable() {
         return configurable;
     }
@@ -78,8 +78,8 @@ public class AccessPolicySummary implements RevisableEntity {
     }
 
     @ApiModelProperty(
-            value = "The revision of this entity used for optimistic-locking during updates.",
-            readOnly = true
+        value = "The revision of this entity used for optimistic-locking during updates.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

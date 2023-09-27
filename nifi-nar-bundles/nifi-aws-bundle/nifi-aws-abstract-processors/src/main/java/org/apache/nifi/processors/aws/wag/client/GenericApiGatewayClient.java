@@ -33,7 +33,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
     private final JsonResponseHandler<GenericApiGatewayResponse> responseHandler;
     private final HttpResponseHandler<AmazonServiceException> errorResponseHandler;
     private final AWSCredentialsProvider credentials;
-    private String apiKey;
+    private final String apiKey;
     private final AWS4Signer signer;
 
     GenericApiGatewayClient(ClientConfiguration clientConfiguration, String endpoint, Region region,
@@ -71,7 +71,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
     private GenericApiGatewayResponse execute(HttpMethodName method, String resourcePath, Map<String, String> headers, Map<String,List<String>> parameters, InputStream content) {
         final ExecutionContext executionContext = buildExecutionContext();
 
-        DefaultRequest request = new DefaultRequest(API_GATEWAY_SERVICE_NAME);
+        DefaultRequest<?> request = new DefaultRequest<>(API_GATEWAY_SERVICE_NAME);
         request.setHttpMethod(method);
         request.setContent(content);
         request.setEndpoint(this.endpoint);

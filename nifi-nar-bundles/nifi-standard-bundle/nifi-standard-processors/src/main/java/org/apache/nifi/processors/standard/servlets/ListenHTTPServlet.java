@@ -16,6 +16,38 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import javax.servlet.AsyncContext;
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
@@ -42,39 +74,6 @@ import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.eclipse.jetty.server.Request;
-
-import javax.servlet.AsyncContext;
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Part;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 @Path("")
 public class ListenHTTPServlet extends HttpServlet {
@@ -204,10 +203,10 @@ public class ListenHTTPServlet extends HttpServlet {
             final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
             foundSubject = DEFAULT_FOUND_SUBJECT;
             foundIssuer = DEFAULT_FOUND_ISSUER;
-            if (certs != null && certs.length > 0) {
+            if (certs != null) {
                 for (final X509Certificate cert : certs) {
-                    foundSubject = cert.getSubjectDN().getName();
-                    foundIssuer = cert.getIssuerDN().getName();
+                    foundSubject = cert.getSubjectX500Principal().getName();
+                    foundIssuer = cert.getIssuerX500Principal().getName();
                     if (authorizedPattern.matcher(foundSubject).matches()) {
                         if (authorizedIssuerPattern.matcher(foundIssuer).matches()) {
                             break;

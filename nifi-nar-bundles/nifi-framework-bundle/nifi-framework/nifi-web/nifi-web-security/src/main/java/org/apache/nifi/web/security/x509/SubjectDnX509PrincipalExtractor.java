@@ -26,7 +26,7 @@ public class SubjectDnX509PrincipalExtractor implements X509PrincipalExtractor {
 
     @Override
     public Object extractPrincipal(X509Certificate cert) {
-        return cert.getSubjectDN().getName().trim();
+        return cert.getSubjectX500Principal().getName().trim();
     }
 
 }

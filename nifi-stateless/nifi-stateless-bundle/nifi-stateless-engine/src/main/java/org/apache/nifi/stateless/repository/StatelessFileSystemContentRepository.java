@@ -17,19 +17,6 @@
 
 package org.apache.nifi.stateless.repository;
 
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.ContentRepositoryContext;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
-import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
@@ -51,6 +37,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StatelessFileSystemContentRepository implements ContentRepository {
     private static final Logger logger = LoggerFactory.getLogger(StatelessFileSystemContentRepository.class);
@@ -183,10 +181,6 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         return clone;
     }
 
-    @Override
-    public long merge(final Collection<ContentClaim> claims, final ContentClaim destination, final byte[] header, final byte[] footer, final byte[] demarcator) {
-        throw new UnsupportedOperationException("This never gets used");
-    }
 
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {

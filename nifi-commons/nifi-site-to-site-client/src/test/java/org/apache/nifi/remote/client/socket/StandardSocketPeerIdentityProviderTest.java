@@ -16,21 +16,20 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.security.auth.x500.X500Principal;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -92,7 +91,7 @@ class StandardSocketPeerIdentityProviderTest {
         when(sslSession.getPeerCertificates()).thenReturn(new X509Certificate[]{peerCertificate});
 
         final X500Principal subjectDistinguishedName = new X500Principal(DISTINGUISHED_NAME);
-        when(peerCertificate.getSubjectDN()).thenReturn(subjectDistinguishedName);
+        when(peerCertificate.getSubjectX500Principal()).thenReturn(subjectDistinguishedName);
 
         final Optional<String> peerIdentity = provider.getPeerIdentity(sslSocket);
 

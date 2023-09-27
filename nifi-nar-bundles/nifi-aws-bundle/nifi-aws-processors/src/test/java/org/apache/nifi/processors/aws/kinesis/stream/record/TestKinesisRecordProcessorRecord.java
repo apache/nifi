@@ -21,6 +21,18 @@ import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.model.Record;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -39,27 +51,13 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,8 +69,7 @@ public class TestKinesisRecordProcessorRecord {
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Mock
-    private ProcessSessionFactory processSessionFactory;
+    private final ProcessSessionFactory processSessionFactory = mock(ProcessSessionFactory.class);
 
     private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
     private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
@@ -81,16 +78,11 @@ public class TestKinesisRecordProcessorRecord {
     private final RecordReaderFactory reader = new JsonTreeReader();
     private final RecordSetWriterFactory writer = new JsonRecordSetWriter();
 
-    @Mock
-    private IRecordProcessorCheckpointer checkpointer;
-
-    @Mock
-    private Record kinesisRecord;
+    private final IRecordProcessorCheckpointer checkpointer = mock(IRecordProcessorCheckpointer.class);
+    private final Record kinesisRecord = mock(Record.class);
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        MockitoAnnotations.initMocks(this);
-
         runner.addControllerService("record-reader", reader);
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.enableControllerService(reader);

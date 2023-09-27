@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.dbcp.hive;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.hadoop.conf.Configuration;
@@ -51,19 +64,6 @@ import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.ValidationResources;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Implementation for Database Connection Pooling Service used for Apache Hive
@@ -358,27 +358,8 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
      * made since the underlying system may still go off-line during normal
      * operation of the connection pool.
      * <p/>
-     * As of Apache NiFi 1.5.0, due to changes made to
-     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this class invoking
-     * {@link HiveConfigurator#authenticate(Configuration, String, String)}
-     * to authenticate a principal with Kerberos, Hive controller services no longer use a separate thread to
-     * relogin, and instead call {@link UserGroupInformation#checkTGTAndReloginFromKeytab()} from
-     * {@link Hive3ConnectionPool#getConnection()}.  The relogin request is performed in a synchronized block to prevent
-     * threads from requesting concurrent relogins.  For more information, please read the documentation for
-     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
-     * <p/>
-     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started by
-     * {@link HiveConfigurator#authenticate(Configuration, String, String, long)} when the Hive
-     * controller service was enabled.  The use of a separate thread to explicitly relogin could cause race conditions
-     * with the implicit relogin attempts made by hadoop/Hive code on a thread that references the same
-     * {@link UserGroupInformation} instance.  One of these threads could leave the
-     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
-     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
-     * authentication attempts that would leave the Hive controller service in an unrecoverable state.
      *
      * @see SecurityUtil#loginKerberos(Configuration, String, String)
-     * @see HiveConfigurator#authenticate(Configuration, String, String)
-     * @see HiveConfigurator#authenticate(Configuration, String, String, long)
      * @param context the configuration context
      * @throws InitializationException if unable to create a database connection
      */
@@ -460,14 +441,14 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         dataSource.setUrl(connectionUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
-        dataSource.setMaxWaitMillis(maxWaitMillis);
+        dataSource.setMaxWait(Duration.ofMillis(maxWaitMillis));
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMinIdle(minIdle);
         dataSource.setMaxIdle(maxIdle);
-        dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
-        dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
-        dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
-        dataSource.setSoftMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis);
+        dataSource.setMaxConn(Duration.ofMillis(maxConnLifetimeMillis));
+        dataSource.setDurationBetweenEvictionRuns(Duration.ofMillis(timeBetweenEvictionRunsMillis));
+        dataSource.setMinEvictableIdle(Duration.ofMillis(minEvictableIdleTimeMillis));
+        dataSource.setSoftMinEvictableIdle(Duration.ofMillis(softMinEvictableIdleTimeMillis));
     }
 
     private Long extractMillisWithInfinite(PropertyValue prop) {

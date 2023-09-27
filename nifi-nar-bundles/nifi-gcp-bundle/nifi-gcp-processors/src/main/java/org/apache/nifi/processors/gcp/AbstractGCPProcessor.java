@@ -21,6 +21,10 @@ import com.google.cloud.Service;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
+import java.net.Proxy;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -31,14 +35,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
-
-import java.net.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Abstract base class for gcp processors.
@@ -69,10 +66,11 @@ public abstract class AbstractGCPProcessor<
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
             .Builder().name("gcp-proxy-host")
             .displayName("Proxy host")
-            .description("IP or hostname of the proxy to be used.\n " +
-                    "You might need to set the following properties in bootstrap for https proxy usage:\n" +
-                    "-Djdk.http.auth.tunneling.disabledSchemes=\n" +
-                    "-Djdk.http.auth.proxying.disabledSchemes=")
+        .description("""
+            IP or hostname of the proxy to be used.
+             You might need to set the following properties in bootstrap for https proxy usage:
+            -Djdk.http.auth.tunneling.disabledSchemes=
+            -Djdk.http.auth.proxying.disabledSchemes=""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -106,14 +104,12 @@ public abstract class AbstractGCPProcessor<
             .sensitive(true)
             .build();
 
-    /**
-     * Deprecated - Use {@link GoogleUtils#GCP_CREDENTIALS_PROVIDER_SERVICE} instead
-     */
-    @Deprecated
     public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
-            .name("GCP Credentials Provider Service") // For backward compatibility
-            .build();
+        .name("GCP Credentials Provider Service")
+        .description("The Controller Service used to obtain Google Cloud Platform credentials.")
+        .required(true)
+        .identifiesControllerService(GCPCredentialsService.class)
+        .build();
 
     protected volatile CloudService cloudService;
 
@@ -123,15 +119,14 @@ public abstract class AbstractGCPProcessor<
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                PROJECT_ID,
+        return List.of(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 RETRY_COUNT,
                 PROXY_HOST,
                 PROXY_PORT,
                 HTTP_PROXY_USERNAME,
                 HTTP_PROXY_PASSWORD,
-                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS))
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
         );
     }
 

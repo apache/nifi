@@ -27,9 +27,7 @@ public class ResourcePermissions {
     private Permissions policies = new Permissions();
     private Permissions proxy = new Permissions();
 
-    @ApiModelProperty(
-            value = "The access that the current user has to any top level resources (a logical 'OR' of all other values)",
-            readOnly = true)
+    @ApiModelProperty(value = "The access that the current user has to any top level resources (a logical 'OR' of all other values)", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getAnyTopLevelResource() {
         return new Permissions()
                 .withCanRead(buckets.getCanRead()
@@ -47,8 +45,8 @@ public class ResourcePermissions {
     }
 
     @ApiModelProperty(
-            value = "The access that the current user has to the top level /buckets resource of this NiFi Registry (i.e., access to all buckets)",
-            readOnly = true)
+        value = "The access that the current user has to the top level /buckets resource of this NiFi Registry (i.e., access to all buckets)",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getBuckets() {
         return buckets;
     }
@@ -58,8 +56,8 @@ public class ResourcePermissions {
     }
 
     @ApiModelProperty(
-            value = "The access that the current user has to the top level /tenants resource of this NiFi Registry",
-            readOnly = true)
+        value = "The access that the current user has to the top level /tenants resource of this NiFi Registry",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getTenants() {
         return tenants;
     }
@@ -69,8 +67,8 @@ public class ResourcePermissions {
     }
 
     @ApiModelProperty(
-            value = "The access that the current user has to the top level /policies resource of this NiFi Registry",
-            readOnly = true)
+        value = "The access that the current user has to the top level /policies resource of this NiFi Registry",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getPolicies() {
         return policies;
     }
@@ -80,8 +78,8 @@ public class ResourcePermissions {
     }
 
     @ApiModelProperty(
-            value = "The access that the current user has to the top level /proxy resource of this NiFi Registry",
-            readOnly = true)
+        value = "The access that the current user has to the top level /proxy resource of this NiFi Registry",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getProxy() {
         return proxy;
     }

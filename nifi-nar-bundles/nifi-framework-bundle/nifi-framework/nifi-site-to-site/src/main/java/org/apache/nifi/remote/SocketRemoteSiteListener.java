@@ -42,7 +42,6 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
-
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -351,7 +350,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         }
 
         final X509Certificate peerCertificate = (X509Certificate) peerCertificates[0];
-        final Principal subjectDistinguishedName = peerCertificate.getSubjectDN();
+        final Principal subjectDistinguishedName = peerCertificate.getSubjectX500Principal();
         return subjectDistinguishedName.getName();
     }
 

@@ -31,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.slf4j.Logger;
 
 /**
@@ -72,12 +71,6 @@ public class FileUtils {
                 /*IGNORE*/
             }
         }
-    }
-
-    /* Superseded by renamed class bellow */
-    @Deprecated
-    public static void ensureDirectoryExistAndCanAccess(final File dir) throws IOException {
-        ensureDirectoryExistAndCanReadAndWrite(dir);
     }
 
     public static void ensureDirectoryExistAndCanReadAndWrite(final File dir) throws IOException {

@@ -22,6 +22,15 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -29,13 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static com.google.cloud.storage.Storage.PredefinedAcl.BUCKET_OWNER_READ;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
@@ -183,7 +185,6 @@ public class PutGCSObjectTest extends AbstractGCSTest {
 
         runner.setProperty(PutGCSObject.KEY, KEY);
         runner.setProperty(PutGCSObject.CONTENT_TYPE, CONTENT_TYPE);
-        runner.setProperty(PutGCSObject.MD5, MD5);
         runner.setProperty(PutGCSObject.CRC32C, CRC32C);
         runner.setProperty(PutGCSObject.ACL, ACL.name());
         runner.setProperty(PutGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
@@ -203,46 +204,12 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         runner.assertTransferCount(PutGCSObject.REL_SUCCESS, 1);
 
         final BlobInfo blobInfo = blobInfoArgumentCaptor.getValue();
-        assertEquals(
-                BUCKET,
-                blobInfo.getBucket()
-        );
-
-        assertEquals(
-                KEY,
-                blobInfo.getName()
-        );
-
-        assertEquals(
-                CONTENT_DISPOSITION_TYPE + "; filename=" + FILENAME,
-                blobInfo.getContentDisposition()
-        );
-
-        assertEquals(
-                CONTENT_TYPE,
-                blobInfo.getContentType()
-        );
-
-        assertEquals(
-                MD5,
-                blobInfo.getMd5()
-        );
-
-        assertEquals(
-                CRC32C,
-                blobInfo.getCrc32c()
-        );
-
+        assertEquals(BUCKET, blobInfo.getBucket());
+        assertEquals(KEY, blobInfo.getName());
+        assertEquals(CONTENT_DISPOSITION_TYPE + "; filename=" + FILENAME, blobInfo.getContentDisposition());
+        assertEquals(CONTENT_TYPE, blobInfo.getContentType());
+        assertEquals(CRC32C, blobInfo.getCrc32c());
         assertNull(blobInfo.getMetadata());
-
-        final List<Storage.BlobWriteOption[]> blobWriteOptions = blobWriteOptionArgumentCaptor.getAllValues();
-        final Set<Storage.BlobWriteOption[]> blobWriteOptionSet = new HashSet<>(blobWriteOptions);
-
-        assertEquals(
-                new HashSet<>(blobWriteOptions),
-                blobWriteOptionSet,
-                "Each of the BlobWriteOptions should be unique"
-        );
     }
 
     @Test
@@ -254,12 +221,8 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         final TestRunner runner = buildNewRunner(processor);
         addRequiredPropertiesToRunner(runner);
 
-        runner.setProperty(
-                "testMetadataKey1", "testMetadataValue1"
-        );
-        runner.setProperty(
-                "testMetadataKey2", "testMetadataValue2"
-        );
+        runner.setProperty("testMetadataKey1", "testMetadataValue1");
+        runner.setProperty("testMetadataKey2", "testMetadataValue2");
 
         runner.assertValid();
 
@@ -277,21 +240,9 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         final Map<String, String> metadata = blobInfo.getMetadata();
 
         assertNotNull(metadata);
-
-        assertEquals(
-                2,
-                metadata.size()
-        );
-
-        assertEquals(
-                "testMetadataValue1",
-                metadata.get("testMetadataKey1")
-        );
-
-        assertEquals(
-                "testMetadataValue2",
-                metadata.get("testMetadataKey2")
-        );
+        assertEquals(2, metadata.size());
+        assertEquals("testMetadataValue1", metadata.get("testMetadataKey1"));
+        assertEquals("testMetadataValue2", metadata.get("testMetadataKey2"));
     }
 
     @Test
@@ -330,8 +281,8 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         when(blob.getMediaLink()).thenReturn(MEDIA_LINK);
         when(blob.getMetageneration()).thenReturn(METAGENERATION);
         when(blob.getSelfLink()).thenReturn(URI);
-        when(blob.getCreateTime()).thenReturn(CREATE_TIME);
-        when(blob.getUpdateTime()).thenReturn(UPDATE_TIME);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(offsetDateTime(CREATE_TIME));
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(offsetDateTime(UPDATE_TIME));
 
         runner.enqueue("test");
         runner.run();
@@ -363,6 +314,12 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         mockFlowFile.assertAttributeEquals(URI_ATTR, URI);
         mockFlowFile.assertAttributeEquals(CREATE_TIME_ATTR, String.valueOf(CREATE_TIME));
         mockFlowFile.assertAttributeEquals(UPDATE_TIME_ATTR, String.valueOf(UPDATE_TIME));
+    }
+
+    private OffsetDateTime offsetDateTime(final long value) {
+        final Instant instant = Instant.ofEpochMilli(value);
+        final LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        return OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
     }
 
     @Test

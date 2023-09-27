@@ -20,6 +20,19 @@ import com.github.pjfanning.xlsx.StreamingReader;
 import com.github.pjfanning.xlsx.exceptions.OpenException;
 import com.github.pjfanning.xlsx.exceptions.ParseException;
 import com.github.pjfanning.xlsx.exceptions.ReadException;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FilenameUtils;
@@ -45,20 +58,6 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 
 @Tags({"excel", "csv", "poi"})
 @CapabilityDescription("Consumes a Microsoft Excel document and converts each worksheet to csv. Each sheet from the incoming Excel " +
@@ -72,8 +71,7 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = "convertexceltocsvprocessor.error", description = "Error message that was encountered on a per Excel sheet basis. This attribute is" +
                 " only populated if an error was occured while processing the particular sheet. Having the error present at the sheet level will allow for the end" +
                 " user to better understand what syntax errors in their excel doc on a larger scale caused the error.")})
-public class ConvertExcelToCSVProcessor
-        extends AbstractProcessor {
+public class ConvertExcelToCSVProcessor extends AbstractProcessor {
 
     private static final String CSV_MIME_TYPE = "text/csv";
     public static final String SHEET_NAME = "sheetname";

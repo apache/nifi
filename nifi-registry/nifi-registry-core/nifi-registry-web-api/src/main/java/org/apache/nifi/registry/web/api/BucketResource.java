@@ -24,18 +24,10 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.event.EventFactory;
-import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.field.Fields;
-import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.apache.nifi.registry.revision.web.ClientIdParameter;
-import org.apache.nifi.registry.revision.web.LongParameter;
-import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.util.List;
+import java.util.Set;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -49,17 +41,28 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.List;
-import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.event.EventFactory;
+import org.apache.nifi.registry.event.EventService;
+import org.apache.nifi.registry.field.Fields;
+import org.apache.nifi.registry.revision.entity.RevisionInfo;
+import org.apache.nifi.registry.revision.web.ClientIdParameter;
+import org.apache.nifi.registry.revision.web.LongParameter;
+import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 @Path("/buckets")
 @Api(
-        value = "buckets",
-        description = "Create named buckets in the registry to store NiFi objects such flows and extensions. " +
-                "Search for and retrieve existing buckets.",
-        authorizations = { @Authorization("Authorization") }
+    value = "buckets",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Create named buckets in the registry to store NiFi objects such flows and extensions. Search for and retrieve existing buckets.")
+})
 public class BucketResource extends ApplicationResource {
 
     @Autowired

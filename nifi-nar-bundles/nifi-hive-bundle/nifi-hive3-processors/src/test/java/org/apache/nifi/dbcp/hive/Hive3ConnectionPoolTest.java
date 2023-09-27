@@ -17,6 +17,14 @@
 
 package org.apache.nifi.dbcp.hive;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -31,15 +39,6 @@ import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -176,7 +175,7 @@ public class Hive3ConnectionPoolTest {
         assertEquals(USER, basicDataSource.getUsername());
         assertEquals(PASS, basicDataSource.getPassword());
         assertEquals(MAX_CONN, basicDataSource.getMaxTotal());
-        assertEquals(10000L, basicDataSource.getMaxWaitMillis());
+        assertEquals(10000L, basicDataSource.getMaxWaitDuration().toMillis());
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 

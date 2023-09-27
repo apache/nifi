@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.processors.smb;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.services.smb.SmbClientProviderService;
+import org.apache.nifi.services.smb.SmbClientService;
+import org.apache.nifi.services.smb.SmbException;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_CODE_ATTRIBUTE;
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_MESSAGE_ATTRIBUTE;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_FAILURE;
@@ -30,22 +47,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.services.smb.SmbClientProviderService;
-import org.apache.nifi.services.smb.SmbClientService;
-import org.apache.nifi.services.smb.SmbException;
-import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
 class FetchSmbTest {
 
     public static final String CLIENT_SERVICE_PROVIDER_ID = "client-provider-service-id";
@@ -56,13 +57,23 @@ class FetchSmbTest {
     @Mock
     SmbClientProviderService clientProviderService;
 
+    private AutoCloseable mockCloseable;
+
     @BeforeEach
     public void beforeEach() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        mockCloseable = MockitoAnnotations.openMocks(this);
         when(clientProviderService.getClient()).thenReturn(mockNifiSmbClientService);
         when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
     }
+
+    @AfterEach
+    public void cleanup() throws Exception {
+        if (mockCloseable != null) {
+            mockCloseable.close();
+        }
+    }
+
 
     @Test
     public void shouldUseSmbClientProperly() throws Exception {

@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -33,25 +37,21 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordWriter;
 import org.apache.nifi.parquet.utils.ParquetConfig;
+import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.AbstractPutHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
-import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordWriter;
-import org.apache.nifi.parquet.utils.ParquetUtils;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import org.apache.parquet.hadoop.util.HadoopOutputFile;
 
-import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "parquet", "hadoop", "HDFS", "filesystem", "record"})
@@ -111,13 +111,12 @@ public class PutParquet extends AbstractPutHDFSRecord {
     }
 
     @Override
-    public HDFSRecordWriter createHDFSRecordWriter(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path, final RecordSchema schema)
-            throws IOException, SchemaNotFoundException {
+    public HDFSRecordWriter createHDFSRecordWriter(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path, final RecordSchema schema) throws IOException {
 
         final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
 
         final AvroParquetWriter.Builder<GenericRecord> parquetWriter = AvroParquetWriter
-                .<GenericRecord>builder(path)
+            .<GenericRecord>builder(HadoopOutputFile.fromPath(path, conf))
                 .withSchema(avroSchema);
 
         final ParquetConfig parquetConfig = createParquetConfig(context, flowFile.getAttributes());

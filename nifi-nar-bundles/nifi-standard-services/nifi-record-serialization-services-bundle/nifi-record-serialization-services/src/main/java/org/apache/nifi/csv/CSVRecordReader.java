@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -51,22 +50,23 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
                            final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
+        final InputStream bomInputStream = BOMInputStream.builder().setInputStream(in).get();
+        final Reader reader = new InputStreamReader(bomInputStream, encoding);
 
-        CSVFormat withHeader;
+        CSVFormat.Builder withHeader;
         if (hasHeader) {
-            withHeader = csvFormat.withSkipHeaderRecord();
+            withHeader = csvFormat.builder().setSkipHeaderRecord(true);
 
             if (ignoreHeader) {
-                withHeader = withHeader.withHeader(schema.getFieldNames().toArray(new String[0]));
+                withHeader = withHeader.setHeader(schema.getFieldNames().toArray(new String[0]));
             } else {
-                withHeader = withHeader.withFirstRecordAsHeader();
+                withHeader = withHeader.setHeader();
             }
         } else {
-            withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+            withHeader = csvFormat.builder().setHeader(schema.getFieldNames().toArray(new String[0]));
         }
 
-        csvParser = new CSVParser(reader, withHeader);
+        csvParser = new CSVParser(reader, withHeader.build());
     }
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,

@@ -17,10 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -37,6 +33,10 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differenti
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public abstract class RestChangeIngestorCommonTest {
 
@@ -84,7 +84,7 @@ public abstract class RestChangeIngestorCommonTest {
 
         Request request = new Request.Builder()
             .url(url)
-            .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, testString))
+            .post(RequestBody.create(testString, MEDIA_TYPE_MARKDOWN))
             .addHeader("charset", "UTF-8")
             .build();
 
@@ -110,7 +110,7 @@ public abstract class RestChangeIngestorCommonTest {
 
         Request request = new Request.Builder()
             .url(url)
-            .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, testString))
+            .post(RequestBody.create(testString, MEDIA_TYPE_MARKDOWN))
             .addHeader("charset", "UTF-8")
             .build();
 

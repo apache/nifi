@@ -25,12 +25,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestAccumuloService {
@@ -47,17 +46,12 @@ public class TestAccumuloService {
     private TestRunner runner;
     private AccumuloService accumuloService;
 
-    @Mock
-    private KerberosCredentialsService credentialService;
-    @Mock
-    private KerberosUserService kerberosUserService;
-    @Mock
-    private Processor dummyProcessor;
+    private final KerberosCredentialsService credentialService = mock(KerberosCredentialsService.class);
+    private final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+    private final Processor dummyProcessor = mock(Processor.class);
 
     @BeforeEach
     public void init() {
-        MockitoAnnotations.initMocks(this);
-
         runner = TestRunners.newTestRunner(dummyProcessor);
         accumuloService = new AccumuloService();
 

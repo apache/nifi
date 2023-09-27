@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jr.ob.JSON;
 import com.maxmind.geoip2.model.CityResponse;
-
 import java.util.Collections;
 
 public class GeoEnrichTestUtils {
@@ -119,7 +118,7 @@ public class GeoEnrichTestUtils {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        return new ObjectMapper().reader(CityResponse.class).with(inject).readValue(maxMindCityResponse);
+        return new ObjectMapper().readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
     }
 
     public static CityResponse getNullLatAndLongCityResponse() throws Exception {
@@ -214,6 +213,6 @@ public class GeoEnrichTestUtils {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        return new ObjectMapper().reader(CityResponse.class).with(inject).readValue(maxMindCityResponse);
+        return new ObjectMapper().readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
     }
 }

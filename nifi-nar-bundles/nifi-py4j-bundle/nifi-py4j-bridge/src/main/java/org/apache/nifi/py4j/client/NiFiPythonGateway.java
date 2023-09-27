@@ -17,14 +17,6 @@
 
 package org.apache.nifi.py4j.client;
 
-import org.apache.nifi.python.processor.PreserveJavaBinding;
-import org.apache.nifi.python.processor.PythonProcessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import py4j.CallbackClient;
-import py4j.Gateway;
-import py4j.reflection.PythonProxyHandler;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +25,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.nifi.python.processor.PreserveJavaBinding;
+import org.apache.nifi.python.processor.PythonProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import py4j.CallbackClient;
+import py4j.Gateway;
+import py4j.reflection.PythonProxyHandler;
 
 
 /**
@@ -106,7 +105,7 @@ public class NiFiPythonGateway extends Gateway {
     }
 
     private InvocationBindings getInvocationBindings() {
-        final long threadId = Thread.currentThread().getId();
+        final long threadId = Thread.currentThread().threadId();
         final Stack<InvocationBindings> stack = invocationBindingsById.get(threadId);
         if (stack == null || stack.isEmpty()) {
             return null;
@@ -133,7 +132,7 @@ public class NiFiPythonGateway extends Gateway {
     }
 
     public void beginInvocation(final String objectId, final Method method, final Object[] args) {
-        final long threadId = Thread.currentThread().getId();
+        final long threadId = Thread.currentThread().threadId();
         final InvocationBindings bindings = new InvocationBindings(objectId, method, args);
         final Stack<InvocationBindings> stack = invocationBindingsById.computeIfAbsent(threadId, id -> new Stack<>());
         stack.push(bindings);
@@ -144,7 +143,7 @@ public class NiFiPythonGateway extends Gateway {
     public void endInvocation(final String objectId, final Method method, final Object[] args) {
         final boolean unbind = isUnbind(method);
 
-        final long threadId = Thread.currentThread().getId();
+        final long threadId = Thread.currentThread().threadId();
         final Stack<InvocationBindings> stack = invocationBindingsById.get(threadId);
         if (stack == null) {
             return;

@@ -17,19 +17,19 @@
 package org.apache.nifi.processors.cassandra;
 
 import com.datastax.driver.core.querybuilder.Insert;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.Tuple;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.Tuple;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,12 +40,19 @@ public class PutCassandraRecordInsertTest {
 
     @Mock
     private RecordSchema schema;
+    private AutoCloseable mockCloseable;
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
+        mockCloseable = MockitoAnnotations.openMocks(this);
         testSubject = new PutCassandraRecord();
+    }
+
+    @AfterEach
+    public void closeMock() throws Exception {
+        if (mockCloseable != null) {
+            mockCloseable.close();
+        }
     }
 
     @Test

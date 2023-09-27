@@ -17,6 +17,20 @@
 package org.apache.nifi.processors.hadoop;
 
 import com.google.common.collect.Maps;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -35,21 +49,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -795,11 +794,7 @@ public class TestGetHDFSFileInfo {
         private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
 
         public void addFileStatus(final FileStatus parent, final FileStatus child) {
-            Set<FileStatus> children = fileStatuses.get(parent.getPath());
-            if (children == null) {
-                children = new HashSet<>();
-                fileStatuses.put(parent.getPath(), children);
-            }
+            Set<FileStatus> children = fileStatuses.computeIfAbsent(parent.getPath(), k -> new HashSet<>());
             if (child != null) {
                 children.add(child);
                 if (child.isDirectory() && !fileStatuses.containsKey(child.getPath())) {
@@ -829,18 +824,18 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
-        public FSDataInputStream open(final Path f, final int bufferSize) throws IOException {
+        public FSDataInputStream open(final Path f, final int bufferSize) {
             return null;
         }
 
         @Override
         public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
-                                         final long blockSize, final Progressable progress) throws IOException {
+                                         final long blockSize, final Progressable progress) {
             return null;
         }
 
         @Override
-        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) throws IOException {
+        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) {
             return null;
         }
 
@@ -850,25 +845,27 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
-        public boolean delete(final Path f, final boolean recursive) throws IOException {
+        public boolean delete(final Path f, final boolean recursive) {
             return false;
         }
 
         @Override
-        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
+        public FileStatus[] listStatus(final Path f) throws IOException {
             if (!fileStatuses.containsKey(f)) {
                 throw new FileNotFoundException();
             }
+
             if (f.getName().startsWith("list_exception_")) {
-                String clzName = f.getName().substring("list_exception_".length(), f.getName().length());
-                IOException exception = null;
+                final String className = f.getName().substring("list_exception_".length());
+                final IOException exception;
                 try {
-                     exception = (IOException)Class.forName(clzName).newInstance();
+                    exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
                 } catch (Throwable t) {
                     throw new RuntimeException(t);
                 }
                 throw exception;
             }
+
             final Set<FileStatus> statuses = fileStatuses.get(f);
             if (statuses == null) {
                 return new FileStatus[0];
@@ -878,7 +875,7 @@ public class TestGetHDFSFileInfo {
                 getFileStatus(s.getPath()); //support exception handling only.
             }
 
-            return statuses.toArray(new FileStatus[statuses.size()]);
+            return statuses.toArray(new FileStatus[0]);
         }
 
         @Override
@@ -897,19 +894,22 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
-        public FileStatus getFileStatus(final Path f) throws IOException {
-            if (f!=null && f.getName().startsWith("exception_")) {
-                String clzName = f.getName().substring("exception_".length(), f.getName().length());
-                IOException exception = null;
+        public FileStatus getFileStatus(final Path path) throws IOException {
+            if (path != null && path.getName().startsWith("exception_")) {
+                final String className = path.getName().substring("exception_".length());
+                final IOException exception;
                 try {
-                     exception = (IOException)Class.forName(clzName).newInstance();
+                    exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
                 } catch (Throwable t) {
                     throw new RuntimeException(t);
                 }
                 throw exception;
             }
-            final FileStatus fileStatus = pathToStatus.get(f);
-            if (fileStatus == null) throw new FileNotFoundException();
+
+            final FileStatus fileStatus = pathToStatus.get(path);
+            if (fileStatus == null) {
+                throw new FileNotFoundException();
+            }
             return fileStatus;
         }
 

@@ -16,15 +16,28 @@
  */
 package org.apache.nifi.hbase;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.ClusterMetrics;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.CheckAndMutate;
+import org.apache.hadoop.hbase.client.CheckAndMutateResult;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
@@ -74,18 +87,6 @@ import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 @RequiresInstanceClassLoading
 @Tags({ "hbase", "client"})
@@ -189,13 +190,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
-    protected Connection getConnection() {
-        return connection;
-    }
-
-    protected void setConnection(Connection connection) {
-        this.connection = connection;
-    }
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -342,19 +336,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
      * class to authenticate a principal with Kerberos, HBase controller services no longer
      * attempt relogins explicitly.  For more information, please read the documentation for
      * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
-     * <p/>
-     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started
-     * when the HBase controller service was enabled.  The use of a separate thread to explicitly relogin could cause
-     * race conditions with the implicit relogin attempts made by hadoop/HBase code on a thread that references the same
-     * {@link UserGroupInformation} instance.  One of these threads could leave the
-     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
-     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
-     * authentication attempts that would leave the HBase controller service in an unrecoverable state.
      *
      * @see SecurityUtil#loginKerberos(Configuration, String, String)
      */
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
+    public void onEnabled(final ConfigurationContext context) throws IOException, InterruptedException {
         this.connection = createConnection(context);
 
         // connection check
@@ -363,14 +349,10 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             if (admin != null) {
                 admin.listTableNames();
 
-                final ClusterStatus clusterStatus = admin.getClusterStatus();
-                if (clusterStatus != null) {
-                    final ServerName master = clusterStatus.getMaster();
-                    if (master != null) {
-                        masterAddress = master.getHostAndPort();
-                    } else {
-                        masterAddress = null;
-                    }
+                final ClusterMetrics metrics = admin.getClusterMetrics();
+                if (metrics != null) {
+                    final ServerName master = metrics.getMasterName();
+                    masterAddress = master == null ? null : master.getAddress().toString();
                 }
             }
         }
@@ -526,11 +508,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
                 for (final PutFlowFile putFlowFile : puts) {
                     final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
-                    List<PutColumn> columns = sorted.get(rowKeyString);
-                    if (columns == null) {
-                        columns = new ArrayList<>();
-                        sorted.put(rowKeyString, columns);
-                    }
+                    final List<PutColumn> columns = sorted.computeIfAbsent(rowKeyString, k -> new ArrayList<>());
 
                     columns.addAll(putFlowFile.getColumns());
                 }
@@ -550,7 +528,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
         SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-                table.put(buildPuts(rowId, new ArrayList(columns)));
+                table.put(buildPuts(rowId, new ArrayList<>(columns)));
             }
             return null;
         });
@@ -560,12 +538,17 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
         return SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-                Put put = new Put(rowId);
+                final Put put = new Put(rowId);
                 put.addColumn(
                     column.getColumnFamily(),
                     column.getColumnQualifier(),
                     column.getBuffer());
-                return table.checkAndPut(rowId, family, qualifier, value, put);
+
+                final CheckAndMutate checkAndMutate = CheckAndMutate.newBuilder(rowId)
+                    .ifEquals(family, qualifier, value)
+                    .build(put);
+                final CheckAndMutateResult result = table.checkAndMutate(checkAndMutate);
+                return result.isSuccess();
             }
         });
     }
@@ -590,35 +573,39 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public void delete(String tableName, List<byte[]> rowIds) throws IOException {
+    public void delete(final String tableName, final List<byte[]> rowIds) throws IOException {
         delete(tableName, rowIds, null);
     }
 
     @Override
-    public void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException {
-        List<Delete> deleteRequests = new ArrayList<>();
-        for (int index = 0; index < deletes.size(); index++) {
-            DeleteRequest req = deletes.get(index);
-            Delete delete = new Delete(req.getRowId())
+    public void deleteCells(final String tableName, final List<DeleteRequest> deletes) throws IOException {
+        final List<Delete> deleteRequests = new ArrayList<>();
+        for (final DeleteRequest req : deletes) {
+            final Delete delete = new Delete(req.getRowId())
                 .addColumn(req.getColumnFamily(), req.getColumnQualifier());
+
             if (!StringUtils.isEmpty(req.getVisibilityLabel())) {
                 delete.setCellVisibility(new CellVisibility(req.getVisibilityLabel()));
             }
+
             deleteRequests.add(delete);
         }
+
         batchDelete(tableName, deleteRequests);
     }
 
     @Override
     public void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException {
-        List<Delete> deletes = new ArrayList<>();
-        for (int index = 0; index < rowIds.size(); index++) {
-            Delete delete = new Delete(rowIds.get(index));
+        final List<Delete> deletes = new ArrayList<>();
+        for (final byte[] rowId : rowIds) {
+            final Delete delete = new Delete(rowId);
             if (!StringUtils.isBlank(visibilityLabel)) {
                 delete.setCellVisibility(new CellVisibility(visibilityLabel));
             }
+
             deletes.add(delete);
         }
+
         batchDelete(tableName, deletes);
     }
 
@@ -713,7 +700,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName));
                  final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
-                     timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
+                     timerangeMax, isReversed, blockCache, columns, visibilityLabels)) {
 
                 int cnt = 0;
                 final int lim = limitRows != null ? limitRows : 0;
@@ -748,13 +735,13 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
     //
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
-            final Integer limitRows, final Boolean isReversed, final Boolean blockCache, final Collection<Column> columns, List<String> authorizations)  throws IOException {
-        final Scan scan = new Scan();
+                                       final Boolean isReversed, final Boolean blockCache, final Collection<Column> columns, List<String> authorizations) throws IOException {
+        Scan scan = new Scan();
         if (!StringUtils.isBlank(startRow)){
-            scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
+            scan = scan.withStartRow(startRow.getBytes(StandardCharsets.UTF_8));
         }
         if (!StringUtils.isBlank(endRow)){
-            scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+            scan = scan.withStopRow(endRow.getBytes(StandardCharsets.UTF_8));
         }
 
         if (authorizations != null && authorizations.size() > 0) {
@@ -799,9 +786,9 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
     // protected and extracted into separate method for testing
     protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations) throws IOException {
-        final Scan scan = new Scan();
-        scan.setStartRow(startRow);
-        scan.setStopRow(endRow);
+        Scan scan = new Scan();
+        scan = scan.withStartRow(startRow);
+        scan = scan.withStopRow(endRow);
 
         if (authorizations != null && authorizations.size() > 0) {
             scan.setAuthorizations(new Authorizations(authorizations));
@@ -865,16 +852,15 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         resultCell.setQualifierLength(cell.getQualifierLength());
 
         resultCell.setTimestamp(cell.getTimestamp());
-        resultCell.setTypeByte(cell.getTypeByte());
-        resultCell.setSequenceId(cell.getSequenceId());
+        final Cell.Type cellType = cell.getType();
+        if (cellType != null) {
+            resultCell.setTypeByte(cellType.getCode());
+        }
 
         resultCell.setValueArray(cell.getValueArray());
         resultCell.setValueOffset(cell.getValueOffset());
         resultCell.setValueLength(cell.getValueLength());
 
-        resultCell.setTagsArray(cell.getTagsArray());
-        resultCell.setTagsOffset(cell.getTagsOffset());
-        resultCell.setTagsLength(cell.getTagsLength());
         return resultCell;
     }
 
@@ -882,7 +868,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         private final String configResources;
         private final Configuration configuration;
 
-        public ValidationResources(String configResources, Configuration configuration) {
+        public ValidationResources(final String configResources, final Configuration configuration) {
             this.configResources = configResources;
             this.configuration = configuration;
         }

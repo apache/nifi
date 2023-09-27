@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.excel;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -32,16 +41,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -81,7 +80,7 @@ public class TestExcelSchemaInference {
     }
 
     private static Stream<Arguments> getLocales() {
-        Locale hindi = new Locale("hin");
+        Locale hindi = Locale.of("hin");
         return Stream.of(
                 Arguments.of(Locale.ENGLISH),
                 Arguments.of(hindi),

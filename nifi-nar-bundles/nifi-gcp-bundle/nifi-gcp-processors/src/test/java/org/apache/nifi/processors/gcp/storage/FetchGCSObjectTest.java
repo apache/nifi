@@ -25,11 +25,19 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +45,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
@@ -69,11 +70,11 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link FetchGCSObject}.
@@ -105,19 +106,30 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
     private static final String URI = "test-uri";
     private static final String STORAGE_API_URL = "https://localhost";
     private static final String CONTENT_DISPOSITION = "attachment; filename=\"test-content-disposition.txt\"";
-    private static final Long CREATE_TIME = 1234L;
-    private static final Long UPDATE_TIME = 4567L;
+    private static final OffsetDateTime CREATE_TIME = OffsetDateTime.of(2023, 1, 1, 0, 0, 23, 0, ZoneOffset.UTC);
+    private static final OffsetDateTime UPDATE_TIME = OffsetDateTime.of(2023, 1, 1, 0, 0, 45, 0, ZoneOffset.UTC);
 
     @Mock
     StorageOptions storageOptions;
 
     @Mock
     Storage storage;
+    private AutoCloseable mockCloseable;
 
     @BeforeEach
     public void setup() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        mockCloseable = MockitoAnnotations.openMocks(this);
     }
+
+    @AfterEach
+    public void cleanup() throws Exception {
+        final AutoCloseable closeable = mockCloseable;
+        mockCloseable = null;
+        if (closeable != null) {
+            closeable.close();
+        }
+    }
+
 
     @Override
     public AbstractGCSProcessor getProcessor() {
@@ -134,8 +146,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         };
     }
 
-    private class MockReadChannel implements ReadChannel {
-        private byte[] toRead;
+    private static class MockReadChannel implements ReadChannel {
+        private final byte[] toRead;
         private int position = 0;
         private boolean finished;
         private boolean isOpen;
@@ -229,8 +241,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getMetageneration()).thenReturn(METAGENERATION);
         when(blob.getSelfLink()).thenReturn(URI);
         when(blob.getContentDisposition()).thenReturn(CONTENT_DISPOSITION);
-        when(blob.getCreateTime()).thenReturn(CREATE_TIME);
-        when(blob.getUpdateTime()).thenReturn(UPDATE_TIME);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
 
@@ -246,107 +258,27 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
 
-        assertTrue(flowFile.isContentEqual(CONTENT));
-        assertEquals(
-                BUCKET,
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                KEY,
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                CACHE_CONTROL,
-                flowFile.getAttribute(CACHE_CONTROL_ATTR)
-        );
-
-        assertEquals(
-                COMPONENT_COUNT,
-                Integer.valueOf(flowFile.getAttribute(COMPONENT_COUNT_ATTR))
-        );
-
-        assertEquals(
-                CONTENT_ENCODING,
-                flowFile.getAttribute(CONTENT_ENCODING_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_LANGUAGE,
-                flowFile.getAttribute(CONTENT_LANGUAGE_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_TYPE,
-                flowFile.getAttribute(CoreAttributes.MIME_TYPE.key())
-        );
-
-        assertEquals(
-                CRC32C,
-                flowFile.getAttribute(CRC32C_ATTR)
-        );
-
-        assertEquals(
-                ENCRYPTION,
-                flowFile.getAttribute(ENCRYPTION_ALGORITHM_ATTR)
-        );
-
-        assertEquals(
-                ENCRYPTION_SHA256,
-                flowFile.getAttribute(ENCRYPTION_SHA256_ATTR)
-        );
-
-        assertEquals(
-                ETAG,
-                flowFile.getAttribute(ETAG_ATTR)
-        );
-
-        assertEquals(
-                GENERATED_ID,
-                flowFile.getAttribute(GENERATED_ID_ATTR)
-        );
-
-        assertEquals(
-                GENERATION,
-                Long.valueOf(flowFile.getAttribute(GENERATION_ATTR))
-        );
-
-        assertEquals(
-                MD5,
-                flowFile.getAttribute(MD5_ATTR)
-        );
-
-        assertEquals(
-                MEDIA_LINK,
-                flowFile.getAttribute(MEDIA_LINK_ATTR)
-        );
-
-        assertEquals(
-                METAGENERATION,
-                Long.valueOf(flowFile.getAttribute(METAGENERATION_ATTR))
-        );
-
-        assertEquals(
-                URI,
-                flowFile.getAttribute(URI_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_DISPOSITION,
-                flowFile.getAttribute(CONTENT_DISPOSITION_ATTR)
-        );
-
-        assertEquals(
-                CREATE_TIME,
-                Long.valueOf(flowFile.getAttribute(CREATE_TIME_ATTR))
-        );
-
-        assertEquals(
-                UPDATE_TIME,
-                Long.valueOf(flowFile.getAttribute(UPDATE_TIME_ATTR))
-        );
-
+        flowFile.assertContentEquals(CONTENT);
+        flowFile.assertAttributeEquals(BUCKET_ATTR, BUCKET);
+        flowFile.assertAttributeEquals(KEY_ATTR, KEY);
+        flowFile.assertAttributeEquals(CACHE_CONTROL_ATTR, CACHE_CONTROL);
+        flowFile.assertAttributeEquals(COMPONENT_COUNT_ATTR, Integer.toString(COMPONENT_COUNT));
+        flowFile.assertAttributeEquals(CONTENT_ENCODING_ATTR, CONTENT_ENCODING);
+        flowFile.assertAttributeEquals(CONTENT_LANGUAGE_ATTR, CONTENT_LANGUAGE);
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CONTENT_TYPE);
+        flowFile.assertAttributeEquals(CRC32C_ATTR, CRC32C);
+        flowFile.assertAttributeEquals(ENCRYPTION_ALGORITHM_ATTR, ENCRYPTION);
+        flowFile.assertAttributeEquals(ENCRYPTION_SHA256_ATTR, ENCRYPTION_SHA256);
+        flowFile.assertAttributeEquals(ETAG_ATTR, ETAG);
+        flowFile.assertAttributeEquals(GENERATED_ID_ATTR, GENERATED_ID);
+        flowFile.assertAttributeEquals(GENERATION_ATTR, Long.toString(GENERATION));
+        flowFile.assertAttributeEquals(MD5_ATTR, MD5);
+        flowFile.assertAttributeEquals(MEDIA_LINK_ATTR, MEDIA_LINK);
+        flowFile.assertAttributeEquals(METAGENERATION_ATTR, Long.toString(METAGENERATION));
+        flowFile.assertAttributeEquals(URI_ATTR, URI);
+        flowFile.assertAttributeEquals(CONTENT_DISPOSITION_ATTR, CONTENT_DISPOSITION);
+        flowFile.assertAttributeEquals(CREATE_TIME_ATTR, Long.toString(CREATE_TIME.toInstant().toEpochMilli()));
+        flowFile.assertAttributeEquals(UPDATE_TIME_ATTR, Long.toString(UPDATE_TIME.toInstant().toEpochMilli()));
     }
 
     @Test
@@ -365,6 +297,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getOwner()).thenReturn(mockUser);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
@@ -376,16 +310,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-
-        assertEquals(
-                OWNER_USER_EMAIL,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "user",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
+        flowFile.assertAttributeEquals(OWNER_ATTR, OWNER_USER_EMAIL);
+        flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "user");
     }
 
     @Test
@@ -404,28 +330,20 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getOwner()).thenReturn(mockGroup);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
 
-
         runner.enqueue("");
-
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-
-        assertEquals(
-                OWNER_GROUP_EMAIL,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "group",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
+        flowFile.assertAttributeEquals(OWNER_ATTR, OWNER_GROUP_EMAIL);
+        flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "group");
     }
 
 
@@ -445,10 +363,11 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getOwner()).thenReturn(mockDomain);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
-
 
         runner.enqueue("");
 
@@ -458,15 +377,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
 
-        assertEquals(
-                OWNER_DOMAIN,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "domain",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
+        flowFile.assertAttributeEquals(OWNER_ATTR, OWNER_DOMAIN);
+        flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "domain");
     }
 
 
@@ -485,6 +397,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(mockProject.getProjectId()).thenReturn(OWNER_PROJECT_ID);
         when(blob.getOwner()).thenReturn(mockProject);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
@@ -496,16 +410,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-
-        assertEquals(
-                OWNER_PROJECT_ID,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "project",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
+        flowFile.assertAttributeEquals(OWNER_ATTR, OWNER_PROJECT_ID);
+        flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "project");
     }
 
     @Test
@@ -525,6 +431,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         final Blob blob = mock(Blob.class);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
+
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
 
@@ -542,29 +451,14 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         final BlobId capturedBlobId = blobIdArgumentCaptor.getValue();
 
-        assertEquals(
-                BUCKET,
-                capturedBlobId.getBucket()
-        );
-
-        assertEquals(
-                KEY,
-                capturedBlobId.getName()
-        );
-
-        assertEquals(
-                GENERATION,
-                capturedBlobId.getGeneration()
-        );
+        assertEquals(BUCKET, capturedBlobId.getBucket());
+        assertEquals(KEY, capturedBlobId.getName());
+        assertEquals(GENERATION, capturedBlobId.getGeneration());
 
 
         final Set<Storage.BlobSourceOption> blobSourceOptions = new LinkedHashSet<>(blobSourceOptionArgumentCaptor.getAllValues());
         assertTrue(blobSourceOptions.contains(Storage.BlobSourceOption.generationMatch()));
-        assertEquals(
-                1,
-                blobSourceOptions.size()
-        );
-
+        assertEquals(1, blobSourceOptions.size());
     }
 
 
@@ -582,6 +476,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         final Blob blob = mock(Blob.class);
         final BlobId blobId = mock(BlobId.class);
         when(blob.getBlobId()).thenReturn(blobId);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(CREATE_TIME);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(UPDATE_TIME);
+
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
 
@@ -596,25 +493,15 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         final BlobId capturedBlobId = blobIdArgumentCaptor.getValue();
 
-        assertEquals(
-                BUCKET,
-                capturedBlobId.getBucket()
-        );
-
-        assertEquals(
-                KEY,
-                capturedBlobId.getName()
-        );
+        assertEquals(BUCKET, capturedBlobId.getBucket());
+        assertEquals(KEY, capturedBlobId.getName());
 
         assertNull(capturedBlobId.getGeneration());
 
         final Set<Storage.BlobSourceOption> blobSourceOptions = new LinkedHashSet<>(blobSourceOptionArgumentCaptor.getAllValues());
 
         assertTrue(blobSourceOptions.contains(Storage.BlobSourceOption.decryptionKey(ENCRYPTION_SHA256)));
-        assertEquals(
-                1,
-                blobSourceOptions.size()
-        );
+        assertEquals(1, blobSourceOptions.size());
     }
 
     @Test

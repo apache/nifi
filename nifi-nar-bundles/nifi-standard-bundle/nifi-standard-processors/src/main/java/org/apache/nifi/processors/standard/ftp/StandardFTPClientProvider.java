@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processors.standard.ftp;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import javax.net.SocketFactory;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
@@ -28,15 +37,6 @@ import org.apache.nifi.processors.standard.socket.StandardSocketFactoryProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.SocketFactory;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.Proxy;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.BUFFER_SIZE;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.CONNECTION_MODE;
@@ -143,7 +143,7 @@ public class StandardFTPClientProvider implements FTPClientProvider {
 
     private void setClientProperties(final FTPClient client, final PropertyContext context) {
         final int bufferSize = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final int dataTimeout = context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Duration dataTimeout = context.getProperty(DATA_TIMEOUT).asDuration();
         final int connectionTimeout = context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         client.setBufferSize(bufferSize);

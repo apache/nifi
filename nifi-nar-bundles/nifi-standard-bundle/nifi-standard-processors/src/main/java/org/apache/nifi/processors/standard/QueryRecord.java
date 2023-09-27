@@ -19,6 +19,26 @@ package org.apache.nifi.processors.standard;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -61,27 +81,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
@@ -151,6 +150,25 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
           So the value would be `SELECT * FROM FLOWFILE WHERE "age" >= 18`
 
         Adding this property now gives us a new Relationship whose name is the same as the property name. So, the "adults" Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
+@UseCase(
+    description = "Keep only specific fields in a a Record, where the names of the fields to keep are known",
+    keywords = {"keep", "filter", "retain", "select", "include", "record", "fields", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep, such as `relevant fields`.
+        Its value is a SQL statement that selects the desired columns from a table named `FLOW_FILE` for relevant rows.
+        There is no WHERE clause.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to keep only the `name`, `age`, and `address` fields, add a property named `relevant fields` \
+          with a value of `SELECT "name", "age", "address" FROM FLOWFILE`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the `relevant fields` Relationship \
         should be connected to the next Processor in our flow.
         """
 )
@@ -547,9 +565,7 @@ public class QueryRecord extends AbstractProcessor {
 
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
 
-            final Config config = SqlParser.configBuilder()
-                .setLex(Lex.MYSQL_ANSI)
-                .build();
+            final Config config = SqlParser.config().withLex(Lex.MYSQL_ANSI);
 
             final SqlParser parser = SqlParser.create(substituted, config);
             try {

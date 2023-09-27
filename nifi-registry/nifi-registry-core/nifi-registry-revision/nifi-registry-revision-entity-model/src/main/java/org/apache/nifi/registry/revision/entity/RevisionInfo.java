@@ -65,8 +65,8 @@ public class RevisionInfo {
     }
 
     @ApiModelProperty(
-            value = "The user that last modified the entity.",
-            readOnly = true
+        value = "The user that last modified the entity.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getLastModifier() {
         return lastModifier;

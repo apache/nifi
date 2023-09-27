@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
@@ -57,8 +38,26 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
+import javax.xml.bind.DatatypeConverter;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
@@ -78,6 +77,7 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+    private static final Random random = new Random();
 
     /**
      * Setting up Connection pooling is expensive operation.
@@ -1726,8 +1726,14 @@ public class TestPutSQL {
         }
     }
 
+    private byte[] randomBytes(final int count) {
+        final byte[] bytes = new byte[count];
+        random.nextBytes(bytes);
+        return bytes;
+    }
+
     private String fixedSizeByteArrayAsASCIIString(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
         StringBuilder sbBytes = new StringBuilder();
         for (int i = bytes.position(); i < bytes.limit(); i++)
@@ -1737,12 +1743,12 @@ public class TestPutSQL {
     }
 
     private String fixedSizeByteArrayAsHexString(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printHexBinary(bBinary);
     }
 
     private String fixedSizeByteArrayAsBase64String(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
     }
 

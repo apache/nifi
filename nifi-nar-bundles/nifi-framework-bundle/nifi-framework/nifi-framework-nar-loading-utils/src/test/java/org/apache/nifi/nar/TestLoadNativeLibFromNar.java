@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.bundle.Bundle;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +26,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.nifi.bundle.Bundle;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -77,7 +76,7 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
 
             Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
-                    .invoke(TestJNI.newInstance());
+                .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);
         }
@@ -119,7 +118,7 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
 
             Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
-                    .invoke(TestJNI.newInstance());
+                .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
             assertThat(actualLibraryLocation, containsString(instanceClassLoader.getIdentifier()));
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);

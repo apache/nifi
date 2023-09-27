@@ -18,14 +18,24 @@ package org.apache.nifi.processors.parquet;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -38,22 +48,10 @@ import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-
-import static org.apache.parquet.format.converter.ParquetMetadataConverter.NO_FILTER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -161,11 +159,13 @@ public class TestConvertAvroToParquet {
         fos.close();
 
         Configuration conf = new Configuration();
-        ParquetMetadata metaData;
-        metaData = ParquetFileReader.readFooter(conf, new Path(tmpParquet.getAbsolutePath()), NO_FILTER);
+        final List<BlockMetaData> blocks;
+        try (final ParquetFileReader fileReader = ParquetFileReader.open(HadoopInputFile.fromPath(new Path(tmpParquet.getAbsolutePath()), conf))) {
+            blocks = fileReader.getFooter().getBlocks();
+        }
 
         long nParquetRecords = 0;
-        for(BlockMetaData meta : metaData.getBlocks()){
+        for (final BlockMetaData meta : blocks) {
             nParquetRecords += meta.getRowCount();
         }
         long nAvroRecord = records.size();

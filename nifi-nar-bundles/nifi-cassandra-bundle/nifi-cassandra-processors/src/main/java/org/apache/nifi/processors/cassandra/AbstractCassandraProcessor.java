@@ -20,15 +20,24 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ProtocolOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -47,15 +56,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -319,19 +319,22 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                                     String username, String password, String compressionType) {
         Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
         if (sslContext != null) {
-            JdkSSLOptions sslOptions = JdkSSLOptions.builder()
+            final SSLOptions sslOptions = RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build();
+
             builder = builder.withSSL(sslOptions);
-            if(ProtocolOptions.Compression.SNAPPY.equals(compressionType)) {
+            if (ProtocolOptions.Compression.SNAPPY.name().equals(compressionType)) {
                 builder = builder.withCompression(ProtocolOptions.Compression.SNAPPY);
-            } else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
+            } else if (ProtocolOptions.Compression.LZ4.name().equals(compressionType)) {
                 builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
             }
         }
+
         if (username != null && password != null) {
             builder = builder.withCredentials(username, password);
         }
+
         return builder.build();
     }
 
@@ -438,38 +441,22 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
      *
      * @param dataType The data type of the field
      */
-    protected static Schema getSchemaForType(String dataType) {
-        SchemaBuilder.TypeBuilder<Schema> typeBuilder = SchemaBuilder.builder();
-        Schema returnSchema;
-        switch (dataType) {
-            case "string":
-                returnSchema = typeBuilder.stringType();
-                break;
-            case "boolean":
-                returnSchema = typeBuilder.booleanType();
-                break;
-            case "int":
-                returnSchema = typeBuilder.intType();
-                break;
-            case "long":
-                returnSchema = typeBuilder.longType();
-                break;
-            case "float":
-                returnSchema = typeBuilder.floatType();
-                break;
-            case "double":
-                returnSchema = typeBuilder.doubleType();
-                break;
-            case "bytes":
-                returnSchema = typeBuilder.bytesType();
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown Avro primitive type: " + dataType);
-        }
+    protected static Schema getSchemaForType(final String dataType) {
+        final SchemaBuilder.TypeBuilder<Schema> typeBuilder = SchemaBuilder.builder();
+        final Schema returnSchema = switch (dataType) {
+            case "string" -> typeBuilder.stringType();
+            case "boolean" -> typeBuilder.booleanType();
+            case "int" -> typeBuilder.intType();
+            case "long" -> typeBuilder.longType();
+            case "float" -> typeBuilder.floatType();
+            case "double" -> typeBuilder.doubleType();
+            case "bytes" -> typeBuilder.bytesType();
+            default -> throw new IllegalArgumentException("Unknown Avro primitive type: " + dataType);
+        };
         return returnSchema;
     }
 
-    protected static String getPrimitiveAvroTypeFromCassandraType(DataType dataType) {
+    protected static String getPrimitiveAvroTypeFromCassandraType(final DataType dataType) {
         // Map types from Cassandra to Avro where possible
         if (dataType.equals(DataType.ascii())
                 || dataType.equals(DataType.text())

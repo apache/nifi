@@ -18,6 +18,17 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -42,35 +53,17 @@ import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.util.ContentStreamBase;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
 
 @Tags({"Apache", "Solr", "Put", "Send"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -138,19 +131,13 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
-        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_PRINCIPAL);
-        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
-        descriptors.add(SOLR_MAX_CONNECTIONS);
         descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
-        descriptors.add(ZK_CLIENT_TIMEOUT);
-        descriptors.add(ZK_CONNECTION_TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -191,7 +178,7 @@ public class PutSolrContentStream extends SolrProcessor {
         final AtomicReference<Exception> error = new AtomicReference<>(null);
         final AtomicReference<Exception> connectionError = new AtomicReference<>(null);
 
-        final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
+        final boolean isSolrCloud = SOLR_TYPE_CLOUD.getValue().equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
         final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH).evaluateAttributeExpressions(flowFile).getValue();

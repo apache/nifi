@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.authorization.azure;
 
+import com.google.gson.JsonObject;
+import com.microsoft.graph.core.ClientException;
+import com.microsoft.graph.models.extensions.IGraphServiceClient;
+import com.microsoft.graph.options.Option;
+import com.microsoft.graph.options.QueryOption;
+import com.microsoft.graph.requests.extensions.GraphServiceClient;
+import com.microsoft.graph.requests.extensions.IGroupCollectionPage;
+import com.microsoft.graph.requests.extensions.IGroupCollectionRequest;
+import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,20 +41,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import com.google.gson.JsonObject;
-import com.microsoft.graph.core.ClientException;
-import com.microsoft.graph.models.extensions.IGraphServiceClient;
-import com.microsoft.graph.options.Option;
-import com.microsoft.graph.options.QueryOption;
-import com.microsoft.graph.requests.extensions.GraphServiceClient;
-import com.microsoft.graph.requests.extensions.IGroupCollectionPage;
-import com.microsoft.graph.requests.extensions.IGroupCollectionRequest;
-import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
-
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.User;
@@ -212,7 +210,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                     .graphScope(graphScope)
                     .build();
             graphClient = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
-            if ( ! StringUtils.isBlank(graphEndpoint)) {
+            if (!StringUtils.isBlank(graphEndpoint)) {
                 graphClient.setServiceRoot(graphEndpoint);
             }
         } catch (final ClientException e) {
