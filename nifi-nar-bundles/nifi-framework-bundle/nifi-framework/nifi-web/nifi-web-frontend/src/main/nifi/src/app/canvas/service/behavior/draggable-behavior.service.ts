@@ -159,7 +159,6 @@ export class DraggableBehavior {
                 if (group.empty()) {
                     self.updateComponentsPosition(dragSelection);
                 } else {
-                    console.log('updateComponentsGroup');
                     // updateComponentsGroup(group);
                 }
 

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import {
     selectConnection,
-    selectFlowLoadingStatus,
+    selectCurrentProcessGroupId,
     selectFunnel,
     selectInputPort,
     selectLabel,
@@ -28,7 +28,7 @@ import {
     selectProcessGroup,
     selectProcessor,
     selectRemoteProcessGroup,
-    selectEditedComponent
+    selectSingleEditedComponent
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
 import { ComponentType } from '../../state/shared';
@@ -40,16 +40,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     selector: 'edit-canvas-item',
     template: ''
 })
-export class EditCanvasItemComponent {
+export class EditCanvasItem {
     constructor(private store: Store<CanvasState>) {
         this.store
-            .select(selectFlowLoadingStatus)
+            .select(selectCurrentProcessGroupId)
             .pipe(
-                // ensure the flow is loaded
-                filter((status) => status === 'success'),
-                take(1),
-                switchMap(() => this.store.select(selectEditedComponent)),
-                // ensure there is a selected component TODO - if null we could trigger showing user 404
+                filter((processGroupId) => processGroupId != null),
+                switchMap(() => this.store.select(selectSingleEditedComponent)),
+                // ensure there is a selected component
                 filter((selectedComponent) => selectedComponent != null),
                 switchMap((selectedComponent) => {
                     // @ts-ignore

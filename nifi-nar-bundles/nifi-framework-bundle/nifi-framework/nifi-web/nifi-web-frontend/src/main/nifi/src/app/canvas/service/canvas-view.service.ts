@@ -308,67 +308,44 @@ export class CanvasView {
         return this.k >= CanvasView.MIN_SCALE_TO_RENDER;
     }
 
-    public centerSelectedComponentIfOffscreen(): void {
+    public centerSelectedComponent(): void {
         const selection: any = this.canvasUtils.getSelection();
         if (selection.size() === 1) {
-            const canvasContainer: any = document.getElementById('canvas-container');
-            let translate: number[] = [this.x, this.y];
-            const scale: number = this.k;
-
-            // scale the translation
-            translate = [translate[0] / scale, translate[1] / scale];
-
-            // get the normalized screen width and height
-            const screenWidth: number = canvasContainer.offsetWidth / scale;
-            const screenHeight: number = canvasContainer.offsetHeight / scale;
-
-            // calculate the screen bounds one screens worth in each direction
-            const screenLeft: number = -translate[0];
-            const screenTop: number = -translate[1];
-            const screenRight: number = screenLeft + screenWidth;
-            const screenBottom: number = screenTop + screenHeight;
-
-            const selectionData = selection.datum();
+            let box;
             if (this.canvasUtils.isConnection(selection)) {
                 let x, y;
-                if (selectionData.bends.length > 0) {
-                    const i: number = Math.min(Math.max(0, selectionData.labelIndex), selectionData.bends.length - 1);
-                    x = selectionData.bends[i].x;
-                    y = selectionData.bends[i].y;
+                let d = selection.datum();
+
+                // get the position of the connection label
+                if (d.bends.length > 0) {
+                    let i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+                    x = d.bends[i].x;
+                    y = d.bends[i].y;
                 } else {
-                    x = (selectionData.start.x + selectionData.end.x) / 2;
-                    y = (selectionData.start.y + selectionData.end.y) / 2;
+                    x = (d.start.x + d.end.x) / 2;
+                    y = (d.start.y + d.end.y) / 2;
                 }
 
-                // center on the connection if it is currently offscreen
-                const isOnScreen: boolean = screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
-                if (!isOnScreen) {
-                    this.centerBoundingBox({
-                        x: x,
-                        y: y,
-                        width: 1,
-                        height: 1
-                    });
-                }
+                box = {
+                    x: x,
+                    y: y,
+                    width: 1,
+                    height: 1
+                };
             } else {
+                const selectionData = selection.datum();
                 const selectionPosition = selectionData.position;
-                const left: number = selectionPosition.x;
-                const top: number = selectionPosition.y;
-                const right: number = left + selectionData.dimensions.width;
-                const bottom: number = top + selectionData.dimensions.height;
 
-                // center on the component if it is currently offscreen
-                const isOnScreen: boolean =
-                    screenLeft < right && screenRight > left && screenTop < bottom && screenBottom > top;
-                if (!isOnScreen) {
-                    this.centerBoundingBox({
-                        x: selectionPosition.x,
-                        y: selectionPosition.y,
-                        width: selectionData.dimensions.width,
-                        height: selectionData.dimensions.height
-                    });
-                }
+                box = {
+                    x: selectionPosition.x,
+                    y: selectionPosition.y,
+                    width: selectionData.dimensions.width,
+                    height: selectionData.dimensions.height
+                };
             }
+
+            // center on the component
+            this.centerBoundingBox(box);
         }
     }
 
@@ -445,6 +422,52 @@ export class CanvasView {
      */
     public zoomOut(): void {
         this.scale(1 / CanvasView.INCREMENT);
+    }
+
+    /**
+     * Zooms to fit the entire graph on the canvas.
+     */
+    public fit(): void {
+        const translate = [this.x, this.y];
+        const scale: number = this.k;
+        let newScale: number;
+
+        // get the canvas normalized width and height
+        const canvasContainer: any = document.getElementById('canvas-container');
+        const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
+        const canvasWidth = canvasBoundingBox.width;
+        const canvasHeight = canvasBoundingBox.height;
+
+        // get the bounding box for the graph
+        const graph: any = d3.select('#canvas');
+        const graphBox = graph.node().getBoundingClientRect();
+        const graphWidth: number = graphBox.width / scale;
+        const graphHeight: number = graphBox.height / scale;
+        let graphLeft: number = graphBox.left / scale;
+        let graphTop: number = (graphBox.top - canvasBoundingBox.top) / scale;
+
+        // adjust the scale to ensure the entire graph is visible
+        if (graphWidth > canvasWidth || graphHeight > canvasHeight) {
+            newScale = Math.min(canvasWidth / graphWidth, canvasHeight / graphHeight);
+
+            // ensure the scale is within bounds
+            newScale = Math.min(Math.max(newScale, CanvasView.MIN_SCALE), CanvasView.MAX_SCALE);
+        } else {
+            newScale = 1;
+
+            // since the entire graph will fit on the canvas, offset origin appropriately
+            graphLeft -= 100;
+            graphTop -= 50;
+        }
+
+        // center as appropriate
+        this.centerBoundingBox({
+            x: graphLeft - translate[0] / scale,
+            y: graphTop - translate[1] / scale,
+            width: canvasWidth / newScale,
+            height: canvasHeight / newScale,
+            scale: newScale
+        });
     }
 
     /**

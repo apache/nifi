@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { Component } from '@angular/core';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
-
-export const restoreViewport = createAction('[Transform] Restore Viewport');
-
-export const zoomFit = createAction('[Transform] Zoom Fit');
+@Component({
+    selector: 'root-group-redirector',
+    standalone: true,
+    template: ''
+})
+export class RootGroupRedirector {}

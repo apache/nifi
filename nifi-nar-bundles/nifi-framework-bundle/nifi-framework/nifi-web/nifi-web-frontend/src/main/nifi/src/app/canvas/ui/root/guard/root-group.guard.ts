@@ -15,11 +15,18 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { CanActivateFn, Router } from '@angular/router';
+import { FlowService } from '../../../service/flow.service';
+import { inject } from '@angular/core';
+import { switchMap, take } from 'rxjs';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
-
-export const restoreViewport = createAction('[Transform] Restore Viewport');
-
-export const zoomFit = createAction('[Transform] Zoom Fit');
+export const rootGroupGuard: CanActivateFn = (route, state) => {
+    const router: Router = inject(Router);
+    const flowService: FlowService = inject(FlowService);
+    return flowService.getProcessGroupStatus().pipe(
+        take(1),
+        switchMap((rootGroupStatus: any) => {
+            return router.navigate(['/process-groups', rootGroupStatus.processGroupStatus.id]);
+        })
+    );
+};

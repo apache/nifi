@@ -17,17 +17,17 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SelectCanvasItemComponent } from './select-canvas-item.component';
+import { SelectCanvasItem } from './select-canvas-item.component';
 
-describe('EditCanvasItemComponent', () => {
-    let component: SelectCanvasItemComponent;
-    let fixture: ComponentFixture<SelectCanvasItemComponent>;
+describe('SelectCanvasItem', () => {
+    let component: SelectCanvasItem;
+    let fixture: ComponentFixture<SelectCanvasItem>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [SelectCanvasItemComponent]
+            declarations: [SelectCanvasItem]
         });
-        fixture = TestBed.createComponent(SelectCanvasItemComponent);
+        fixture = TestBed.createComponent(SelectCanvasItem);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

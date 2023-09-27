@@ -65,7 +65,6 @@ export class TransformEffects {
                 ofType(TransformActions.restoreViewport),
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([action, processGroupId]) => {
-                    console.log('restoring viewport');
                     try {
                         // see if we can restore the view position from storage
                         const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
@@ -81,6 +80,17 @@ export class TransformEffects {
                     } catch (e) {
                         // likely could not parse item... ignoring
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    zoomFit$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.zoomFit),
+                tap(() => {
+                    this.canvasView.fit();
                 })
             ),
         { dispatch: false }

@@ -26,7 +26,7 @@ import * as d3 from 'd3';
 import {
     selectFlowLoadingStatus,
     selectPorts,
-    selectSelectedComponentIds,
+    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -498,7 +498,7 @@ export class PortManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
-                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                switchMap(() => this.store.select(selectAnySelectedComponentIds)),
                 takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((selected) => {

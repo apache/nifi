@@ -20,11 +20,12 @@ import { CommonModule } from '@angular/common';
 import { CanvasComponent } from './canvas.component';
 import { ContextMenu } from './context-menu/context-menu.component';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
-import { EditCanvasItemComponent } from '../edit-canvas-item/edit-canvas-item.component';
-import { SelectCanvasItemComponent } from '../select-canvas-item/select-canvas-item.component';
+import { EditCanvasItem } from '../edit-canvas-item/edit-canvas-item.component';
+import { SelectCanvasItem } from '../select-canvas-item/select-canvas-item.component';
+import { BulkSelectCanvasItems } from '../bulk-select-canvas-items/bulk-select-canvas-items.component';
 
 @NgModule({
-    declarations: [CanvasComponent, ContextMenu, EditCanvasItemComponent, SelectCanvasItemComponent],
+    declarations: [CanvasComponent, ContextMenu, EditCanvasItem, SelectCanvasItem, BulkSelectCanvasItems],
     exports: [CanvasComponent],
     imports: [CommonModule, CdkMenu, CdkMenuItem, CdkMenuTrigger, CdkContextMenuTrigger]
 })

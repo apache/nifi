@@ -26,7 +26,7 @@ import * as d3 from 'd3';
 import {
     selectFlowLoadingStatus,
     selectLabels,
-    selectSelectedComponentIds,
+    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { Client } from '../client.service';
@@ -269,7 +269,7 @@ export class LabelManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
-                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                switchMap(() => this.store.select(selectAnySelectedComponentIds)),
                 takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((selected) => {

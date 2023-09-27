@@ -15,11 +15,20 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { TestBed } from '@angular/core/testing';
+import { CanActivateFn } from '@angular/router';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+import { rootGroupGuard } from './root-group.guard';
 
-export const restoreViewport = createAction('[Transform] Restore Viewport');
+describe('rootGroupGuard', () => {
+    const executeGuard: CanActivateFn = (...guardParameters) =>
+        TestBed.runInInjectionContext(() => rootGroupGuard(...guardParameters));
 
-export const zoomFit = createAction('[Transform] Zoom Fit');
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+    });
+
+    it('should be created', () => {
+        expect(executeGuard).toBeTruthy();
+    });
+});

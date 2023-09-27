@@ -170,3 +170,7 @@ export const setTransitionRequired = createAction(
     '[Canvas] Set Transition Required',
     props<{ transitionRequired: boolean }>()
 );
+
+export const setSkipTransform = createAction('[Canvas] Set Skip Transform', props<{ skipTransform: boolean }>());
+
+export const navigateWithoutTransform = createAction('[Canvas] Navigate Without Transform', props<{ url: string[] }>());

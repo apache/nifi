@@ -15,11 +15,24 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+import { RootGroupRedirector } from './root-group-redirector.component';
 
-export const restoreViewport = createAction('[Transform] Restore Viewport');
+describe('RootGroupRedirector', () => {
+    let component: RootGroupRedirector;
+    let fixture: ComponentFixture<RootGroupRedirector>;
 
-export const zoomFit = createAction('[Transform] Zoom Fit');
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [RootGroupRedirector]
+        });
+        fixture = TestBed.createComponent(RootGroupRedirector);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

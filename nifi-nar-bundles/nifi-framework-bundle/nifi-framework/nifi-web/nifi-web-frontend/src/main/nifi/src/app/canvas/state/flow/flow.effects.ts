@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
+import { navigateWithoutTransform } from './flow.actions';
 import {
     asyncScheduler,
     catchError,
@@ -44,7 +45,11 @@ import {
 } from './index';
 import { CanvasState } from '../index';
 import { Store } from '@ngrx/store';
-import { selectCurrentProcessGroupId, selectParentProcessGroupId, selectSelectedComponentIds } from './flow.selectors';
+import {
+    selectAnySelectedComponentIds,
+    selectCurrentProcessGroupId,
+    selectParentProcessGroupId
+} from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
@@ -591,92 +596,100 @@ export class FlowEffects {
         { dispatch: false }
     );
 
-    addSelectedComponents$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.addSelectedComponents),
-                map((action) => action.request),
-                withLatestFrom(
-                    this.store.select(selectCurrentProcessGroupId),
-                    this.store.select(selectSelectedComponentIds)
-                ),
-                tap(([request, processGroupId, selected]) => {
-                    if (selected.length === 0) {
-                        if (request.components.length === 1) {
-                            this.router.navigate([
-                                '/process-groups',
-                                processGroupId,
-                                request.components[0].componentType,
-                                request.components[0].id
-                            ]);
-                        } else if (request.components.length > 1) {
-                            const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
-                            this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
-                        }
-                    } else {
-                        const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
-                        ids.push(...selected);
-                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
-                    }
-                })
+    addSelectedComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.addSelectedComponents),
+            map((action) => action.request),
+            withLatestFrom(
+                this.store.select(selectCurrentProcessGroupId),
+                this.store.select(selectAnySelectedComponentIds)
             ),
-        { dispatch: false }
-    );
-
-    removeSelectedComponents$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.removeSelectedComponents),
-                map((action) => action.request),
-                withLatestFrom(
-                    this.store.select(selectCurrentProcessGroupId),
-                    this.store.select(selectSelectedComponentIds)
-                ),
-                tap(([request, processGroupId, selected]) => {
-                    if (selected.length === 0) {
-                        this.router.navigate(['/process-groups', processGroupId]);
-                    } else {
-                        const idsToRemove: string[] = request.components.map(
-                            (selectedComponent) => selectedComponent.id
-                        );
-                        const ids: string[] = selected.filter((id) => !idsToRemove.includes(id));
-                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
-                    }
-                })
-            ),
-        { dispatch: false }
-    );
-
-    selectComponents$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.selectComponents),
-                map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-                tap(([request, processGroupId]) => {
+            switchMap(([request, processGroupId, selected]) => {
+                let commands: string[] = [];
+                if (selected.length === 0) {
                     if (request.components.length === 1) {
-                        this.router.navigate([
+                        commands = [
                             '/process-groups',
                             processGroupId,
                             request.components[0].componentType,
                             request.components[0].id
-                        ]);
+                        ];
                     } else if (request.components.length > 1) {
                         const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
-                        this.router.navigate(['/process-groups', processGroupId, 'bulk', ids.join(',')]);
+                        commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
                     }
-                })
-            ),
-        { dispatch: false }
+                } else {
+                    const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                    ids.push(...selected);
+                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                }
+                return of(navigateWithoutTransform({ url: commands }));
+            })
+        )
     );
 
-    deselectAllComponent$ = createEffect(
+    removeSelectedComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.removeSelectedComponents),
+            map((action) => action.request),
+            withLatestFrom(
+                this.store.select(selectCurrentProcessGroupId),
+                this.store.select(selectAnySelectedComponentIds)
+            ),
+            switchMap(([request, processGroupId, selected]) => {
+                let commands: string[] = [];
+                if (selected.length === 0) {
+                    commands = ['/process-groups', processGroupId];
+                } else {
+                    const idsToRemove: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                    const ids: string[] = selected.filter((id) => !idsToRemove.includes(id));
+                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                }
+                return of(navigateWithoutTransform({ url: commands }));
+            })
+        )
+    );
+
+    selectComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.selectComponents),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) => {
+                let commands: string[] = [];
+                if (request.components.length === 1) {
+                    commands = [
+                        '/process-groups',
+                        processGroupId,
+                        request.components[0].componentType,
+                        request.components[0].id
+                    ];
+                } else if (request.components.length > 1) {
+                    const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
+                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                }
+                return of(navigateWithoutTransform({ url: commands }));
+            })
+        )
+    );
+
+    deselectAllComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.deselectAllComponents),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([action, processGroupId]) => {
+                return of(navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
+            })
+        )
+    );
+
+    navigateWithoutTransform$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(FlowActions.deselectAllComponents),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-                tap(([action, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId]);
+                ofType(FlowActions.navigateWithoutTransform),
+                map((action) => action.url),
+                tap((url) => {
+                    this.router.navigate(url);
                 })
             ),
         { dispatch: false }
@@ -687,7 +700,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.centerSelectedComponent),
                 tap(() => {
-                    this.canvasView.centerSelectedComponentIfOffscreen();
+                    this.canvasView.centerSelectedComponent();
                 })
             ),
         { dispatch: false }

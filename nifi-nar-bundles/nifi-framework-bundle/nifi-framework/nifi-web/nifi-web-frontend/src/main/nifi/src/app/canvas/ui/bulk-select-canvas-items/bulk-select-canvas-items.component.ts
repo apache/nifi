@@ -19,34 +19,35 @@ import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import {
+    selectBulkSelectedComponentIds,
     selectCurrentProcessGroupId,
-    selectSingleSelectedComponent,
     selectSkipTransform
 } from '../../state/flow/flow.selectors';
 import { filter, switchMap, withLatestFrom } from 'rxjs';
-import { centerSelectedComponent, setSkipTransform } from '../../state/flow/flow.actions';
+import { zoomFit } from '../../state/transform/transform.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { setSkipTransform } from '../../state/flow/flow.actions';
 
 @Component({
-    selector: 'select-canvas-item',
-    template: '<edit-canvas-item></edit-canvas-item>'
+    selector: 'bulk-select-canvas-items',
+    template: ''
 })
-export class SelectCanvasItem {
+export class BulkSelectCanvasItems {
     constructor(private store: Store<CanvasState>) {
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
                 filter((processGroupId) => processGroupId != null),
-                switchMap(() => this.store.select(selectSingleSelectedComponent)),
-                filter((selectedComponent) => selectedComponent != null),
+                switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
+                filter((ids) => ids.length > 0),
                 withLatestFrom(this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([selectedComponent, skipTransform]) => {
+            .subscribe(([ids, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
-                    this.store.dispatch(centerSelectedComponent());
+                    this.store.dispatch(zoomFit());
                 }
             });
     }

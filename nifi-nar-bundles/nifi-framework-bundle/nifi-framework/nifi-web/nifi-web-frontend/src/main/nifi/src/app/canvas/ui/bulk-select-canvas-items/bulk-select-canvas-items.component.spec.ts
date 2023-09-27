@@ -15,11 +15,24 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { CanvasTransform } from './index';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+import { BulkSelectCanvasItems } from './bulk-select-canvas-items.component';
 
-export const restoreViewport = createAction('[Transform] Restore Viewport');
+describe('BulkSelectCanvasItems', () => {
+    let component: BulkSelectCanvasItems;
+    let fixture: ComponentFixture<BulkSelectCanvasItems>;
 
-export const zoomFit = createAction('[Transform] Zoom Fit');
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [BulkSelectCanvasItems]
+        });
+        fixture = TestBed.createComponent(BulkSelectCanvasItems);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

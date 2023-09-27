@@ -23,6 +23,7 @@ import {
     deselectAllComponents,
     loadProcessGroup,
     selectComponents,
+    setSkipTransform,
     startProcessGroupPolling,
     stopProcessGroupPolling
 } from '../../state/flow/flow.actions';
@@ -34,11 +35,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectedComponent } from '../../state/flow';
 import {
     selectCurrentProcessGroupId,
-    selectFlowLoadingStatus,
     selectProcessGroupIdFromRoute,
-    selectProcessGroupRoute
+    selectProcessGroupRoute,
+    selectSkipTransform
 } from '../../state/flow/flow.selectors';
-import { filter, switchMap, take } from 'rxjs';
+import { filter, switchMap, withLatestFrom } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
 
 @Component({
@@ -83,19 +84,20 @@ export class CanvasComponent implements OnInit, OnDestroy {
             });
 
         this.store
-            .select(selectProcessGroupRoute)
+            .select(selectCurrentProcessGroupId)
             .pipe(
-                // ensure there is a selected component
-                filter((processGroupRoute) => processGroupRoute != null),
-                switchMap(() => this.store.select(selectFlowLoadingStatus)),
-                // only emit once the flow loads
-                filter((status) => status === 'success'),
-                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
                 filter((processGroupId) => processGroupId != null),
-                take(1)
+                switchMap(() => this.store.select(selectProcessGroupRoute)),
+                filter((processGroupRoute) => processGroupRoute != null),
+                withLatestFrom(this.store.select(selectSkipTransform)),
+                takeUntilDestroyed()
             )
-            .subscribe(() => {
-                this.store.dispatch(restoreViewport());
+            .subscribe(([status, skipTransform]) => {
+                if (skipTransform) {
+                    this.store.dispatch(setSkipTransform({ skipTransform: false }));
+                } else {
+                    this.store.dispatch(restoreViewport());
+                }
             });
     }
 

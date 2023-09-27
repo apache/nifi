@@ -60,7 +60,7 @@ export const selectProcessGroupRoute = createSelector(selectCurrentRoute, (route
     return null;
 });
 
-export const selectSelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
+export const selectAnySelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
     const ids: string[] = [];
     // handle either bulk or individual component routes
     if (route?.params.ids) {
@@ -71,7 +71,16 @@ export const selectSelectedComponentIds = createSelector(selectCurrentRoute, (ro
     return ids;
 });
 
-export const selectSelectedComponent = createSelector(selectCurrentRoute, (route) => {
+export const selectBulkSelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
+    const ids: string[] = [];
+    // only handle either bulk component route
+    if (route?.params.ids) {
+        ids.push(...route.params.ids.split(','));
+    }
+    return ids;
+});
+
+export const selectSingleSelectedComponent = createSelector(selectCurrentRoute, (route) => {
     let selectedComponent: SelectedComponent | null = null;
     if (route?.params.id && route?.params.type) {
         selectedComponent = {
@@ -82,7 +91,7 @@ export const selectSelectedComponent = createSelector(selectCurrentRoute, (route
     return selectedComponent;
 });
 
-export const selectEditedComponent = createSelector(selectCurrentRoute, (route) => {
+export const selectSingleEditedComponent = createSelector(selectCurrentRoute, (route) => {
     let selectedComponent: SelectedComponent | null = null;
     if (route?.routeConfig?.path == 'edit') {
         if (route.params.id && route.params.type) {
@@ -98,6 +107,8 @@ export const selectEditedComponent = createSelector(selectCurrentRoute, (route) 
 export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);
 
 export const selectDragging = createSelector(selectFlowState, (state: FlowState) => state.dragging);
+
+export const selectSkipTransform = createSelector(selectFlowState, (state: FlowState) => state.skipTransform);
 
 export const selectFunnels = createSelector(
     selectFlowState,

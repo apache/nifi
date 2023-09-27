@@ -25,7 +25,7 @@ import { Store } from '@ngrx/store';
 import {
     selectFlowLoadingStatus,
     selectFunnels,
-    selectSelectedComponentIds,
+    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -147,7 +147,7 @@ export class FunnelManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
-                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                switchMap(() => this.store.select(selectAnySelectedComponentIds)),
                 takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((selected) => {

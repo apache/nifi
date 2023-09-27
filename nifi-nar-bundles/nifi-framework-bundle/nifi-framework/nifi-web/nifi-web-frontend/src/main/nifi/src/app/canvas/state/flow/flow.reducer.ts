@@ -20,14 +20,16 @@ import {
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
+    deleteComponentsSuccess,
+    flowApiError,
     loadProcessGroup,
     loadProcessGroupSuccess,
-    flowApiError,
+    navigateWithoutTransform,
     setDragging,
+    setSkipTransform,
     setTransitionRequired,
     updateComponentFailure,
-    updateComponentSuccess,
-    deleteComponentsSuccess
+    updateComponentSuccess
 } from './flow.actions';
 import { FlowState } from './index';
 import { ComponentType } from '../shared';
@@ -105,6 +107,7 @@ export const initialState: FlowState = {
     },
     dragging: false,
     transitionRequired: false,
+    skipTransform: false,
     error: null,
     status: 'pending'
 };
@@ -305,5 +308,13 @@ export const flowReducer = createReducer(
     on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
         transitionRequired: transitionRequired
+    })),
+    on(setSkipTransform, (state, { skipTransform }) => ({
+        ...state,
+        skipTransform: skipTransform
+    })),
+    on(navigateWithoutTransform, (state, { url }) => ({
+        ...state,
+        skipTransform: true
     }))
 );

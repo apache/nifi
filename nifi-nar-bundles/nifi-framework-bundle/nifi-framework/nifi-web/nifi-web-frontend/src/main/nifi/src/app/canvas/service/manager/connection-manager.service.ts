@@ -26,7 +26,7 @@ import {
     selectConnections,
     selectCurrentProcessGroupId,
     selectFlowLoadingStatus,
-    selectSelectedComponentIds,
+    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { initialState } from '../../state/flow/flow.reducer';
@@ -2141,7 +2141,7 @@ export class ConnectionManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
-                switchMap(() => this.store.select(selectSelectedComponentIds)),
+                switchMap(() => this.store.select(selectAnySelectedComponentIds)),
                 takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((selected) => {
