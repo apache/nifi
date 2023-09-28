@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import org.apache.avro.Schema;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -32,6 +28,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -70,7 +72,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRenameFieldStaticValue.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRenameFieldStaticValue.json"));
     }
 
     @Test
@@ -81,7 +83,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRenameFieldUsingAttribute.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRenameFieldUsingAttribute.json"));
     }
 
     @Test
@@ -93,7 +95,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRenameMultipleFields.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRenameMultipleFields.json"));
 
         final String outputSchemaText = out.getAttribute("avro.schema");
         final Schema outputSchema = new Schema.Parser().parse(outputSchemaText);
@@ -112,7 +114,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRenameArray.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRenameArray.json"));
     }
 
 
@@ -124,8 +126,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testNestedPath.json"));
-
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testNestedPath.json"));
     }
 
     @Test
@@ -137,7 +138,7 @@ public class TestRenameRecordField {
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_FAILURE).get(0);
         // Output should be unchanged.
-        out.assertContentEquals(INPUT_FILES.resolve("simple-person.json"));
+        assertContentsEqual(out, INPUT_FILES.resolve("simple-person.json"));
     }
 
     @Test
@@ -148,7 +149,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testReferencingFieldName.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testReferencingFieldName.json"));
     }
 
     @Test
@@ -159,7 +160,7 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRecursivelyReferencingAllFields.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRecursivelyReferencingAllFields.json"));
     }
 
     @Test
@@ -170,6 +171,12 @@ public class TestRenameRecordField {
 
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        out.assertContentEquals(OUTPUT_FILES.resolve("testRecursivelyReferencingFieldName.json"));
+        assertContentsEqual(out, OUTPUT_FILES.resolve("testRecursivelyReferencingFieldName.json"));
+    }
+
+    private void assertContentsEqual(final MockFlowFile flowFile, final Path expectedContent) throws IOException {
+        final String flowFileContent = flowFile.getContent();
+        final String fileContent = new String(Files.readAllBytes(expectedContent));
+        assertEquals(flowFileContent.replace("\r", ""), fileContent.replace("\r", ""));
     }
 }

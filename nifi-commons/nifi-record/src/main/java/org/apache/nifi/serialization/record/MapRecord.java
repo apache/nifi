@@ -17,6 +17,17 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.serialization.SchemaValidationException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -31,16 +42,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.apache.nifi.serialization.SchemaValidationException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.type.MapDataType;
-import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MapRecord implements Record {
     private static final Logger logger = LoggerFactory.getLogger(MapRecord.class);
@@ -419,7 +420,7 @@ public class MapRecord implements Record {
 
         // If the new name already exists in the schema, and there's already a value, do not rename.
         if (schema.getField(newName).isPresent()) {
-            throw new IllegalArgumentException("Could not rename " + field + " to " + newName + " because a field already exists with the name " + newName);
+            throw new IllegalArgumentException("Could not rename [" + field + "] to [" + newName + "] because a field already exists with the name [" + newName + "]");
         }
 
         final String currentName = resolvedField.get().getFieldName();
