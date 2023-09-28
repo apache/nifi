@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.processors.slack;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import javax.json.JsonWriter;
+import javax.json.stream.JsonParsingException;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -34,33 +56,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonWriter;
-import javax.json.stream.JsonParsingException;
-
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 @Tags({"put", "slack", "notify"})
-@CapabilityDescription("Sends a message to your team on slack.com")
+@CapabilityDescription("Publishes a message to Slack")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @DynamicProperty(name = "A JSON object to add to Slack's \"attachments\" JSON payload.", value = "JSON-formatted string to add to Slack's payload JSON appended to the \"attachments\" JSON array.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -99,6 +96,15 @@ public class PutSlack extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor THREAD_TS = new PropertyDescriptor.Builder()
+        .name("Thread Timestamp")
+        .description("The timestamp of the parent message, also known as a thread_ts, or Thread Timestamp. If not specified, the message will be send to the channel " +
+            "as an independent message. If this value is populated, the message will be sent as a reply to the message whose timestamp is equal to the given value.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor
             .Builder()
@@ -141,17 +147,23 @@ public class PutSlack extends AbstractProcessor {
             .description("FlowFiles are routed to failure if unable to be sent to Slack")
             .build();
 
-    private final SortedSet<PropertyDescriptor> attachments = Collections.synchronizedSortedSet(new TreeSet<PropertyDescriptor>());
+    private final SortedSet<PropertyDescriptor> attachmentDescriptors = Collections.synchronizedSortedSet(new TreeSet<>());
 
-    public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-            Arrays.asList(WEBHOOK_URL, WEBHOOK_TEXT, CHANNEL, USERNAME, ICON_URL, ICON_EMOJI));
+    private static final List<PropertyDescriptor> descriptors = List.of(
+        WEBHOOK_URL,
+        WEBHOOK_TEXT,
+        CHANNEL,
+        USERNAME,
+        THREAD_TS,
+        ICON_URL,
+        ICON_EMOJI);
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return relationships;
     }
 
     @Override
@@ -171,21 +183,14 @@ public class PutSlack extends AbstractProcessor {
                 .build();
     }
 
-    // Validate the channel (or username for a direct message)
-    private String validateChannel(String channel) {
-        if ((channel.startsWith("#") || channel.startsWith("@")) && channel.length() > 1) {
-            return null;
-        }
-        return "Channel must begin with '#' or '@'";
-    }
 
     @OnScheduled
     public void initialize(final ProcessContext context) {
-        attachments.clear();
+        attachmentDescriptors.clear();
         for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
             PropertyDescriptor descriptor = property.getKey();
             if (descriptor.isDynamic()) {
-                attachments.add(descriptor);
+                attachmentDescriptors.add(descriptor);
             }
         }
     }
@@ -197,95 +202,95 @@ public class PutSlack extends AbstractProcessor {
             return;
         }
 
-        JsonObjectBuilder builder = Json.createObjectBuilder();
-        String text = context.getProperty(WEBHOOK_TEXT).evaluateAttributeExpressions(flowFile).getValue();
-        if (text != null && !text.isEmpty()) {
-            builder.add("text", text);
-        } else {
-            // Slack requires the 'text' attribute
-            getLogger().error("FlowFile should have non-empty " + WEBHOOK_TEXT.getName());
-            flowFile = session.penalize(flowFile);
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        final String text = context.getProperty(WEBHOOK_TEXT).evaluateAttributeExpressions(flowFile).getValue();
+        if (isEmpty(text)) {
+            getLogger().error("FlowFile should have non-empty " + WEBHOOK_TEXT.getDisplayName());
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
+        builder.add("text", text);
 
-        String channel = context.getProperty(CHANNEL).evaluateAttributeExpressions(flowFile).getValue();
-        if (channel != null && !channel.isEmpty()) {
-            String error = validateChannel(channel);
-            if (error == null) {
-                builder.add("channel", channel);
-            } else {
-                getLogger().error("Invalid channel '{}': {}", new Object[]{channel, error});
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
+        final String channel = context.getProperty(CHANNEL).evaluateAttributeExpressions(flowFile).getValue();
+        if (!isEmpty(channel)) {
+            builder.add("channel", channel);
         }
 
-        String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        if (username != null && !username.isEmpty()) {
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        if (!isEmpty(username)) {
             builder.add("username", username);
         }
 
-        String iconUrl = context.getProperty(ICON_URL).evaluateAttributeExpressions(flowFile).getValue();
-        if (iconUrl != null && !iconUrl.isEmpty()) {
+        final String iconUrl = context.getProperty(ICON_URL).evaluateAttributeExpressions(flowFile).getValue();
+        if (!isEmpty(iconUrl)) {
             builder.add("icon_url", iconUrl);
         }
 
-        String iconEmoji = context.getProperty(ICON_EMOJI).evaluateAttributeExpressions(flowFile).getValue();
-        if (iconEmoji != null && !iconEmoji.isEmpty()) {
+        final String threadTs = context.getProperty(THREAD_TS).evaluateAttributeExpressions(flowFile).getValue();
+        if (!isEmpty(threadTs)) {
+            builder.add("thread_ts", threadTs);
+        }
+
+        final String iconEmoji = context.getProperty(ICON_EMOJI).evaluateAttributeExpressions(flowFile).getValue();
+        if (!isEmpty(iconEmoji)) {
             builder.add("icon_emoji", iconEmoji);
         }
 
         try {
             // Get Attachments Array
-            if (!attachments.isEmpty()) {
-                JsonArrayBuilder jsonArrayBuiler = Json.createArrayBuilder();
-                for (PropertyDescriptor attachment : attachments) {
-                    String s = context.getProperty(attachment).evaluateAttributeExpressions(flowFile).getValue();
-                    JsonReader reader = Json.createReader(new StringReader(s));
-                    JsonObject attachmentJson = reader.readObject();
-                    jsonArrayBuiler.add(attachmentJson);
+            if (!attachmentDescriptors.isEmpty()) {
+                final JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
+                for (final PropertyDescriptor attachmentDescriptor : attachmentDescriptors) {
+                    final String attachmentString = context.getProperty(attachmentDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+                    final JsonReader reader = Json.createReader(new StringReader(attachmentString));
+                    final JsonObject attachmentJson = reader.readObject();
+                    jsonArrayBuilder.add(attachmentJson);
                 }
-                builder.add("attachments", jsonArrayBuiler);
+
+                builder.add("attachments", jsonArrayBuilder);
             }
 
-            JsonObject jsonObject = builder.build();
-            StringWriter stringWriter = new StringWriter();
-            JsonWriter jsonWriter = Json.createWriter(stringWriter);
+            final JsonObject jsonObject = builder.build();
+            final StringWriter stringWriter = new StringWriter();
+            final JsonWriter jsonWriter = Json.createWriter(stringWriter);
             jsonWriter.writeObject(jsonObject);
             jsonWriter.close();
 
-            URL url = URI.create(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue()).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            final URL url = URI.create(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue()).toURL();
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
-            DataOutputStream outputStream  = new DataOutputStream(conn.getOutputStream());
-            String payload = "payload=" + URLEncoder.encode(stringWriter.getBuffer().toString(), "UTF-8");
+
+            final DataOutputStream outputStream = new DataOutputStream(conn.getOutputStream());
+            final String payload = "payload=" + URLEncoder.encode(stringWriter.getBuffer().toString(), StandardCharsets.UTF_8);
             outputStream.writeBytes(payload);
             outputStream.close();
 
-            int responseCode = conn.getResponseCode();
+            final int responseCode = conn.getResponseCode();
             if (responseCode >= 200 && responseCode < 300) {
                 getLogger().info("Successfully posted message to Slack");
                 session.transfer(flowFile, REL_SUCCESS);
                 session.getProvenanceReporter().send(flowFile, url.toString());
             } else {
-                getLogger().error("Failed to post message to Slack with response code {}", new Object[]{responseCode});
+                getLogger().error("Failed to post message to Slack with response code {}", responseCode);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();
             }
-        } catch (JsonParsingException e) {
+        } catch (final JsonParsingException e) {
             getLogger().error("Failed to parse JSON", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to open connection", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
+    }
+
+    private boolean isEmpty(final String value) {
+        return value == null || value.isEmpty();
     }
 
     private static class EmojiValidator implements Validator {

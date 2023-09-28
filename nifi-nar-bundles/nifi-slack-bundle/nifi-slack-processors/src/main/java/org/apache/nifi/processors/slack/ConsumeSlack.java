@@ -17,13 +17,20 @@
 
 package org.apache.nifi.processors.slack;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.slack.api.bolt.App;
+import com.slack.api.bolt.AppConfig;
+import com.slack.api.methods.MethodsClient;
+import com.slack.api.methods.SlackApiException;
+import com.slack.api.methods.request.conversations.ConversationsHistoryRequest;
+import com.slack.api.methods.request.conversations.ConversationsListRequest;
+import com.slack.api.methods.request.conversations.ConversationsRepliesRequest;
+import com.slack.api.methods.request.users.UsersInfoRequest;
+import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import com.slack.api.methods.response.conversations.ConversationsListResponse;
+import com.slack.api.methods.response.conversations.ConversationsRepliesResponse;
+import com.slack.api.methods.response.users.UsersInfoResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -31,92 +38,102 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
-import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+import org.apache.nifi.processors.slack.consume.ConsumeChannel;
+import org.apache.nifi.processors.slack.consume.ConsumeSlackClient;
+import org.apache.nifi.processors.slack.consume.ConsumeSlackUtil;
+import org.apache.nifi.processors.slack.consume.UsernameLookup;
+import org.apache.nifi.util.StringUtils;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
 
 @PrimaryNodeOnly
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Stateful(scopes = Scope.CLUSTER, description = "Maintains a mapping of Slack Channel IDs to the cursor or timestamp of the last message that was retrieved for that channel. " +
-    "This allows the processor to only retrieve messages that have been posted since the last time the processor ran. " +
+@Stateful(scopes = Scope.CLUSTER, description = "Maintains a mapping of Slack Channel IDs to the timestamp of the last message that was retrieved for that channel. " +
+    "This allows the processor to only retrieve messages that have been posted since the last time the processor was run. " +
     "This state is stored in the cluster so that if the Primary Node changes, the new node will pick up where the previous node left off.")
 @WritesAttributes({
     @WritesAttribute(attribute = "slack.channel.id", description = "The ID of the Slack Channel from which the messages were retrieved"),
     @WritesAttribute(attribute = "slack.message.count", description = "The number of slack messages that are included in the FlowFile"),
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
 })
-@SeeAlso({PostSlack.class, PutSlack.class})
+@SeeAlso({ListenSlack.class, PostSlack.class, PutSlack.class})
 @Tags({"slack", "conversation", "conversation.history", "social media", "team", "text", "unstructured"})
-@CapabilityDescription("Retrieves the latest messages from one or more configured Slack channels. The messages are written out in JSON format. See Usage / Additional Details for more information " +
-    "about how to configure this Processor and enable it to retrieve messages from Slack.")
-public class ConsumeSlack extends AbstractProcessor {
-
-    private static final ObjectMapper objectMapper;
-    static {
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    }
-
-    private static final String CONVERSATION_HISTORY_URL = "https://slack.com/api/conversations.history";
-
-    static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-        .name("Web Client Service Provider")
-        .description("The Controller Service that is used to create HTTP connections to Slack")
-        .required(true)
-        .identifiesControllerService(WebClientServiceProvider.class)
-        .build();
+@CapabilityDescription("Retrieves messages from one or more configured Slack channels. The messages are written out in JSON format. " +
+    "See Usage / Additional Details for more information about how to configure this Processor and enable it to retrieve messages from Slack.")
+@DefaultSettings(yieldDuration = "3 sec")
+public class ConsumeSlack extends AbstractProcessor implements VerifiableProcessor {
 
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
         .name("Access Token")
-        .description("OAuth Access Token used for authenticating/authorizing the Slack request sent by NiFi.")
+        .description("OAuth Access Token used for authenticating/authorizing the Slack request sent by NiFi. This may be either a User Token or a Bot Token. " +
+            "It must be granted the channels:history, groups:history, im:history, or mpim:history scope, depending on the type of conversation being used.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
         .sensitive(true)
         .build();
 
     static final PropertyDescriptor CHANNEL_IDS = new PropertyDescriptor.Builder()
-        .name("Channel IDs")
-        .description("A comma-separated list of IDs of the Slack Channels to Retrieve Messages From")
+        .name("Channels")
+        .description("A comma-separated list of Slack Channels to Retrieve Messages From. Each element in the list may be either a Channel ID, such as C0L9VCD47, " +
+            "or (for public channels only) the name of a channel, prefixed with a # sign, such as #general. If any channel name is provided instead," +
+            "instead of an ID, the Access Token provided must be granted the channels:read scope in order to resolve the Channel ID. See the Processor's " +
+            "Additional Details for information on how to find a Channel ID.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    static final PropertyDescriptor REPLY_MONITOR_WINDOW = new PropertyDescriptor.Builder()
+        .name("Reply Monitor Window")
+        .description("After consuming all messages in a given channel, this Processor will periodically poll all \"threaded messages\", aka Replies, whose timestamp " +
+            "is between now and this amount of time in the past in order to check for any new replies. Setting this value to a larger value may result in " +
+            "additional resource use and may result in Rate Limiting. However, if a user replies to an old thread that was started outside of this window, " +
+            "the reply may not be captured.")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("7 days")
+        .build();
+
+    static final PropertyDescriptor REPLY_MONITOR_FREQUENCY = new PropertyDescriptor.Builder()
+        .name("Reply Monitor Frequency")
+        .description("After consuming all messages in a given channel, this Processor will periodically poll all \"threaded messages\", aka Replies, whose timestamp " +
+            "falls between now and the amount of time specified by the <Reply Monitor Window> property. This property determines how frequently those messages are polled. " +
+            "Setting the value to a shorter duration may result in replies to messages being captured more quickly, providing a lower latency. However, it will also result in " +
+            "additional resource use and could trigger Rate Limiting to occur.")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("5 mins")
+        .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")
@@ -127,19 +144,54 @@ public class ConsumeSlack extends AbstractProcessor {
         .defaultValue("100")
         .build();
 
+    static final PropertyDescriptor RESOLVE_USERNAMES = new PropertyDescriptor.Builder()
+        .name("Resolve Usernames")
+        .description("Specifies whether or not User IDs should be resolved to usernames. By default, Slack Messages provide the ID of the user that sends a message, such as U0123456789, " +
+            "but not the username, such as NiFiUser. The username may be resolved, but it may require additional calls to the Slack API and requires that the Token used be granted the " +
+            "users:read scope. If set to true, usernames will be resolved with a best-effort policy: if a username cannot be obtained, it will be skipped over. Also, note that " +
+            "when a username is obtained, the Message's <username> field is populated, and the <text> field is updated such that any mention will be output such as " +
+            "\"Hi @user\" instead of \"Hi <@U1234567>\".")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .build();
+
+    static final PropertyDescriptor INCLUDE_MESSAGE_BLOCKS = new PropertyDescriptor.Builder()
+        .name("Include Message Blocks")
+        .description("Specifies whether or not the output JSON should include the value of the 'blocks' field for each Slack Message. This field includes information such as " +
+            "individual parts of a message that are formatted using rich text. This may be useful, for instance, for parsing. However, it often accounts for a significant portion of " +
+            "the data and as such may be set to null when it is not useful to you.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+
+    static final PropertyDescriptor INCLUDE_NULL_FIELDS = new PropertyDescriptor.Builder()
+        .name("Include Null Fields")
+        .description("Specifies whether or not fields that have null values should be included in the output JSON. If true, any field in a Slack Message that " +
+            "has a null value will be included in the JSON with a value of null. If false, the key omitted from the output JSON entirely. Omitting null values results in " +
+            "smaller messages that are generally more efficient to process, but including the values may provide a better understanding of the format, especially for " +
+            "schema inference.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("Slack messages that are successfully received will be routed to this relationship")
         .build();
 
 
-    private final BlockingQueue<ConversationHistoryClient> clients = new LinkedBlockingDeque<>();
     private final AtomicLong nextRequestTime = new AtomicLong(0L);
+    private final Queue<ConsumeChannel> channels = new LinkedBlockingQueue<>();
+    private volatile App slackApp;
 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(WEB_CLIENT_SERVICE_PROVIDER, CHANNEL_IDS, ACCESS_TOKEN, BATCH_SIZE);
+        return Arrays.asList(CHANNEL_IDS, ACCESS_TOKEN, REPLY_MONITOR_WINDOW, REPLY_MONITOR_FREQUENCY,
+            BATCH_SIZE, RESOLVE_USERNAMES, INCLUDE_MESSAGE_BLOCKS, INCLUDE_NULL_FIELDS);
     }
 
     @Override
@@ -147,22 +199,125 @@ public class ConsumeSlack extends AbstractProcessor {
         return Collections.singleton(REL_SUCCESS);
     }
 
+    @Override
+    public boolean isStateful(final ProcessContext context) {
+        return true;
+    }
+
     @OnScheduled
-    public void setup(final ProcessContext context) {
-        final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
+    public void setup(final ProcessContext context) throws IOException, SlackApiException {
+        slackApp = createSlackApp(context);
+
+        final List<ConsumeChannel> consumeChannels = createChannels(context, slackApp);
+        this.channels.addAll(consumeChannels);
+    }
+
+    @OnStopped
+    public void onStopped() {
+        channels.clear();
+        slackApp.stop();
+    }
+
+
+    private App createSlackApp(final ProcessContext context) {
+        final String botToken = context.getProperty(ACCESS_TOKEN).getValue();
+        final AppConfig appConfig = AppConfig.builder()
+            .singleTeamBotToken(botToken)
+            .build();
+
+        return new App(appConfig);
+    }
+
+    private List<ConsumeChannel> createChannels(final ProcessContext context, final App slackApp) throws SlackApiException, IOException {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        if (context.getProperty(INCLUDE_NULL_FIELDS).asBoolean()) {
+            objectMapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        } else {
+            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        }
+
+        final ConsumeSlackClient client = initializeClient(slackApp);
+
+        // Split channel ID's by commas and trim any white space
+        final List<String> channelIds = new ArrayList<>();
         final String channelIdsValue = context.getProperty(CHANNEL_IDS).getValue();
-
-        final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
-
         Arrays.stream(channelIdsValue.split(","))
             .map(String::trim)
             .filter(s -> !s.isEmpty())
-            .forEach(channelId -> {
-                final ConversationHistoryClient client = createConversationHistoryClient(webClientServiceProvider, accessToken, channelId);
-                clients.offer(client);
-            });
+            .forEach(channelIds::add);
+
+        // If any of the Channel ID's is a channel name instead, fetch all channel ID's and replace names with ID's
+        final boolean lookupChannels = channelIds.stream().anyMatch(id -> id.startsWith("#"));
+        if (lookupChannels) {
+            final Map<String, String> channelMapping = client.fetchChannelIds();
+            final ListIterator<String> channelItr = channelIds.listIterator();
+
+            while (channelItr.hasNext()) {
+                final String channelIdOrName = channelItr.next().replace("#", "");
+                final String resolved = channelMapping.get(channelIdOrName);
+                if (resolved != null) {
+                    channelItr.remove();
+                    channelItr.add(resolved);
+                    getLogger().info("Resolved Channel {} to ID {}", channelIdOrName, resolved);
+                }
+            }
+        }
+
+        // Create ConsumeChannel objects for each Channel ID
+        final UsernameLookup usernameLookup = new UsernameLookup(client, getLogger());
+
+        final List<ConsumeChannel> consumeChannels = new ArrayList<>();
+        for (final String channelId : channelIds) {
+            final ConsumeChannel consumeChannel = new ConsumeChannel.Builder()
+                .channelId(channelId)
+                .batchSize(context.getProperty(BATCH_SIZE).asInteger())
+                .client(client)
+                .includeMessageBlocks(context.getProperty(INCLUDE_MESSAGE_BLOCKS).asBoolean())
+                .logger(getLogger())
+                .replyMonitorFrequency(context.getProperty(REPLY_MONITOR_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                .replyMonitorWindow(context.getProperty(REPLY_MONITOR_WINDOW).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                .resolveUsernames(context.getProperty(RESOLVE_USERNAMES).asBoolean())
+                .successRelationship(REL_SUCCESS)
+                .usernameLookup(usernameLookup)
+                .objectMapper(objectMapper)
+                .build();
+
+            consumeChannels.add(consumeChannel);
+        }
+
+        return consumeChannels;
     }
 
+
+    protected ConsumeSlackClient initializeClient(final App slackApp) {
+        slackApp.start();
+        return new DelegatingSlackClient(slackApp.client());
+    }
+
+
+    private ConsumeChannel getChannel() {
+        final List<ConsumeChannel> yieldedChannels = new ArrayList<>();
+
+        try {
+            while (!channels.isEmpty()) {
+                final ConsumeChannel channel = channels.poll();
+                if (channel == null) {
+                    return null;
+                }
+
+                if (channel.isYielded()) {
+                    yieldedChannels.add(channel);
+                    continue;
+                }
+
+                return channel;
+            }
+        } finally {
+            channels.addAll(yieldedChannels);
+        }
+
+        return null;
+    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -172,111 +327,37 @@ public class ConsumeSlack extends AbstractProcessor {
             return;
         }
 
-        // Get a client for the next channel
-        final ConversationHistoryClient client = getClient();
-        if (client == null) {
+        final ConsumeChannel channel = getChannel();
+        if (channel == null) {
+            getLogger().debug("All Slack Channels are currently yielded; will yield context and return");
             context.yield();
             return;
         }
 
         try {
-            // Determine where we last left off for this channel
-            final String channelId = client.getChannelId();
+            channel.consume(context, session);
+        } catch (final Exception e) {
+            session.rollback();
 
-            final StateMap stateMap;
-            final String channelOldest;
-            try {
-                stateMap = session.getState(Scope.CLUSTER);
-                channelOldest = stateMap.get(channelId);
-            } catch (final IOException ioe) {
-                getLogger().error("Failed to determine current offset for channel {}; will not retrieve any messages until this is resolved", channelId, ioe);
-                context.yield();
-                return;
-            }
-
-            // Retrieve the next batch of messages and write them to FlowFiles.
-            final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-            try (final HttpResponse slackResponse = client.getConversationHistory(channelOldest, batchSize)) {
-                final ConversationHistoryResponse response = parseResponse(slackResponse);
-                if (!response.isOk()) {
-                    getLogger().error("Received unexpected response from Slack when attempting to retrieve messages for channel {}: {}", channelId, response.getError());
-                    context.yield();
-                    return;
-                }
-
-                final ArrayNode messagesArray = response.getMessages();
-                if (messagesArray.size() == 0) {
-                    getLogger().debug("Received no new messages from Slack for channel {}", channelId);
-                    client.yield();
-                    return;
-                }
-
-                // Write the results out to a FlowFile
-                FlowFile flowFile = session.create();
-                flowFile = session.write(flowFile, out -> {
-                    try (final JsonGenerator generator = objectMapper.createGenerator(out)) {
-                        generator.writeStartArray();
-                        for (final JsonNode message : messagesArray) {
-                            generator.writeTree(message);
-                        }
-                        generator.writeEndArray();
-                    }
-                });
-
-                // Determine attributes for outbound FlowFile
-                final Map<String, String> attributes = new HashMap<>();
-                attributes.put("slack.channel.id", channelId);
-                attributes.put("slack.message.count", Integer.toString(response.getMessages().size()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-
-                final boolean cursorUsed = channelOldest != null && !UnixTimestamp.isTimestamp(channelOldest);
-                if (channelOldest != null) {
-                    final String offsetKey = cursorUsed ? "slack.cursor" : "slack.oldest";
-                    attributes.put(offsetKey, channelOldest);
-                }
-
-                // Update provenance
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                session.getProvenanceReporter().receive(flowFile, CONVERSATION_HISTORY_URL);
-                session.transfer(flowFile, REL_SUCCESS);
-
-                if (!response.hasMore()) {
-                    client.yield();
-                }
-
-                // Update state based on the next cursor, preferably, or the timestamp of the last message if either we didn't get back
-                // a cursor, or if we got back a cursor but our original query was made using the 'oldest' parameter.
-                final String stateValue;
-                final String nextCursor = response.getNextCursor();
-                final boolean cursorIgnored = channelOldest != null && !cursorUsed;
-                if (cursorIgnored || nextCursor == null) {
-                    final UnixTimestamp latest = response.getLatest();
-                    stateValue = latest == null ? null : latest.toString();
-                } else {
-                    stateValue = nextCursor;
-                }
-
-                if (stateValue == null) {
-                    getLogger().debug("Could not determine latest timestamp when retrieving messages for channel {}", channelId);
-                } else {
-                    final Map<String, String> updatedStateMap = new HashMap<>(stateMap.toMap());
-                    updatedStateMap.put(channelId, stateValue);
-                    session.setState(updatedStateMap, Scope.CLUSTER);
-                }
-            } catch (final RateLimitExceededException rlee) {
-                getLogger().warn("Slack indicated that the Rate Limit has been exceeded when attempting to retrieve messages for channel {}", channelId);
-                final long timeOfNextRequest = System.currentTimeMillis() + (rlee.getRetrySeconds() * 1000L);
-                nextRequestTime.getAndUpdate(currentTime -> Math.max(currentTime, timeOfNextRequest));
-                context.yield();
-                return;
-            } catch (final Exception e) {
-                getLogger().error("Failed to retrieve messages for channel {}", channelId, e);
-                context.yield();
-                return;
-            }
+            final String channelId = channel.getChannelId();
+            yieldOnException(e, channelId, context);
         } finally {
-            clients.offer(client);
+            channels.offer(channel);
         }
+    }
+
+
+    private void yieldOnException(final Throwable t, final String channelId, final ProcessContext context) {
+        if (ConsumeSlackUtil.isRateLimited(t)) {
+            getLogger().warn("Slack indicated that the Rate Limit has been exceeded when attempting to retrieve messages for channel {}", channelId);
+        } else {
+            getLogger().error("Failed to retrieve messages for channel {}", channelId, t);
+        }
+
+        final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(t);
+        final long timeOfNextRequest = System.currentTimeMillis() + (retryAfterSeconds * 1000L);
+        nextRequestTime.getAndUpdate(currentTime -> Math.max(currentTime, timeOfNextRequest));
+        context.yield();
     }
 
 
@@ -293,365 +374,94 @@ public class ConsumeSlack extends AbstractProcessor {
         return false;
     }
 
-    private ConversationHistoryClient getClient() {
-        final List<ConversationHistoryClient> yieldedClients = new ArrayList<>();
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final App slackApp = createSlackApp(context);
 
+        final List<ConsumeChannel> channels;
         try {
-            while (!clients.isEmpty()) {
-                final ConversationHistoryClient client = clients.poll();
-                if (client == null) {
-                    return null;
-                }
+            channels = createChannels(context, slackApp);
 
-                if (client.isYielded()) {
-                    yieldedClients.add(client);
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Determine Channel IDs")
+                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                .build());
+        } catch (final Exception e) {
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Determine Channel IDs")
+                .outcome(ConfigVerificationResult.Outcome.FAILED)
+                .explanation(e.toString())
+                .build());
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Check authorizations")
+                .outcome(ConfigVerificationResult.Outcome.SKIPPED)
+                .explanation("Skipped because appropriate Channel IDs could not be determined")
+                .build());
+
+            return results;
+        }
+
+        for (final ConsumeChannel channel : channels) {
+            results.add(channel.verify());
+        }
+
+        return results;
+    }
+
+
+    private static class DelegatingSlackClient implements ConsumeSlackClient {
+        private final MethodsClient delegate;
+
+        public DelegatingSlackClient(final MethodsClient delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public ConversationsHistoryResponse fetchConversationsHistory(final ConversationsHistoryRequest request) throws SlackApiException, IOException {
+            return delegate.conversationsHistory(request);
+        }
+
+        @Override
+        public ConversationsRepliesResponse fetchConversationsReplies(final ConversationsRepliesRequest request) throws SlackApiException, IOException {
+            return delegate.conversationsReplies(request);
+        }
+
+        @Override
+        public UsersInfoResponse fetchUsername(final String userId) throws SlackApiException, IOException {
+            final UsersInfoRequest uiRequest = UsersInfoRequest.builder()
+                .user(userId)
+                .build();
+
+            return delegate.usersInfo(uiRequest);
+        }
+
+        @Override
+        public Map<String, String> fetchChannelIds() throws SlackApiException, IOException {
+            final Map<String, String> mapping = new HashMap<>();
+
+            String cursor = null;
+            while (true) {
+                final ConversationsListRequest request = ConversationsListRequest.builder()
+                    .cursor(cursor)
+                    .limit(1000)
+                    .build();
+
+                final ConversationsListResponse response = delegate.conversationsList(request);
+                if (response.isOk()) {
+                    response.getChannels().forEach(channel -> mapping.put(channel.getName(), channel.getId()));
+                    cursor = response.getResponseMetadata().getNextCursor();
+                    if (StringUtils.isEmpty(cursor)) {
+                        return mapping;
+                    }
+
                     continue;
                 }
 
-                return client;
+                final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+                throw new RuntimeException("Failed to determine Channel IDs: " + errorMessage);
             }
-        } finally {
-            clients.addAll(yieldedClients);
-        }
-
-        return null;
-    }
-
-
-    protected ConversationHistoryClient createConversationHistoryClient(final WebClientServiceProvider webClientServiceProvider, final String accessToken, final String channelId) {
-        return new StandardConversationHistoryClient(webClientServiceProvider, accessToken, channelId);
-    }
-
-    private static class UnixTimestamp implements Comparable<UnixTimestamp> {
-        private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("\\d+\\.\\d+");
-
-        private final long seconds;
-        private final long fraction;
-
-        public UnixTimestamp(final long seconds, final long fraction) {
-            this.seconds = seconds;
-            this.fraction = fraction;
-        }
-
-        public String toString() {
-            return seconds + "." + fraction;
-        }
-
-        public static boolean isTimestamp(final String value) {
-            return TIMESTAMP_PATTERN.matcher(value).matches();
-        }
-
-        @Override
-        public int compareTo(final UnixTimestamp other) {
-            final int secondsResult = Long.compare(seconds, other.seconds);
-            if (secondsResult != 0) {
-                return secondsResult;
-            }
-
-            return Long.compare(fraction, other.fraction);
-        }
-
-        public static UnixTimestamp parse(final String value) {
-            if (!isTimestamp(value)) {
-                throw new IllegalArgumentException("Value is not a valid timestamp: " + value);
-            }
-
-            final int index = value.indexOf(".");
-            final String before = value.substring(0, index);
-            final String after = value.substring(index + 1);
-            return new UnixTimestamp(Long.parseLong(before), Long.parseLong(after));
-        }
-    }
-
-    private interface ConversationHistoryResponse {
-        boolean isOk();
-
-        String getError();
-
-        String getNextCursor();
-
-        UnixTimestamp getLatest();
-
-        boolean hasMore();
-
-        ArrayNode getMessages();
-    }
-
-    private ConversationHistoryResponse parseResponse(final HttpResponse slackResponse) throws IOException, RateLimitExceededException {
-        final int statusCode = slackResponse.getStatusCode();
-        if (statusCode == 429) {
-            final Optional<String> retryAfter = slackResponse.getHeader("Retry-After");
-            final int retrySeconds = retryAfter.map(Integer::parseInt).orElse(60);
-            throw new RateLimitExceededException(retrySeconds);
-        } else if (statusCode != 200) {
-            return new ErrorResponse("Received unexpected status code " + statusCode + " from Slack: " + slackResponse.getResponseBody());
-        }
-
-
-        try (final JsonParser jsonParser = objectMapper.createParser(slackResponse.getResponseBody())) {
-            final JsonNode jsonNode = jsonParser.readValueAsTree();
-            if (jsonNode == null) {
-                return new ErrorResponse("Response was empty");
-            }
-
-            final JsonNode okNode = jsonNode.get("ok");
-            if (okNode == null) {
-                return new ErrorResponse("Message did not contain 'ok' element");
-            }
-
-            final boolean ok = okNode.booleanValue();
-            if (!ok) {
-                final JsonNode errorNode = jsonNode.get("error");
-                String error = "<No error message provided>";
-                if (errorNode != null) {
-                    error = errorNode.textValue();
-                }
-
-                return new ErrorResponse(error);
-            }
-
-            String nextCursor = null;
-            final JsonNode responseMetadataNode = jsonNode.get("response_metadata");
-            if (responseMetadataNode != null) {
-                final JsonNode nextCursorNode = responseMetadataNode.get("next_cursor");
-                if (nextCursorNode != null) {
-                    nextCursor = nextCursorNode.textValue();
-                }
-            }
-
-            final JsonNode hasMoreNode = jsonNode.get("has_more");
-            final boolean hasMore = hasMoreNode == null || hasMoreNode.booleanValue();
-
-            final JsonNode messages = jsonNode.get("messages");
-            final ArrayNode messagesArray = (ArrayNode) messages;
-
-            // Find the latest timestamp. Based on looking at the records returned, it appears that the latest timestamp
-            // will be always be the first message in the array (as opposed to the last, which I would have assumed).
-            // However, I cannot find any documentation from Slack that guarantees this, so we just iterate through all of
-            // the messages to find the latest timestamp. Otherwise, we'll keep pulling the same messages over and over.
-            UnixTimestamp latestTimestamp = null;
-            for (final JsonNode message : messagesArray) {
-                final String tsValue = message.get("ts").textValue().trim();
-
-                final UnixTimestamp parsed = UnixTimestamp.parse(tsValue);
-                if (latestTimestamp == null || parsed.compareTo(latestTimestamp) > 0) {
-                    latestTimestamp = parsed;
-                }
-            }
-
-            return new SuccessfulResponse(messagesArray, nextCursor, hasMore, latestTimestamp);
-        }
-    }
-
-
-    private static class ErrorResponse implements ConversationHistoryResponse {
-        private final String error;
-
-        public ErrorResponse(final String error) {
-            this.error = error;
-        }
-
-        @Override
-        public boolean isOk() {
-            return false;
-        }
-
-        @Override
-        public String getError() {
-            return error;
-        }
-
-        @Override
-        public String getNextCursor() {
-            return null;
-        }
-
-        @Override
-        public UnixTimestamp getLatest() {
-            return null;
-        }
-
-        @Override
-        public boolean hasMore() {
-            return false;
-        }
-
-        @Override
-        public ArrayNode getMessages() {
-            return null;
-        }
-    }
-
-    private static class SuccessfulResponse implements ConversationHistoryResponse {
-        private final ArrayNode messages;
-        private final String nextCursor;
-        private final boolean hasMore;
-        private final UnixTimestamp latest;
-
-        public SuccessfulResponse(final ArrayNode messages, final String nextCursor, final boolean hasMore, final UnixTimestamp oldest) {
-            this.messages = messages;
-            this.nextCursor = nextCursor;
-            this.hasMore = hasMore;
-            this.latest = oldest;
-        }
-
-        @Override
-        public boolean isOk() {
-            return true;
-        }
-
-        @Override
-        public String getError() {
-            return null;
-        }
-
-        @Override
-        public String getNextCursor() {
-            return nextCursor;
-        }
-
-        @Override
-        public boolean hasMore() {
-            return hasMore;
-        }
-
-        @Override
-        public ArrayNode getMessages() {
-            return messages;
-        }
-
-        @Override
-        public UnixTimestamp getLatest() {
-            return latest;
-        }
-    }
-
-
-    public static class RateLimitExceededException extends Exception {
-        private final int retrySeconds;
-
-        public RateLimitExceededException(final int retrySeconds) {
-            super();
-            this.retrySeconds = retrySeconds;
-        }
-
-        public int getRetrySeconds() {
-            return retrySeconds;
-        }
-    }
-
-
-    protected interface HttpResponse extends Closeable {
-        int getStatusCode();
-
-        InputStream getResponseBody();
-
-        Optional<String> getHeader(String headerName);
-    }
-
-    /**
-     * An interface for making a request to Slack's API to retrieve a channel's conversation history.
-     * The response from this method is a String containing the JSON response from Slack.
-     * It makes no attempt to parse or validate the response.
-     * While this could be performed inline in the processor, creating a separate interface and implementation for this
-     * yields cleaner code by separating the concerns of interacting with Slack and processing the response.
-     * This also allows for easier unit testing of the processor.
-     */
-    public interface ConversationHistoryClient {
-        HttpResponse getConversationHistory(String cursor, int limit);
-
-        String getChannelId();
-
-        void yield();
-
-        boolean isYielded();
-    }
-
-    private static class StandardConversationHistoryClient implements ConversationHistoryClient {
-        private static final long YIELD_MILLIS = 3_000L;
-        private final WebClientServiceProvider webClientServiceProvider;
-        private final String accessToken;
-        private final String channelId;
-        private volatile long yieldExpiration = 0L;
-
-        public StandardConversationHistoryClient(final WebClientServiceProvider webClientServiceProvider, final String accessToken, final String channelId) {
-            this.webClientServiceProvider = webClientServiceProvider;
-            this.accessToken = accessToken;
-            this.channelId = channelId;
-        }
-
-        public String getChannelId() {
-            return channelId;
-        }
-
-        @Override
-        public void yield() {
-            yieldExpiration = System.currentTimeMillis() + YIELD_MILLIS;
-        }
-
-        @Override
-        public boolean isYielded() {
-            final long expiration = yieldExpiration;
-            return expiration > 0L && System.currentTimeMillis() < expiration;
-        }
-
-        @Override
-        public HttpResponse getConversationHistory(final String cursor, final int limit) {
-            yieldExpiration = 0L;   // reset the yield expiration
-
-            final WebClientService webClientService = webClientServiceProvider.getWebClientService();
-
-            HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
-                .scheme("https")
-                .host("slack.com")
-                .addPathSegment("api")
-                .addPathSegment("conversations.history")
-                .addQueryParameter("channel", channelId)
-                .addQueryParameter("limit", String.valueOf(limit));
-
-            // The Slack API provides two different ways of performing pagination. The first is by using a 'cursor',
-            // which is preferred but only is made available when iterating over historical data. When we reach the end,
-            // there is no cursor to tell us where we've left off. So, in order to continue iterating, we need to use
-            // the 'oldest' parameter, which is a timestamp in the form of #####.####
-            if (cursor != null) {
-                if (UnixTimestamp.isTimestamp(cursor)) {
-                    uriBuilder = uriBuilder.addQueryParameter("oldest", cursor);
-                    uriBuilder = uriBuilder.addQueryParameter("inclusive", "false");
-                } else {
-                    uriBuilder = uriBuilder.addQueryParameter("cursor", cursor);
-                }
-            }
-
-            final URI uri = uriBuilder.build();
-            final HttpResponseEntity entity = webClientService.get()
-                        .uri(uri)
-                        .header("Authorization", "Bearer " + accessToken)
-                        .header("Accept", "application/json")
-                        .retrieve();
-
-            final HttpResponse response = new HttpResponse() {
-                @Override
-                public void close() throws IOException {
-                    entity.close();
-                }
-
-                @Override
-                public int getStatusCode() {
-                    return entity.statusCode();
-                }
-
-                @Override
-                public InputStream getResponseBody() {
-                    return entity.body();
-                }
-
-                @Override
-                public Optional<String> getHeader(final String headerName) {
-                    return entity.headers().getFirstHeader(headerName);
-                }
-            };
-
-            return response;
         }
     }
 }
