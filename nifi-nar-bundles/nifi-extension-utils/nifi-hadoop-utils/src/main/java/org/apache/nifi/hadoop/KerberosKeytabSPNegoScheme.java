@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.hadoop;
 
-import java.net.UnknownHostException;
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.apache.http.auth.Credentials;
 import org.apache.http.impl.auth.SPNegoScheme;
@@ -31,6 +23,15 @@ import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
+
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
+import java.net.UnknownHostException;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
 
 /**
  * This class provides a very similar authentication scheme and token generation as {@link SPNegoScheme} does.
