@@ -62,11 +62,6 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
                 throw new IllegalArgumentException(String.format("expected %s file not directory", resourceName));
             }
 
-            if (resource.getAlias() != null) {
-                // this resource has an alias, use the alias, as that's what's returned in the Scanner
-                monitoredFile = new File(resource.getAlias());
-            }
-
             file = monitoredFile;
             if (LOG.isDebugEnabled()) {
                 LOG.debug("File monitoring started {} [{}]", resourceName, monitoredFile);
@@ -80,7 +75,7 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
             throw new IllegalArgumentException(String.format("error obtaining %s dir", resourceName));
         }
 
-        scanner = new Scanner();
+        scanner = new Scanner(null, false);
         scanner.setScanDirs(Collections.singletonList(parentFile));
         scanner.setScanInterval(1);
         scanner.setReportDirs(false);
