@@ -66,8 +66,8 @@
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
         <nifi.content.claim.max.appendable.size>50 KB</nifi.content.claim.max.appendable.size>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
-        <nifi.content.repository.archive.max.retention.period>7 days</nifi.content.repository.archive.max.retention.period>
-        <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
+        <nifi.content.repository.archive.max.retention.period>3 hours</nifi.content.repository.archive.max.retention.period>
+        <nifi.content.repository.archive.max.usage.percentage>90%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
