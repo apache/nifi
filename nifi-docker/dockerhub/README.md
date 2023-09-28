@@ -188,7 +188,7 @@ user with administrative privileges.
 ### For a minimal, connection to an OpenID server
 
     docker run --name nifi \
-      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -v $(pwd)/certs/localhost:/opt/certs \
       -p 8443:8443 \
       -e AUTH=oidc \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
@@ -198,16 +198,18 @@ user with administrative privileges.
       -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
       -e TRUSTSTORE_TYPE=JKS \
       -e INITIAL_ADMIN_IDENTITY='test' \
-      -e NIFI_SECURITY_USER_OIDC_DISCOVERY_URL: http://OPENID_SERVER_URL/auth/realms/OPENID_REALM/.well-known/openid-configuration \
-      -e NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT: 10000 \
-      -e NIFI_SECURITY_USER_OIDC_READ_TIMEOUT: 10000 \
-      -e NIFI_SECURITY_USER_OIDC_CLIENT_ID: nifi \
-      -e NIFI_SECURITY_USER_OIDC_CLIENT_SECRET: tU47ugXO308WZqf5TtylyoMX3xH6W0kN \
-      -e NIFI_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM: RS256 \
-      -e NIFI_SECURITY_USER_OIDC_ADDITIONAL_SCOPES: email \
-      -e NIFI_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER: preferred_username \
-      -e NIFI_SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER: email \
-      -e NIFI_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY: PKIX \
+      -e NIFI_SECURITY_USER_OIDC_DISCOVERY_URL=http://OPENID_SERVER_URL/auth/realms/OPENID_REALM/.well-known/openid-configuration \
+      -e NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT=10000 \
+      -e NIFI_SECURITY_USER_OIDC_READ_TIMEOUT=10000 \
+      -e NIFI_SECURITY_USER_OIDC_CLIENT_ID=nifi \
+      -e NIFI_SECURITY_USER_OIDC_CLIENT_SECRET=tU47ugXO308WZqf5TtylyoMX3xH6W0kN \
+      -e NIFI_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM=RS256 \
+      -e NIFI_SECURITY_USER_OIDC_ADDITIONAL_SCOPES=email \
+      -e NIFI_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER=preferred_username \
+      -e NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS=admin \
+      -e NIFI_SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER=email \
+      -e NIFI_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY=PKIX \
+      -e NIFI_SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW='60 secs' \
       -d \
       apache/nifi:latest
 
