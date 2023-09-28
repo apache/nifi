@@ -249,7 +249,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         loadClasses(context);
         GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader());
-        groovyShell = new GroovyShell(loader, new Binding());
+        groovyShell = new GroovyShell(loader);
         compiledCode = new ConcurrentHashMap<>();
 
         if (context.getProperty(TRAVERSAL_SOURCE_NAME).isSet()) {
@@ -466,7 +466,8 @@ public class TinkerpopClientService extends AbstractControllerService implements
         bindings.setProperty("g", traversalSource);
         bindings.setProperty("log", getLogger());
         try {
-            Object result = groovyShell.parse(s, bindings).run();
+            compiled.setBinding(bindings);
+            Object result = compiled.run();
             if (result instanceof Map) {
                 Map<String, Object> resultMap = (Map<String, Object>) result;
                 if (!resultMap.isEmpty()) {
