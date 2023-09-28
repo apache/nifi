@@ -188,7 +188,7 @@ user with administrative privileges.
 ### For a minimal, connection to an OpenID server
 
     docker run --name nifi \
-      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -v $(pwd)/certificates/localhost:/opt/certs \
       -p 8443:8443 \
       -e AUTH=oidc \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
@@ -209,7 +209,7 @@ user with administrative privileges.
       -e NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS=admin \
       -e NIFI_SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER=email \
       -e NIFI_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY=PKIX \
-      -e NIFI_SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW=60 secs
+      -e NIFI_SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW='60 secs' \
       -d \
       apache/nifi:latest
 
