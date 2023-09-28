@@ -1236,6 +1236,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 conn.verifyCanDelete();
             }
 
+            // Avoid performing any more validation on the processor, as it is no longer necessary and may
+            // cause issues with Python-based Processor, as validation may trigger, attempting to communicate
+            // with the Python process even after the Python process has been destroyed.
+            processor.pauseValidationTrigger();
+
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
                     getStateManager(processor.getIdentifier()), () -> false, nodeTypeProvider);

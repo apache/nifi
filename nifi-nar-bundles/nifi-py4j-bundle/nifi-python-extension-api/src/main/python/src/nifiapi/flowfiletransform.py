@@ -19,6 +19,10 @@ from nifiapi.properties import ProcessContext
 
 
 class FlowFileTransform(ABC):
+    # These will be set by the PythonProcessorAdapter when the component is created
+    identifier = None
+    logger = None
+
     def __init__(self):
         self.arrayList = JvmHolder.jvm.java.util.ArrayList
 

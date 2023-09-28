@@ -17,6 +17,7 @@
 
 package org.apache.nifi.python.processor;
 
+import java.util.Map;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -26,8 +27,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import py4j.Py4JNetworkException;
-
-import java.util.Map;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
@@ -76,6 +75,13 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             session.transfer(original, REL_FAILURE);
             return;
         }
+        final String relationshipName = result.getRelationship();
+        final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
+        if (REL_FAILURE.getName().equals(relationshipName)) {
+            session.remove(transformed);
+            session.transfer(original, REL_FAILURE);
+            return;
+        }
 
         final Map<String, String> attributes = result.getAttributes();
         if (attributes != null) {
@@ -87,8 +93,6 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             transformed = session.write(transformed, out -> out.write(contents));
         }
 
-        final String relationshipName = result.getRelationship();
-        final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
         session.transfer(transformed, relationship);
         session.transfer(original, REL_ORIGINAL);
     }
