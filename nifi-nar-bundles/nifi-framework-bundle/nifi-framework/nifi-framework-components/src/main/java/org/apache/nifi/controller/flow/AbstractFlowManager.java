@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -124,7 +125,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = group.getIdentifier();
         allProcessGroups.remove(identifier);
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public void onProcessorAdded(final ProcessorNode procNode) {
@@ -137,7 +138,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         allProcessors.remove(identifier);
         pythonBridge.onProcessorRemoved(identifier, procNode.getComponentType(), procNode.getBundleCoordinate().getVersion());
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Set<ProcessorNode> findAllProcessors(final Predicate<ProcessorNode> filter) {
@@ -197,7 +198,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowFileEventRepository.purgeTransferEvents(identifier);
         allConnections.remove(identifier);
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Connection getConnection(final String id) {
@@ -353,7 +354,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowFileEventRepository.purgeTransferEvents(identifier);
         allInputPorts.remove(identifier);
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Port getInputPort(final String id) {
@@ -369,7 +370,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowFileEventRepository.purgeTransferEvents(identifier);
         allOutputPorts.remove(identifier);
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Port getOutputPort(final String id) {
@@ -385,7 +386,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowFileEventRepository.purgeTransferEvents(identifier);
         allFunnels.remove(identifier);
 
-        ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Funnel getFunnel(final String id) {
@@ -686,12 +687,18 @@ public abstract class AbstractFlowManager implements FlowManager {
     protected abstract Authorizable getParameterContextParent();
 
     @Override
-    public FlowAnalyzer getFlowAnalyzer() {
-        return flowAnalyzer;
+    public Optional<FlowAnalyzer> getFlowAnalyzer() {
+        return Optional.ofNullable(flowAnalyzer);
     }
 
     @Override
-    public RuleViolationsManager getRuleViolationsManager() {
-        return ruleViolationsManager;
+    public Optional<RuleViolationsManager> getRuleViolationsManager() {
+        return Optional.ofNullable(ruleViolationsManager);
+    }
+
+    private void removeRuleViolationsForSubject(String identifier) {
+        if (ruleViolationsManager != null) {
+            ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        }
     }
 }

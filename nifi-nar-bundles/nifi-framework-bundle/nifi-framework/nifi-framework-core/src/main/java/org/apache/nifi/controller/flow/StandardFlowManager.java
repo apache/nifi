@@ -345,8 +345,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
-            .flowAnalyzer(getFlowAnalyzer())
-            .ruleViolationsManager(getRuleViolationsManager())
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
             .classloaderIsolationKey(classloaderIsolationKey)
             .pythonBridge(flowController.getPythonBridge())
             .buildProcessor();
@@ -551,8 +551,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
             .extensionManager(extensionManager)
-            .flowAnalyzer(getFlowAnalyzer())
-            .ruleViolationsManager(getRuleViolationsManager())
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
             .classloaderIsolationKey(classloaderIsolationKey)
             .buildFlowAnalysisRuleNode();
 
@@ -687,7 +687,11 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         processScheduler.submitFrameworkTask(() -> flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier()));
 
-        processScheduler.submitFrameworkTask(() -> getRuleViolationsManager().removeRuleViolationsForSubject(service.getIdentifier()));
+        getRuleViolationsManager().ifPresent(
+            ruleViolationsManager -> processScheduler.submitFrameworkTask(
+                () -> ruleViolationsManager.removeRuleViolationsForSubject(service.getIdentifier())
+            )
+        );
 
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
@@ -714,8 +718,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
-            .flowAnalyzer(getFlowAnalyzer())
-            .ruleViolationsManager(getRuleViolationsManager())
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
             .classloaderIsolationKey(classloaderIsolationKey)
             .buildControllerService();
 

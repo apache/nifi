@@ -6307,7 +6307,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             controllerFacade.getControllerServiceProvider()
         );
 
-        controllerFacade.getFlowManager().getFlowAnalyzer().analyzeProcessGroup(nonVersionedProcessGroup);
+        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
+            flowAnalyzer -> flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup)
+        );
     }
 
     @Override
@@ -6408,12 +6410,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private Optional<AuthorizableHolder> findAuthorizableHolder(
-        String id,
-        Function<String, AuthorizableHolder>... lookupMethods
+        final String id,
+        final Function<String, AuthorizableHolder>... lookupMethods
     ) {
         AuthorizableHolder authorizableHolder = null;
         for (Function<String, AuthorizableHolder> lookupMethod : lookupMethods) {
-            authorizableHolder = lookupMethod.apply(id);
+            try {
+                authorizableHolder = lookupMethod.apply(id);
+            } catch (ResourceNotFoundException e) {
+                // We don't know beforehand what kind of component we are looking for. Ignore if one lookup fails.
+            }
             if (authorizableHolder != null) {
                 break;
             }
