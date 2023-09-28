@@ -35,9 +35,9 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -144,16 +144,18 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
         final HttpResponseEntity httpResponseEntity = getHttpResponseEntity(body);
 
         final int responseStatusCode = httpResponseEntity.statusCode();
-        // TODO be more specific with error codes?
+        // TODO be more specific with error codes? Improve response message?
         if (responseStatusCode < 200 || responseStatusCode >= 300) {
-            StringWriter stringWriter = new StringWriter();
+            String response = "";
             try {
-                IOUtils.copy(httpResponseEntity.body(), stringWriter, "UTF-8");
-                getLogger().error("Error returned in response: " + stringWriter.getBuffer().toString());
+                response = IOUtils.toString(httpResponseEntity.body(), StandardCharsets.UTF_8);
+                getLogger().error("Error returned in response: " + response);
             } catch (IOException ioe) {
                 getLogger().error("Error reading body of response", ioe);
             }
+            throw new ProcessException("Query execution failed with status code " + responseStatusCode + " and error message " + response);
         }
+
         try (final JsonParser jsonParser = MAPPER.getFactory().createParser(httpResponseEntity.body())) {
             long count = 0;
             JsonToken jsonToken = jsonParser.nextToken();
@@ -211,7 +213,7 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
 
     private URI getUri() {
         try {
-            return new URI(apiUrl + "/command/" + databaseName);
+            return new URI(normalizeURL(apiUrl + "/command/" + databaseName));
         } catch (URISyntaxException e) {
             throw new ProcessException("Invalid url", e);
         }
@@ -233,6 +235,10 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
             return new CypherQueryFromNodesBuilder().getQueries(nodeList);
         }
         return Collections.emptyList();
+    }
+
+    private String normalizeURL(final String url) {
+        return url.replaceAll("(?<!http:|https:)/+/", "/");
     }
 
     private static class ArcadeDbRequestBody {
