@@ -64,7 +64,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -116,26 +115,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("3")
-            .build();
-
-    public static final PropertyDescriptor INITIAL_BACKOFF_TIME = new PropertyDescriptor.Builder()
-            .name("initial-backoff-time")
-            .displayName("Initial Backoff Time")
-            .description("The initial exponential backoff time for reconnection.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("1 sec")
-            .build();
-
-    public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
-            .name("maximum-backoff-time")
-            .displayName("Maximum Backoff Time")
-            .description("The maximm exponential backoff time for reconnection.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("1 min")
             .build();
 
     public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
@@ -213,6 +192,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    private static final int INITIAL_BACKOFF_MILLIS = 100;
+    private static final int MAXIMUM_BACKOFF_MILLIS = 3200;
     private static final double BACKOFF_JITTER_FACTOR = 0.2;
 
     private static final List<PropertyDescriptor> properties;
@@ -223,8 +204,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
         props.add(CONNECTION_ATTEMPT_COUNT);
-        props.add(INITIAL_BACKOFF_TIME);
-        props.add(MAXIMUM_BACKOFF_TIME);
         props.add(SESSION_MAINTENANCE_INTERVAL);
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
@@ -242,10 +221,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private URI webSocketUri;
     private long connectionTimeoutMillis;
     private int connectCount;
-    private long initialBackoffMillis;
-    private long maximumBackoffMillis;
-    private long backoffJitterMillis;
-
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
     protected String authorizationHeader;
@@ -261,9 +236,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         configurationContext = context;
 
         connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
-        maximumBackoffMillis = configurationContext.getProperty(MAXIMUM_BACKOFF_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        initialBackoffMillis = configurationContext.getProperty(INITIAL_BACKOFF_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        backoffJitterMillis = (long) (initialBackoffMillis * BACKOFF_JITTER_FACTOR * ThreadLocalRandom.current().nextDouble(-1, 1));
 
         final HttpClient httpClient;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
@@ -417,7 +389,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     }
 
     private Session attemptConnection(RoutingWebSocketListener listener, ClientUpgradeRequest request, int connectCount) throws IOException {
-        long backoffMillis = initialBackoffMillis;
+        int backoffMillis = INITIAL_BACKOFF_MILLIS;
+        int backoffJitterMillis = (int) (INITIAL_BACKOFF_MILLIS * BACKOFF_JITTER_FACTOR * getRandomDouble(-1, 1));
+
         for (int i = 0; i < connectCount; i++) {
             final Future<Session> connect = createWebsocketSession(listener, request);
             getLogger().info("Connecting to : {}", webSocketUri);
@@ -433,7 +407,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             }
 
             if (i < connectCount - 1) {
-                final long sleepTime = backoffMillis + backoffJitterMillis;
+                final int sleepTime = backoffMillis + backoffJitterMillis;
                 try {
                     getLogger().info("Sleeping {} ms before new connection attempt.", sleepTime);
                     Thread.sleep(sleepTime);
@@ -441,7 +415,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     getLogger().warn("Thread was interrupted while reconnecting to {} with {} backoffMillis", webSocketUri, sleepTime, e);
                     Thread.currentThread().interrupt();
                 }
-                backoffMillis = Math.min(backoffMillis * 2, maximumBackoffMillis);
+                backoffMillis = Math.min(backoffMillis * 2, MAXIMUM_BACKOFF_MILLIS);
             }
         }
         throw new IOException("Failed to connect " + webSocketUri + " after " + connectCount + " attempts");
@@ -503,5 +477,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         policy.setInputBufferSize(inputBufferSize);
         policy.setMaxTextMessageSize(maxTextMessageSize);
         policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
+    }
+
+    public double getRandomDouble(int min, int max) {
+        return (Math.random() * (max - min)) + min;
     }
 }
