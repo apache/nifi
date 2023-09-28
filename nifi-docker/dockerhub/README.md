@@ -188,7 +188,7 @@ user with administrative privileges.
 ### For a minimal, connection to an OpenID server
 
     docker run --name nifi \
-      -v $(pwd)/certificates/localhost:/opt/certs \
+      -v $(pwd)/certs/localhost:/opt/certs \
       -p 8443:8443 \
       -e AUTH=oidc \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
