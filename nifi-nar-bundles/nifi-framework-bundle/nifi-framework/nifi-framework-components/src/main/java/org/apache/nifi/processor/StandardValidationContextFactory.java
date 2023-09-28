@@ -26,6 +26,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class StandardValidationContextFactory implements ValidationContextFactory {
 
@@ -54,12 +55,12 @@ public class StandardValidationContextFactory implements ValidationContextFactor
     }
 
     @Override
-    public RuleViolationsManager getRuleViolationsManager() {
-        return ruleViolationsManager;
+    public Optional<RuleViolationsManager> getRuleViolationsManager() {
+        return Optional.ofNullable(ruleViolationsManager);
     }
 
     @Override
-    public FlowAnalyzer getFlowAnalyzer() {
-        return flowAnalyzer;
+    public Optional<FlowAnalyzer> getFlowAnalyzer() {
+        return Optional.ofNullable(flowAnalyzer);
     }
 }

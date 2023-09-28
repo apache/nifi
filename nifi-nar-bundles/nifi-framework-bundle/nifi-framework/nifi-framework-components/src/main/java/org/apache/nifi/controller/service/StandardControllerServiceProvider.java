@@ -683,7 +683,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         extensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
         serviceCache.remove(serviceNode.getIdentifier());
 
-        flowManager.getRuleViolationsManager().removeRuleViolationsForSubject(serviceNode.getIdentifier());
+        flowManager.getRuleViolationsManager().ifPresent(
+            ruleViolationsManager -> ruleViolationsManager.removeRuleViolationsForSubject(serviceNode.getIdentifier())
+        );
     }
 
     @Override

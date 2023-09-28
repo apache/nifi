@@ -562,11 +562,15 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
-        flowAnalyzer = new StandardFlowAnalyzer(
+        if (ruleViolationsManager != null) {
+            flowAnalyzer = new StandardFlowAnalyzer(
                 ruleViolationsManager,
                 this,
                 extensionManager
-        );
+            );
+        } else {
+            flowAnalyzer = null;
+        }
 
         flowManager = new StandardFlowManager(
                 nifiProperties,
@@ -600,7 +604,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 flowAnalyzer,
                 ruleViolationsManager
         );
-        flowAnalyzer.initialize(controllerServiceProvider);
+        if (flowAnalyzer != null) {
+            flowAnalyzer.initialize(controllerServiceProvider);
+        }
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
@@ -1204,7 +1210,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
             };
 
-            new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier).run();
+            if (flowAnalyzer != null) {
+                new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier).run();
+            }
             new TriggerValidationTask(flowManager, triggerIfValidating).run();
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
@@ -1288,17 +1296,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
-        try {
-            final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.BACKGROUND_FLOW_ANALYSIS_SCHEDULE);
+        if (flowAnalyzer != null) {
+            try {
+                final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.BACKGROUND_FLOW_ANALYSIS_SCHEDULE);
 
-            flowAnalysisThreadPool.scheduleWithFixedDelay(
-                new TriggerFlowAnalysisTask(flowManager.getFlowAnalyzer(), rootProcessGroupSupplier),
-                scheduleMillis,
-                scheduleMillis,
-                TimeUnit.MILLISECONDS
-            );
-        } catch (Exception e) {
-            LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);
+                flowAnalysisThreadPool.scheduleWithFixedDelay(
+                    new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier),
+                    scheduleMillis,
+                    scheduleMillis,
+                    TimeUnit.MILLISECONDS
+                );
+            } catch (Exception e) {
+                LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);
+            }
         }
     }
 

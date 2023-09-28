@@ -435,7 +435,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules();
 
-    FlowAnalyzer getFlowAnalyzer();
+    Optional<FlowAnalyzer> getFlowAnalyzer();
 
-    RuleViolationsManager getRuleViolationsManager();
+    Optional<RuleViolationsManager> getRuleViolationsManager();
 }

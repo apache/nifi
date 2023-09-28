@@ -62,7 +62,6 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.validation.RuleViolation;
-import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -789,8 +788,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             performFlowAnalysisOnThis();
 
-            RuleViolationsManager ruleViolationsManager = getValidationContextFactory().getRuleViolationsManager();
-            if (ruleViolationsManager != null) {
+            getValidationContextFactory().getRuleViolationsManager().ifPresent(ruleViolationsManager -> {
                 Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
                 for (RuleViolation ruleViolation : ruleViolations) {
                     if (ruleViolation.getEnforcementPolicy() == EnforcementPolicy.ENFORCE) {
@@ -803,7 +801,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         );
                     }
                 }
-            }
+            });
 
             logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, validationResults);
 
