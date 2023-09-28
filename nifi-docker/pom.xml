@@ -21,12 +21,6 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-docker</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <nifi.version>${project.version}</nifi.version>
-        <docker.image.name>bellsoft/liberica-openjdk-debian</docker.image.name>
-        <docker.image.tag>21</docker.image.tag>
-    </properties>
-
     <modules>
         <module>dockermaven</module>
         <module>dockerhub</module>
