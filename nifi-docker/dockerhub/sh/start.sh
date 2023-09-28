@@ -35,7 +35,8 @@ fi
 # Setup NiFi to use Python
 uncomment "nifi.python.command" ${nifi_props_file}
 prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
-
+# Setup NiFi to scan for new NARs in nar_extensions
+prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"

@@ -58,6 +58,7 @@ RUN mkdir -p ${NIFI_HOME}/conf \
     && mkdir -p ${NIFI_HOME}/content_repository \
     && mkdir -p ${NIFI_HOME}/provenance_repository \
     && mkdir -p ${NIFI_HOME}/python_extensions \
+    && mkdir -p ${NIFI_HOME}/nar_extensions \
     && mkdir -p ${NIFI_HOME}/state \
     && mkdir -p ${NIFI_LOG_DIR}
 
@@ -95,6 +96,7 @@ VOLUME ${NIFI_LOG_DIR} \
        ${NIFI_HOME}/content_repository \
        ${NIFI_HOME}/provenance_repository \
        ${NIFI_HOME}/python_extensions \
+       ${NIFI_HOME}/nar_extensions \
        ${NIFI_HOME}/state
 
 USER nifi
