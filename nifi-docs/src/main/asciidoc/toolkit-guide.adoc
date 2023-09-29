@@ -126,8 +126,6 @@ The following are available commands:
  nifi delete-param-context
  nifi set-inherited-param-contexts
  nifi remove-inherited-param-contexts
- nifi set-param-provider-reference
- nifi remove-param-provider-reference
  nifi set-param
  nifi delete-param
  nifi export-param-context
@@ -142,6 +140,8 @@ The following are available commands:
  nifi get-access-token
  nifi get-access-token-spnego
  nifi logout-access-token
+ nifi get-controller-configuration
+ nifi update-controller-configuration
  registry current-user
  registry list-buckets
  registry create-bucket
