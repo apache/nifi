@@ -14,12 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql;
 
-import java.io.Closeable;
-import java.sql.ResultSet;
+package org.apache.nifi.sql;
 
-public interface QueryResult extends Closeable {
-    ResultSet getResultSet();
-    int getRecordsRead();
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.rel.type.RelDataType;
+
+public interface ColumnType {
+
+    /**
+     * Converts the column into the {@link RelDataType} that Calcite requires
+     *
+     * @param typeFactory the type factory to use for creating the RelDataType
+     * @return the appropriate RelDataType for Calcite
+     */
+    RelDataType getRelationalDataType(JavaTypeFactory typeFactory);
+
 }

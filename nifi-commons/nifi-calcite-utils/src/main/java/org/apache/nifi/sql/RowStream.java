@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql;
 
-import java.io.Closeable;
-import java.sql.ResultSet;
+package org.apache.nifi.sql;
 
-public interface QueryResult extends Closeable {
-    ResultSet getResultSet();
-    int getRecordsRead();
+import java.io.IOException;
+
+/**
+ * An interface that is responsible for returning rows of data
+ */
+public interface RowStream extends AutoCloseable {
+
+    /**
+     * Returns the next row of data as an object array, or <code>null</code> if the stream is out of data.
+     * Note that the objects returned MUST adhere to the schema of the {@link ResettableDataSource} that created this RowStream.
+     *
+     * @return the next row of data, or <code>null</code> if there is no more data
+     * @throws IOException if unable to obtain the next row of data due to I/O failure
+     */
+    Object[] nextRow() throws IOException;
+
 }

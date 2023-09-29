@@ -17,9 +17,6 @@
 
 package org.apache.nifi.processors.standard.calcite;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -30,6 +27,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.sql.CalciteDatabase;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,17 +37,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RecordPathFunctions {
-    public static SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
-        final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-        rootSchema.add("RPATH", ScalarFunctionImpl.create(ObjectRecordPath.class, "eval"));
-        rootSchema.add("RPATH_STRING", ScalarFunctionImpl.create(StringRecordPath.class, "eval"));
-        rootSchema.add("RPATH_INT", ScalarFunctionImpl.create(IntegerRecordPath.class, "eval"));
-        rootSchema.add("RPATH_LONG", ScalarFunctionImpl.create(LongRecordPath.class, "eval"));
-        rootSchema.add("RPATH_DATE", ScalarFunctionImpl.create(DateRecordPath.class, "eval"));
-        rootSchema.add("RPATH_DOUBLE", ScalarFunctionImpl.create(DoubleRecordPath.class, "eval"));
-        rootSchema.add("RPATH_FLOAT", ScalarFunctionImpl.create(FloatRecordPath.class, "eval"));
 
-        return rootSchema;
+    public static void addToDatabase(final CalciteDatabase database) {
+        database.addUserDefinedFunction("RPATH", ObjectRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_STRING", StringRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_INT", IntegerRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_LONG", LongRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_DATE", DateRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_DOUBLE", DoubleRecordPath.class, "eval");
+        database.addUserDefinedFunction("RPATH_FLOAT", FloatRecordPath.class, "eval");
     }
 
     public static class ObjectRecordPath extends RecordPathFunction {

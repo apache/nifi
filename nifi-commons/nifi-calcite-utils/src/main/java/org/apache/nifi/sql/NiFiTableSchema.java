@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql;
 
-import java.io.Closeable;
-import java.sql.ResultSet;
+package org.apache.nifi.sql;
 
-public interface QueryResult extends Closeable {
-    ResultSet getResultSet();
-    int getRecordsRead();
+import java.util.List;
+
+/**
+ * The schema for a {@link NiFiTable}
+ *
+ * @param columns a List of columns in the table
+ */
+public record NiFiTableSchema(List<ColumnSchema> columns) {
 }
