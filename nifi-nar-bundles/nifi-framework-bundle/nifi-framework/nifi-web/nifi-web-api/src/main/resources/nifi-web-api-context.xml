@@ -733,6 +733,7 @@
         <property name="processorDAO" ref="processorDAO"/>
         <property name="funnelDAO" ref="funnelDAO"/>
         <property name="connectionDAO" ref="connectionDAO"/>
+        <property name="labelDAO" ref="labelDAO"/>
         <property name="portAuditor" ref="portAuditor"/>
         <property name="funnelAuditor" ref="funnelAuditor"/>
         <property name="remoteProcessGroupAuditor" ref="remoteProcessGroupAuditor"/>
