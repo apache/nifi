@@ -46,6 +46,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -134,10 +135,21 @@ public class ValidateJson extends AbstractProcessor {
         .defaultValue(SchemaVersion.DRAFT_2020_12.getValue())
         .build();
 
+    public static final PropertyDescriptor JSON_LINES = new PropertyDescriptor.Builder()
+            .name("support-json-lines")
+            .displayName("Support JSON Lines")
+            .description("Flag indicating whether to support JSON lines. NOTE: If supported, the validation only occurs on the first JSON object")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
             Arrays.asList(
                     SCHEMA_CONTENT,
-                    SCHEMA_VERSION
+                    SCHEMA_VERSION,
+                    JSON_LINES
             )
     );
 
@@ -164,14 +176,8 @@ public class ValidateJson extends AbstractProcessor {
             ))
     );
 
-    private static final ObjectMapper MAPPER;
-    static {
-        MAPPER = new ObjectMapper();
-        MAPPER.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-        MAPPER.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
-    }
-
     private JsonSchema schema;
+    private volatile ObjectMapper mapper;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -181,6 +187,12 @@ public class ValidateJson extends AbstractProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    protected void init(ProcessorInitializationContext context) {
+        mapper = new ObjectMapper();
+        mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
     @OnScheduled
@@ -199,8 +211,9 @@ public class ValidateJson extends AbstractProcessor {
             return;
         }
 
+        mapper.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, Boolean.FALSE.equals(context.getProperty(JSON_LINES).asBoolean()));
         try (final InputStream in = session.read(flowFile)) {
-            final JsonNode node = MAPPER.readTree(in);
+            final JsonNode node = mapper.readTree(in);
             final Set<ValidationMessage> errors = schema.validate(node);
 
             if (errors.isEmpty()) {
