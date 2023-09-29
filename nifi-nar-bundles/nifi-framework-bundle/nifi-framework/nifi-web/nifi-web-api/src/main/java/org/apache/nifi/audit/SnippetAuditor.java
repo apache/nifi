@@ -508,6 +508,10 @@ public class SnippetAuditor extends NiFiAuditor {
         this.processorDAO = processorDAO;
     }
 
+    public void setLabelDAO(LabelDAO labelDAO) {
+        this.labelDAO = labelDAO;
+    }
+
     public void setRelationshipAuditor(RelationshipAuditor relationshipAuditor) {
         this.relationshipAuditor = relationshipAuditor;
     }
