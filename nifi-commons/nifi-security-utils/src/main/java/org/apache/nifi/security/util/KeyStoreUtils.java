@@ -32,9 +32,7 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -60,8 +58,8 @@ import org.slf4j.LoggerFactory;
 public class KeyStoreUtils {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreUtils.class);
 
-    public static final String SUN_PROVIDER_NAME = "SUN";
-    public static final String SUN_JSSE_PROVIDER_NAME = "SunJSSE";
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+
     private static final String JKS_EXT = ".jks";
     private static final String PKCS12_EXT = ".p12";
     private static final String BCFKS_EXT = ".bcfks";
@@ -76,36 +74,12 @@ public class KeyStoreUtils {
     private static final String KEYSTORE_ERROR_MSG = "There was an error creating a Keystore.";
     private static final String TRUSTSTORE_ERROR_MSG = "There was an error creating a Truststore.";
 
-    private static final Map<String, String> KEY_STORE_TYPE_PROVIDERS = new HashMap<>();
     private static final Map<KeystoreType, String> KEY_STORE_EXTENSIONS = new HashMap<>();
-    private static final Map<KeystoreType, String> SECRET_KEY_STORE_PROVIDERS = new HashMap<>();
-
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-
-        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.BCFKS.getType(), BouncyCastleProvider.PROVIDER_NAME);
-        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), SUN_JSSE_PROVIDER_NAME);
-        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.JKS.getType(), SUN_PROVIDER_NAME);
-
-        SECRET_KEY_STORE_PROVIDERS.put(KeystoreType.BCFKS, BouncyCastleProvider.PROVIDER_NAME);
-        SECRET_KEY_STORE_PROVIDERS.put(KeystoreType.PKCS12, SUN_JSSE_PROVIDER_NAME);
-    }
 
     static {
         KEY_STORE_EXTENSIONS.put(KeystoreType.JKS, JKS_EXT);
         KEY_STORE_EXTENSIONS.put(KeystoreType.PKCS12, PKCS12_EXT);
         KEY_STORE_EXTENSIONS.put(KeystoreType.BCFKS, BCFKS_EXT);
-    }
-
-    /**
-     * Returns the provider that will be used for the given keyStoreType
-     *
-     * @param keyStoreType the keyStoreType
-     * @return Key Store Provider Name or null when not found
-     */
-    public static String getKeyStoreProvider(final String keyStoreType) {
-        final String storeType = StringUtils.upperCase(keyStoreType);
-        return KEY_STORE_TYPE_PROVIDERS.get(storeType);
     }
 
     /**
@@ -116,15 +90,11 @@ public class KeyStoreUtils {
      * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
      */
     public static KeyStore getKeyStore(final String keyStoreType) throws KeyStoreException {
-        final String keyStoreProvider = getKeyStoreProvider(keyStoreType);
-        if (StringUtils.isNotEmpty(keyStoreProvider)) {
-            try {
-                return KeyStore.getInstance(keyStoreType, keyStoreProvider);
-            } catch (final Exception e) {
-                logger.error("KeyStore Type [{}] Provider [{}] instance creation failed", keyStoreType, keyStoreProvider, e);
-            }
+        if (KeystoreType.BCFKS.toString().equals(keyStoreType)) {
+            return KeyStore.getInstance(keyStoreType, BOUNCY_CASTLE_PROVIDER);
+        } else {
+            return KeyStore.getInstance(keyStoreType);
         }
-        return KeyStore.getInstance(keyStoreType);
     }
 
     /**
@@ -136,14 +106,13 @@ public class KeyStoreUtils {
      */
     public static KeyStore getSecretKeyStore(final String keystoreTypeName) throws KeyStoreException {
         final KeystoreType keystoreType = getKeystoreType(keystoreTypeName);
-        final String provider = SECRET_KEY_STORE_PROVIDERS.get(keystoreType);
-        if (provider == null) {
+
+        if (KeystoreType.BCFKS == keystoreType) {
+            return KeyStore.getInstance(keystoreType.getType(), BOUNCY_CASTLE_PROVIDER);
+        } else if (KeystoreType.PKCS12 == keystoreType) {
+            return KeyStore.getInstance(keystoreType.getType());
+        } else {
             throw new KeyStoreException(String.format("Keystore Type [%s] does not support Secret Keys", keystoreType.getType()));
-        }
-        try {
-            return KeyStore.getInstance(keystoreType.getType(), provider);
-        } catch (final NoSuchProviderException e) {
-            throw new KeyStoreException(String.format("KeyStore Type [%s] Provider [%s] not found", keystoreType.getType(), provider), e);
         }
     }
 
@@ -493,7 +462,7 @@ public class KeyStoreUtils {
      * @return Secret Key Entry supported status
      */
     public static boolean isSecretKeyEntrySupported(final KeystoreType keystoreType) {
-        return SECRET_KEY_STORE_PROVIDERS.containsKey(keystoreType);
+        return KeystoreType.BCFKS == keystoreType || KeystoreType.PKCS12 == keystoreType;
     }
 
     /**

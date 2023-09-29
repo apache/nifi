@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.security.util;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Test;
 
 import java.security.KeyStore;
@@ -24,7 +23,6 @@ import java.security.KeyStoreException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class KeyStoreUtilsTest {
 
@@ -35,17 +33,5 @@ public class KeyStoreUtilsTest {
             assertNotNull(keyStore, String.format("KeyStore not found for Keystore Type [%s]", keystoreType));
             assertEquals(keystoreType.name(), keyStore.getType());
         }
-    }
-
-    @Test
-    public void testGetKeyStoreProviderNullType() {
-        final String keyStoreProvider = KeyStoreUtils.getKeyStoreProvider(null);
-        assertNull(keyStoreProvider);
-    }
-
-    @Test
-    public void testGetKeyStoreProviderBouncyCastleProvider() {
-        final String keyStoreProvider = KeyStoreUtils.getKeyStoreProvider(KeystoreType.PKCS12.name());
-        assertEquals(BouncyCastleProvider.PROVIDER_NAME, keyStoreProvider);
     }
 }

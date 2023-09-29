@@ -28,10 +28,8 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.util.IPAddress;
 import org.junit.jupiter.api.BeforeAll;
@@ -59,7 +57,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -89,25 +86,11 @@ public class TlsHelperTest {
     private int keySize;
     private String keyPairAlgorithm;
 
-    public static KeyPair loadKeyPair(final Reader reader) throws IOException {
-        try (PEMParser pemParser = new PEMParser(reader)) {
-            Object object = pemParser.readObject();
-            assertEquals(PEMKeyPair.class, object.getClass());
-            return new JcaPEMKeyConverter().getKeyPair((PEMKeyPair) object);
-        }
-    }
-
-    public static KeyPair loadKeyPair(File file) throws IOException {
-        try (final FileReader fileReader = new FileReader(file)) {
-            return loadKeyPair(fileReader);
-        }
-    }
-
     public static X509Certificate loadCertificate(final Reader reader) throws IOException, CertificateException {
         try (PEMParser pemParser = new PEMParser(reader)) {
             Object object = pemParser.readObject();
             assertEquals(X509CertificateHolder.class, object.getClass());
-            return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate((X509CertificateHolder) object);
+            return new JcaX509CertificateConverter().getCertificate((X509CertificateHolder) object);
         }
     }
 
@@ -310,8 +293,6 @@ public class TlsHelperTest {
 
     @Test
     public void testOutputToFileTwoCertsAsPem(@TempDir final File folder) throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-
         KeyStore keyStore = setupKeystore();
         HashMap<String, Certificate> certs = TlsHelper.extractCerts(keyStore);
         TlsHelper.outputCertsAsPem(certs, folder,".crt");

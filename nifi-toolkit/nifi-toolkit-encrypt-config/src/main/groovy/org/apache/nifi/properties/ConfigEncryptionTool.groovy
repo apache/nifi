@@ -43,7 +43,6 @@ import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.crypto.generators.SCrypt
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXException
@@ -56,7 +55,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.KeyException
-import java.security.Security
 import java.util.function.Supplier
 import java.util.regex.Matcher
 import java.util.zip.GZIPInputStream
@@ -1348,8 +1346,6 @@ class ConfigEncryptionTool {
      * @param args the command-line arguments
      */
     static void main(String[] args) {
-        Security.addProvider(new BouncyCastleProvider())
-
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         try {
