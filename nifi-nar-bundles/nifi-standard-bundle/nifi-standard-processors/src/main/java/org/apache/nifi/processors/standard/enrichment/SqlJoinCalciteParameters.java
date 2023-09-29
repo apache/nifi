@@ -17,8 +17,7 @@
 
 package org.apache.nifi.processors.standard.enrichment;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.sql.CalciteDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,46 +27,32 @@ public class SqlJoinCalciteParameters implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SqlJoinCalciteParameters.class);
 
     private final String sql;
-    private final CalciteConnection connection;
+    private final CalciteDatabase database;
     private final PreparedStatement preparedStatement;
-    private final FlowFileTable originalTable;
-    private final FlowFileTable enrichmentTable;
 
-    public SqlJoinCalciteParameters(final String sql, final CalciteConnection connection, final PreparedStatement preparedStatement,
-                                    final FlowFileTable originalTable, final FlowFileTable enrichmentTable) {
+    public SqlJoinCalciteParameters(final String sql, final CalciteDatabase database, final PreparedStatement preparedStatement) {
         this.sql = sql;
-        this.connection = connection;
+        this.database = database;
         this.preparedStatement = preparedStatement;
-        this.originalTable = originalTable;
-        this.enrichmentTable = enrichmentTable;
     }
 
     public String getSql() {
         return sql;
     }
 
-    public CalciteConnection getConnection() {
-        return connection;
+    public CalciteDatabase getDatabase() {
+        return database;
     }
 
     public PreparedStatement getPreparedStatement() {
         return preparedStatement;
     }
 
-    public FlowFileTable getOriginalTable() {
-        return originalTable;
-    }
-
-    public FlowFileTable getEnrichmentTable() {
-        return enrichmentTable;
-    }
 
     @Override
     public void close() {
         closeQuietly(preparedStatement, "Calcite Prepared Statement");
-        closeQuietly(connection, "Calcite Connection");
-        closeQuietly(originalTable, "Calcite 'Original' Table");
-        closeQuietly(enrichmentTable, "Calcite 'Enrichment' Table");
+        closeQuietly(database, "Calcite Database");
     }
 
     private void closeQuietly(final AutoCloseable closeable, final String description) {

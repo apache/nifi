@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -71,8 +70,6 @@ import org.apache.nifi.util.db.JdbcProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -242,16 +239,6 @@ public class JoinEnrichment extends BinFiles {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
-    }
-
-    @OnScheduled
-    public void registerCalciteDriver() {
-        // This is necessary in order to create a Calcite Connection for the SQL based Join strategy. We could put this in the SqlJoinStrategy but do it here to avoid doing this multiple times.
-        try {
-            DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
-        } catch (final SQLException e) {
-            throw new ProcessException("Failed to load Calcite JDBC Driver", e);
-        }
     }
 
     @OnStopped

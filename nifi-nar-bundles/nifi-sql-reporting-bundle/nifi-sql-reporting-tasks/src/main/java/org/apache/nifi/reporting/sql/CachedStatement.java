@@ -16,16 +16,18 @@
  */
 package org.apache.nifi.reporting.sql;
 
+import org.apache.nifi.sql.CalciteDatabase;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 class CachedStatement {
     private final PreparedStatement statement;
-    private final Connection connection;
+    private final CalciteDatabase database;
 
-    CachedStatement(final PreparedStatement statement, final Connection connection) {
+    CachedStatement(final PreparedStatement statement, final CalciteDatabase database) {
         this.statement = statement;
-        this.connection = connection;
+        this.database = database;
     }
 
     PreparedStatement getStatement() {
@@ -33,6 +35,10 @@ class CachedStatement {
     }
 
     Connection getConnection() {
-        return connection;
+        return database.getConnection();
+    }
+
+    CalciteDatabase getDatabase() {
+        return database;
     }
 }

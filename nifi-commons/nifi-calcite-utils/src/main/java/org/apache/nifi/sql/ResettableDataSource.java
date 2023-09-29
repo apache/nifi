@@ -14,12 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql;
 
-import java.io.Closeable;
-import java.sql.ResultSet;
+package org.apache.nifi.sql;
 
-public interface QueryResult extends Closeable {
-    ResultSet getResultSet();
-    int getRecordsRead();
+import java.io.IOException;
+
+/**
+ * A Source of data for a database
+ */
+public interface ResettableDataSource {
+
+    /**
+     * @return the schema that the rows returned by the {@link RowStream} will adhere to
+     */
+    NiFiTableSchema getSchema();
+
+    /**
+     * Resets the data source and establishes a {@link RowStream} that can be used for iterating over data
+     *
+     * @return the newly established RowStream
+     * @throws IOException if unable to obtain a RowStream due to IO failures
+     */
+    RowStream reset() throws IOException;
 }

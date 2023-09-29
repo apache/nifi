@@ -59,6 +59,7 @@ import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -81,6 +82,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 
 class TestQueryNiFiReportingTask {
@@ -528,6 +530,17 @@ class TestQueryNiFiReportingTask {
         final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         final String flowFileUuid = "testFlowFileUuid";
         assertEquals(3, rows.size());
+
+        // Ensure that bulletins are properly ordered.
+        for (int i = 1; i < 3; i++) {
+            final Map<String, Object> values = rows.get(i);
+            final long timestamp = (long) values.get("bulletinTimestamp");
+
+            final Map<String, Object> previousValues = rows.get(i - 1);
+            final long previousTimestamp = (long) previousValues.get("bulletinTimestamp");
+            assertTrue(timestamp >= previousTimestamp);
+        }
+
         // Validate the first row
         Map<String, Object> row = rows.get(0);
         assertEquals(14, row.size());
@@ -566,7 +579,7 @@ class TestQueryNiFiReportingTask {
         assertEquals("Configure", row.get("actionOperation"));
     }
 
-    private MockQueryNiFiReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException {
+    private MockQueryNiFiReportingTask initTask(final Map<PropertyDescriptor, String> customProperties) throws InitializationException {
 
         final ComponentLog logger = mock(ComponentLog.class);
         reportingTask = new MockQueryNiFiReportingTask();
@@ -575,7 +588,7 @@ class TestQueryNiFiReportingTask {
         Mockito.when(initContext.getLogger()).thenReturn(logger);
         reportingTask.initialize(initContext);
 
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : reportingTask.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
@@ -653,15 +666,38 @@ class TestQueryNiFiReportingTask {
         }
 
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(mockProvenanceRepository);
+        try {
+            Mockito.when(eventAccess.getProvenanceEvents(anyLong(), anyInt())).thenAnswer(new Answer<List<ProvenanceEventRecord>>() {
+                @Override
+                public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
+                    final long startEventId = invocation.getArgument(0);
+                    final int max = invocation.getArgument(1);
+                    return mockProvenanceRepository.getEvents(startEventId, max);
+                }
+            });
+        } catch (final IOException e) {
+            // Won't happen
+            throw new RuntimeException(e);
+        }
 
         mockBulletinRepository = new MockQueryBulletinRepository();
         mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2", "testFlowFileUuid"));
+        sleep(); // Sleep 2 milliseconds so that bulletins won't have the same timestamp
         mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.PROCESSOR.name().toLowerCase(), "INFO", "test bulletin 1", "testFlowFileUuid"));
+        sleep(); // Sleep 2 milliseconds so that bulletins won't have the same timestamp
         mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "ERROR", "test bulletin 2", "testFlowFileUuid"));
 
         Mockito.when(context.getBulletinRepository()).thenReturn(mockBulletinRepository);
 
         return reportingTask;
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(2L);
+        } catch (final InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private final class MockQueryNiFiReportingTask extends QueryNiFiReportingTask {
@@ -682,6 +718,15 @@ class TestQueryNiFiReportingTask {
 
         @Override
         public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+            if (bulletinQuery.getSourceType() == null) {
+                final List<Bulletin> allBulletins = new ArrayList<>();
+                for (final List<Bulletin> bulletins : bulletins.values()) {
+                    allBulletins.addAll(bulletins);
+                }
+
+                return allBulletins;
+            }
+
             return new ArrayList<>(
                     Optional.ofNullable(bulletins.get(bulletinQuery.getSourceType().name().toLowerCase()))
                             .orElse(Collections.emptyList()));
