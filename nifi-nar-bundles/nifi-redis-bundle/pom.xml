@@ -31,6 +31,7 @@
     </properties>
 
     <modules>
+        <module>nifi-redis-utils</module>
         <module>nifi-redis-service-api</module>
         <module>nifi-redis-service-api-nar</module>
         <module>nifi-redis-extensions</module>

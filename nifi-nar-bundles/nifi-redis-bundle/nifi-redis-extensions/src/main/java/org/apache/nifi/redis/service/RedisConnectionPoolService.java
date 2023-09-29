@@ -89,7 +89,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
         if (connectionFactory == null) {
             synchronized (this) {
                 if (connectionFactory == null) {
-                    connectionFactory = RedisUtils.createConnectionFactory(context, getLogger(), sslContext);
+                    connectionFactory = RedisUtils.createConnectionFactory(context, sslContext);
                 }
             }
         }
