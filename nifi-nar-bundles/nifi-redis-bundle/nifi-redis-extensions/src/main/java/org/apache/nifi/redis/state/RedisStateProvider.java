@@ -344,7 +344,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     // visible for testing
     synchronized RedisConnection getRedis() {
         if (connectionFactory == null) {
-            connectionFactory = RedisUtils.createConnectionFactory(context, logger, sslContext);
+            connectionFactory = RedisUtils.createConnectionFactory(context, sslContext);
         }
 
         return connectionFactory.getConnection();

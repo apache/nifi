@@ -126,7 +126,7 @@ public class TestRedisConnectionPoolService {
             final SSLContextService sslContextService = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             providedSslContext = sslContextService.createContext();
         }
-        JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, testRunner.getLogger(), providedSslContext);
+        JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, providedSslContext);
         return connectionFactory;
     }
 
