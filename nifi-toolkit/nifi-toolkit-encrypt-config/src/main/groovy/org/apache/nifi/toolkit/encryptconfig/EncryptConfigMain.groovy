@@ -19,11 +19,8 @@ package org.apache.nifi.toolkit.encryptconfig
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
-import java.security.Security
 
 class EncryptConfigMain {
 
@@ -90,8 +87,6 @@ class EncryptConfigMain {
     }
 
     static void main(String[] args) {
-        Security.addProvider(new BouncyCastleProvider())
-
         if (args.length < 1) {
             printUsageAndExit(EXIT_STATUS_FAILURE)
         }
