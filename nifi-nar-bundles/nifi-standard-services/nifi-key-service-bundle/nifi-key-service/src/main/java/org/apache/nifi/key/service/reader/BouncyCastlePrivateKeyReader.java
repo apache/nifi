@@ -17,6 +17,7 @@
 package org.apache.nifi.key.service.reader;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMException;
@@ -41,6 +42,8 @@ import java.security.PrivateKey;
  */
 public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
     private static final String INVALID_PEM = "Invalid PEM";
+
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     /**
      * Read Private Key using Bouncy Castle PEM Parser
@@ -81,7 +84,9 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
 
     private PrivateKeyInfo readEncryptedPrivateKey(final PKCS8EncryptedPrivateKeyInfo encryptedPrivateKeyInfo, final char[] keyPassword) {
         try {
-            final InputDecryptorProvider provider = new JceOpenSSLPKCS8DecryptorProviderBuilder().build(keyPassword);
+            final InputDecryptorProvider provider = new JceOpenSSLPKCS8DecryptorProviderBuilder()
+                    .setProvider(BOUNCY_CASTLE_PROVIDER)
+                    .build(keyPassword);
             return encryptedPrivateKeyInfo.decryptPrivateKeyInfo(provider);
         } catch (final OperatorCreationException e) {
             throw new PrivateKeyException("Preparing Private Key Decryption failed", e);
@@ -91,7 +96,9 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
     }
 
     private PrivateKeyInfo readEncryptedPrivateKey(final PEMEncryptedKeyPair encryptedKeyPair, final char[] keyPassword) {
-        final PEMDecryptorProvider provider = new JcePEMDecryptorProviderBuilder().build(keyPassword);
+        final PEMDecryptorProvider provider = new JcePEMDecryptorProviderBuilder()
+                .setProvider(BOUNCY_CASTLE_PROVIDER)
+                .build(keyPassword);
         try {
             final PEMKeyPair pemKeyPair = encryptedKeyPair.decryptKeyPair(provider);
             return pemKeyPair.getPrivateKeyInfo();
