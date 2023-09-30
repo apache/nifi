@@ -43,7 +43,7 @@
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
         <constructor-arg>
-            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolMaxPoolSize"/>
         </constructor-arg>
         <property name="handshakeTimeout">
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
@@ -73,7 +73,7 @@
     <!-- protocol listener -->
     <bean id="protocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
         <constructor-arg index="0">
-            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolMaxPoolSize"/>
         </constructor-arg>
         <constructor-arg index="1">
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolPort"/>
