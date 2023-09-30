@@ -25,6 +25,7 @@ import org.apache.nifi.security.util.ClientAuth;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -38,16 +39,26 @@ public class ServerSslHandlerChannelInitializer<T extends Channel>  extends Stan
 
     private final ClientAuth clientAuth;
 
+    private final SSLParameters sslParameters;
+
     /**
      * Server SSL Channel Initializer with handlers and SSLContext
      *
      * @param handlerSupplier Channel Handler Supplier
      * @param sslContext SSLContext
+     * @param clientAuth Client Authentication configuration
+     * @param sslParameters SSL Parameters
      */
-    public ServerSslHandlerChannelInitializer(final Supplier<List<ChannelHandler>> handlerSupplier, final SSLContext sslContext, final ClientAuth clientAuth) {
+    public ServerSslHandlerChannelInitializer(
+            final Supplier<List<ChannelHandler>> handlerSupplier,
+            final SSLContext sslContext,
+            final ClientAuth clientAuth,
+            final SSLParameters sslParameters
+    ) {
         super(handlerSupplier);
         this.sslContext = Objects.requireNonNull(sslContext, "SSLContext is required");
         this.clientAuth = Objects.requireNonNull(clientAuth, "ClientAuth is required");
+        this.sslParameters = Objects.requireNonNull(sslParameters, "SSLParameters is required");
     }
 
     @Override
@@ -59,6 +70,8 @@ public class ServerSslHandlerChannelInitializer<T extends Channel>  extends Stan
 
     private SslHandler newSslHandler() {
         final SSLEngine sslEngine = sslContext.createSSLEngine();
+        sslEngine.setSSLParameters(sslParameters);
+
         sslEngine.setUseClientMode(false);
         if (ClientAuth.REQUIRED.equals(clientAuth)) {
             sslEngine.setNeedClientAuth(true);
