@@ -17,6 +17,7 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -27,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -68,13 +70,14 @@ import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
         + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
 public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
-
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
     private volatile String startingFieldName;
     private volatile StartingFieldStrategy startingFieldStrategy;
     private volatile SchemaApplicationStrategy schemaApplicationStrategy;
+    private volatile boolean allowComments;
+    private volatile StreamReadConstraints streamReadConstraints;
 
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
@@ -119,6 +122,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         properties.add(STARTING_FIELD_STRATEGY);
         properties.add(STARTING_FIELD_NAME);
         properties.add(SCHEMA_APPLICATION_STRATEGY);
+        properties.add(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
+        properties.add(AbstractJsonRowRecordReader.ALLOW_COMMENTS);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -133,6 +138,9 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.startingFieldStrategy = StartingFieldStrategy.valueOf(context.getProperty(STARTING_FIELD_STRATEGY).getValue());
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
         this.schemaApplicationStrategy = SchemaApplicationStrategy.valueOf(context.getProperty(SCHEMA_APPLICATION_STRATEGY).getValue());
+        final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        this.streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+        this.allowComments = context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
     }
 
     @Override
@@ -165,6 +173,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
         return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
-                schemaApplicationStrategy, null);
+                schemaApplicationStrategy, null, allowComments, streamReadConstraints);
     }
 }
