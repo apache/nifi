@@ -17,6 +17,7 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -52,12 +53,20 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private final ComponentLog logger;
     private final LinkedHashMap<String, JsonPath> jsonPaths;
     private final InputStream in;
-    private RecordSchema schema;
+    private final RecordSchema schema;
 
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
-                final String dateFormat, final String timeFormat, final String timestampFormat)
+                                   final String dateFormat, final String timeFormat, final String timestampFormat)
+            throws MalformedRecordException, IOException {
+        this(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat, false, null);
+    }
+
+    public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
+                                   final String dateFormat, final String timeFormat, final String timestampFormat,
+                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints)
                 throws MalformedRecordException, IOException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat);
+
+        super(in, logger, dateFormat, timeFormat, timestampFormat, allowComments, streamReadConstraints);
 
         this.schema = schema;
         this.jsonPaths = jsonPaths;
