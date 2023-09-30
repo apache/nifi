@@ -26,7 +26,6 @@ import io.netty.handler.ssl.JdkSslContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -43,7 +42,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.graph.gremlin.SimpleEntry;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.graph.ExecuteGraphQueryRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
@@ -73,7 +71,6 @@ import java.util.concurrent.ConcurrentHashMap;
         "such as counts or other operations that do not require the injection of custom classed. " +
         "Bytecode submission allows much more flexibility. When providing a jar, custom serializers can be used and pre-compiled graph logic can be utilized by groovy scripts" +
         "provided by processors such as the ExecuteGraphQueryRecord.")
-@SeeAlso({ExecuteGraphQueryRecord.class})
 @RequiresInstanceClassLoading
 public class TinkerpopClientService extends AbstractControllerService implements GraphClientService {
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
@@ -138,7 +135,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .description("The URL path where Gremlin Server is running on each host listed as a contact point.")
             .required(true)
             .defaultValue("/gremlin")
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
             .build();
@@ -234,9 +231,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             SSL_CONTEXT_SERVICE
     ));
 
-//    private ScriptEngineManager MANAGER = new ScriptEngineManager();
     private GroovyShell groovyShell;
-//    private ScriptEngine engine;
     private Map<String, Script> compiledCode;
     protected Cluster cluster;
     private String traversalSourceName;
@@ -381,9 +376,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
                 builder.addContactPoint(contactPoint.trim());
                 hosts.add(contactPoint.trim());
             }
-            builder.port(port).path(path);
+            builder.port(port);
+            if (path != null && !path.isEmpty()) {
+                builder.path(path);
+            }
         } else {
-            //ToDo: there is a bug in getting the hostname from the builder
+            //ToDo: there is a bug in getting the hostname from the builder, therefore when doing
+            // bytecode submission, the transitUrl ends up being effectively useless. Need to extract it
+            // from the yaml to get this to work as expected.
             File yamlFile = new File(context.getProperty(REMOTE_OBJECTS_FILE).evaluateAttributeExpressions().getValue());
             try {
                 builder = Cluster.build(yamlFile);
