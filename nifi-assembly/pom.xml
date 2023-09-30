@@ -650,6 +650,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-opentelemetry-nar</artifactId>
+            <version>1.24.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snmp-nar</artifactId>
             <version>1.24.0-SNAPSHOT</version>
             <type>nar</type>

@@ -69,9 +69,13 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
     @Override
     protected void initChannel(Channel channel) {
         final ChannelPipeline pipeline = channel.pipeline();
-        pipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
         pipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
-        pipeline.addLast(new CloseContextIdleStateHandler());
+
+        if (idleTimeout.getSeconds() > 0) {
+            pipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
+            pipeline.addLast(new CloseContextIdleStateHandler());
+        }
+
         handlerSupplier.get().forEach(pipeline::addLast);
     }
 }
