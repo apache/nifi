@@ -17,14 +17,16 @@
 
 package org.apache.nifi.json;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -51,16 +53,31 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
+    static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
+            .name("max-string-length")
+            .displayName("Max String Length")
+            .description("The maximum allowed length of a string value when parsing the JSON document")
+            .required(true)
+            .defaultValue("20 MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor ALLOW_COMMENTS = new PropertyDescriptor.Builder()
+            .name("json-allow-comments")
+            .displayName("Allow Comments")
+            .description("Whether to allow comments when parsing the JSON document")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     private final ComponentLog logger;
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private final Supplier<DateFormat> lazyDateFormat;
+    private final Supplier<DateFormat> lazyTimeFormat;
+    private final Supplier<DateFormat> lazyTimestampFormat;
 
     private boolean firstObjectConsumed = false;
-
-    private static final JsonFactory jsonFactory = new JsonFactory();
-    private static final ObjectMapper codec = new ObjectMapper();
     private JsonParser jsonParser;
     private JsonNode firstJsonNode;
     private StartingFieldStrategy strategy;
@@ -75,9 +92,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        lazyDateFormat = () -> df;
+        lazyTimeFormat = () -> tf;
+        lazyTimestampFormat = () -> tsf;
     }
 
     protected AbstractJsonRowRecordReader(final InputStream in,
@@ -87,7 +104,19 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final String timestampFormat)
             throws IOException, MalformedRecordException {
 
-        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null);
+        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null, false, null);
+    }
+
+    protected AbstractJsonRowRecordReader(final InputStream in,
+                                          final ComponentLog logger,
+                                          final String dateFormat,
+                                          final String timeFormat,
+                                          final String timestampFormat,
+                                          final boolean allowComments,
+                                          final StreamReadConstraints streamReadConstraints)
+            throws IOException, MalformedRecordException {
+
+        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null, allowComments, streamReadConstraints);
     }
 
     /**
@@ -100,8 +129,11 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
      * @param timestampFormat        format for parsing timestamp fields
      * @param strategy               whether to start processing from a specific field
      * @param nestedFieldName        the name of the field to start the processing from
-     * @param captureFieldPredicate predicate that takes a JSON fieldName and fieldValue to capture top-level non-processed fields which can
+     * @param captureFieldPredicate  predicate that takes a JSON fieldName and fieldValue to capture top-level non-processed fields which can
      *                               be accessed by calling {@link #getCapturedFields()}
+     * @param allowComments          whether to allow comments within the JSON stream
+     * @param streamReadConstraints  configuration for the JsonFactory stream reader {@link StreamReadConstraints}
+     *
      * @throws IOException              in case of JSON stream processing failure
      * @throws MalformedRecordException in case of malformed JSON input
      */
@@ -112,7 +144,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final String timestampFormat,
                                           final StartingFieldStrategy strategy,
                                           final String nestedFieldName,
-                                          final BiPredicate<String, String> captureFieldPredicate)
+                                          final BiPredicate<String, String> captureFieldPredicate,
+                                          final boolean allowComments,
+                                          final StreamReadConstraints streamReadConstraints)
             throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
@@ -122,7 +156,15 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         capturedFields = new LinkedHashMap<>();
 
         try {
-            jsonParser = jsonFactory.createParser(in);
+            final ObjectMapper codec = new ObjectMapper();
+            if (allowComments) {
+                codec.enable(JsonParser.Feature.ALLOW_COMMENTS);
+            }
+            if (streamReadConstraints != null) {
+                codec.getFactory().setStreamReadConstraints(streamReadConstraints);
+            }
+
+            jsonParser = codec.getFactory().createParser(in);
             jsonParser.setCodec(codec);
 
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
@@ -152,15 +194,15 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected Supplier<DateFormat> getLazyDateFormat() {
-        return LAZY_DATE_FORMAT;
+        return lazyDateFormat;
     }
 
     protected Supplier<DateFormat> getLazyTimeFormat() {
-        return LAZY_TIME_FORMAT;
+        return lazyTimeFormat;
     }
 
     protected Supplier<DateFormat> getLazyTimestampFormat() {
-        return LAZY_TIMESTAMP_FORMAT;
+        return lazyTimestampFormat;
     }
 
 
@@ -219,7 +261,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 case TIME:
                 case TIMESTAMP:
                     try {
-                        return DataTypeUtils.convertType(textValue, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                        return DataTypeUtils.convertType(textValue, dataType, lazyDateFormat, lazyTimeFormat, lazyTimestampFormat, fieldName);
                     } catch (final Exception e) {
                         return textValue;
                     }
