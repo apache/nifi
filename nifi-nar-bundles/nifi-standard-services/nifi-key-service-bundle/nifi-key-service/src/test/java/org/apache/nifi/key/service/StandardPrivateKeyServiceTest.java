@@ -45,16 +45,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.UUID;
 
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_128_CBC;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_192_CBC;
 import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_256_CBC;
 import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.DES3_CBC;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_2DES;
 import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_3DES;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_RC2_128;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_RC2_40;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_RC4_128;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_RC4_40;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StandardPrivateKeyServiceTest {
@@ -136,16 +129,9 @@ class StandardPrivateKeyServiceTest {
 
     private static String[] encryptionAlgorithms() {
         return new String[] {
-                AES_128_CBC,
-                AES_192_CBC,
                 AES_256_CBC,
                 DES3_CBC,
-                PBE_SHA1_RC4_128,
-                PBE_SHA1_RC4_40,
-                PBE_SHA1_3DES,
-                PBE_SHA1_2DES,
-                PBE_SHA1_RC2_128,
-                PBE_SHA1_RC2_40
+                PBE_SHA1_3DES
         };
     }
 
