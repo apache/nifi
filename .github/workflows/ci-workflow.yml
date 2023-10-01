@@ -21,7 +21,7 @@ env:
   MAVEN_COMMAND: ./mvnw
   MAVEN_COMMAND_WINDOWS: ./mvnw.cmd
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx3g
+    -Xmx4g
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
@@ -39,6 +39,7 @@ env:
     --fail-fast
     -pl -:minifi-c2-integration-tests
     -pl -:minifi-integration-tests
+    -pl -:minifi-c2-assembly
     -pl -:minifi-assembly
     -pl -:nifi-assembly
     -pl -:nifi-kafka-connector-assembly
@@ -74,7 +75,7 @@ env:
     -pl -nifi-toolkit/nifi-toolkit-assembly
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -87,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Maven Modules
         uses: actions/cache@v3
         with:
@@ -121,7 +122,7 @@ jobs:
           cat /proc/meminfo
           df
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
@@ -185,7 +186,7 @@ jobs:
           sysctl machdep.cpu
           df
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
@@ -251,7 +252,7 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.longpaths true
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
