@@ -1,0 +1,139 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: integration-tests
+
+on:
+  # Run every day at 03:00
+  schedule:
+    - cron: "0 3 * * *"
+  push:
+    paths:
+      - '.github/workflows/integration-tests.yml'
+      - '**/test/**/*IT.java'
+      - '**/test/**/*ITCase.java'
+      - '**/test/**/IT*.java'
+  pull_request:
+    paths:
+      - '.github/workflows/integration-tests.yml'
+      - '**/test/**/*IT.java'
+      - '**/test/**/*ITCase.java'
+      - '**/test/**/IT*.java'
+
+env:
+  DEFAULT_MAVEN_OPTS: >-
+    -Xmx4g
+    -XX:ReservedCodeCacheSize=1g
+    -XX:+UseG1GC
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+    -Daether.connector.http.retryHandler.count=5
+    -Daether.connector.http.connectionMaxTtl=30
+    -Duser.language=en
+    -Duser.country=GB
+    -Duser.timezone=UTC
+  MAVEN_COMMAND: >-
+    ./mvnw
+    -V
+    -nsu
+    -ntp
+    -ff
+
+# skip assemblies and modules covered separately by the system-tests workflow
+# skip unit tests (surefire), run integration tests (failsafe), python ITs included as part of the system-tests workflow
+  MAVEN_BUILD_ARGUMENTS: >-
+    verify
+    -P skip-unit-tests
+    -P integration-tests
+    -P integration-tests-ci
+    -P nifi-registry-integration-tests
+  MAVEN_BUILD_EXCLUDE_PROJECTS: >-
+    -pl -:minifi-assembly
+    -pl -:minifi-c2-assembly
+    -pl -:nifi-assembly
+    -pl -:nifi-toolkit-assembly
+    -pl -:nifi-registry-assembly
+    -pl -:nifi-registry-toolkit-assembly
+    -pl -:nifi-runtime-manifest
+    -pl -:nifi-runtime-manifest-test
+    -pl -:nifi-stateless-assembly
+    -pl -:nifi-stateless-processor-tests
+    -pl -:nifi-stateless-system-test-suite
+    -pl -:nifi-system-test-suite
+    -pl -:nifi-nar-provider-assembly
+    -pl -:nifi-py4j-integration-tests
+    -pl -:nifi-docs
+    -pl -:nifi-maven-archetypes
+    -pl -:nifi-processor-bundle-archetype
+    -pl -:nifi-service-bundle-archetype
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build_and_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        version: [ 21 ]
+    timeout-minutes: 120
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} Java ${{ matrix.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Java Zulu ${{ matrix.version }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: ${{ matrix.version }}
+          cache: 'maven'
+
+      # many integration-tests use Docker to run Testcontainers; MacOS doesn't come with Docker, so we need to install it
+      - name: Set up Docker
+        if: ${{ runner.os == 'macOS' }}
+        run: |-
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          brew install docker
+          colima start
+
+          sudo ln -s ~/.colima/docker.sock /var/run/docker.sock
+      - name: System Information
+        run: |
+          hostname
+          if [ "${{ runner.os }}" = "macOS" ]; then top -l 1 | grep PhysMem && sysctl machdep.cpu; else cat /proc/cpuinfo && cat /proc/meminfo; fi
+          df
+          docker info
+
+      - name: Build and Run Tests
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_BUILD_ARGUMENTS }}
+          ${{ env.MAVEN_BUILD_EXCLUDE_PROJECTS }}
+      - name: Upload Troubleshooting Logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-${{ matrix.version }}-failsafe-logs
+          path: |
+            **/target/failsafe-reports/**/*.txt
+          retention-days: 7
