@@ -33,7 +33,6 @@
         <module>nifi-json-utils</module>
         <module>nifi-jetty-configuration</module>
         <module>nifi-kubernetes-client</module>
-        <module>nifi-logging-utils</module>
         <module>nifi-metrics</module>
         <module>nifi-parameter</module>
         <module>nifi-per-process-group-logging</module>

@@ -25,7 +25,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.slf4j.Logger;
@@ -33,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public final class SocketUtils {
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketUtils.class));
+    private static final Logger logger = LoggerFactory.getLogger(SocketUtils.class);
 
     /**
      * Returns a {@link Socket} (effectively used as a client socket) for the given address and configuration.
@@ -171,7 +170,7 @@ public final class SocketUtils {
                 }
             }
         } catch (final Exception ex) {
-            logger.debug("Failed to close socket due to: " + ex, ex);
+            logger.debug("Failed to close socket", ex);
         }
     }
 
@@ -183,7 +182,7 @@ public final class SocketUtils {
         try {
             serverSocket.close();
         } catch (final Exception ex) {
-            logger.debug("Failed to close server socket due to: " + ex, ex);
+            logger.debug("Failed to close server socket", ex);
         }
     }
 

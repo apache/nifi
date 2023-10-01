@@ -30,14 +30,13 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class ContentLengthFilter implements Filter {
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ContentLengthFilter.class));
+    private static final Logger logger = LoggerFactory.getLogger(ContentLengthFilter.class);
     public final static String MAX_LENGTH_INIT_PARAM = "maxContentLength";
     public final static int MAX_LENGTH_DEFAULT = 10_000_000;
     private int maxContentLength;
