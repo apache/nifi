@@ -27,7 +27,6 @@ import java.util.Collection;
 
 import org.apache.commons.net.util.SubnetUtils;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +55,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
 
     private final Collection<SubnetUtils.SubnetInfo> subnetInfos = new ArrayList<>();
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(FileBasedClusterNodeFirewall.class));
+    private static final Logger logger = LoggerFactory.getLogger(FileBasedClusterNodeFirewall.class);
 
     public FileBasedClusterNodeFirewall(final File config) throws IOException {
         this(config, null);
@@ -84,7 +83,6 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             throw new IOException("Firewall configuration file did not exist and could not be created: " + config.getAbsolutePath());
         }
 
-        logger.info("Loading cluster firewall configuration.");
         parseConfig(config);
         logger.info("Cluster firewall configuration loaded.");
     }

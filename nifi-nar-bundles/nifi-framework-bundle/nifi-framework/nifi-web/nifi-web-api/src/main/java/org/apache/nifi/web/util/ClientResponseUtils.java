@@ -17,7 +17,6 @@
 package org.apache.nifi.web.util;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,7 @@ import java.io.InputStream;
  */
 public class ClientResponseUtils {
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ClientResponseUtils.class));
+    private static final Logger logger = LoggerFactory.getLogger(ClientResponseUtils.class);
 
     public static void drainClientResponse(final Response response) {
         if (response != null) {
@@ -41,7 +40,7 @@ public class ClientResponseUtils {
                 bis = new BufferedInputStream(response.readEntity(InputStream.class));
                 IOUtils.copy(bis, new NullOutputStream());
             } catch (final IOException ioe) {
-                logger.info("Failed clearing out non-client response buffer due to: " + ioe, ioe);
+                logger.info("Failed clearing out non-client response buffer", ioe);
             } finally {
                 IOUtils.closeQuietly(bis);
             }
