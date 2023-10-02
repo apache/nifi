@@ -81,7 +81,7 @@
 }
 
 #general-process-group-configuration div.settings-columns .settings-column {
-    margin-right: 20px;
+    margin-right: 50px;
 }
 
 #general-process-group-configuration input, #general-process-group-configuration textarea {
@@ -95,7 +95,6 @@
 }
 
 #parameter-contexts-recursive-container {
-    float: left;
     margin-left: 10px;
 }
 
