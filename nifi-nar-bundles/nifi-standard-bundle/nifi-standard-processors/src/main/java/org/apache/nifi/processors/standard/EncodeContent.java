@@ -44,8 +44,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -91,21 +89,11 @@ public class EncodeContent extends AbstractProcessor {
 
     private static final int BUFFER_SIZE = 8192;
 
-    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(
-                    MODE,
-                    ENCODING
-            )
-    );
+    private static final List<PropertyDescriptor> properties = List.of(MODE,
+        ENCODING);
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new LinkedHashSet<>(
-                Arrays.asList(
-                        REL_SUCCESS,
-                        REL_FAILURE
-                )
-            )
-    );
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS,
+        REL_FAILURE);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -126,25 +114,7 @@ public class EncodeContent extends AbstractProcessor {
 
         final boolean encode = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCODE_MODE);
         final String encoding = context.getProperty(ENCODING).getValue();
-        final StreamCallback callback;
-
-        if (encode) {
-            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
-                callback = new EncodeBase64();
-            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
-                callback = new EncodeBase32();
-            } else {
-                callback = new EncodeHex();
-            }
-        } else {
-            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
-                callback = new DecodeBase64();
-            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
-                callback = new DecodeBase32();
-            } else {
-                callback = new DecodeHex();
-            }
-        }
+        final StreamCallback callback = getStreamCallback(encode, encoding);
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
@@ -156,6 +126,26 @@ public class EncodeContent extends AbstractProcessor {
         } catch (final Exception e) {
             getLogger().error("{} failed {}", encode ? "Encoding" : "Decoding", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
+        }
+    }
+
+    private static StreamCallback getStreamCallback(final boolean encode, final String encoding) {
+        if (encode) {
+            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
+                return new EncodeBase64();
+            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
+                return new EncodeBase32();
+            } else {
+                return new EncodeHex();
+            }
+        } else {
+            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
+                return new DecodeBase64();
+            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
+                return new DecodeBase32();
+            } else {
+                return new DecodeHex();
+            }
         }
     }
 

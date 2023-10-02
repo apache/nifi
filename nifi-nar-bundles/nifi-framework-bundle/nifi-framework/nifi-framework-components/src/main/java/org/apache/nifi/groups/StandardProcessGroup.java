@@ -46,6 +46,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
@@ -3839,6 +3840,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             stateManagerProvider.getStateManager(processorNode.getIdentifier()), () -> false, nodeTypeProvider);
     }
 
+    private ConfigurationContext createConfigurationContext(final ComponentNode component) {
+        final String schedulingPeriod = (component instanceof ReportingTaskNode) ? ((ReportingTaskNode) component).getSchedulingPeriod() : null;
+        return new StandardConfigurationContext(component, controllerServiceProvider, schedulingPeriod, component.getEffectivePropertyValues(), component.getAnnotationData());
+    }
+
     @Override
     public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final FlowSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
         writeLock.lock();
@@ -4008,6 +4014,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             .componentScheduler(componentScheduler)
             .flowMappingOptions(flowMappingOptions)
             .processContextFactory(this::createProcessContext)
+                .configurationContextFactory(this::createConfigurationContext)
             .build();
     }
 

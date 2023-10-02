@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -154,17 +155,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
+    private final Set<ComponentNode> createdExtensions = new HashSet<>();
 
     private FlowSynchronizationOptions syncOptions;
     private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
 
     public StandardVersionedComponentSynchronizer(final VersionedFlowSynchronizationContext context) {
         this.context = context;
-    }
-
-    private void setUpdatedVersionedComponentIds(final Set<String> updatedVersionedComponentIds) {
-        this.updatedVersionedComponentIds.clear();
-        this.updatedVersionedComponentIds.addAll(updatedVersionedComponentIds);
     }
 
     public void setSynchronizationOptions(final FlowSynchronizationOptions syncOptions) {
@@ -185,6 +182,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final FlowComparison flowComparison = flowComparator.compare();
 
         updatedVersionedComponentIds.clear();
+        createdExtensions.clear();
         setSynchronizationOptions(options);
 
         for (final FlowDifference diff : flowComparison.getDifferences()) {
@@ -247,17 +245,30 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
                         ? new HashMap<>() : versionedExternalFlow.getParameterProviders();
                 final ProcessGroup topLevelGroup = syncOptions.getTopLevelGroupId() != null ? context.getFlowManager().getGroup(syncOptions.getTopLevelGroupId()) : group;
-                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), parameterProviderReferences, topLevelGroup);
+                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), parameterProviderReferences, topLevelGroup, syncOptions.isUpdateSettings());
             } catch (final ProcessorInstantiationException pie) {
                 throw new RuntimeException(pie);
             }
         });
 
+        for (final ComponentNode extension : createdExtensions) {
+            if (extension instanceof final ProcessorNode processor) {
+                final ProcessContext migrationContext = context.getProcessContextFactory().apply(processor);
+                processor.migrateConfiguration(migrationContext);
+            } else if (extension instanceof final ControllerServiceNode service) {
+                final ConfigurationContext migrationContext = context.getConfigurationContextFactory().apply(service);
+                service.migrateConfiguration(migrationContext);
+            } else if (extension instanceof final ReportingTaskNode task) {
+                final ConfigurationContext migrationContext = context.getConfigurationContextFactory().apply(task);
+                task.migrateConfiguration(migrationContext);
+            }
+        }
+
         group.onComponentModified();
     }
 
     private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
-                             final Map<String, ParameterProviderReference> parameterProviderReferences, final ProcessGroup topLevelGroup)
+                             final Map<String, ParameterProviderReference> parameterProviderReferences, final ProcessGroup topLevelGroup, final boolean updateGroupSettings)
         throws ProcessorInstantiationException {
 
         // Some components, such as Processors, may have a Scheduled State of RUNNING in the proposed flow. However, if we
@@ -268,7 +279,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         group.setComments(proposed.getComments());
 
-        if (syncOptions.isUpdateSettings()) {
+        if (updateGroupSettings) {
             if (proposed.getName() != null) {
                 group.setName(proposed.getName());
             }
@@ -531,15 +542,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, group);
             } else if (childCoordinates == null || syncOptions.isUpdateDescendantVersionedFlows()) {
-                final StandardVersionedComponentSynchronizer sync = new StandardVersionedComponentSynchronizer(context);
-                sync.setUpdatedVersionedComponentIds(updatedVersionedComponentIds);
-                final FlowSynchronizationOptions options = FlowSynchronizationOptions.Builder.from(syncOptions)
-                    .updateGroupSettings(true)
-                    .build();
-
-                sync.setSynchronizationOptions(options);
-                sync.synchronize(childGroup, proposedChildGroup, versionedParameterContexts, parameterProviderReferences, topLevelGroup);
-
+                synchronize(childGroup, proposedChildGroup, versionedParameterContexts, parameterProviderReferences, topLevelGroup, true);
                 LOG.info("Updated {}", childGroup);
             }
         }
@@ -1173,14 +1176,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         destination.addProcessGroup(group);
 
-        final StandardVersionedComponentSynchronizer sync = new StandardVersionedComponentSynchronizer(context);
-        sync.setUpdatedVersionedComponentIds(updatedVersionedComponentIds);
-
-        final FlowSynchronizationOptions options = FlowSynchronizationOptions.Builder.from(syncOptions)
-            .updateGroupSettings(true)
-            .build();
-        sync.setSynchronizationOptions(options);
-        sync.synchronize(group, proposed, versionedParameterContexts, parameterProviderReferences, topLevelGroup);
+        synchronize(group, proposed, versionedParameterContexts, parameterProviderReferences, topLevelGroup, true);
 
         return group;
     }
@@ -1203,6 +1199,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         updateControllerService(newService, proposed, topLevelGroup);
+        createdExtensions.add(newService);
 
         return newService;
     }
@@ -2413,6 +2410,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         destination.addProcessor(procNode);
         updateProcessor(procNode, proposed, topLevelGroup);
 
+        createdExtensions.add(procNode);
+
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
         procNode.onConfigurationRestored(processContext);
@@ -3494,6 +3493,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final BundleCoordinate coordinate = toCoordinate(reportingTask.getBundle());
         final ReportingTaskNode taskNode = context.getFlowManager().createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask);
+        createdExtensions.add(taskNode);
+
         return taskNode;
     }
 

@@ -57,7 +57,20 @@
                 <exclude>*:nifi-nar-provider-assembly</exclude>
                 <exclude>*:nifi-python-framework</exclude>
                 <exclude>*:nifi-python-test-extensions</exclude>
+                <exclude>*:nifi-alternate-config-extensions-nar</exclude>
             </excludes>
+        </dependencySet>
+
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/alternate-config</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>*:nifi-alternate-config-extensions-nar</include>
+            </includes>
         </dependencySet>
 
         <dependencySet>

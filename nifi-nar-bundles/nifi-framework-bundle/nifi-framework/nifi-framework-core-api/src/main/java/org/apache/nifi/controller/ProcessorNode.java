@@ -296,4 +296,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public abstract void onConfigurationRestored(ProcessContext context);
 
     public abstract void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
+
+    public abstract void migrateConfiguration(ProcessContext context);
+
 }

@@ -19,5 +19,6 @@ org.apache.nifi.cs.tests.system.LifecycleFailureService
 org.apache.nifi.cs.tests.system.SensitiveDynamicPropertiesService
 org.apache.nifi.cs.tests.system.StandardCountService
 org.apache.nifi.cs.tests.system.StandardSleepService
+org.apache.nifi.cs.tests.system.MigrationService
 org.apache.nifi.cs.tests.system.MockCSVReader
 org.apache.nifi.cs.tests.system.MockCSVWriter

@@ -4181,10 +4181,15 @@ public final class DtoFactory {
        dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
        dto.setExecutionNode(procNode.getExecutionNode().name());
 
-      dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
-      dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
-      dto.setRetriedRelationships(procNode.getRetriedRelationships());
-      dto.setRetryCount(procNode.getRetryCount());
+       dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
+       dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
+       dto.setRetriedRelationships(procNode.getRetriedRelationships());
+       dto.setRetryCount(procNode.getRetryCount());
+
+       final Set<String> autoTerminatedRelationships = procNode.getAutoTerminatedRelationships().stream()
+               .map(Relationship::getName)
+               .collect(Collectors.toSet());
+       dto.setAutoTerminatedRelationships(autoTerminatedRelationships);
 
        return dto;
    }
