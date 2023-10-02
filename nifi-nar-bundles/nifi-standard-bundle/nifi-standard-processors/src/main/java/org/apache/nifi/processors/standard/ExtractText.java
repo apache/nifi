@@ -32,11 +32,11 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -47,9 +47,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -213,26 +211,25 @@ public class ExtractText extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ENABLE_REPEATING_CAPTURE_GROUP = new PropertyDescriptor.Builder()
-            .name("extract-text-enable-repeating-capture-group")
-            .displayName("Enable repeating capture group")
-            .description("If set to true, every string matching the capture groups will be extracted. Otherwise, "
-                    + "if the Regular Expression matches more than once, only the first match will be extracted.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
+        .name("Enable repeating capture group")
+        .description("If set to true, every string matching the capture groups will be extracted. Otherwise, "
+            + "if the Regular Expression matches more than once, only the first match will be extracted.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
 
     public static final PropertyDescriptor ENABLE_NAMED_GROUPS = new PropertyDescriptor.Builder()
-            .name("extract-text-enable-named-groups")
-            .displayName("Enable named group support")
-            .description("If set to true, when named groups are present in the regular expression, the name of the "
-                    + "group will be used in the attribute name as opposed to the group index.  All capturing groups "
-                    + "must be named, if the number of groups (not including capture group 0) does not equal the "
-                    + "number of named groups validation will fail.")
-            .required(false)
-            .allowableValues("true","false")
-            .defaultValue("false")
-            .build();
+        .name("Enable named group support")
+        .description("""
+            If set to true, when named groups are present in the regular expression, the name of the
+            group will be used in the attribute name as opposed to the group index.  All capturing groups
+            must be named, if the number of groups (not including capture group 0) does not equal the
+            number of named groups validation will fail.""")
+        .required(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
@@ -244,36 +241,28 @@ public class ExtractText extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Regular Expression matches the content of the FlowFile")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
+    private final Set<Relationship> relationships = Set.of(REL_MATCH,
+        REL_NO_MATCH);
+
+    private final List<PropertyDescriptor> properties = List.of(CHARACTER_SET,
+        MAX_BUFFER_SIZE,
+        MAX_CAPTURE_GROUP_LENGTH,
+        CANON_EQ,
+        CASE_INSENSITIVE,
+        COMMENTS,
+        DOTALL,
+        LITERAL,
+        MULTILINE,
+        UNICODE_CASE,
+        UNICODE_CHARACTER_CLASS,
+        UNIX_LINES,
+        INCLUDE_CAPTURE_GROUP_ZERO,
+        ENABLE_REPEATING_CAPTURE_GROUP,
+        ENABLE_NAMED_GROUPS);
+
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
     private final AtomicReference<Map<String, Pattern>> compiledPattersMapRef = new AtomicReference<>();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_MATCH);
-        rels.add(REL_NO_MATCH);
-        this.relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(CHARACTER_SET);
-        props.add(MAX_BUFFER_SIZE);
-        props.add(MAX_CAPTURE_GROUP_LENGTH);
-        props.add(CANON_EQ);
-        props.add(CASE_INSENSITIVE);
-        props.add(COMMENTS);
-        props.add(DOTALL);
-        props.add(LITERAL);
-        props.add(MULTILINE);
-        props.add(UNICODE_CASE);
-        props.add(UNICODE_CHARACTER_CLASS);
-        props.add(UNIX_LINES);
-        props.add(INCLUDE_CAPTURE_GROUP_ZERO);
-        props.add(ENABLE_REPEATING_CAPTURE_GROUP);
-        props.add(ENABLE_NAMED_GROUPS);
-        this.properties = Collections.unmodifiableList(props);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -283,6 +272,12 @@ public class ExtractText extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("extract-text-enable-named-groups", "Enable named group support");
+        config.renameProperty("extract-text-enable-repeating-capture-group", "Enable repeating capture group");
     }
 
     @Override
@@ -302,53 +297,53 @@ public class ExtractText extends AbstractProcessor {
 
         // If the capture group zero is not going to be included, each dynamic property must have at least one group
         final boolean includeCaptureGroupZero = validationContext.getProperty(INCLUDE_CAPTURE_GROUP_ZERO).getValue().equalsIgnoreCase("true");
-        getLogger().debug("Include capture group zero is " + includeCaptureGroupZero);
+        getLogger().debug("Include capture group zero is {}", includeCaptureGroupZero);
         if (!includeCaptureGroupZero) {
             final Validator oneGroupMinimumValidator = StandardValidators.createRegexValidator(1, 40, true);
-            for (Map.Entry<PropertyDescriptor, String> prop : validationContext.getProperties().entrySet()) {
-                PropertyDescriptor pd = prop.getKey();
-                if (pd.isDynamic()) {
-                    String value = validationContext.getProperty(pd).getValue();
-                    getLogger().debug("Evaluating dynamic property " + pd.getDisplayName() + " (" + pd.getName() + ") with value " + value);
-                    ValidationResult result = oneGroupMinimumValidator.validate(pd.getDisplayName(), value, validationContext);
-                    getLogger().debug("Validation result: " + result.toString());
-                    if (!result.isValid()) {
-                        problems.add(result);
-                    }
+            for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
+                if (!descriptor.isDynamic()) {
+                    continue;
+                }
+
+                final String value = validationContext.getProperty(descriptor).getValue();
+                getLogger().debug("Evaluating dynamic property {} with value {}", descriptor.getName(), value);
+                final ValidationResult result = oneGroupMinimumValidator.validate(descriptor.getDisplayName(), value, validationContext);
+                getLogger().debug("Validation result: {}", result);
+                if (!result.isValid()) {
+                    problems.add(result);
                 }
             }
         }
 
         // If named groups are enabled, the number of named groups needs to match the number of groups overall
         final boolean enableNamedGroups = validationContext.getProperty(ENABLE_NAMED_GROUPS).asBoolean();
-        getLogger().debug(String.format("Enable named groups is %s", enableNamedGroups));
+        getLogger().debug("Enable named groups is {}", enableNamedGroups);
+
         if (enableNamedGroups) {
-            for (Map.Entry<PropertyDescriptor, String> prop : validationContext.getProperties().entrySet()) {
-                PropertyDescriptor pd = prop.getKey();
-                if (pd.isDynamic()) {
-                    final String value = validationContext.getProperty(pd).getValue();
-                    getLogger().debug(
-                        "Evaluating dynamic property " + pd.getDisplayName() + " (" + pd.getName() + ") with value "
-                            + value);
-                    final Pattern pattern = Pattern.compile(value);
-                    final int numGroups = pattern.matcher("").groupCount();
-                    final int namedGroupCount = getNameGroups(value).size();
-                    if (numGroups!= namedGroupCount) {
-                        getLogger().debug(String
-                            .format("Named group count %d does not match total group count %d", namedGroupCount,
-                                numGroups));
-                        problems.add(new ValidationResult.Builder()
-                            .subject(pd.getDisplayName())
-                            .input(value)
-                            .valid(false)
-                            .explanation("Named group count does not match total group count")
-                            .build()
-                        );
-                    }
+            for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
+                if (!descriptor.isDynamic()) {
+                    continue;
+                }
+
+                final String value = validationContext.getProperty(descriptor).getValue();
+                getLogger().debug("Evaluating dynamic property {} with value {}", descriptor.getName(), value);
+
+                final Pattern pattern = Pattern.compile(value);
+                final int numGroups = pattern.matcher("").groupCount();
+                final int namedGroupCount = getNameGroups(value).size();
+                if (numGroups != namedGroupCount) {
+                    getLogger().debug("Named group count {} does not match total group count {}", namedGroupCount, numGroups);
+
+                    problems.add(new ValidationResult.Builder()
+                        .subject(descriptor.getName())
+                        .input(value)
+                        .valid(false)
+                        .explanation("Named group count does not match total group count")
+                        .build()
+                    );
                 }
             }
         }
-
 
         return problems;
     }
@@ -361,6 +356,7 @@ public class ExtractText extends AbstractProcessor {
             if (!entry.getKey().isDynamic()) {
                 continue;
             }
+
             final int flags = getCompileFlags(context);
             final Pattern pattern = Pattern.compile(entry.getValue(), flags);
             compiledPatternsMap.put(entry.getKey().getName(), pattern);
@@ -385,6 +381,7 @@ public class ExtractText extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
+
         final ComponentLog logger = getLogger();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final int maxCaptureGroupLength = context.getProperty(MAX_CAPTURE_GROUP_LENGTH).asInteger();
@@ -420,22 +417,22 @@ public class ExtractText extends AbstractProcessor {
             ? context.getProperty(ENABLE_NAMED_GROUPS).asBoolean() : false;
 
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
-            String patternString = entry.getValue().toString();
-            String[] namedGroups = getNameGroups(patternString).toArray(new String[0]);
+            final String baseKey = entry.getKey();
+            final String patternString = entry.getValue().toString();
+            final String[] namedGroups = getNameGroups(patternString).toArray(new String[0]);
             final Matcher matcher = entry.getValue().matcher(contentString);
             int j = 0;
 
             while (matcher.find()) {
-                final String baseKey = entry.getKey();
                 // group count doesn't include the 0
-                if (useNamedGroups && matcher.groupCount()  == namedGroups.length) {
-                    for ( int i = 0; i < namedGroups.length; i++) {
-                        final StringBuilder builder = new StringBuilder(baseKey).append(".").append(namedGroups[i]);
+                if (useNamedGroups && matcher.groupCount() == namedGroups.length) {
+                    for (final String namedGroup : namedGroups) {
+                        final StringBuilder builder = new StringBuilder(baseKey).append(".").append(namedGroup);
                         if (j > 0) {
                             builder.append(".").append(j);
                         }
                         final String key = builder.toString();
-                        String value = matcher.group(namedGroups[i]);
+                        String value = matcher.group(namedGroup);
                         if (value != null && !value.isEmpty()) {
                             if (value.length() > maxCaptureGroupLength) {
                                 value = value.substring(0, maxCaptureGroupLength);
@@ -450,7 +447,7 @@ public class ExtractText extends AbstractProcessor {
                 } else {
                     int start = j == 0 ? startGroupIdx : 1;
                     for (int i = start; i <= matcher.groupCount(); i++) {
-                        final String key = new StringBuilder(baseKey).append(".").append(i + j).toString();
+                        final String key = baseKey + "." + (i + j);
                         String value = matcher.group(i);
                         if (value != null && !value.isEmpty()) {
                             if (value.length() > maxCaptureGroupLength) {
@@ -464,6 +461,7 @@ public class ExtractText extends AbstractProcessor {
                     }
                     j += matcher.groupCount();
                 }
+
                 if (!context.getProperty(ENABLE_REPEATING_CAPTURE_GROUP).asBoolean()) {
                     break;
                 }

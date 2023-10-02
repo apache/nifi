@@ -20,13 +20,14 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 
 /**
  * <p>
@@ -187,6 +188,24 @@ public interface ControllerService extends ConfigurableComponent {
      */
     default boolean isStateful(ConfigurationContext context) {
         return this.getClass().isAnnotationPresent(Stateful.class);
+    }
+
+    /**
+     * <p>
+     * Allows for the migration of an old property configuration to a new configuration. This allows the Controller Service to evolve over time,
+     * as it allows properties to be renamed, removed, or reconfigured.
+     * </p>
+     *
+     * <p>
+     * This method is called only when a Controller Service is restored from a previous configuration. For example, when NiFi is restarted and the
+     * flow is restored from disk, when a previously configured flow is imported (e.g., from a JSON file that was exported or a NiFi Registry),
+     * or when a node joins a cluster and inherits a flow that has a new Controller Service. Once called, the method will not be invoked again for this
+     * Controller Service until NiFi is restarted.
+     * </p>
+     *
+     * @param config the current property configuration
+     */
+    default void migrateProperties(PropertyConfiguration config) {
     }
 
 }

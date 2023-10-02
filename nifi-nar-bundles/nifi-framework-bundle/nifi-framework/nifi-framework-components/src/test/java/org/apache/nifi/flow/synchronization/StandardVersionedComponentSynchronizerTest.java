@@ -198,6 +198,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .controllerServiceProvider(controllerServiceProvider)
             .flowMappingOptions(FlowMappingOptions.DEFAULT_OPTIONS)
             .processContextFactory(processContextFactory)
+                .configurationContextFactory(node -> null)
             .reloadComponent(reloadComponent)
             .build();
 

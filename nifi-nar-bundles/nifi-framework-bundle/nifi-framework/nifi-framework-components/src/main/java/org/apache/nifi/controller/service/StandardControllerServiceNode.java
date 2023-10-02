@@ -52,13 +52,14 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
@@ -829,6 +830,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
+        }
+    }
+
+    @Override
+    public void migrateConfiguration(final ConfigurationContext context) {
+        final ControllerService service = getControllerServiceImplementation();
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), service.getClass(), getIdentifier())) {
+            service.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            overwriteProperties(propertyConfig.getProperties());
         }
     }
 

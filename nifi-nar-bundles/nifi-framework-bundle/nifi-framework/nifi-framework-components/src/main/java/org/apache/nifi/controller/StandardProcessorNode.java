@@ -16,35 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.lang.management.ThreadInfo;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -52,7 +23,6 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -90,6 +60,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
+import org.apache.nifi.migration.StandardRelationshipConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -117,6 +89,36 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.management.ThreadInfo;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -442,22 +444,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (relationships == null) {
             relationships = new HashSet<>();
         }
+
         return Collections.unmodifiableSet(relationships);
     }
 
-    /**
-     * @return the value of the processor's {@link CapabilityDescription}
-     *         annotation, if one exists, else <code>null</code>.
-     */
-    public String getProcessorDescription() {
-        final Processor processor = processorRef.get().getProcessor();
-        final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
-        String description = null;
-        if (capDesc != null) {
-            description = capDesc.value();
-        }
-        return description;
-    }
 
     @Override
     public synchronized void setName(final String name) {
@@ -729,12 +719,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 if (!destinations.containsKey(connection)) {
                     for (final Relationship relationship : connection.getRelationships()) {
                         final Relationship rel = getRelationship(relationship.getName());
-                        Set<Connection> set = connections.get(rel);
-                        if (set == null) {
-                            set = new HashSet<>();
-                            connections.put(rel, set);
-                        }
-
+                        final Set<Connection> set = connections.computeIfAbsent(rel, k -> new HashSet<>());
                         set.add(connection);
 
                         destinations.put(connection, connection.getDestination());
@@ -782,12 +767,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         final Set<Connection> connectionsForRelationship = getConnections(rel);
                         if (connectionsForRelationship != null && connectionsForRelationship.size() == 1 && this.isRunning()
                             && !isAutoTerminated(rel) && getRelationships().contains(rel)) {
-                            // if we are running and we do not terminate undefined
-                            // relationships and this is the only
-                            // connection that defines the given relationship, and
-                            // that relationship is required,
-                            // then it is not legal to remove this relationship from
-                            // this connection.
+
+                            // if we are running and we do not terminate undefined relationships and this is the only
+                            // connection that defines the given relationship, and that relationship is required,
+                            // then it is not legal to remove this relationship from this connection.
                             throw new IllegalStateException("Cannot remove relationship " + rel.getName()
                                 + " from Connection " + connection + " because doing so would invalidate " + this
                                 + ", which is currently running");
@@ -802,11 +785,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
                 // add the connection in for all relationships listed.
                 for (final Relationship rel : connection.getRelationships()) {
-                    Set<Connection> set = connections.get(rel);
-                    if (set == null) {
-                        set = new HashSet<>();
-                        connections.put(rel, set);
-                    }
+                    final Set<Connection> set = connections.computeIfAbsent(rel, k -> new HashSet<>());
                     set.add(connection);
                 }
 
@@ -941,16 +920,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return nonSelfDestinations;
     }
 
-    public Set<Connectable> getDestinations(final Relationship relationship) {
-        final Set<Connectable> destinationSet = new HashSet<>();
-        final Set<Connection> relationshipConnections = connections.get(relationship);
-        if (relationshipConnections != null) {
-            for (final Connection connection : relationshipConnections) {
-                destinationSet.add(destinations.get(connection));
-            }
-        }
-        return destinationSet;
-    }
 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
@@ -972,17 +941,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return undefined;
     }
 
-    /**
-     * Determines if the given node is a destination for this node
-     *
-     * @param node
-     *            node
-     * @return true if is a direct destination node; false otherwise
-     */
-    boolean isRelated(final ProcessorNode node) {
-        return this.destinations.containsValue(node);
-    }
-
     @Override
     public boolean isRunning() {
         final ScheduledState state = getScheduledState();
@@ -991,14 +949,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isValidationNecessary() {
-        switch (getPhysicalScheduledState()) {
-            case STOPPED:
-            case STOPPING:
-            case STARTING:
-                return true;
-        }
-
-        return false;
+        return switch (getPhysicalScheduledState()) {
+            case STOPPED, STOPPING, STARTING -> true;
+            default -> false;
+        };
     }
 
     @Override
@@ -1592,7 +1546,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private void activateThread() {
         final Thread thread = Thread.currentThread();
-        final Long timestamp = System.currentTimeMillis();
+        final long timestamp = System.currentTimeMillis();
         activeThreads.put(thread, new ActiveTask(timestamp));
     }
 
@@ -1611,7 +1565,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         for (final Map.Entry<Thread, ActiveTask> entry : activeThreads.entrySet()) {
             final Thread thread = entry.getKey();
             final ActiveTask activeTask = entry.getValue();
-            final Long timestamp = activeTask.getStartTime();
+            final long timestamp = activeTask.getStartTime();
             final long activeMillis = now - timestamp;
             final ThreadInfo threadInfo = threadInfoMap.get(thread.threadId());
 
@@ -2147,6 +2101,44 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // references and establishing new references.
         updateControllerServiceReferences();
     }
+
+    @Override
+    public void migrateConfiguration(final ProcessContext context) {
+        try {
+            migrateProperties(context);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        try {
+            migrateRelationships();
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Relationship Configuration for {}.", this, e);
+        }
+    }
+
+    private void migrateProperties(final ProcessContext context) {
+        final Processor processor = getProcessor();
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), getIdentifier())) {
+            processor.migrateProperties(propertyConfig);
+        }
+
+        if (propertyConfig.isModified()) {
+            overwriteProperties(propertyConfig.getProperties());
+        }
+    }
+
+    private void migrateRelationships() {
+        final Processor processor = getProcessor();
+
+        final StandardRelationshipConfiguration relationshipConfig = new StandardRelationshipConfiguration(this);
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getProcessor().getClass(), getProcessor().getIdentifier())) {
+            processor.migrateRelationships(relationshipConfig);
+        }
+    }
+
 
     private void updateControllerServiceReferences() {
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {

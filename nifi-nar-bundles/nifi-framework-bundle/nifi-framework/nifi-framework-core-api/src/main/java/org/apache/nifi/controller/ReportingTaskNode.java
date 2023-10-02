@@ -137,4 +137,5 @@ public interface ReportingTaskNode extends ComponentNode {
 
     void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
 
+    void migrateConfiguration(ConfigurationContext context);
 }

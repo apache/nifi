@@ -616,6 +616,16 @@ public class NiFiClientUtil {
         return getProcessorClient().updateProcessor(updatedEntity);
     }
 
+    public ProcessorEntity setRetriedRelationships(final ProcessorEntity currentEntity, final String retriedRelationship) throws NiFiClientException, IOException {
+        return setRetriedRelationships(currentEntity, Collections.singleton(retriedRelationship));
+    }
+
+    public ProcessorEntity setRetriedRelationships(final ProcessorEntity currentEntity, final Set<String> retriedRelationships) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setRetriedRelationships(retriedRelationships);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
     public ProcessorEntity setAutoTerminatedRelationships(final ProcessorEntity currentEntity, final String autoTerminatedRelationship) throws NiFiClientException, IOException {
         return setAutoTerminatedRelationships(currentEntity, Collections.singleton(autoTerminatedRelationship));
     }

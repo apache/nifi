@@ -17,26 +17,6 @@
 
 package org.apache.nifi.controller.serialization;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -49,6 +29,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
@@ -68,6 +49,7 @@ import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
@@ -123,6 +105,27 @@ import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
@@ -616,6 +619,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask, controller);
+
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, controller.getControllerServiceProvider(), taskNode.getSchedulingPeriod());
+        taskNode.migrateConfiguration(configurationContext);
     }
 
     private void updateReportingTask(final ReportingTaskNode taskNode, final VersionedReportingTask reportingTask, final FlowController controller) {
@@ -924,6 +930,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             if (controllerServicesAdded.contains(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
                 updateRootControllerService(serviceNode, versionedControllerService, controller.getEncryptor());
             }
+        }
+
+        for (final ControllerServiceNode service : controllerServicesAdded) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controller.getControllerServiceProvider(), null);
+            service.migrateConfiguration(configurationContext);
         }
 
         for (final VersionedControllerService versionedControllerService : controllerServices) {

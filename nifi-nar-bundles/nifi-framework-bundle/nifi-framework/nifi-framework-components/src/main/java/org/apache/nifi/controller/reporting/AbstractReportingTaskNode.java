@@ -44,6 +44,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -423,4 +424,21 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.empty();
     }
+
+    @Override
+    public void migrateConfiguration(final ConfigurationContext context) {
+        final ReportingTask task = getReportingTask();
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), task.getClass(), getIdentifier())) {
+            task.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            overwriteProperties(propertyConfig.getProperties());
+        }
+    }
+
 }

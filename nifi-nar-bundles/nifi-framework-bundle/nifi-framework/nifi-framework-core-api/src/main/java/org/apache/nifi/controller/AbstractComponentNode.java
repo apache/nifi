@@ -22,6 +22,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -43,8 +44,8 @@ import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -228,6 +229,25 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return false;
+    }
+
+    protected void overwriteProperties(final Map<String, String> properties) {
+        // Update properties.
+        final Map<String, String> updatedProperties = new HashMap<>(properties);
+        final Set<String> sensitiveDynamicPropNames = new HashSet<>();
+        for (final String propertyName : updatedProperties.keySet()) {
+            final PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
+            if (descriptor != null && descriptor.isDynamic() && descriptor.isSensitive()) {
+                sensitiveDynamicPropNames.add(propertyName);
+            }
+        }
+
+        // Set a null value for any property that is not specified, so that it will be removed.
+        for (final PropertyDescriptor descriptor : getProperties().keySet()) {
+            updatedProperties.putIfAbsent(descriptor.getName(), null);
+        }
+
+        setProperties(updatedProperties, true, sensitiveDynamicPropNames);
     }
 
     /**
@@ -460,6 +480,58 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return referencedAttributes;
     }
 
+    private String resolveAllowableValue(final String explicitValue, final PropertyDescriptor descriptor) {
+        if (explicitValue == null || descriptor == null) {
+            return null;
+        }
+
+        final List<AllowableValue> allowableValues = descriptor.getAllowableValues();
+        if (allowableValues == null || allowableValues.isEmpty()) {
+            return explicitValue;
+        }
+
+        // Check for an exact match
+        for (final AllowableValue allowableValue : allowableValues) {
+            if (Objects.equals(allowableValue.getValue(), explicitValue)) {
+                return explicitValue;
+            }
+        }
+
+        // Check for a value that is equal ignoring case
+        for (final AllowableValue allowableValue : allowableValues) {
+            if (allowableValue.getValue().equalsIgnoreCase(explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // Check for an exact match against the display name
+        for (final AllowableValue allowableValue : allowableValues) {
+            final String displayName = allowableValue.getDisplayName();
+            if (displayName == null) {
+                continue;
+            }
+
+            if (Objects.equals(displayName, explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // Check for a match against display name, ignoring case
+        for (final AllowableValue allowableValue : allowableValues) {
+            final String displayName = allowableValue.getDisplayName();
+            if (displayName == null) {
+                continue;
+            }
+
+            if (displayName.equalsIgnoreCase(explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // No match found - just return the explicit value
+        return explicitValue;
+    }
+
     // Keep setProperty/removeProperty private so that all calls go through setProperties
     private void setProperty(final PropertyDescriptor descriptor, final PropertyConfiguration propertyConfiguration, final Function<PropertyDescriptor, PropertyConfiguration> valueToCompareFunction) {
         // Remove current PropertyDescriptor to force updated instance references
@@ -468,6 +540,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
         properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
+        final String resolvedValue = resolveAllowableValue(effectiveValue, descriptor);
 
         // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
         // If it previously referenced a Controller Service, we need to also remove that reference.
@@ -478,7 +551,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 .map(oldEffectiveValue -> serviceProvider.getControllerServiceNode(oldEffectiveValue))
                 .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
 
-            Optional.ofNullable(effectiveValue)
+            Optional.ofNullable(resolvedValue)
                 .map(serviceProvider::getControllerServiceNode)
                 .ifPresent(newNode -> newNode.addReference(this, descriptor));
         }
@@ -489,7 +562,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
                 final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
-                onPropertyModified(descriptor, oldValue, effectiveValue);
+                onPropertyModified(descriptor, oldValue, resolvedValue);
             } catch (final Exception e) {
                 // nothing really to do here...
                 logger.error("Failed to notify {} that property {} changed", this, descriptor, e);
