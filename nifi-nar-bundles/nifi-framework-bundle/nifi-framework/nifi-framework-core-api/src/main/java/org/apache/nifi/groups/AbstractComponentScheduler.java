@@ -19,14 +19,15 @@ package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.controller.ReportingTaskNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,21 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     public AbstractComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
         this.serviceProvider = controllerServiceProvider;
         this.stateLookup = stateLookup;
+    }
+
+    @Override
+    public boolean isScheduled(final ComponentNode componentNode) {
+        if (componentNode instanceof final ControllerServiceNode serviceNode) {
+            return serviceNode.isActive() || toEnable.contains(serviceNode);
+        } else if (componentNode instanceof final ProcessorNode processorNode) {
+            return processorNode.isRunning() || connectablesToStart.contains(processorNode);
+        } else if (componentNode instanceof final ReportingTaskNode taskNode) {
+            return taskNode.isRunning() || reportingTasksToStart.contains(taskNode);
+        } else if (componentNode instanceof final StatelessGroupNode groupNode) {
+            return groupNode.isRunning() || statelessGroupsToStart.contains(groupNode.getProcessGroup());
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -137,60 +153,35 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     private ScheduledState getScheduledState(final Connectable component) {
         // Use the State Lookup to get the state, if possible. If, for some reason, it doesn't
         // provide us a state (which should never happen) just fall back to the component's scheduled state.
-        switch (component.getConnectableType()) {
-            case INPUT_PORT:
-            case OUTPUT_PORT:
-            case REMOTE_INPUT_PORT:
-            case REMOTE_OUTPUT_PORT:
-                return stateLookup.getState((Port) component);
-            case PROCESSOR:
-                return stateLookup.getState((ProcessorNode) component);
-            case FUNNEL:
-                return ScheduledState.RUNNING;
-        }
+        return switch (component.getConnectableType()) {
+            case INPUT_PORT, OUTPUT_PORT, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> stateLookup.getState((Port) component);
+            case PROCESSOR -> stateLookup.getState((ProcessorNode) component);
+            case FUNNEL -> ScheduledState.RUNNING;
+            default -> switch (component.getScheduledState()) {
+                case DISABLED -> ScheduledState.DISABLED;
+                case RUN_ONCE, STOPPED, STOPPING -> ScheduledState.ENABLED;
+                default -> ScheduledState.RUNNING;
+            };
+        };
 
-        switch (component.getScheduledState()) {
-            case DISABLED:
-                return ScheduledState.DISABLED;
-            case RUN_ONCE:
-            case STOPPED:
-            case STOPPING:
-                return ScheduledState.ENABLED;
-            case RUNNING:
-            case STARTING:
-            default:
-                return ScheduledState.RUNNING;
-        }
     }
 
 
     private void enable(final Connectable component) {
         final ProcessGroup group = component.getProcessGroup();
         switch (component.getConnectableType()) {
-            case INPUT_PORT:
-                group.enableInputPort((Port) component);
-                break;
-            case OUTPUT_PORT:
-                group.enableOutputPort((Port) component);
-                break;
-            case PROCESSOR:
-                group.enableProcessor((ProcessorNode) component);
-                break;
+            case INPUT_PORT -> group.enableInputPort((Port) component);
+            case OUTPUT_PORT -> group.enableOutputPort((Port) component);
+            case PROCESSOR -> group.enableProcessor((ProcessorNode) component);
         }
     }
 
     private void disable(final Connectable component) {
         final ProcessGroup group = component.getProcessGroup();
         switch (component.getConnectableType()) {
-            case INPUT_PORT:
-                group.disableInputPort((Port) component);
-                break;
-            case OUTPUT_PORT:
-                group.disableOutputPort((Port) component);
-                break;
-            case PROCESSOR:
-                group.disableProcessor((ProcessorNode) component);
-                break;
+            case INPUT_PORT -> group.disableInputPort((Port) component);
+            case OUTPUT_PORT -> group.disableOutputPort((Port) component);
+            case PROCESSOR -> group.disableProcessor((ProcessorNode) component);
         }
     }
 
@@ -210,20 +201,13 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     public void stopComponent(final Connectable component) {
         final ProcessGroup processGroup = component.getProcessGroup();
         switch (component.getConnectableType()) {
-            case INPUT_PORT:
-                processGroup.stopInputPort((Port) component);
-                break;
-            case OUTPUT_PORT:
-                processGroup.stopOutputPort((Port) component);
-                break;
-            case PROCESSOR:
-                processGroup.stopProcessor((ProcessorNode) component);
-                break;
-            case REMOTE_INPUT_PORT:
-            case REMOTE_OUTPUT_PORT:
+            case INPUT_PORT -> processGroup.stopInputPort((Port) component);
+            case OUTPUT_PORT -> processGroup.stopOutputPort((Port) component);
+            case PROCESSOR -> processGroup.stopProcessor((ProcessorNode) component);
+            case REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> {
                 final RemoteGroupPort port = (RemoteGroupPort) component;
                 port.getRemoteProcessGroup().stopTransmitting(port);
-                break;
+            }
         }
     }
 

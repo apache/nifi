@@ -1064,4 +1064,6 @@ public interface TestRunner {
      * @param eventType Provenance event type
      */
      void assertProvenanceEvent(ProvenanceEventType eventType);
+
+    PropertyMigrationResult migrateProperties();
 }

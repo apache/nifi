@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +38,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -46,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PropertyMigrationIT extends NiFiSystemIT {
+    private static final String SERVICE = "Service";
 
     @AfterEach
     public void restoreNars() {
@@ -55,6 +59,87 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         getNiFiInstance().stop();
         switchNarsBack();
         getNiFiInstance().start(true);
+    }
+
+    @Test
+    public void testControllerServiceCreated() throws NiFiClientException, IOException {
+        final ProcessGroupEntity group1 = getClientUtil().createProcessGroup("Group 1", "root");
+        final ProcessGroupEntity group2 = getClientUtil().createProcessGroup("Group 2", "root");
+
+        final ProcessorEntity proc1 = getClientUtil().createProcessor("MigrateProperties", group1.getId());
+        final ProcessorEntity proc2 = getClientUtil().createProcessor("MigrateProperties", group1.getId());
+        final ProcessorEntity proc3 = getClientUtil().createProcessor("MigrateProperties", group1.getId());
+        final ProcessorEntity proc4 = getClientUtil().createProcessor("MigrateProperties", group2.getId());
+
+        // Update proc1 and proc2 with the same values.
+        // Set same values for proc4, which is in a different group.
+        final Map<String, String> proc1Properties = Map.of(
+                "attr-to-add", "greeting",
+                "attr-value", "Hi",
+                "ignored", "17"
+        );
+        getClientUtil().updateProcessorProperties(proc1, proc1Properties);
+        getClientUtil().updateProcessorProperties(proc2, proc1Properties);
+        getClientUtil().updateProcessorProperties(proc4, proc1Properties);
+
+        final Map<String, String> proc3Properties = new HashMap<>(proc1Properties);
+        proc3Properties.put("ignored", "41");
+        getClientUtil().updateProcessorProperties(proc3, proc3Properties);
+
+        // Stop NiFi, switch out the system-tests-extensions nar for the alternate-config-nar, and restart
+        getNiFiInstance().stop();
+        switchOutNars();
+        getNiFiInstance().start(true);
+
+        // Procs 1 and 2 should have the same value for the Controller Service.
+        // Procs 3 and 4 should each have different values
+        final ControllerServicesClient serviceClient = getNifiClient().getControllerServicesClient();
+
+        final Map<String, String> proc1UpdatedProps = getProperties(proc1);
+        final Map<String, String> proc2UpdatedProps = getProperties(proc2);
+        final Map<String, String> proc3UpdatedProps = getProperties(proc3);
+        final Map<String, String> proc4UpdatedProps = getProperties(proc4);
+
+        final Set<String> serviceIds = new HashSet<>();
+        for (final Map<String, String> propertiesMap : List.of(proc1UpdatedProps, proc2UpdatedProps, proc3UpdatedProps, proc4UpdatedProps)) {
+            final String serviceId = propertiesMap.get(SERVICE);
+            assertNotNull(serviceId);
+            serviceIds.add(serviceId);
+        }
+
+        // Should be 3 different services
+        assertEquals(3, serviceIds.size());
+
+        // Procs 1 and 2 should reference the same service.
+        assertEquals(proc1UpdatedProps.get(SERVICE), proc2UpdatedProps.get(SERVICE));
+
+        // Services for procs 1-3 should be in group 1
+        for (final String serviceId : List.of(proc1UpdatedProps.get(SERVICE), proc2UpdatedProps.get(SERVICE), proc3UpdatedProps.get(SERVICE))) {
+            assertEquals(group1.getId(), serviceClient.getControllerService(serviceId).getParentGroupId());
+        }
+
+        // Service for proc 4 should be in group 2
+        assertEquals(group2.getId(), serviceClient.getControllerService(proc4UpdatedProps.get(SERVICE)).getParentGroupId());
+
+        // Ensure that the service's properties were also migrated, since the processor mapped the "ignored" value to the old property name of the service.
+        final ControllerServiceEntity service1 = serviceClient.getControllerService(proc1UpdatedProps.get(SERVICE));
+        final Map<String, String> service1Props = service1.getComponent().getProperties();
+        assertEquals(Map.of("Initial Value", "17"), service1Props);
+        assertEquals(2, service1.getComponent().getReferencingComponents().size());
+
+        final ControllerServiceEntity service4 = serviceClient.getControllerService(proc4UpdatedProps.get(SERVICE));
+        final Map<String, String> service4Props = service4.getComponent().getProperties();
+        assertEquals(Map.of("Initial Value", "17"), service4Props);
+        assertEquals(1, service4.getComponent().getReferencingComponents().size());
+
+        final ControllerServiceEntity service3 = serviceClient.getControllerService(proc3UpdatedProps.get(SERVICE));
+        final Map<String, String> service3Props = service3.getComponent().getProperties();
+        assertEquals(Map.of("Initial Value", "41"), service3Props);
+        assertEquals(1, service3.getComponent().getReferencingComponents().size());
+    }
+
+    private Map<String, String> getProperties(final ProcessorEntity processor) throws NiFiClientException, IOException {
+        return getNifiClient().getProcessorClient().getProcessor(processor.getId()).getComponent().getConfig().getProperties();
     }
 
     @Test
@@ -94,17 +179,18 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         // Stop NiFi, switch out the system-tests-extensions nar for the alternate-config-nar, and restart
         getNiFiInstance().stop();
         switchOutNars();
-
         getNiFiInstance().start(true);
 
         // Ensure that the Processor's config was properly updated
         final ProcessorEntity updated = getNifiClient().getProcessorClient().getProcessor(migrate.getId());
         final Map<String, String> updatedProperties = updated.getComponent().getConfig().getProperties();
 
-        final Map<String, String> expectedUpdatedProperties = Map.of("Ingest Data", "true",
-                "Attribute to add", "greeting",
-                "Attribute Value", "Hi",
-                "New Property", "true");
+        final Map<String, String> expectedUpdatedProperties = new HashMap<>();
+        expectedUpdatedProperties.put("Ingest Data", "true");
+        expectedUpdatedProperties.put("Attribute to add", "greeting");
+        expectedUpdatedProperties.put("Attribute Value", "Hi");
+        expectedUpdatedProperties.put("New Property", "true");
+        expectedUpdatedProperties.put("Service", null);
         assertEquals(expectedUpdatedProperties, updatedProperties);
 
         final ProcessorConfigDTO updatedConfig = updated.getComponent().getConfig();

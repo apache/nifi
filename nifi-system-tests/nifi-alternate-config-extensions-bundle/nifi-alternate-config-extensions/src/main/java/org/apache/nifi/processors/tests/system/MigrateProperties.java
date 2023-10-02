@@ -18,6 +18,8 @@
 package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.cs.tests.system.MigrationService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.RelationshipConfiguration;
@@ -29,6 +31,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,6 +57,12 @@ public class MigrateProperties extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
+            .name("Service")
+            .required(false)
+            .identifiesControllerService(ControllerService.class)
+            .build();
+
     static Relationship REL_ODD = new Relationship.Builder().name("odd").build();
     static Relationship REL_EVEN = new Relationship.Builder().name("even").build();
     static Relationship REL_BROKEN = new Relationship.Builder().name("broken").build();
@@ -62,7 +71,8 @@ public class MigrateProperties extends AbstractProcessor {
     private static final List<PropertyDescriptor> properties = List.of(
             INGEST,
             ATTRIBUTE_NAME,
-            ATTRIBUTE_VALUE
+            ATTRIBUTE_VALUE,
+            SERVICE
     );
 
     private final AtomicLong counter = new AtomicLong(0L);
@@ -85,7 +95,14 @@ public class MigrateProperties extends AbstractProcessor {
         config.renameProperty("attr-value", ATTRIBUTE_VALUE.getName());
         config.renameProperty("never-existed", "still-doesnt-exist");
         config.setProperty("New Property", config.getPropertyValue(INGEST).orElse("New Value"));
+        final String ignoredValue = config.getPropertyValue("ignored").orElse(null);
         config.removeProperty("ignored");
+
+        // If the 'ignored' value was set, create a new Controller Service whose Start value is set to that value.
+        if (ignoredValue != null && ignoredValue.matches("\\d+")) {
+            final String serviceId = config.createControllerService(MigrationService.class.getName(), Map.of("Start", ignoredValue));
+            config.setProperty(SERVICE, serviceId);
+        }
     }
 
     @Override

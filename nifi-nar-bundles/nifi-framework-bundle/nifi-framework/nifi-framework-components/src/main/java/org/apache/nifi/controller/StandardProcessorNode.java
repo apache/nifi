@@ -60,6 +60,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.migration.StandardRelationshipConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
@@ -228,27 +230,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
-                try {
-                    this.setSchedulingStrategy(dsc.strategy());
-                } catch (Throwable ex) {
-                    LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                }
-                try {
-                    this.setSchedulingPeriod(dsc.period());
-                } catch (Throwable ex) {
-                    this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
-                    LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                }
-                if (!processorDetails.isTriggeredSerially()) {
-                    try {
-                        setMaxConcurrentTasks(dsc.concurrentTasks());
-                    } catch (Throwable ex) {
-                        LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                    }
-                }
+                setSchedulingStrategy(dsc.strategy());
+                setSchedulingPeriod(dsc.period());
+                setMaxConcurrentTasks(dsc.concurrentTasks());
             }
-        } catch (Throwable ex) {
-            LOG.error(String.format("Error while setting default schedule from DefaultSchedule annotation: %s",ex.getMessage()),ex);
+        } catch (final Exception e) {
+            LOG.error("Error while setting default schedule from DefaultSchedule annotation", e);
         }
     }
 
@@ -272,9 +259,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return processorRef.get().getBundleCoordinate();
     }
 
-    /**
-     * @return comments about this specific processor instance
-     */
     @Override
     public String getComments() {
         return comments.get();
@@ -305,14 +289,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return getProcessor().getClass().isAnnotationPresent(DeprecationNotice.class);
     }
 
-
-    /**
-     * Provides and opportunity to retain information about this particular
-     * processor instance
-     *
-     * @param comments
-     *            new comments
-     */
     @Override
     public synchronized void setComments(final String comments) {
         this.comments.set(CharacterFilterUtils.filterInvalidXmlCharacters(comments));
@@ -334,9 +310,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public synchronized void setStyle(final Map<String, String> style) {
+    public void setStyle(final Map<String, String> style) {
         if (style != null) {
-            this.style.set(Collections.unmodifiableMap(new HashMap<>(style)));
+            this.style.set(Map.copyOf(style));
         }
     }
 
@@ -2102,9 +2078,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void migrateConfiguration(final ProcessContext context) {
+    public void migrateConfiguration(final ControllerServiceFactory serviceFactory) {
         try {
-            migrateProperties(context);
+            migrateProperties(serviceFactory);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);
         }
@@ -2116,18 +2092,26 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
-    private void migrateProperties(final ProcessContext context) {
+    private void migrateProperties(final ControllerServiceFactory serviceFactory) {
         final Processor processor = getProcessor();
 
-        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(toPropertyNameMap(getEffectivePropertyValues()),
+                toPropertyNameMap(getRawPropertyValues()), this::mapRawValueToEffectiveValue, toString(), serviceFactory);
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), getIdentifier())) {
             processor.migrateProperties(propertyConfig);
         }
 
         if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the processor's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
             overwriteProperties(propertyConfig.getProperties());
         }
     }
+
 
     private void migrateRelationships() {
         final Processor processor = getProcessor();

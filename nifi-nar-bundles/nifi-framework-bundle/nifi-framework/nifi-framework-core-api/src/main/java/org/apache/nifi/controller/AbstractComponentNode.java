@@ -652,6 +652,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getPropertyValues((descriptor, config) -> getConfigValue(config, isResolveParameter(descriptor, config)));
     }
 
+    /**
+     * Converts from a Map of PropertyDescriptor to value, to a Map of property name to value
+     *
+     * @param propertyValues the property values to convert
+     * @return a Map whose keys are the names of the properties instead of descriptors
+     */
+    public Map<String, String> toPropertyNameMap(final Map<PropertyDescriptor, String> propertyValues) {
+        final Map<String, String> converted = new HashMap<>();
+        propertyValues.forEach((key, value) -> converted.put(key.getName(), value));
+        return converted;
+    }
+
     private Map<PropertyDescriptor, String> getPropertyValues(final BiFunction<PropertyDescriptor, PropertyConfiguration, String> valueFunction) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
@@ -689,6 +701,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
             value = property.getDefaultValue();
         }
         return value;
+    }
+
+    protected String mapRawValueToEffectiveValue(final String rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+
+        final ParameterLookup parameterLookup = getParameterLookup();
+        if (parameterLookup == null) {
+            return rawValue;
+        }
+
+        final ParameterTokenList parameterTokenList = new ExpressionLanguageAgnosticParameterParser().parseTokens(rawValue);
+        final String effectiveValue = parameterTokenList.substitute(parameterLookup);
+        return effectiveValue;
     }
 
     @Override
