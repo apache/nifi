@@ -100,7 +100,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             try {
                 ip = InetAddress.getByName(hostOrIp).getHostAddress();
             } catch (final UnknownHostException uhe) {
-                logger.warn("Blocking unknown host '{}'", hostOrIp, uhe);
+                logger.warn("Blocking unknown host '{}'", hostOrIp);
                 return false;
             }
 

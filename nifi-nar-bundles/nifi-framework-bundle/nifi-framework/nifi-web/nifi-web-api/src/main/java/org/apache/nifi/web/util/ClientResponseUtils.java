@@ -40,7 +40,7 @@ public class ClientResponseUtils {
                 bis = new BufferedInputStream(response.readEntity(InputStream.class));
                 IOUtils.copy(bis, new NullOutputStream());
             } catch (final IOException ioe) {
-                logger.info("Failed clearing out non-client response buffer", ioe);
+                logger.warn("Failed clearing out non-client response buffer", ioe);
             } finally {
                 IOUtils.closeQuietly(bis);
             }
