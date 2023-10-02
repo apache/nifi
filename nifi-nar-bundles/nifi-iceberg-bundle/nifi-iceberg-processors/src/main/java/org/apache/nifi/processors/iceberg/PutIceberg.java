@@ -111,7 +111,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
     static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
             .name("unmatched-column-behavior")
             .displayName("Unmatched Column Behavior")
-            .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation")
+            .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation.")
             .allowableValues(UnmatchedColumnBehavior.class)
             .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.getValue())
             .required(true)
@@ -278,7 +278,6 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
             final WriteResult result = taskWriter.complete();
             appendDataFiles(context, flowFile, table, result);
-            taskWriter.close();
         } catch (Exception e) {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {

@@ -37,6 +37,7 @@ import org.apache.iceberg.orc.ORC;
 import org.apache.iceberg.parquet.Parquet;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processors.iceberg.converter.ArrayElementGetter;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
@@ -94,9 +95,12 @@ public class TestIcebergRecordConverter {
 
     private OutputFile tempFile;
 
+    private ComponentLog logger;
+
     @BeforeEach
     public void setUp() throws Exception {
         tempFile = Files.localOutput(createTempFile("test", null));
+        logger = new MockComponentLogger();
     }
 
     @AfterEach
@@ -242,7 +246,7 @@ public class TestIcebergRecordConverter {
     private static RecordSchema getPrimitivesSchema() {
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("integer", RecordFieldType.INT.getDataType(), true));
+        fields.add(new RecordField("integer", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
         fields.add(new RecordField("long", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
@@ -494,13 +498,13 @@ public class TestIcebergRecordConverter {
     }
 
     @DisabledOnOs(WINDOWS)
-    @Test
-    public void testPrimitives() throws IOException {
+    @ParameterizedTest
+    @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
+    public void testPrimitives(FileFormat format) throws IOException {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord();
-        final FileFormat format = PARQUET;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, PRIMITIVES_SCHEMA, genericRecord, tempFile);
@@ -528,7 +532,11 @@ public class TestIcebergRecordConverter {
         assertEquals(LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000), resultRecord.get(12, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(14, Integer.class));
 
-        assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(13, byte[].class));
+        if (format.equals(PARQUET)) {
+            assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(13, byte[].class));
+        } else {
+            assertEquals(UUID.fromString("0000-00-00-00-000000"), resultRecord.get(13, UUID.class));
+        }
     }
 
     @DisabledOnOs(WINDOWS)
@@ -611,7 +619,6 @@ public class TestIcebergRecordConverter {
     @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
     public void testPrimitivesMissingRequiredFields(FileFormat format) {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
-        Record record = setupPrimitivesTestRecordMissingFields();
         MockComponentLogger mockComponentLogger = new MockComponentLogger();
 
         assertThrows(IllegalArgumentException.class,
@@ -684,7 +691,7 @@ public class TestIcebergRecordConverter {
         Record record = setupCompatiblePrimitivesTestRecord();
         final FileFormat format = PARQUET;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(COMPATIBLE_PRIMITIVES_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(COMPATIBLE_PRIMITIVES_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, COMPATIBLE_PRIMITIVES_SCHEMA, genericRecord, tempFile);
@@ -722,7 +729,7 @@ public class TestIcebergRecordConverter {
         Record record = setupStructTestRecord();
         final FileFormat format = FileFormat.ORC;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(STRUCT_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(STRUCT_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, STRUCT_SCHEMA, genericRecord, tempFile);
@@ -752,7 +759,7 @@ public class TestIcebergRecordConverter {
         Record record = setupListTestRecord();
         final FileFormat format = FileFormat.AVRO;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, LIST_SCHEMA, genericRecord, tempFile);
@@ -782,7 +789,7 @@ public class TestIcebergRecordConverter {
         Record record = setupMapTestRecord();
         final FileFormat format = PARQUET;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(MAP_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(MAP_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, MAP_SCHEMA, genericRecord, tempFile);
@@ -805,13 +812,14 @@ public class TestIcebergRecordConverter {
     }
 
     @DisabledOnOs(WINDOWS)
-    @Test
-    public void testSchemaMismatch() {
-        RecordSchema nifiSchema = getPrimitivesSchema();
-        final FileFormat format = FileFormat.ORC;
+    @ParameterizedTest
+    @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
+    public void testSchemaMismatch(FileFormat format) {
+        RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> new IcebergRecordConverter(CASE_INSENSITIVE_SCHEMA, nifiSchema, format));
-        assertTrue(e.getMessage().contains("Cannot find field with name 'FIELD1' in the record schema"), e.getMessage());
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> new IcebergRecordConverter(PRIMITIVES_SCHEMA_WITH_REQUIRED_FIELDS, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger));
+        assertTrue(e.getMessage().contains("Iceberg requires a non-null value for required fields"), e.getMessage());
     }
 
     @DisabledOnOs(WINDOWS)
@@ -821,7 +829,7 @@ public class TestIcebergRecordConverter {
         Record record = setupCaseInsensitiveTestRecord();
         final FileFormat format = FileFormat.AVRO;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(CASE_INSENSITIVE_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(CASE_INSENSITIVE_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, CASE_INSENSITIVE_SCHEMA, genericRecord, tempFile);
@@ -845,7 +853,7 @@ public class TestIcebergRecordConverter {
         Record record = setupUnorderedTestRecord();
         final FileFormat format = PARQUET;
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(UNORDERED_SCHEMA, nifiSchema, format);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(UNORDERED_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
         GenericRecord genericRecord = recordConverter.convert(record);
 
         writeTo(format, UNORDERED_SCHEMA, genericRecord, tempFile);

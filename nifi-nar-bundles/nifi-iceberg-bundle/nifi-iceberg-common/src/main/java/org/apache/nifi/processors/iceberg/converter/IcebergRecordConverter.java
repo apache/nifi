@@ -55,9 +55,6 @@ public class IcebergRecordConverter {
         return converter.convert(record);
     }
 
-    public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat) {
-        this(schema, recordSchema, fileFormat, UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN, null);
-    }
 
     @SuppressWarnings("unchecked")
     public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat, UnmatchedColumnBehavior unmatchedColumnBehavior, ComponentLog logger) {
@@ -186,7 +183,7 @@ public class IcebergRecordConverter {
                 // If the field is missing, use the expected type from the schema (converted to a DataType)
                 final Types.NestedField schemaField = schema.findField(fieldId);
                 final Type schemaFieldType = schemaField.type();
-                if(schemaField.isRequired()) {
+                if (schemaField.isRequired()) {
                     // Iceberg requires a non-null value for required fields
                     throw new IllegalArgumentException("Iceberg requires a non-null value for required fields, field: "
                             + schemaField.name() + ", type: " + schemaFieldType);
