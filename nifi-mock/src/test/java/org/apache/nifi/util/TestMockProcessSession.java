@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -131,6 +132,20 @@ public class TestMockProcessSession {
         assertTrue(ff1.isPenalized());
         ff1 = session.unpenalize(ff1);
         assertFalse(ff1.isPenalized());
+    }
+
+    @Test
+    public void testAttributePreservedAfterWrite() throws IOException {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        session.putAttribute(ff1, "key1", "val1");
+        session.write(ff1).close();
+        session.transfer(ff1, PoorlyBehavedProcessor.REL_FAILURE);
+        session.commitAsync();
+        List<MockFlowFile> output = session.getFlowFilesForRelationship(PoorlyBehavedProcessor.REL_FAILURE);
+        assertEquals(1, output.size());
+        output.get(0).assertAttributeEquals("key1", "val1");
     }
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
