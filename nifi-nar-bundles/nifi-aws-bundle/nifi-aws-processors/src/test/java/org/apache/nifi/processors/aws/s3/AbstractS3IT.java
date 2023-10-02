@@ -36,9 +36,7 @@ import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.Tag;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -119,18 +117,8 @@ public abstract class AbstractS3IT {
         return localstack.getRegion();
     }
 
-    protected static void setSecureProperties(final TestRunner runner, final PropertyDescriptor serviceDescriptor) throws InitializationException {
-        if (runner.getProcessContext().getProperty(serviceDescriptor).isSet()) {
-            return;
-        }
-
-        final AWSCredentialsProviderControllerService creds = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("creds", creds);
-        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, localstack.getAccessKey());
-        runner.setProperty(CredentialPropertyDescriptors.SECRET_KEY, localstack.getSecretKey());
-        runner.enableControllerService(creds);
-
-        runner.setProperty(serviceDescriptor, "creds");
+    protected static void setSecureProperties(final TestRunner runner) throws InitializationException {
+        AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
     }
 
     @BeforeEach
@@ -253,7 +241,7 @@ public abstract class AbstractS3IT {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
 
         try {
-            setSecureProperties(runner, AbstractS3Processor.AWS_CREDENTIALS_PROVIDER_SERVICE);
+            setSecureProperties(runner);
         } catch (InitializationException e) {
             Assertions.fail("Could not set security properties");
         }

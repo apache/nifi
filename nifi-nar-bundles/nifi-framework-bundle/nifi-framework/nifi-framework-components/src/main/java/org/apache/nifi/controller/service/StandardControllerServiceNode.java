@@ -53,6 +53,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -834,21 +836,27 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void migrateConfiguration(final ConfigurationContext context) {
-        final ControllerService service = getControllerServiceImplementation();
+    public void migrateConfiguration(final ControllerServiceFactory serviceFactory) {
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(toPropertyNameMap(getEffectivePropertyValues()),
+                toPropertyNameMap(getRawPropertyValues()), super::mapRawValueToEffectiveValue, toString(), serviceFactory);
 
-        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), service.getClass(), getIdentifier())) {
-            service.migrateProperties(propertyConfig);
+        final ControllerService implementation = getControllerServiceImplementation();
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+            implementation.migrateProperties(propertyConfig);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);
         }
 
         if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating this service's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
             overwriteProperties(propertyConfig.getProperties());
         }
     }
-
 
     @Override
     protected void performFlowAnalysisOnThis() {

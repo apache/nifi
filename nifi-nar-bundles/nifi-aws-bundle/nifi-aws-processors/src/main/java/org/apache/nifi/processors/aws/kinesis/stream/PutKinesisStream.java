@@ -114,22 +114,15 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .build();
 
     public static final List<PropertyDescriptor> properties = List.of(
-            KINESIS_STREAM_NAME,
-            KINESIS_PARTITION_KEY,
-            BATCH_SIZE,
-            MAX_MESSAGE_BUFFER_SIZE_MB,
-            REGION,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            TIMEOUT,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
-            ENDPOINT_OVERRIDE);
+        KINESIS_STREAM_NAME,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        KINESIS_PARTITION_KEY,
+        BATCH_SIZE,
+        MAX_MESSAGE_BUFFER_SIZE_MB,
+        TIMEOUT,
+        PROXY_CONFIGURATION_SERVICE,
+        ENDPOINT_OVERRIDE);
 
     /** A random number generator for cases where partition key is not available */
     protected Random randomPartitionKeyGenerator = new Random();

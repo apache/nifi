@@ -29,7 +29,7 @@ import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.apache.http.protocol.HttpContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -62,19 +62,12 @@ public class TestInvokeAmazonGatewayApiMock {
         runner = TestRunners.newTestRunner(mockGetApi);
         runner.setValidateExpressionUsage(false);
 
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.ACCESS_KEY, "awsAccessKey");
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.SECRET_KEY, "awsSecretKey");
-        runner.enableControllerService(serviceImpl);
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
 
-        runner.setProperty(InvokeAWSGatewayApi.AWS_CREDENTIALS_PROVIDER_SERVICE,
-                           "awsCredentialsProvider");
         runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/TEST");
-        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT,
-                           "https://foobar.execute-api.us-east-1.amazonaws.com");
+        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "https://foobar.execute-api.us-east-1.amazonaws.com");
     }
 
     @Test

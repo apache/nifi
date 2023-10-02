@@ -45,8 +45,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,15 +78,23 @@ import java.util.Map;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutDynamoDB extends AbstractDynamoDBProcessor {
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-            HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, DOCUMENT_CHARSET, BATCH_SIZE,
-            REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE,
-            PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        JSON_DOCUMENT,
+        HASH_KEY_NAME,
+        RANGE_KEY_NAME,
+        HASH_KEY_VALUE,
+        RANGE_KEY_VALUE,
+        HASH_KEY_VALUE_TYPE,
+        RANGE_KEY_VALUE_TYPE,
+        DOCUMENT_CHARSET,
+        BATCH_SIZE,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        PROXY_CONFIGURATION_SERVICE);
 
-    /**
-     * Dyamodb max item size limit 400 kb
-     */
     public static final int DYNAMODB_MAX_ITEM_SIZE = 400 * 1024;
 
     @Override

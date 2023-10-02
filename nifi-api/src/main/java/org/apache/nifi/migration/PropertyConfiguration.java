@@ -129,9 +129,82 @@ public interface PropertyConfiguration {
     }
 
     /**
+     * Returns an optional value representing the "raw" value of the property with the given name. The "raw" value is
+     * the value before any parameters are substituted.
+     *
+     * @param propertyName the name of the property
+     * @return an empty optional if the value is null or unset, else an Optional representing the configured value
+     */
+    Optional<String> getRawPropertyValue(String propertyName);
+
+    /**
+     * Returns an optional value representing the "raw" value of the property identified by the given descriptor. The "raw" value is
+     * the value before any parameters are substituted.
+     *
+     * @param descriptor the descriptor that identifies the property
+     * @return an empty optional if the value is null or unset, else an Optional representing the configured value
+     */
+    default Optional<String> getRawPropertyValue(PropertyDescriptor descriptor) {
+        return getRawPropertyValue(descriptor.getName());
+    }
+
+    /**
      * Returns a map containing all of the configured properties
      * @return a Map containing the names and values of all configured properties
      */
     Map<String, String> getProperties();
 
+    /**
+     * Returns a map containing all of the raw property values
+     *
+     * @return a Map containing the names and values of all configured properties
+     */
+    Map<String, String> getRawProperties();
+
+    /**
+     * <p>
+     * Creates a new Controller Service of the given type and configures it with the given property values. Note that if a Controller Service
+     * already exists within the same scope and with the same implementation and configuration, a new service may not be created and instead
+     * the existing service may be used.
+     * </p>
+     *
+     * <p>
+     * This allows for properties that were previously defined in the extension to be moved to a Controller Service. For example,
+     * consider a Processor that has "Username" and "Password" properties. In the next version of the Processor, we want to support
+     * multiple types of authentication, and we delegate the authentication to a Controller Service. Consider that the Controller Service
+     * implementation we wish to use has a classname of {@code org.apache.nifi.services.authentication.UsernamePassword}. We might then
+     * use this method as such:
+     * </p>
+     *
+     * <pre><code>
+     *     // Create a new Controller Service of type org.apache.nifi.services.authentication.UsernamePassword whose Username and Password
+     *     // properties match those currently configured for this Processor.
+     *     final Map&lt;String, String&gt; serviceProperties = Map.of("Username", propertyConfiguration.getRawPropertyValue("Username"),
+     *          "Password", propertyConfiguration.getRawPropertyValue("Password"));
+     *     final String serviceId = propertyConfiguration.createControllerService("org.apache.nifi.services.authentication.UsernamePassword", serviceProperties);
+     *
+     *     // Set our Authentication Service property to point to this new service.
+     *     propertyConfiguration.setProperty(AUTHENTICATION_SERVICE, serviceId);
+     *
+     *     // Remove the Username and Password properties from this Processor, since we are now going to use then Authentication Service.
+     *     propertyConfiguration.removeProperty("Username");
+     *     propertyConfiguration.removeProperty("Password");
+     * </code></pre>
+     *
+     * <p>
+     * Note the use of {@link #getRawPropertyValue(String)} here instead of {@link #getPropertyValue(String)}. Because we want to set
+     * the new Controller Service's value to the same value as is currently configured for the Processor's "Username" and "Password" properties,
+     * we use {@link #getRawPropertyValue(String)}. This ensures that if the Processor is configured using Parameters, those Parameter
+     * references are still held by the Controller Service.
+     * </p>
+     *
+     * <p>
+     * Also note that this method expects the classname of the implementation, not the classname of the interface.
+     * </p>
+     *
+     * @param implementationClassName the fully qualified classname of the Controller Service implementation
+     * @param serviceProperties       the property values to configure the newly created Controller Service with
+     * @return an identifier for the Controller Service
+     */
+    String createControllerService(String implementationClassName, Map<String, String> serviceProperties);
 }

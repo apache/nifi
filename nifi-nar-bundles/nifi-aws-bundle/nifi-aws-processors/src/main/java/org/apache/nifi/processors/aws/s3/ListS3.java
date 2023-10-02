@@ -87,7 +87,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -284,39 +283,32 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         .build();
 
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            BUCKET_WITHOUT_DEFAULT_VALUE,
-            REGION,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            LISTING_STRATEGY,
-            TRACKING_STATE_CACHE,
-            INITIAL_LISTING_TARGET,
-            TRACKING_TIME_WINDOW,
-            RECORD_WRITER,
-            MIN_AGE,
-            MAX_AGE,
-            BATCH_SIZE,
-            WRITE_OBJECT_TAGS,
-            WRITE_USER_METADATA,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            TIMEOUT,
-            SSL_CONTEXT_SERVICE,
-            ENDPOINT_OVERRIDE,
-            SIGNER_OVERRIDE,
-            S3_CUSTOM_SIGNER_CLASS_NAME,
-            S3_CUSTOM_SIGNER_MODULE_LOCATION,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
-            DELIMITER,
-            PREFIX,
-            USE_VERSIONS,
-            LIST_TYPE,
-            REQUESTER_PAYS));
+    public static final List<PropertyDescriptor> properties = List.of(
+        BUCKET_WITHOUT_DEFAULT_VALUE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        LISTING_STRATEGY,
+        TRACKING_STATE_CACHE,
+        INITIAL_LISTING_TARGET,
+        TRACKING_TIME_WINDOW,
+        RECORD_WRITER,
+        MIN_AGE,
+        MAX_AGE,
+        BATCH_SIZE,
+        WRITE_OBJECT_TAGS,
+        WRITE_USER_METADATA,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        ENDPOINT_OVERRIDE,
+        SIGNER_OVERRIDE,
+        S3_CUSTOM_SIGNER_CLASS_NAME,
+        S3_CUSTOM_SIGNER_MODULE_LOCATION,
+        PROXY_CONFIGURATION_SERVICE,
+        DELIMITER,
+        PREFIX,
+        USE_VERSIONS,
+        LIST_TYPE,
+        REQUESTER_PAYS);
 
     public static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
 

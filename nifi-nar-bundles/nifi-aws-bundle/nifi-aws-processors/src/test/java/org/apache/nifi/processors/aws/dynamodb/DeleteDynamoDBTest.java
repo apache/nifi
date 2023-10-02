@@ -27,6 +27,8 @@ import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.DeleteRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -69,8 +71,24 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     }
 
+    private TestRunner createRunner() throws InitializationException {
+        return createRunner(deleteDynamoDB);
+    }
+
+    private TestRunner createRunner(final DeleteDynamoDB processor) throws InitializationException {
+        final TestRunner deleteRunner = TestRunners.newTestRunner(processor);
+        AuthUtils.enableAccessKey(deleteRunner, "abcd", "cdef");
+
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+
+        return deleteRunner;
+    }
+
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashFailure() {
+    public void testStringHashStringRangeDeleteOnlyHashFailure() throws InitializationException {
         // Inject a mock DynamoDB to create the exception condition
         final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
         // When writing, mock thrown service exception from AWS
@@ -83,14 +101,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
             }
         };
 
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+        final TestRunner deleteRunner = createRunner();
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY, "abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         deleteRunner.enqueue(new byte[] {});
 
         deleteRunner.run(1);
@@ -105,15 +117,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteSuccessfulWithMock() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
-
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+    public void testStringHashStringRangeDeleteSuccessfulWithMock() throws InitializationException {
+        final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         deleteRunner.enqueue(new byte[] {});
@@ -125,7 +130,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() {
+    public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() throws InitializationException {
         Map<String, List<WriteRequest>> unprocessed =
                 new HashMap<String, List<WriteRequest>>();
         DeleteRequest delete = new DeleteRequest();
@@ -136,14 +141,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         writes.add(write);
         unprocessed.put(stringHashStringRangeTableName, writes);
         result.setUnprocessedItems(unprocessed);
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
-
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         deleteRunner.enqueue(new byte[] {});
@@ -155,16 +153,13 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNoHashValueFailure() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
+    public void testStringHashStringRangeDeleteNoHashValueFailure() throws InitializationException {
+        final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        deleteRunner.removeProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE);
         deleteRunner.enqueue(new byte[] {});
 
         deleteRunner.run(1);
@@ -179,15 +174,9 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashWithRangeValueNoRangeNameFailure() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
+    public void testStringHashStringRangeDeleteOnlyHashWithRangeValueNoRangeNameFailure() throws InitializationException {
+        final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         deleteRunner.enqueue(new byte[] {});
 
@@ -203,16 +192,9 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashWithRangeNameNoRangeValueFailure() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
-
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+    public void testStringHashStringRangeDeleteOnlyHashWithRangeNameNoRangeValueFailure() throws InitializationException {
+        final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         deleteRunner.enqueue(new byte[] {});
 
         deleteRunner.run(1);
@@ -226,47 +208,33 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNonExistentHashSuccess() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
+    public void testStringHashStringRangeDeleteNonExistentHashSuccess() throws InitializationException {
+        final TestRunner deleteRunner = createRunner();
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "nonexistent");
+        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         deleteRunner.enqueue(new byte[] {});
 
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
-
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNonExistentRangeSuccess() {
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
-
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+    public void testStringHashStringRangeDeleteNonExistentRangeSuccess() throws InitializationException {
+        final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "nonexistent");
         deleteRunner.enqueue(new byte[] {});
 
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
-
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsServiceException() {
+    public void testStringHashStringRangeDeleteThrowsServiceException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -280,14 +248,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
 
@@ -305,7 +267,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsClientException() {
+    public void testStringHashStringRangeDeleteThrowsClientException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -319,14 +281,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner deleteRunner = createRunner(deleteDynamoDB);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
 
@@ -343,7 +299,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsRuntimeException() {
+    public void testStringHashStringRangeDeleteThrowsRuntimeException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -357,14 +313,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner deleteRunner = TestRunners.newTestRunner(deleteDynamoDB);
-
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner deleteRunner = createRunner(deleteDynamoDB);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
 

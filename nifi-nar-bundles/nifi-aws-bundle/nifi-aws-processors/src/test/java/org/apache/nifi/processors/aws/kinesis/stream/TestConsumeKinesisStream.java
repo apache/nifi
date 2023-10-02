@@ -23,7 +23,6 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
@@ -62,7 +61,7 @@ public class TestConsumeKinesisStream {
         // use anonymous credentials by default
         final ControllerService credentialsProvider = new AWSCredentialsProviderControllerService();
         runner.addControllerService("credentials-provider", credentialsProvider);
-        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
+        runner.setProperty(credentialsProvider, AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS, "true");
         runner.assertValid(credentialsProvider);
         runner.enableControllerService(credentialsProvider);
         runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-provider");
@@ -70,19 +69,6 @@ public class TestConsumeKinesisStream {
         runner.assertValid();
     }
 
-    @Test
-    public void testValidWithCredentials() throws InitializationException {
-        final ControllerService credentialsProvider = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("credentials-provider", credentialsProvider);
-        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.ACCESS_KEY_ID, "access-key");
-        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.SECRET_KEY, "secret-key");
-        runner.assertValid(credentialsProvider);
-        runner.enableControllerService(credentialsProvider);
-        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-provider");
-        runner.assertValid();
-
-        ((ConsumeKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
-    }
 
     @Test
     public void testMissingMandatoryProperties() {
@@ -346,10 +332,10 @@ public class TestConsumeKinesisStream {
         final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
         mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
         if (withCredentials) {
-            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.ACCESS_KEY_ID, "test-access");
-            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.SECRET_KEY, "test-secret");
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, AWSCredentialsProviderControllerService.ACCESS_KEY_ID, "test-access");
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, AWSCredentialsProviderControllerService.SECRET_KEY, "test-secret");
         } else {
-            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS, "true");
         }
         mockConsumeKinesisStreamRunner.assertValid(awsCredentialsProviderService);
         mockConsumeKinesisStreamRunner.enableControllerService(awsCredentialsProviderService);

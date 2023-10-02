@@ -188,12 +188,22 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .addValidator(DOUBLE_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties =
-            Collections.unmodifiableList(
-                    Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, MAXIMUM, MINIMUM, SAMPLECOUNT, SUM, TIMESTAMP,
-                            UNIT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD)
-            );
+    public static final List<PropertyDescriptor> properties = List.of(
+        NAMESPACE,
+        METRIC_NAME,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        VALUE,
+        MAXIMUM,
+        MINIMUM,
+        SAMPLECOUNT,
+        SUM,
+        TIMESTAMP,
+        UNIT,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        ENDPOINT_OVERRIDE,
+        PROXY_CONFIGURATION_SERVICE);
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
@@ -237,7 +247,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        Collection<ValidationResult> problems = super.customValidate(validationContext);
+        List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean valueSet = validationContext.getProperty(VALUE).isSet();
         final boolean maxSet = validationContext.getProperty(MAXIMUM).isSet();
@@ -249,16 +259,25 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
         final boolean anyStatisticSetValue = (maxSet || minSet || sampleCountSet || sumSet);
 
         if (valueSet && anyStatisticSetValue) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Cannot set both Value and StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Cannot set both Value and StatisticSet(Maximum, Minimum, SampleCount, Sum) properties")
+                .build());
         } else if (!valueSet && !completeStatisticSet) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties")
+                .build());
         }
 
         if (dynamicPropertyNames.size() > 10) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Cannot set more than 10 dimensions").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Cannot set more than 10 dimensions")
+                .build());
         }
 
         return problems;

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.migration;
 
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,9 +42,22 @@ public class TestStandardPropertyConfiguration {
         originalProperties.put("b", "B");
         originalProperties.put("c", null);
 
-        config = new StandardPropertyConfiguration(originalProperties, "Test Component");
+        final ControllerServiceFactory controllerServiceFactory = new ControllerServiceFactory() {
+            @Override
+            public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
+                return new ControllerServiceCreationDetails("id", implementationClassName, null, propertyValues, ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED);
+            }
+
+            @Override
+            public ControllerServiceNode create(final ControllerServiceCreationDetails creationDetails) {
+                return null;
+            }
+        };
+
+        config = new StandardPropertyConfiguration(originalProperties, originalProperties, raw -> raw, "Test Component", controllerServiceFactory);
     }
 
+    // TODO: Test Raw vs. Effective values
 
     @Test
     public void testGetOperations() {

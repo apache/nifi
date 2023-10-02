@@ -28,7 +28,6 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -82,6 +81,8 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.groups.StandardVersionedFlowStatus;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -251,15 +252,15 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         });
 
         for (final ComponentNode extension : createdExtensions) {
+            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
+                context.getControllerServiceProvider(), extension);
+
             if (extension instanceof final ProcessorNode processor) {
-                final ProcessContext migrationContext = context.getProcessContextFactory().apply(processor);
-                processor.migrateConfiguration(migrationContext);
+                processor.migrateConfiguration(serviceFactory);
             } else if (extension instanceof final ControllerServiceNode service) {
-                final ConfigurationContext migrationContext = context.getConfigurationContextFactory().apply(service);
-                service.migrateConfiguration(migrationContext);
+                service.migrateConfiguration(serviceFactory);
             } else if (extension instanceof final ReportingTaskNode task) {
-                final ConfigurationContext migrationContext = context.getConfigurationContextFactory().apply(task);
-                task.migrateConfiguration(migrationContext);
+                task.migrateConfiguration(serviceFactory);
             }
         }
 

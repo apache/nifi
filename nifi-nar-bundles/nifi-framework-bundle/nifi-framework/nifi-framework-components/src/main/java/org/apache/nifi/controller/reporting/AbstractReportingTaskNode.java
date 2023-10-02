@@ -44,6 +44,8 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -426,10 +428,12 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     }
 
     @Override
-    public void migrateConfiguration(final ConfigurationContext context) {
+    public void migrateConfiguration(final ControllerServiceFactory serviceFactory) {
         final ReportingTask task = getReportingTask();
 
-        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(context.getAllProperties(), toString());
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(toPropertyNameMap(getEffectivePropertyValues()),
+                toPropertyNameMap(getRawPropertyValues()), this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), task.getClass(), getIdentifier())) {
             task.migrateProperties(propertyConfig);
         } catch (final Exception e) {
@@ -437,6 +441,12 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         }
 
         if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the reporting tasks's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
             overwriteProperties(propertyConfig.getProperties());
         }
     }

@@ -103,21 +103,15 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             .build();
 
     public static final List<PropertyDescriptor> properties = List.of(
-            QUEUE_URL,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            REGION,
-            DELAY,
-            TIMEOUT,
-            ENDPOINT_OVERRIDE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
-            MESSAGEGROUPID,
-            MESSAGEDEDUPLICATIONID);
+        QUEUE_URL,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        DELAY,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        PROXY_CONFIGURATION_SERVICE,
+        MESSAGEGROUPID,
+        MESSAGEDEDUPLICATIONID);
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -194,13 +188,13 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
                 throw new ProcessException(response.failed().get(0).toString());
             }
         } catch (final Exception e) {
-            getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
+            getLogger().error("Failed to send messages to Amazon SQS; routing to failure", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        getLogger().info("Successfully published message to Amazon SQS for {}", new Object[]{flowFile});
+        getLogger().info("Successfully published message to Amazon SQS for {}", flowFile);
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         session.getProvenanceReporter().send(flowFile, queueUrl, transmissionMillis);

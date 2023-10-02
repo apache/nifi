@@ -20,7 +20,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
@@ -34,7 +34,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 public class AnonymousCredentialsStrategy extends AbstractBooleanCredentialsStrategy {
 
     public AnonymousCredentialsStrategy() {
-        super("Anonymous Credentials", CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS);
+        super("Anonymous Credentials", AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS);
     }
 
     @Override

@@ -81,11 +81,21 @@ import java.util.stream.Collectors;
     })
 public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, JSON_DOCUMENT, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
-                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE,
-                PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        JSON_DOCUMENT,
+        HASH_KEY_NAME,
+        RANGE_KEY_NAME,
+        HASH_KEY_VALUE,
+        RANGE_KEY_VALUE,
+        HASH_KEY_VALUE_TYPE,
+        RANGE_KEY_VALUE_TYPE,
+        BATCH_SIZE,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        PROXY_CONFIGURATION_SERVICE);
 
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not found")
             .description("FlowFiles are routed to not found relationship if key not found in the table").build();

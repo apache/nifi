@@ -44,6 +44,7 @@ import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayResponse;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,32 +75,24 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
     private static final Set<String> IDEMPOTENT_METHODS = new HashSet<>(Arrays.asList("GET", "HEAD", "OPTIONS"));
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays
-            .asList(
-                    PROP_METHOD,
-                    REGION,
-                    ACCESS_KEY,
-                    SECRET_KEY,
-                    CREDENTIALS_FILE,
-                    AWS_CREDENTIALS_PROVIDER_SERVICE,
-                    TIMEOUT,
-                    PROP_RESOURCE_NAME,
-                    PROP_AWS_GATEWAY_API_ENDPOINT,
-                    PROP_AWS_API_KEY,
-                    PROP_ATTRIBUTES_TO_SEND,
-                    PROP_PUT_OUTPUT_IN_ATTRIBUTE,
-                    PROP_CONTENT_TYPE,
-                    PROP_SEND_BODY,
-                    PROP_OUTPUT_RESPONSE_REGARDLESS,
-                    PROP_PENALIZE_NO_RETRY,
-                    PROXY_HOST,
-                    PROXY_HOST_PORT,
-                    PROXY_USERNAME,
-                    PROXY_PASSWORD,
-                    PROP_QUERY_PARAMS,
-                    PROP_PUT_ATTRIBUTE_MAX_LENGTH,
-                    PROP_ADD_HEADERS_TO_REQUEST,
-                    PROXY_CONFIGURATION_SERVICE));
+    public static final List<PropertyDescriptor> properties = List.of(
+        PROP_METHOD,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        TIMEOUT,
+        PROP_RESOURCE_NAME,
+        PROP_AWS_GATEWAY_API_ENDPOINT,
+        PROP_AWS_API_KEY,
+        PROP_ATTRIBUTES_TO_SEND,
+        PROP_PUT_OUTPUT_IN_ATTRIBUTE,
+        PROP_CONTENT_TYPE,
+        PROP_SEND_BODY,
+        PROP_OUTPUT_RESPONSE_REGARDLESS,
+        PROP_PENALIZE_NO_RETRY,
+        PROP_QUERY_PARAMS,
+        PROP_PUT_ATTRIBUTE_MAX_LENGTH,
+        PROP_ADD_HEADERS_TO_REQUEST,
+        PROXY_CONFIGURATION_SERVICE);
 
 
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -133,8 +126,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     + "exception. It will have new attributes detailing the request.")
             .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(
-        Arrays.asList(REL_SUCCESS_REQ, REL_RESPONSE, REL_RETRY, REL_NO_RETRY, REL_FAILURE)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS_REQ, REL_RESPONSE, REL_RETRY, REL_NO_RETRY, REL_FAILURE);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -162,8 +154,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         // Checking to see if the property to put the body of the response in an attribute was set
         boolean putToAttribute = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         if (requestFlowFile == null) {
-            String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions()
-                                    .getValue().toUpperCase();
+            final String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions().getValue().toUpperCase();
             if ("POST".equals(request) || "PUT".equals(request) || "PATCH".equals(request)) {
                 return;
             } else if (putToAttribute) {
@@ -176,8 +167,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         FlowFile responseFlowFile = null;
 
         try {
-            final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH)
-                                                .asInteger();
+            final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
 
             final String resourceName = context.getProperty(PROP_RESOURCE_NAME).getValue();
 
@@ -192,8 +182,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
             final int statusCode = gatewayResponse.statusCode;
 
             final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
-            final boolean outputRegardless = context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS)
-                                              .asBoolean();
+            final boolean outputRegardless = context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
 
             boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute || outputRegardless);
             boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
@@ -241,11 +230,9 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 // write the response headers as attributes
                 // this will overwrite any existing flowfile attributes
                 if (response != null) {
-                    responseFlowFile = session
-                        .putAllAttributes(responseFlowFile, convertAttributesFromHeaders(response));
+                    responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(response));
                 } else {
-                    responseFlowFile = session
-                        .putAllAttributes(responseFlowFile, exception.getHttpHeaders());
+                    responseFlowFile = session.putAllAttributes(responseFlowFile, exception.getHttpHeaders());
                 }
                 // transfer the message body to the payload
                 // can potentially be null in edge cases
@@ -266,17 +253,11 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     }
                 } else if (exception != null) {
                     final String contentType = "application/json";
-                    responseFlowFile = session
-                        .putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(),
-                                      contentType.trim());
-
-                    responseFlowFile = session
-                        .importFrom(new ByteArrayInputStream(exception.getRawResponse()),
-                                    responseFlowFile);
+                    responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), contentType.trim());
+                    responseFlowFile = session.importFrom(new ByteArrayInputStream(exception.getRawResponse()), responseFlowFile);
 
                     // emit provenance event
-                    final long millis = TimeUnit.NANOSECONDS
-                        .toMillis(System.nanoTime() - startNanos);
+                    final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                     if (requestFlowFile != null) {
                         session.getProvenanceReporter().fetch(responseFlowFile, endpoint, millis);
                     } else {
@@ -286,9 +267,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
             }
             // if not successful and request flowfile is not null, store the response body into a flowfile attribute
             if (outputBodyToRequestAttribute) {
-                String attributeKey = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE)
-                                             .evaluateAttributeExpressions(requestFlowFile)
-                                             .getValue();
+                String attributeKey = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).evaluateAttributeExpressions(requestFlowFile).getValue();
                 if (attributeKey == null) {
                     attributeKey = RESPONSE_BODY;
                 }
@@ -296,20 +275,14 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 int size = 0;
                 outputBuffer = new byte[maxAttributeSize];
                 if (bodyExists) {
-                    size = StreamUtils
-                        .fillBuffer(new ByteArrayInputStream(response.getBody().getBytes()),
-                                    outputBuffer, false);
-                } else if (exception != null && exception.getRawResponse() != null
-                    && exception.getRawResponse().length > 0) {
-                    size = StreamUtils
-                        .fillBuffer(new ByteArrayInputStream(exception.getRawResponse()),
-                                    outputBuffer, false);
+                    size = StreamUtils.fillBuffer(new ByteArrayInputStream(response.getBody().getBytes()), outputBuffer, false);
+                } else if (exception != null && exception.getRawResponse() != null && exception.getRawResponse().length > 0) {
+                    size = StreamUtils.fillBuffer(new ByteArrayInputStream(exception.getRawResponse()), outputBuffer, false);
                 }
 
                 if (size > 0) {
-                    String bodyString = new String(outputBuffer, 0, size, "UTF-8");
-                    requestFlowFile = session
-                        .putAttribute(requestFlowFile, attributeKey, bodyString);
+                    String bodyString = new String(outputBuffer, 0, size, StandardCharsets.UTF_8);
+                    requestFlowFile = session.putAttribute(requestFlowFile, attributeKey, bodyString);
                 }
 
                 requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
@@ -319,20 +292,16 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                         .format("The %s has been added. The value of which is the body of a http call to %s%s. It took %s millis,", attributeKey, endpoint, resourceName, millis));
             }
 
-            route(requestFlowFile, responseFlowFile, session, context, statusCode,
-                  getRelationships());
+            route(requestFlowFile, responseFlowFile, session, context, statusCode, getRelationships());
         } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
                 logger.error("Routing to {} due to exception: {}", REL_FAILURE.getName(), e, e);
                 requestFlowFile = session.penalize(requestFlowFile);
-                requestFlowFile = session
-                    .putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
-                requestFlowFile = session
-                    .putAttribute(requestFlowFile, EXCEPTION_MESSAGE, e.getMessage());
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_MESSAGE, e.getMessage());
                 // transfer original to failure
-                session.transfer(requestFlowFile,
-                                 getRelationshipForName(REL_FAILURE_NAME, getRelationships()));
+                session.transfer(requestFlowFile, getRelationshipForName(REL_FAILURE_NAME, getRelationships()));
             } else {
                 logger.error("Yielding processor due to exception encountered as a source processor: {}", e);
                 context.yield();
@@ -373,7 +342,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                         method, endpoint, resource, statusExplanation, gatewayResponse.statusCode);
             } else {
                 final String statusExplanation = gatewayResponse.response.getHttpResponse().getStatusText();
-                explanation = String.format("Successfully invoked AWS Gateway API [%s %s%/s] with blank request body, receiving success response [%s] with status code [%s]",
+                explanation = String.format("Successfully invoked AWS Gateway API [%s %s/%s] with blank request body, receiving success response [%s] with status code [%s]",
                         method, endpoint, resource, statusExplanation, gatewayResponse.statusCode);
             }
             results.add(new ConfigVerificationResult.Builder()
@@ -425,15 +394,6 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         return new GatewayResponse(response, exception, statusCode);
     }
 
-    private class GatewayResponse {
-        private final GenericApiGatewayResponse response;
-        private final GenericApiGatewayException exception;
-        private final int statusCode;
-
-        private GatewayResponse(final GenericApiGatewayResponse response, final GenericApiGatewayException exception, final int statusCode) {
-            this.response = response;
-            this.exception = exception;
-            this.statusCode = statusCode;
-        }
+    private record GatewayResponse(GenericApiGatewayResponse response, GenericApiGatewayException exception, int statusCode) {
     }
 }

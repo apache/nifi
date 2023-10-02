@@ -28,7 +28,6 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
@@ -49,7 +48,6 @@ import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ExecutionEngine;
@@ -72,6 +70,8 @@ import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -597,8 +597,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask, controller);
 
-        final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, controller.getControllerServiceProvider(), taskNode.getSchedulingPeriod());
-        taskNode.migrateConfiguration(configurationContext);
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+            controller.getControllerServiceProvider(), taskNode);
+        taskNode.migrateConfiguration(serviceFactory);
     }
 
     private void updateReportingTask(final ReportingTaskNode taskNode, final VersionedReportingTask reportingTask, final FlowController controller) {
@@ -639,11 +640,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void inheritFlowAnalysisRules(
-        final FlowController controller,
-        final VersionedDataflow dataflow,
-        final AffectedComponentSet affectedComponentSet
-    ) throws FlowAnalysisRuleInstantiationException {
+    private void inheritFlowAnalysisRules(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet)
+        throws FlowAnalysisRuleInstantiationException {
         // Guard state in order to be able to read flow.json from before adding the flow analysis rules
         if (dataflow.getFlowAnalysisRules() == null) {
             return;
@@ -915,8 +913,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
 
         for (final ControllerServiceNode service : controllerServicesAdded) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controller.getControllerServiceProvider(), null);
-            service.migrateConfiguration(configurationContext);
+            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+                controller.getControllerServiceProvider(), service);
+            service.migrateConfiguration(serviceFactory);
         }
 
         for (final VersionedControllerService versionedControllerService : controllerServices) {
@@ -975,11 +974,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
     private void inheritAuthorizations(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController controller) {
         final Authorizer authorizer = controller.getAuthorizer();
-        if (!(authorizer instanceof ManagedAuthorizer)) {
+        if (!(authorizer instanceof final ManagedAuthorizer managedAuthorizer)) {
             return;
         }
 
-        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
         final String proposedAuthFingerprint = proposedFlow.getAuthorizerFingerprint() == null ? "" : new String(proposedFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
 
         final FlowInheritabilityCheck authorizerCheck = new AuthorizerCheck();
@@ -1229,17 +1227,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
 
             switch (component.getConnectableType()) {
-                case PROCESSOR:
-                    flowController.startProcessor(component.getProcessGroupIdentifier(), component.getIdentifier());
-                    break;
-                case INPUT_PORT:
-                case OUTPUT_PORT:
-                    flowController.startConnectable(component);
-                    break;
-                case REMOTE_INPUT_PORT:
-                case REMOTE_OUTPUT_PORT:
-                    flowController.startTransmitting((RemoteGroupPort) component);
-                    break;
+                case PROCESSOR -> flowController.startProcessor(component.getProcessGroupIdentifier(), component.getIdentifier());
+                case INPUT_PORT, OUTPUT_PORT -> flowController.startConnectable(component);
+                case REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> flowController.startTransmitting((RemoteGroupPort) component);
             }
         }
 
