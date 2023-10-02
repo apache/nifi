@@ -101,8 +101,8 @@ import org.apache.tika.mime.MimeTypeException;
 }
 )
 public class IdentifyMimeType extends AbstractProcessor {
-    static final AllowableValue REPLACE = new AllowableValue("replace", "replace", "Use config MIME Types only.");
-    static final AllowableValue ADD = new AllowableValue("add", "add",
+    static final AllowableValue REPLACE = new AllowableValue("Replace", "Replace", "Use config MIME Types only.");
+    static final AllowableValue ADD = new AllowableValue("Add", "Add",
             "Use config in addition to default NiFi MIME Types.  If match is found among config MIME Types, default NiFi Mime Types will not be checked.");
 
     public static final PropertyDescriptor USE_FILENAME_IN_DETECTION = new PropertyDescriptor.Builder()
@@ -135,11 +135,12 @@ public class IdentifyMimeType extends AbstractProcessor {
     public static final PropertyDescriptor CONFIG_STRATEGY = new PropertyDescriptor.Builder()
             .displayName("Config Strategy")
             .name("config-strategy")
-            .description("Replace default NiFi MIME Types or add to them.  "
+            .description("Select the loading strategy for MIME Type configuration provided "
+                    + "in Config Body or Config File properties.  "
                     + "Only applicable if Config File or Config Body is used.")
-            .required(false)
+            .required(true)
             .allowableValues(REPLACE, ADD)
-            .defaultValue(REPLACE.getDisplayName())
+            .defaultValue(REPLACE.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -269,8 +270,8 @@ public class IdentifyMimeType extends AbstractProcessor {
                 try {
                     MimeType mimetype = mimeTypes.forName(mediatype.toString());
                     extension = mimetype.getExtension();
-                } catch (MimeTypeException ex) {
-                    logger.warn("MIME type extension lookup failed: {}", new Object[]{ex});
+                } catch (MimeTypeException e) {
+                    logger.warn("MIME type extension lookup failed", e);
                 }
 
                 mimeTypeRef.set(mediatype.toString());
