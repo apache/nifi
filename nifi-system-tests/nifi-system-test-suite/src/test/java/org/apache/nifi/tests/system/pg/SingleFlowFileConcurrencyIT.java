@@ -27,6 +27,8 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -37,10 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
-
+    private static final Logger logger = LoggerFactory.getLogger(SingleFlowFileConcurrencyIT.class);
 
     @Test
     public void testSingleConcurrency() throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Beginning test testSingleConcurrency");
+
         final ProcessGroupEntity processGroupEntity = getClientUtil().createProcessGroup("My Group", "root");
         final PortEntity inputPort = getClientUtil().createInputPort("In", processGroupEntity.getId());
         final PortEntity outputPort = getClientUtil().createOutputPort("Out", processGroupEntity.getId());
@@ -94,11 +98,15 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         // Ensure that 3 FlowFiles are queued up for Terminate
         waitForQueueCount(outputToTerminate.getId(), 3);
+
+        logger.info("Finished test testSingleConcurrency");
     }
 
 
     @Test
     public void testSingleConcurrencyAndBatchOutput() throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Beginning test testSingleConcurrencyAndBatchOutput");
+
         final ProcessGroupEntity processGroupEntity = getClientUtil().createProcessGroup("My Group", "root");
         final PortEntity inputPort = getClientUtil().createInputPort("In", processGroupEntity.getId());
         final PortEntity outputPort = getClientUtil().createOutputPort("Out", processGroupEntity.getId());
@@ -163,11 +171,15 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         final Map<String, String> secondOutAttributes = secondOutFlowFile.getFlowFile().getAttributes();
         assertEquals("1", secondOutAttributes.get("batch.output.Out"));
         assertEquals("1", secondOutAttributes.get("batch.output.Out2"));
+
+        logger.info("Finished test testSingleConcurrencyAndBatchOutput");
     }
 
 
     @Test
     public void testBatchOutputHasCorrectNumbersOnRestart() throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Beginning test testBatchOutputHasCorrectNumbersOnRestart");
+
         final ProcessGroupEntity processGroupEntity = getClientUtil().createProcessGroup("My Group", "root");
         final PortEntity inputPort = getClientUtil().createInputPort("In", processGroupEntity.getId());
         final PortEntity outputPort = getClientUtil().createOutputPort("Out", processGroupEntity.getId());
@@ -238,6 +250,8 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         final Map<String, String> secondOutAttributes = secondOutFlowFile.getFlowFile().getAttributes();
         assertEquals("1", secondOutAttributes.get("batch.output.Out"));
         assertEquals("1", secondOutAttributes.get("batch.output.Out2"));
+
+        logger.info("Finished test testBatchOutputHasCorrectNumbersOnRestart");
     }
 
 }

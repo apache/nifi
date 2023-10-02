@@ -126,6 +126,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class NiFiClientUtil {
@@ -696,7 +697,10 @@ public class NiFiClientUtil {
     }
 
     public void waitForProcessorState(final String processorId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
+        logger.info("Waiting for Processor {} to reach state {}", processorId, expectedState);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String state = entity.getComponent().getState();
 
@@ -714,6 +718,7 @@ public class NiFiClientUtil {
 
             final ProcessorStatusSnapshotDTO snapshotDto = entity.getStatus().getAggregateSnapshot();
             if (snapshotDto.getActiveThreadCount() == 0 && snapshotDto.getTerminatedThreadCount() == 0) {
+                logger.info("Processor {} has reached desired state of {}", processorId, expectedState);
                 return;
             }
 
@@ -722,7 +727,10 @@ public class NiFiClientUtil {
     }
 
     public ReportingTaskEntity waitForReportingTaskState(final String reportingTaskId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+        logger.info("Waiting for Reporting Task {} to reach desired state of {}", reportingTaskId, expectedState);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ReportingTaskEntity entity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
             final String state = entity.getComponent().getState();
 
@@ -735,15 +743,19 @@ public class NiFiClientUtil {
             }
 
             if ("RUNNING".equals(expectedState)) {
+                logger.info("Reporting task {} is now running", reportingTaskId);
                 return entity;
             }
 
             if (entity.getStatus().getActiveThreadCount() == 0) {
+                logger.info("Reporting task {} is now stopped", reportingTaskId);
                 return entity;
             }
 
             Thread.sleep(10L);
         }
+
+        throw new IOException("Timed out waiting for Reporting Task " + reportingTaskId + " to reach state of " + expectedState);
     }
 
     public void waitForReportingTaskValid(final String reportingTaskId) throws NiFiClientException, IOException {
@@ -868,9 +880,13 @@ public class NiFiClientUtil {
     }
 
     private void waitForNoRunningComponents(final String groupId) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
+        logger.info("Waiting for no more running components for group {}", groupId);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final boolean anyRunning = isAnyComponentRunning(groupId);
             if (!anyRunning) {
+                logger.info("All Process Groups have finished");
                 return;
             }
 
@@ -906,6 +922,8 @@ public class NiFiClientUtil {
     }
 
     private void waitForProcessorsStopped(final String groupId) throws IOException, NiFiClientException {
+        logger.info("Waiting for processors in group {} to stop", groupId);
+
         final ProcessGroupFlowEntity rootGroup = nifiClient.getFlowClient().getProcessGroup(groupId);
         final FlowDTO rootFlowDTO = rootGroup.getProcessGroupFlow().getFlow();
         for (final ProcessorEntity processor : rootFlowDTO.getProcessors()) {
@@ -920,6 +938,8 @@ public class NiFiClientUtil {
         for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
             waitForProcessorsStopped(group.getComponent());
         }
+
+        logger.info("All processors in group {} have stopped", groupId);
     }
 
     private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
@@ -956,6 +976,8 @@ public class NiFiClientUtil {
     }
 
     public ActivateControllerServicesEntity disableControllerServices(final String groupId, final boolean recurse) throws NiFiClientException, IOException {
+        logger.info("Starting disableControllerServices for group {}, recurse={}", groupId, recurse);
+
         final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
         activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
@@ -973,6 +995,7 @@ public class NiFiClientUtil {
             }
         }
 
+        logger.info("Finished disableControllerServices for group {}", groupId);
         return activateControllerServices;
     }
 
@@ -998,7 +1021,10 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceRunStatus(final String id, final String requestedRunStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+        logger.info("Waiting for Controller Service {} to have a Run Status of {}", id, requestedRunStatus);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ControllerServiceEntity serviceEntity = nifiClient.getControllerServicesClient().getControllerService(id);
             final String serviceState = serviceEntity.getComponent().getState();
             if (requestedRunStatus.equals(serviceState)) {
@@ -1029,7 +1055,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceState(final String groupId, final String desiredState, final Collection<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final List<ControllerServiceEntity> nonDisabledServices = getControllerServicesNotInState(groupId, desiredState, serviceIdsOfInterest);
             if (nonDisabledServices.isEmpty()) {
                 logger.info("Process Group [{}] Controller Services have desired state [{}]", groupId, desiredState);
@@ -1049,7 +1077,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceValidationStatus(final String controllerServiceId, final String validationStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ControllerServiceEntity controllerServiceEntity = nifiClient.getControllerServicesClient().getControllerService(controllerServiceId);
             final String currentValidationStatus = controllerServiceEntity.getComponent().getValidationStatus();
             if (validationStatus.equals(currentValidationStatus)) {
@@ -1070,7 +1100,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForReportingTaskValidationStatus(final String reportingTaskId, final String validationStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ReportingTaskEntity reportingTaskEntity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
             final String currentValidationStatus = reportingTaskEntity.getStatus().getValidationStatus();
             if (validationStatus.equalsIgnoreCase(currentValidationStatus)) {
@@ -1306,11 +1338,17 @@ public class NiFiClientUtil {
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
         final ConnectionClient connectionClient = getConnectionClient();
 
-        DropRequestEntity requestEntity;
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        DropRequestEntity requestEntity = null;
+        while (System.currentTimeMillis() < maxTimestamp) {
             requestEntity = connectionClient.emptyQueue(connectionId);
             try {
                 while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
+                    if (System.currentTimeMillis() > maxTimestamp) {
+                        throw new IOException("Timed out waiting for queue " + connectionId + " to empty");
+                    }
+
                     try {
                         Thread.sleep(10L);
                     } catch (final InterruptedException ie) {
