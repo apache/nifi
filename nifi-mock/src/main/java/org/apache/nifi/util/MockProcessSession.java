@@ -919,16 +919,15 @@ public class MockProcessSession implements ProcessSession {
         if (!(flowFile instanceof MockFlowFile)) {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
-
         final MockFlowFile mockFlowFile = validateState(flowFile);
-        writeRecursionSet.add(flowFile);
+        writeRecursionSet.add(mockFlowFile);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
                 super.close();
 
                 writeRecursionSet.remove(mockFlowFile);
-                final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), flowFile);
+                final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), mockFlowFile);
                 currentVersions.put(newFlowFile.getId(), newFlowFile);
 
                 newFlowFile.setData(toByteArray());
@@ -961,12 +960,12 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
-    public MockFlowFile write(final FlowFile flowFile, final StreamCallback callback) {
+    public MockFlowFile write(FlowFile flowFile, final StreamCallback callback) {
+        flowFile = validateState(flowFile);
         if (callback == null || flowFile == null) {
             throw new IllegalArgumentException("argument cannot be null");
         }
-        final MockFlowFile mock = validateState(flowFile);
-
+        final MockFlowFile mock = (MockFlowFile) flowFile;
         final ByteArrayInputStream in = new ByteArrayInputStream(mock.getData());
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -979,7 +978,7 @@ public class MockProcessSession implements ProcessSession {
             writeRecursionSet.remove(flowFile);
         }
 
-        final MockFlowFile newFlowFile = new MockFlowFile(mock.getId(), flowFile);
+        final MockFlowFile newFlowFile = new MockFlowFile(flowFile.getId(), flowFile);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         newFlowFile.setData(out.toByteArray());
 
