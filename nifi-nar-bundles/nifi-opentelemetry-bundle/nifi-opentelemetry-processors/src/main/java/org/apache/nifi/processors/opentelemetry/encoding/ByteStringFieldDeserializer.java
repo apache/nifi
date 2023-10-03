@@ -56,7 +56,7 @@ public class ByteStringFieldDeserializer<T extends Message, V extends Message.Bu
      * Read value from JSON Parser and decode hexadecimal ByteString fields when found
      *
      * @param builder Protobuf Message Builder
-     * @param field Message Field Deescriptor
+     * @param field Message Field Descriptor
      * @param defaultInstance Protobuf default instance of Message
      * @param parser JSON Parser
      * @param context JSON Deserialization Context for parsing

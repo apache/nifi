@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.protobuf.Message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 
@@ -44,10 +45,10 @@ public class StandardRequestMapper implements RequestMapper {
     }
 
     @Override
-    public <T extends Message> T readValue(final byte[] bytes, final Class<T> messageClass) throws IOException {
-        Objects.requireNonNull(bytes, "Bytes required");
+    public <T extends Message> T readValue(final InputStream inputStream, final Class<T> messageClass) throws IOException {
+        Objects.requireNonNull(inputStream, "Input Stream required");
         Objects.requireNonNull(messageClass, "Message Class required");
-        return objectMapper.readValue(bytes, messageClass);
+        return objectMapper.readValue(inputStream, messageClass);
     }
 
     @Override

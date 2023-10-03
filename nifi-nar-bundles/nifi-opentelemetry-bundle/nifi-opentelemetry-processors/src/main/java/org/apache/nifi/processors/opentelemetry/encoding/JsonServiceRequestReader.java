@@ -19,8 +19,8 @@ package org.apache.nifi.processors.opentelemetry.encoding;
 import com.google.protobuf.Message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.Objects;
 
 /**
@@ -30,29 +30,21 @@ public class JsonServiceRequestReader implements ServiceRequestReader {
     private static final RequestMapper REQUEST_MAPPER = new StandardRequestMapper();
 
     /**
-     * Read Service Request parsed from Buffer
+     * Read Service Request parsed from stream
      *
-     * @param buffer Byte Buffer
+     * @param inputStream Input Stream to be parsed
      * @param requestType Request Message Type
      * @return Service Request read
      */
     @Override
-    public <T extends Message> T read(final ByteBuffer buffer, final Class<T> requestType) {
-        Objects.requireNonNull(buffer, "Buffer required");
-        final byte[] bytes = getBytes(buffer);
+    public <T extends Message> T read(final InputStream inputStream, final Class<T> requestType) {
+        Objects.requireNonNull(inputStream, "Input Stream required");
 
         try {
-            return REQUEST_MAPPER.readValue(bytes, requestType);
+            return REQUEST_MAPPER.readValue(inputStream, requestType);
         } catch (final IOException e) {
             final String message = String.format("JSON Request Type [%s] parsing failed", requestType.getName());
             throw new UncheckedIOException(message, e);
         }
-    }
-
-    private byte[] getBytes(final ByteBuffer buffer) {
-        final int remaining = buffer.remaining();
-        final byte[] bytes = new byte[remaining];
-        buffer.get(bytes);
-        return bytes;
     }
 }

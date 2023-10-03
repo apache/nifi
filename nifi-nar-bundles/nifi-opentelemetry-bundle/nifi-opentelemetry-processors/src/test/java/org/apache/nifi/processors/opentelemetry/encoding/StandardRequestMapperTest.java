@@ -26,6 +26,7 @@ import io.opentelemetry.proto.trace.v1.ScopeSpans;
 import io.opentelemetry.proto.trace.v1.Span;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -88,8 +89,9 @@ class StandardRequestMapperTest {
     void testReadValueTraces() throws IOException {
         final ExportTraceServiceRequest request = getTraceRequest();
         final byte[] serialized = getSerialized(request);
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(serialized);
 
-        final ExportTraceServiceRequest deserialized = requestMapper.readValue(serialized, ExportTraceServiceRequest.class);
+        final ExportTraceServiceRequest deserialized = requestMapper.readValue(inputStream, ExportTraceServiceRequest.class);
 
         assertNotNull(deserialized);
         final ResourceSpans resourceSpans = deserialized.getResourceSpans(0);

@@ -18,18 +18,18 @@ package org.apache.nifi.processors.opentelemetry.encoding;
 
 import com.google.protobuf.Message;
 
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 
 /**
- * OTLP Export Service Request Reader abstraction for parsing objects from byte buffers
+ * OTLP Export Service Request Reader abstraction for parsing objects from streams
  */
 public interface ServiceRequestReader {
     /**
-     * Read Service Request from Buffer
+     * Read Service Request from Input Stream
      *
-     * @param buffer Byte Buffer
+     * @param inputStream Input Stream of bytes to be parsed
      * @param requestType Request Message Type
      * @return Service Request read
      */
-    <T extends Message> T read(ByteBuffer buffer, Class<T> requestType);
+    <T extends Message> T read(InputStream inputStream, Class<T> requestType);
 }

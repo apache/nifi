@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.opentelemetry.io;
 
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.google.protobuf.Message;
 import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
@@ -36,10 +37,7 @@ import org.apache.nifi.processors.opentelemetry.protocol.ServiceResponseStatus;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryContentEncoding;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryContentType;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryRequestType;
-import org.apache.nifi.stream.io.StreamUtils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -99,22 +97,23 @@ public class StandardRequestContentListener implements RequestContentListener {
                 final int messageSize = buffer.getInt();
                 log.debug("Client Address [{}] Content-Type [{}] Message Size [{}] Compression [{}]", remoteAddress, contentType, messageSize, compression);
 
-                final ByteBuffer messageBuffer;
+                final TelemetryContentEncoding bufferEncoding;
                 if (COMPRESSED == compression) {
-                    messageBuffer = getDecompressedBuffer(buffer);
+                    bufferEncoding = TelemetryContentEncoding.GZIP;
                 } else {
-                    messageBuffer = buffer;
+                    bufferEncoding = TelemetryContentEncoding.NONE;
                 }
 
-                serviceResponse = onSupportedRequest(messageBuffer, serviceRequestDescription);
+                final InputStream decodedStream = getDecodedStream(buffer, bufferEncoding);
+                serviceResponse = onSupportedRequest(decodedStream, serviceRequestDescription);
             } catch (final Exception e) {
                 log.warn("Client Address [{}] Content-Type [{}] processing failed", remoteAddress, contentType, e);
                 serviceResponse = new ServiceResponse(ServiceResponseStatus.INVALID, ZERO_MESSAGES);
             }
         } else if (TelemetryContentType.APPLICATION_PROTOBUF == contentType || TelemetryContentType.APPLICATION_JSON == contentType) {
             try {
-                final ByteBuffer decodedBuffer = getDecodedBuffer(buffer, serviceRequestDescription.getContentEncoding());
-                serviceResponse = onSupportedRequest(decodedBuffer, serviceRequestDescription);
+                final InputStream decodedStream = getDecodedStream(buffer, serviceRequestDescription.getContentEncoding());
+                serviceResponse = onSupportedRequest(decodedStream, serviceRequestDescription);
             } catch (final Exception e) {
                 log.warn("Client Address [{}] Content-Type [{}] processing failed", remoteAddress, contentType, e);
                 serviceResponse = new ServiceResponse(ServiceResponseStatus.INVALID, ZERO_MESSAGES);
@@ -126,7 +125,7 @@ public class StandardRequestContentListener implements RequestContentListener {
         return serviceResponse;
     }
 
-    private ServiceResponse onSupportedRequest(final ByteBuffer buffer, final ServiceRequestDescription serviceRequestDescription) {
+    private ServiceResponse onSupportedRequest(final InputStream inputStream, final ServiceRequestDescription serviceRequestDescription) throws IOException {
         final ServiceRequestReader serviceRequestReader;
         final TelemetryContentType contentType = serviceRequestDescription.getContentType();
         if (TelemetryContentType.APPLICATION_JSON == contentType) {
@@ -137,14 +136,14 @@ public class StandardRequestContentListener implements RequestContentListener {
 
         final TelemetryRequestType requestType = serviceRequestDescription.getRequestType();
         final List<? extends Message> resourceMessages;
-        if (buffer.remaining() == 0) {
+        if (inputStream.available() == 0) {
             resourceMessages = Collections.emptyList();
         } else if (TelemetryRequestType.LOGS == requestType) {
-            resourceMessages = readMessages(buffer, serviceRequestDescription, ExportLogsServiceRequest.class, serviceRequestReader);
+            resourceMessages = readMessages(inputStream, serviceRequestDescription, ExportLogsServiceRequest.class, serviceRequestReader);
         } else if (TelemetryRequestType.METRICS == requestType) {
-            resourceMessages = readMessages(buffer, serviceRequestDescription, ExportMetricsServiceRequest.class, serviceRequestReader);
+            resourceMessages = readMessages(inputStream, serviceRequestDescription, ExportMetricsServiceRequest.class, serviceRequestReader);
         } else if (TelemetryRequestType.TRACES == requestType) {
-            resourceMessages = readMessages(buffer, serviceRequestDescription, ExportTraceServiceRequest.class, serviceRequestReader);
+            resourceMessages = readMessages(inputStream, serviceRequestDescription, ExportTraceServiceRequest.class, serviceRequestReader);
         } else {
             resourceMessages = null;
         }
@@ -153,7 +152,7 @@ public class StandardRequestContentListener implements RequestContentListener {
     }
 
     private <T extends Message> List<Message> readMessages(
-            final ByteBuffer buffer,
+            final InputStream inputStream,
             final ServiceRequestDescription serviceRequestDescription,
             final Class<T> requestType,
             final ServiceRequestReader serviceRequestReader
@@ -162,7 +161,7 @@ public class StandardRequestContentListener implements RequestContentListener {
 
         final List<KeyValue> clientSocketAttributes = getClientSocketAttributes(serviceRequestDescription);
 
-        final T parsed = serviceRequestReader.read(buffer, requestType);
+        final T parsed = serviceRequestReader.read(inputStream, requestType);
         if (parsed instanceof ExportLogsServiceRequest request) {
             for (final ResourceLogs resourceLogs : request.getResourceLogsList()) {
                 final Resource.Builder resource = resourceLogs.getResource().toBuilder();
@@ -241,29 +240,15 @@ public class StandardRequestContentListener implements RequestContentListener {
         return serviceResponse;
     }
 
-    private ByteBuffer getDecodedBuffer(final ByteBuffer buffer, final TelemetryContentEncoding contentEncoding) throws IOException {
-        final ByteBuffer decodedBuffer;
+    private InputStream getDecodedStream(final ByteBuffer buffer, final TelemetryContentEncoding contentEncoding) throws IOException {
+        final InputStream decodedStream;
 
         if (TelemetryContentEncoding.GZIP == contentEncoding) {
-            decodedBuffer = getDecompressedBuffer(buffer);
+            decodedStream = new GZIPInputStream(new ByteBufferBackedInputStream(buffer));
         } else {
-            decodedBuffer = buffer;
+            decodedStream = new ByteBufferBackedInputStream(buffer);
         }
 
-        return decodedBuffer;
-    }
-
-    private ByteBuffer getDecompressedBuffer(final ByteBuffer compressedBuffer) throws IOException {
-        final int remaining = compressedBuffer.remaining();
-        final byte[] compressed = new byte[remaining];
-        compressedBuffer.get(compressed);
-
-        final ByteArrayOutputStream decompressedStream = new ByteArrayOutputStream();
-        try (InputStream inputStream = new GZIPInputStream(new ByteArrayInputStream(compressed))) {
-            StreamUtils.copy(inputStream, decompressedStream);
-        }
-
-        final byte[] decompressed = decompressedStream.toByteArray();
-        return ByteBuffer.wrap(decompressed);
+        return decodedStream;
     }
 }

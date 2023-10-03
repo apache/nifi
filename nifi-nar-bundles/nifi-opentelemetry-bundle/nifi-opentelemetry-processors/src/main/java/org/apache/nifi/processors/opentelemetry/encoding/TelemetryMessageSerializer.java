@@ -25,6 +25,7 @@ import com.hubspot.jackson.datatype.protobuf.builtin.serializers.MessageSerializ
 import org.apache.commons.codec.binary.Hex;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,7 +69,7 @@ public class TelemetryMessageSerializer extends MessageSerializer {
     }
 
     private String getEncodedByteString(final ByteString byteString) {
-        final byte[] bytes = byteString.toByteArray();
-        return Hex.encodeHexString(bytes, false);
+        final ByteBuffer buffer = byteString.asReadOnlyByteBuffer();
+        return Hex.encodeHexString(buffer, false);
     }
 }

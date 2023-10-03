@@ -19,6 +19,7 @@ package org.apache.nifi.processors.opentelemetry.encoding;
 import com.google.protobuf.Message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -28,11 +29,11 @@ public interface RequestMapper {
     /**
      * Parse bytes and return Message object of specified class
      *
-     * @param bytes Bytes to be parsed
+     * @param inputStream Stream of bytes to be parsed
      * @param messageClass Protobuf Message Class
      * @throws IOException Thrown on deserialization failures
      */
-    <T extends Message> T readValue(byte[] bytes, Class<T> messageClass) throws IOException;
+    <T extends Message> T readValue(InputStream inputStream, Class<T> messageClass) throws IOException;
 
     /**
      * Write message to specified Output Stream

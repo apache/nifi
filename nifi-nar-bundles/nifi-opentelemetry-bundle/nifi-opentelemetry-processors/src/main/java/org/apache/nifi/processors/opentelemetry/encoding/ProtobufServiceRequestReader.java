@@ -23,8 +23,8 @@ import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;
 
+import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.Objects;
 
 /**
@@ -38,24 +38,24 @@ public class ProtobufServiceRequestReader implements ServiceRequestReader {
     private final Parser<ExportTraceServiceRequest> traceServiceRequestParser = ExportTraceServiceRequest.parser();
 
     /**
-     * Read Service Request parsed from Buffer
+     * Read Service Request parsed from Input Stream
      *
-     * @param buffer Byte Buffer
+     * @param inputStream Input Stream to be parsed
      * @return Service Request read
      */
     @Override
-    public <T extends Message> T read(final ByteBuffer buffer, final Class<T> requestType) {
-        Objects.requireNonNull(buffer, "Buffer required");
+    public <T extends Message> T read(final InputStream inputStream, final Class<T> requestType) {
+        Objects.requireNonNull(inputStream, "Input Stream required");
         Objects.requireNonNull(requestType, "Request Type required");
 
         try {
             final Object serviceRequest;
             if (ExportLogsServiceRequest.class.isAssignableFrom(requestType)) {
-                serviceRequest = logsServiceRequestParser.parseFrom(buffer);
+                serviceRequest = logsServiceRequestParser.parseFrom(inputStream);
             } else if (ExportMetricsServiceRequest.class.isAssignableFrom(requestType)) {
-                serviceRequest = metricsServiceRequestParser.parseFrom(buffer);
+                serviceRequest = metricsServiceRequestParser.parseFrom(inputStream);
             } else if (ExportTraceServiceRequest.class.isAssignableFrom(requestType)) {
-                serviceRequest = traceServiceRequestParser.parseFrom(buffer);
+                serviceRequest = traceServiceRequestParser.parseFrom(inputStream);
             } else {
                 throw new IllegalArgumentException(String.format("Service Request Class [%s] not supported", requestType.getName()));
             }

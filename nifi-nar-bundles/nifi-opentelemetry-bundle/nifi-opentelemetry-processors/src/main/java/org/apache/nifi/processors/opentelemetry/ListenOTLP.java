@@ -181,12 +181,10 @@ public class ListenOTLP extends AbstractProcessor {
 
     @OnStopped
     public void onStopped() {
-        if (server == null) {
-            getLogger().info("Server not running");
-        } else {
+        if (server != null) {
             server.shutdown();
+            server = null;
         }
-        server = null;
     }
 
     @Override

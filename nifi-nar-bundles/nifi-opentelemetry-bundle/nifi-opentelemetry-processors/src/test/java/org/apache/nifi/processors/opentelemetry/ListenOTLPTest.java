@@ -378,10 +378,8 @@ class ListenOTLPTest {
         ) {
             assertResponseSuccess(contentType, httpResponseEntity);
 
-            final byte[] responseBody = getResponseBody(httpResponseEntity.body());
-
             final RequestMapper requestMapper = new StandardRequestMapper();
-            final ExportLogsServiceResponse serviceResponse = requestMapper.readValue(responseBody, ExportLogsServiceResponse.class);
+            final ExportLogsServiceResponse serviceResponse = requestMapper.readValue(httpResponseEntity.body(), ExportLogsServiceResponse.class);
 
             final ExportLogsPartialSuccess partialSuccess = serviceResponse.getPartialSuccess();
             assertNotNull(partialSuccess);
