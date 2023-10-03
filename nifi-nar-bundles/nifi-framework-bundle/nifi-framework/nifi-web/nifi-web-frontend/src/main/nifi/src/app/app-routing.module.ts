@@ -28,7 +28,8 @@ const routes: Routes = [
 @NgModule({
     imports: [
         RouterModule.forRoot(routes, {
-            paramsInheritanceStrategy: 'always'
+            paramsInheritanceStrategy: 'always',
+            useHash: true
         })
     ],
     exports: [RouterModule]
