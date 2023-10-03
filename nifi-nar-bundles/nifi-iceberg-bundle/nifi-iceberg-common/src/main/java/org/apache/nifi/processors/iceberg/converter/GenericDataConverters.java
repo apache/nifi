@@ -267,7 +267,7 @@ public class GenericDataConverters {
 
             for (DataConverter<?, ?> converter : converters) {
                 final Optional<RecordField> recordField = recordSchema.getField(converter.getSourceFieldName());
-                if (recordField.isEmpty()) {
+                if (!recordField.isPresent()) {
                     final Types.NestedField missingField = schema.field(converter.getTargetFieldName());
                     if (missingField != null) {
                         getters.put(converter.getTargetFieldName(), createFieldGetter(convertSchemaTypeToDataType(missingField.type()), missingField.name(), missingField.isOptional()));

@@ -174,7 +174,7 @@ public class IcebergRecordConverter {
             if (UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.equals(unmatchedColumnBehavior)) {
                 Validate.isTrue(mappedFieldName.isPresent(), String.format("Cannot find field with name '%s' in the record schema", name));
             }
-            if (mappedFieldName.isEmpty()) {
+            if (!mappedFieldName.isPresent()) {
                 if (UnmatchedColumnBehavior.WARNING_UNMATCHED_COLUMN.equals(unmatchedColumnBehavior)) {
                     if (logger != null) {
                         logger.warn("Cannot find field with name '" + name + "' in the record schema, using the target schema for datatype and a null value");
