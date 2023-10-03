@@ -288,7 +288,7 @@ public class TestIdentifyMimeType {
     }
 
     @Test
-    public void testAddWithConfigBody() throws IOException {
+    public void testMergeWithConfigBody() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
@@ -300,7 +300,7 @@ public class TestIdentifyMimeType {
         }
 
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
-        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.ADD);
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
@@ -334,7 +334,7 @@ public class TestIdentifyMimeType {
     }
 
     @Test
-    public void testAddWithConfigFile() throws IOException {
+    public void testMergeWithConfigFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
@@ -346,7 +346,7 @@ public class TestIdentifyMimeType {
         }
 
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
-        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.ADD);
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
