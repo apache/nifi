@@ -27,6 +27,7 @@ import {
     EnterProcessGroupRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    NavigateToComponentRequest,
     SelectComponents,
     UpdateComponent,
     UpdateComponentFailure,
@@ -172,5 +173,10 @@ export const setTransitionRequired = createAction(
 );
 
 export const setSkipTransform = createAction('[Canvas] Set Skip Transform', props<{ skipTransform: boolean }>());
+
+export const navigateToComponent = createAction(
+    '[Canvas] Navigate To Component',
+    props<{ request: NavigateToComponentRequest }>()
+);
 
 export const navigateWithoutTransform = createAction('[Canvas] Navigate Without Transform', props<{ url: string[] }>());

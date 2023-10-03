@@ -81,6 +81,38 @@ export class CanvasUtils {
             });
     }
 
+    public hasDownstream(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return (
+            this.isFunnel(selection) ||
+            this.isProcessor(selection) ||
+            this.isProcessGroup(selection) ||
+            this.isRemoteProcessGroup(selection) ||
+            this.isInputPort(selection) ||
+            (this.isOutputPort(selection) && this.parentProcessGroupId !== null)
+        );
+    }
+
+    public hasUpstream(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return (
+            this.isFunnel(selection) ||
+            this.isProcessor(selection) ||
+            this.isProcessGroup(selection) ||
+            this.isRemoteProcessGroup(selection) ||
+            this.isOutputPort(selection) ||
+            (this.isInputPort(selection) && this.parentProcessGroupId !== null)
+        );
+    }
+
     /**
      * Determines whether the specified selection is empty.
      *

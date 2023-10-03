@@ -123,6 +123,11 @@ export interface DeleteComponentResponse {
     type: ComponentType;
 }
 
+export interface NavigateToComponentRequest {
+    id: string;
+    type: ComponentType;
+}
+
 /*
     Snippets
  */

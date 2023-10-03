@@ -20,7 +20,9 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { Observable, Subject } from 'rxjs';
 import {
+    centerSelectedComponent,
     deleteComponents,
+    enterProcessGroup,
     leaveProcessGroup,
     navigateToEditComponent,
     reloadFlow
@@ -170,8 +172,7 @@ export class ContextMenu implements OnInit {
         menuItems: [
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - hasUpstream
-                    return false;
+                    return canvasUtils.hasUpstream(selection);
                 },
                 clazz: 'icon',
                 text: 'Upstream',
@@ -181,8 +182,7 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - hasDownstream
-                    return false;
+                    return canvasUtils.hasDownstream(selection);
                 },
                 clazz: 'icon',
                 text: 'Downstream',
@@ -343,8 +343,17 @@ export class ContextMenu implements OnInit {
                 },
                 clazz: 'fa fa-sign-in',
                 text: 'Enter group',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - enterGroup
+                action: function (store: Store<CanvasState>, selection: any) {
+                    const d: any = selection.datum();
+
+                    // enter the selected group
+                    store.dispatch(
+                        enterProcessGroup({
+                            request: {
+                                id: d.id
+                            }
+                        })
+                    );
                 }
             },
             {
@@ -645,13 +654,12 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - isNotConnection
-                    return false;
+                    return selection.size() === 1 && !canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-crosshairs',
                 text: 'Center in view',
                 action: function (store: Store<CanvasState>) {
-                    // TODO - center
+                    store.dispatch(centerSelectedComponent());
                 }
             },
             {

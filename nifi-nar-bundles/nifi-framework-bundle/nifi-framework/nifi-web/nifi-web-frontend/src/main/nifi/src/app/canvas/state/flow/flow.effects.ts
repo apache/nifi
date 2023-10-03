@@ -683,6 +683,19 @@ export class FlowEffects {
         )
     );
 
+    navigateToComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToComponent),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, processGroupId]) => {
+                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateWithoutTransform$ = createEffect(
         () =>
             this.actions$.pipe(
