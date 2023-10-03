@@ -50,6 +50,8 @@ public class StatelessKafkaConnectorUtil {
     private static final String UNKNOWN_VERSION = "<Unable to determine Stateless NiFi Kafka Connector Version>";
     private static final Logger logger = LoggerFactory.getLogger(StatelessKafkaConnectorUtil.class);
     private static final Lock unpackNarLock = new ReentrantLock();
+    private static final String NAR_UNPACKED_SUFFIX = "nar-unpacked";
+    private static final String HASH_FILENAME = "nar-digest";
     protected static final Pattern STATELESS_BOOTSTRAP_FILE_PATTERN = Pattern.compile("nifi-stateless-bootstrap-(.*).jar");
 
     public static String getVersion() {
@@ -84,6 +86,7 @@ public class StatelessKafkaConnectorUtil {
             config.setFlowDefinition(dataflowDefinitionProperties);
             dataflowDefinitionProperties.put(StatelessNiFiCommonConfig.BOOTSTRAP_FLOW_NAME, dataflowName);
             MDC.setContextMap(Collections.singletonMap("dataflow", dataflowName));
+            StatelessDataflow dataflow;
 
             // Use a Write Lock to ensure that only a single thread is calling StatelessBootstrap.bootstrap().
             // We do this because the bootstrap() method will expand all NAR files into the working directory.
@@ -91,13 +94,16 @@ public class StatelessKafkaConnectorUtil {
             // unpacking NARs at the same time, as it could potentially result in the working directory becoming corrupted.
             unpackNarLock.lock();
             try {
+                checkWorkingDirectoryIntegrity(engineConfiguration.getWorkingDirectory());
+
                 bootstrap = StatelessBootstrap.bootstrap(engineConfiguration, StatelessNiFiSourceTask.class.getClassLoader());
+
+                dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
+                dataflow = bootstrap.createDataflow(dataflowDefinition);
             } finally {
                 unpackNarLock.unlock();
             }
-
-            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
-            return bootstrap.createDataflow(dataflowDefinition);
+            return dataflow;
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }
@@ -268,5 +274,54 @@ public class StatelessKafkaConnectorUtil {
         final File narDirectory = bootstrapJar.getParentFile();
         logger.info("Detected NAR Directory to be {}", narDirectory.getAbsolutePath());
         return narDirectory;
+    }
+
+    private static void checkWorkingDirectoryIntegrity(final File workingDirectory) {
+        purgeIncompleteUnpackedNars(new File(new File(workingDirectory, "nar"), "extensions"));
+        purgeIncompleteUnpackedNars(new File(workingDirectory, "extensions"));
+    }
+
+    private static void purgeIncompleteUnpackedNars(final File directory) {
+        final File[] unpackedDirs = directory.listFiles(file -> file.isDirectory() && file.getName().endsWith(NAR_UNPACKED_SUFFIX));
+        if (unpackedDirs == null || unpackedDirs.length == 0) {
+            logger.debug("Found no unpacked NARs in {}", directory);
+            logger.debug("Directory contains: {}", Arrays.deepToString(directory.listFiles()));
+            return;
+        }
+
+        for (final File unpackedDir : unpackedDirs) {
+            final File narHashFile = new File(unpackedDir, HASH_FILENAME);
+            if (!narHashFile.exists()) {
+                purgeDirectory(unpackedDir);
+            } else {
+                logger.debug("Already successfully unpacked {}", unpackedDir);
+            }
+        }
+    }
+
+    private static void purgeDirectory(final File directory) {
+        if (directory.exists()) {
+            deleteRecursively(directory);
+            logger.debug("Cleaned up {}", directory);
+        }
+    }
+
+    private static void deleteRecursively(final File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory()) {
+            final File[] files = fileOrDirectory.listFiles();
+            if (files != null) {
+                for (final File file : files) {
+                    deleteRecursively(file);
+                }
+            }
+        }
+        deleteOrDebug(fileOrDirectory);
+    }
+
+    private static void deleteOrDebug(final File file) {
+        final boolean deleted = file.delete();
+        if (!deleted) {
+            logger.debug("Failed to cleanup temporary file {}", file);
+        }
     }
 }
