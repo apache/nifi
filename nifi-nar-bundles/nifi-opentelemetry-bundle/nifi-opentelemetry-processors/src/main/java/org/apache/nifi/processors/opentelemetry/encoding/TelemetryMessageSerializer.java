@@ -45,7 +45,7 @@ public class TelemetryMessageSerializer extends MessageSerializer {
     /**
      * Write value as JSON with hexadecimal encoding for selected ByteString fields
      *
-     * @param field Message Field Decriptor
+     * @param field Message Field Descriptor
      * @param value Value to be serialized
      * @param generator JSON Generator
      * @param serializerProvider JSON Serializer Provider
