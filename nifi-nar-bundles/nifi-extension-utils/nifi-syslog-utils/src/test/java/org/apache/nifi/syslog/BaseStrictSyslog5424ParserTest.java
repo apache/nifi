@@ -26,9 +26,6 @@ import org.apache.nifi.syslog.utils.NilHandlingPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,27 +39,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class BaseStrictSyslog5424ParserTest {
 
-    private static final Charset CHARSET = Charset.forName("UTF-8");
-    private static final String NIL_VALUE = "-";
     private StrictSyslog5424Parser parser;
 
     protected abstract NilHandlingPolicy getPolicy();
 
-    protected void validateForPolicy(String expected, Object actual) {
-        switch (getPolicy()) {
-            case DASH:
-                assertEquals(actual, NIL_VALUE);
-                break;
-            case OMIT:
-            case NULL:
-                assertNull(actual);
-
-        }
-    }
-
     @BeforeEach
     public void setup() {
-        parser = new StrictSyslog5424Parser(CHARSET, getPolicy(), NifiStructuredDataPolicy.FLATTEN, new SyslogPrefixedKeyProvider());
+        parser = new StrictSyslog5424Parser(getPolicy(), NifiStructuredDataPolicy.FLATTEN, new SyslogPrefixedKeyProvider());
     }
 
     @Test
@@ -74,18 +57,12 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String appName = "su";
         final String procId = "-";
         final String msgId = "ID17";
-        final String structuredData = "-";
         final String body = "'su root' failed for lonvick on /dev/pts/8";
 
         final String message = "<" + pri + ">" + version + " " + stamp + " " + host + " "
                 + appName + " " + procId + " " + msgId + " " + "-" + " " + body;
 
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer);
+        final Syslog5424Event event = parser.parseEvent(message);
         assertNotNull(event);
         assertTrue(event.isValid());
         assertFalse(event.getFieldMap().isEmpty());
@@ -97,7 +74,6 @@ public abstract class BaseStrictSyslog5424ParserTest {
         assertEquals(stamp, fieldMap.get(SyslogAttributes.SYSLOG_TIMESTAMP.key()));
         assertEquals(host, fieldMap.get(SyslogAttributes.SYSLOG_HOSTNAME.key()));
         assertEquals(appName, fieldMap.get(Syslog5424Attributes.SYSLOG_APP_NAME.key()));
-        validateForPolicy(procId, fieldMap.get(Syslog5424Attributes.SYSLOG_PROCID.key()));
         assertEquals(msgId, fieldMap.get(Syslog5424Attributes.SYSLOG_MESSAGEID.key()));
 
         Pattern structuredPattern = new SyslogPrefixedKeyProvider().getStructuredElementIdParamNamePattern();
@@ -121,18 +97,12 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String appName = "su";
         final String procId = "-";
         final String msgId = "ID17";
-        final String structuredData = "-";
         final String body = "'su root' failed for lonvick on /dev/pts/8";
 
         final String message = "<" + pri + ">" + version + " " + stamp + " " + host + " "
                 + appName + " " + procId + " " + msgId + " " + "-" + " " + body;
 
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer);
+        final Syslog5424Event event = parser.parseEvent(message);
         assertFalse(event.isValid());
     }
 
@@ -141,12 +111,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String message = "<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
                 "ID47 - 'su root' failed for lonvick on /dev/pts/8\n";
 
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer);
+        final Syslog5424Event event = parser.parseEvent(message);
         assertNotNull(event);
         assertTrue(event.isValid());
     }
@@ -166,12 +131,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
                 + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance");
 
         for (final String message : messages) {
-            final byte[] bytes = message.getBytes(CHARSET);
-            final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-            buffer.clear();
-            buffer.put(bytes);
-
-            final Syslog5424Event event = parser.parseEvent(buffer);
+            final Syslog5424Event event = parser.parseEvent(message);
             assertTrue(event.isValid());
         }
     }
@@ -190,52 +150,20 @@ public abstract class BaseStrictSyslog5424ParserTest {
             + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"]");
 
         for (final String message : messages) {
-            final byte[] bytes = message.getBytes(CHARSET);
-            final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-            buffer.clear();
-            buffer.put(bytes);
-
-            final Syslog5424Event event = parser.parseEvent(buffer);
+            final Syslog5424Event event = parser.parseEvent(message);
             assertTrue(event.isValid());
             assertNull(event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
         }
-
-
     }
 
     @Test
     public void testInvalidPriority() {
         final String message = "10 Oct 13 14:14:43 localhost some body of the message";
 
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer);
+        final Syslog5424Event event = parser.parseEvent(message);
         assertNotNull(event);
         assertFalse(event.isValid());
         assertEquals(message, event.getFullMessage());
-    }
-
-    @Test
-    public void testParseWithSender() {
-        final String sender = "127.0.0.1";
-        final String message = "<14>1 2014-06-20T09:14:07+00:00 loggregator"
-                + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
-                + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
-                + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance";
-
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer, sender);
-        assertNotNull(event);
-        assertTrue(event.isValid());
-        assertEquals(sender, event.getSender());
-        assertEquals("Removing instance", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -245,12 +173,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
             + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
             + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] \uFEFFMessage with some Umlauts äöü";
 
-        final byte[] bytes = message.getBytes(CHARSET);
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        ((Buffer)buffer).clear();
-        buffer.put(bytes);
-
-        final Syslog5424Event event = parser.parseEvent(buffer);
+        final Syslog5424Event event = parser.parseEvent(message);
         assertNotNull(event);
         assertTrue(event.isValid());
         assertEquals("Message with some Umlauts äöü", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));

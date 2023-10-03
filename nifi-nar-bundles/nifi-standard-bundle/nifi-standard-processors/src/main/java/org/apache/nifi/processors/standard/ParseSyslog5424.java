@@ -36,7 +36,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.syslog.keyproviders.SyslogPrefixedKeyProvider;
@@ -46,8 +45,6 @@ import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.syslog.events.Syslog5424Event;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,7 +52,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 @SideEffectFree
 @SupportsBatching
@@ -128,6 +124,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
 
     private volatile StrictSyslog5424Parser parser;
 
+    private volatile Charset charset;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -148,11 +145,9 @@ public class ParseSyslog5424 extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final String charsetName = context.getProperty(CHARSET).getValue();
+        charset = Charset.forName(context.getProperty(CHARSET).getValue());
         final String nilPolicyString = context.getProperty(NIL_POLICY).getValue();
-        parser = new StrictSyslog5424Parser(Charset.forName(charsetName),
-                NilHandlingPolicy.valueOf(nilPolicyString),
-                NifiStructuredDataPolicy.FLATTEN,new SyslogPrefixedKeyProvider());
+        parser = new StrictSyslog5424Parser(NilHandlingPolicy.valueOf(nilPolicyString), NifiStructuredDataPolicy.FLATTEN, new SyslogPrefixedKeyProvider());
     }
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -168,24 +163,20 @@ public class ParseSyslog5424 extends AbstractProcessor {
         }
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, buffer);
-            }
-        });
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
+        final String line = new String(buffer, charset).trim();
 
         final Syslog5424Event syslogEvent;
         try {
-            syslogEvent = parser.parseEvent(buffer, null);
+            syslogEvent = parser.parseEvent(line);
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to parse {} as a Syslog 5424  message due to {}; routing to failure", new Object[] {flowFile, pe});
+            getLogger().error("Failed to parse {} as a Syslog 5424  message; routing to failure", flowFile, pe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         if (syslogEvent == null || !syslogEvent.isValid()) {
-            getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", new Object[] {flowFile});
+            getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -196,7 +187,6 @@ public class ParseSyslog5424 extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attributeMap);
         session.transfer(flowFile, REL_SUCCESS);
     }
-
 
     private static Map<String,String> convertMap(Map<String, Object> map) {
         Map<String,String> returnMap = new HashMap<>();
