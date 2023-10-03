@@ -17,7 +17,6 @@
 
 package org.apache.nifi.syslog;
 
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.syslog.attributes.Syslog5424Attributes;
@@ -28,11 +27,11 @@ import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
 import org.apache.nifi.syslog.utils.NilHandlingPolicy;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -44,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSyslog5424RecordReader {
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
     private static final String expectedVersion = "1";
     private static final String expectedMessage = "Removing instance";
     private static final String expectedAppName = "d0602076-b14a-4c55-852a-981e7afeed38";
@@ -70,12 +69,14 @@ public class TestSyslog5424RecordReader {
     @Test
     @SuppressWarnings("unchecked")
     public void testParseSingleLine() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_all.txt"))) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
+        final Syslog5424Reader reader = new Syslog5424Reader();
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_all.txt")) {
+            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, true, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, true, CHARSET, fis, reader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -122,12 +123,14 @@ public class TestSyslog5424RecordReader {
     @Test
     @SuppressWarnings("unchecked")
     public void testParseSingleLineSomeNulls() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log.txt"))) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
+        final Syslog5424Reader reader = new Syslog5424Reader();
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log.txt")) {
+            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, CHARSET, fis, reader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -173,12 +176,14 @@ public class TestSyslog5424RecordReader {
 
     @Test
     public void testParseMultipleLine() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_mix.txt"))) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
+        final Syslog5424Reader reader = new Syslog5424Reader();
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_mix.txt")) {
+            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, CHARSET, fis, reader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;
@@ -194,12 +199,14 @@ public class TestSyslog5424RecordReader {
 
     @Test
     public void testParseMultipleLineWithError() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_mix_in_error.txt"))) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
+        final Syslog5424Reader reader = new Syslog5424Reader();
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_mix_in_error.txt")) {
+            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, CHARSET, fis, reader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;
@@ -218,11 +225,4 @@ public class TestSyslog5424RecordReader {
             deserializer.close();
         }
     }
-
-    public void writeSchema() {
-        String s = Syslog5424Reader.createRecordSchema().toString();
-        System.out.println(s);
-        System.out.println(AvroTypeUtil.extractAvroSchema( Syslog5424Reader.createRecordSchema() ).toString(true));
-    }
-
 }

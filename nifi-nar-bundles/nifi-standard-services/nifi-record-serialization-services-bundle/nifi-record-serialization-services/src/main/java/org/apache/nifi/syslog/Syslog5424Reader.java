@@ -82,8 +82,9 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
             .allowableValues("true", "false")
             .build();
 
+    private volatile Charset charset;
     private volatile StrictSyslog5424Parser parser;
-    private volatile static boolean includeRaw;
+    private volatile boolean includeRaw;
     private volatile RecordSchema recordSchema;
 
     @Override
@@ -97,9 +98,9 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final String charsetName = context.getProperty(CHARSET).getValue();
+        charset = Charset.forName(context.getProperty(CHARSET).getValue());
         includeRaw = context.getProperty(ADD_RAW).asBoolean();
-        parser = new StrictSyslog5424Parser(Charset.forName(charsetName), NilHandlingPolicy.NULL, NifiStructuredDataPolicy.MAP_OF_MAPS, new SimpleKeyProvider());
+        parser = new StrictSyslog5424Parser(NilHandlingPolicy.NULL, NifiStructuredDataPolicy.MAP_OF_MAPS, new SimpleKeyProvider());
         recordSchema = createRecordSchema();
     }
 
@@ -120,7 +121,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         return createAccessStrategy();
     }
 
-    static RecordSchema createRecordSchema() {
+    RecordSchema createRecordSchema() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField(SyslogAttributes.PRIORITY.key(), RecordFieldType.STRING.getDataType(), true));
         fields.add(new RecordField(SyslogAttributes.SEVERITY.key(), RecordFieldType.STRING.getDataType(), true));
@@ -135,13 +136,12 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         fields.add(new RecordField(Syslog5424Attributes.STRUCTURED_BASE.key(),
                 RecordFieldType.MAP.getMapDataType(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()))));
 
-        if(includeRaw) {
+        if (includeRaw) {
             fields.add(new RecordField(RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
         }
 
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(RFC_5424_SCHEMA_NAME).build();
-        final RecordSchema schema = new SimpleRecordSchema(fields,schemaIdentifier);
-        return schema;
+        return new SimpleRecordSchema(fields,schemaIdentifier);
     }
 
     private SchemaAccessStrategy createAccessStrategy() {
@@ -164,6 +164,6 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new Syslog5424RecordReader(parser, includeRaw, in, schema);
+        return new Syslog5424RecordReader(parser, includeRaw, charset, in, schema);
     }
 }

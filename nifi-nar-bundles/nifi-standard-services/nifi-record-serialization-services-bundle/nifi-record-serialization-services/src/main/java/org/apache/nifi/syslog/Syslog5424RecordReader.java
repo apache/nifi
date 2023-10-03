@@ -26,14 +26,12 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.events.Syslog5424Event;
 import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -41,15 +39,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Syslog5424RecordReader implements RecordReader {
-    private static final Logger logger = LoggerFactory.getLogger(Syslog5424RecordReader.class);
-
     private final BufferedReader reader;
-    private RecordSchema schema;
+    private final RecordSchema schema;
     private final StrictSyslog5424Parser parser;
     private final boolean includeRaw;
 
-    public Syslog5424RecordReader(StrictSyslog5424Parser parser, boolean includeRaw, InputStream in, RecordSchema schema){
-        this.reader = new BufferedReader(new InputStreamReader(in));
+    public Syslog5424RecordReader(final StrictSyslog5424Parser parser, final boolean includeRaw, final Charset charset, final InputStream in, final RecordSchema schema) {
+        this.reader = new BufferedReader(new InputStreamReader(in, charset));
         this.schema = schema;
         this.parser = parser;
         this.includeRaw = includeRaw;
@@ -67,15 +63,13 @@ public class Syslog5424RecordReader implements RecordReader {
             }
 
             if (StringUtils.isBlank(line)) {
-                logger.debug("Encountered empty line, will skip");
                 continue;
             }
 
             break;
         }
 
-
-        Syslog5424Event event = parser.parseEvent(ByteBuffer.wrap(line.getBytes(parser.getCharsetName())));
+        final Syslog5424Event event = parser.parseEvent(line);
 
         if (!event.isValid()) {
             if (event.getException() != null) {
@@ -92,7 +86,7 @@ public class Syslog5424RecordReader implements RecordReader {
         final Map<String,Object> modifiedMap = new HashMap<>(event.getFieldMap());
         modifiedMap.put(SyslogAttributes.TIMESTAMP.key(),convertTimeStamp((String)event.getFieldMap().get(SyslogAttributes.TIMESTAMP.key())));
 
-        if(includeRaw) {
+        if (includeRaw) {
             modifiedMap.put(Syslog5424Reader.RAW_MESSAGE_NAME, line);
         }
 
