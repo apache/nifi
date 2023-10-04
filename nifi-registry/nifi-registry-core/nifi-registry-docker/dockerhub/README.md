@@ -124,6 +124,34 @@ The following, optional environment variables may be added to the above command 
     -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
+### Secured with OpenID Connect Authentication
+In this configuration, the user will need to provide certificates and associated configuration information. 
+Of particular note, is the `AUTH` environment variable which is set to `oidc`. Additionally, the user must provide a
+in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be used to seed the instance with an initial 
+user with administrative privileges.
+
+    docker run --name nifi-registry \
+      -v $(pwd)/certs/localhost:/opt/certs \
+      -p 18443:18443 \
+      -e AUTH=oidc \
+      -e KEYSTORE_PATH=/opt/certs/keystore.p12 \
+      -e KEYSTORE_TYPE=PKCS12 \
+      -e KEYSTORE_PASSWORD=PLACEHOLDER \
+      -e TRUSTSTORE_PATH=/opt/certs/truststore.p12 \
+      -e TRUSTSTORE_PASSWORD=PLACEHOLDER \
+      -e TRUSTSTORE_TYPE=PKCS12 \
+      -e INITIAL_ADMIN_IDENTITY=PLACHOLDER_USER \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_DISCOVERY_URL=http://OIDC_SERVER/.well-known/openid-configuration \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_CONNECT_TIMEOUT=10000 \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_READ_TIMEOUT=10000 \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_CLIENT_ID=CLIENT_ID \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_CLIENT_SECRET=CLIENT_SECRET \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM=RS256 \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_ADDITIONAL_SCOPES=profile \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER=preferred_username \
+      -d \
+      apache/nifi-registry:latest
+
 ### Additional Configuration Options
 
 #### Database Configuration
