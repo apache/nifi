@@ -25,19 +25,27 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from './environments/environment';
-import { HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { UserEffects } from './state/user/user.effects';
+import { LoginModule } from './login/feature/login.module';
+import { OkDialog } from './ui/common/ok-dialog/ok-dialog.component';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
+import { AuthInterceptor } from './service/interceptors/auth.interceptor';
 
 // @ts-ignore
 @NgModule({
-    declarations: [AppComponent],
+    declarations: [AppComponent, OkDialog],
     imports: [
         BrowserModule,
         AppRoutingModule,
         BrowserAnimationsModule,
         FlowDesignerModule,
+        LoginModule,
         HttpClientModule,
         HttpClientXsrfModule.withOptions({
             cookieName: '__Secure-Request-Token',
@@ -53,9 +61,23 @@ import { UserEffects } from './state/user/user.effects';
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
-        })
+        }),
+        MatDialogModule,
+        MatButtonModule,
+        MatProgressSpinnerModule
     ],
-    providers: [],
+    providers: [
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: LoadingInterceptor,
+            multi: true
+        },
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: AuthInterceptor,
+            multi: true
+        }
+    ],
     bootstrap: [AppComponent]
 })
 export class AppModule {}

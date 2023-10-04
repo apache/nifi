@@ -15,11 +15,24 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { UserState } from '../../state/user';
+import { startUserPolling, stopUserPolling } from '../../state/user/user.actions';
 
 @Component({
     selector: 'flow-designer',
     templateUrl: './flow-designer.component.html',
     styleUrls: ['./flow-designer.component.scss']
 })
-export class FlowDesignerComponent {}
+export class FlowDesignerComponent implements OnInit, OnDestroy {
+    constructor(private store: Store<UserState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(startUserPolling());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopUserPolling());
+    }
+}

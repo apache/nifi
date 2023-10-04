@@ -28,6 +28,9 @@ import {
 } from '../../state/flow/flow.selectors';
 import { selectUser } from '../../../state/user/user.selectors';
 import { User } from '../../../state/user';
+import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthService } from '../../../service/auth.service';
+import { LoadingService } from '../../../service/loading.service';
 
 @Component({
     selector: 'fd-header',
@@ -44,14 +47,22 @@ export class HeaderComponent {
     currentUser$ = this.store.select(selectUser);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 
-    constructor(private store: Store<CanvasState>) {}
+    constructor(
+        private store: Store<CanvasState>,
+        private authStorage: AuthStorage,
+        private authService: AuthService,
+        public loadingService: LoadingService
+    ) {}
 
     allowLogin(user: User): boolean {
         return user.anonymous && location.protocol === 'https:';
     }
 
-    allowLogout(user: User): boolean {
-        // TODO - once auth service/token storage is availabe we need to update
-        return true;
+    hasToken(): boolean {
+        return this.authStorage.hasToken();
+    }
+
+    logout(): void {
+        this.authService.logout();
     }
 }

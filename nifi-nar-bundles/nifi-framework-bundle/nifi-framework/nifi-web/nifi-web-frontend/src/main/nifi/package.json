@@ -30,6 +30,7 @@
         "font-awesome": "4.7.0",
         "humanize-duration": "^3.29.0",
         "ngrx-immer": "^2.1.1",
+        "ngx-skeleton-loader": "^8.1.0",
         "roboto-fontface": "0.10.0",
         "rxjs": "~7.8.0",
         "tslib": "^2.3.0",

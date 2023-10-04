@@ -14,3 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+.splash {
+    background-color: #7098ad;
+
+    .splash-img {
+        background: transparent url(../assets/icons/nifi-drop-splash.svg) no-repeat center center;
+    }
+}

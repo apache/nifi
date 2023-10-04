@@ -15,27 +15,26 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { UserState } from './state/user';
-import { loadUser, startUserPolling, stopUserPolling } from './state/user/user.actions';
+import { Component } from '@angular/core';
+import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 
 @Component({
     selector: 'nifi',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent {
     title = 'nifi';
+    guardLoading: boolean = true;
 
-    constructor(private store: Store<UserState>) {}
-
-    ngOnInit(): void {
-        this.store.dispatch(loadUser());
-        this.store.dispatch(startUserPolling());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(stopUserPolling());
+    constructor(private router: Router) {
+        this.router.events.subscribe((event) => {
+            if (event instanceof GuardsCheckStart) {
+                this.guardLoading = true;
+            }
+            if (event instanceof GuardsCheckEnd || event instanceof NavigationCancel) {
+                this.guardLoading = false;
+            }
+        });
     }
 }

@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+export interface OkDialogRequest {
+    title: string;
+    message: string;
+}
+
 export interface Permissions {
     canRead: boolean;
     canWrite: boolean;

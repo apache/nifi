@@ -16,6 +16,61 @@
 <web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee https://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
     <display-name>nifi-web-frontend</display-name>
 
+    <!-- servlet to login page -->
+<!--    <servlet>-->
+<!--        <servlet-name>Login</servlet-name>-->
+<!--        <jsp-file>/WEB-INF/pages/login.jsp</jsp-file>-->
+<!--    </servlet>-->
+<!--    <servlet-mapping>-->
+<!--        <servlet-name>Login</servlet-name>-->
+<!--        <url-pattern>/login</url-pattern>-->
+<!--    </servlet-mapping>-->
+
+    <!-- servlet to logout page -->
+<!--    <servlet>-->
+<!--        <servlet-name>Logout</servlet-name>-->
+<!--        <jsp-file>/WEB-INF/pages/logout.jsp</jsp-file>-->
+<!--    </servlet>-->
+<!--    <servlet-mapping>-->
+<!--        <servlet-name>Logout</servlet-name>-->
+<!--        <url-pattern>/logout-complete</url-pattern>-->
+<!--    </servlet-mapping>-->
+
+    <!-- login filter -->
+    <filter>
+        <filter-name>LoginFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.LoginFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>LoginFilter</filter-name>
+        <url-pattern>/login</url-pattern>
+    </filter-mapping>
+
+    <!-- logout filter -->
+    <filter>
+        <filter-name>LogoutFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.LogoutFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>LogoutFilter</filter-name>
+        <url-pattern>/logout</url-pattern>
+    </filter-mapping>
+
+    <!-- catch all filter -->
+    <filter>
+        <filter-name>SanitizeContextPathFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.SanitizeContextPathFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>SanitizeContextPathFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+        <dispatcher>ASYNC</dispatcher>
+    </filter-mapping>
+
     <welcome-file-list>
         <welcome-file>index.html</welcome-file>
     </welcome-file-list>

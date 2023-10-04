@@ -17,10 +17,16 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { authGuard } from './service/guard/auth.guard';
 
 const routes: Routes = [
     {
+        path: 'login',
+        loadChildren: () => import('./login/feature/login.module').then((m) => m.LoginModule)
+    },
+    {
         path: '',
+        canMatch: [authGuard],
         loadChildren: () => import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
     }
 ];

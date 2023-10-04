@@ -313,6 +313,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // conditionally add the new ui
         if (webNewUiWar != null) {
             final WebAppContext newUiContext = loadWar(webNewUiWar, CONTEXT_PATH_NF, frameworkClassLoader);
+            newUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
+            newUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
+            newUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
+            newUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
             webAppContextHandlers.addHandler(newUiContext);
         }
 

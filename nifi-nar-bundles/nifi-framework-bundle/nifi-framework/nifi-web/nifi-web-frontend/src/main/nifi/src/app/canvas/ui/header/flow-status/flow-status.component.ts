@@ -31,6 +31,7 @@ export class FlowStatus {
     @Input() clusterSummary: ClusterSummary = initialState.clusterSummary;
     @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
     @Input() currentProcessGroupId: string = initialState.id;
+    @Input() loadingStatus: boolean = false;
 
     private closeTimer: number = -1;
     private tooltipRef: ComponentRef<BulletinsTip> | undefined;

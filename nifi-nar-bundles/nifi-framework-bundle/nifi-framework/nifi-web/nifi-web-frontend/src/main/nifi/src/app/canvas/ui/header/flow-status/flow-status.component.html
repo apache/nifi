@@ -92,7 +92,7 @@
                 <div class="status-value">{{ formatValue(controllerStatus.syncFailureCount) }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Last refresh">
-                <div class="fa fa-refresh"></div>
+                <div class="fa fa-refresh" [class.fa-spin]="loadingStatus"></div>
                 <div class="status-value">{{ lastRefreshed }}</div>
             </div>
         </div>

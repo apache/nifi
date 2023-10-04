@@ -15,4 +15,10 @@
   ~ limitations under the License.
   -->
 
-<flow-designer></flow-designer>
+<div class="splash h-screen p-20" *ngIf="guardLoading">
+    <div class="splash-img h-full flex items-center justify-center">
+        <mat-spinner color="warn"></mat-spinner>
+    </div>
+</div>
+
+<router-outlet></router-outlet>

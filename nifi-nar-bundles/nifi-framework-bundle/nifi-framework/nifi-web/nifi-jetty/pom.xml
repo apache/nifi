@@ -224,24 +224,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <profiles>
-        <profile>
-            <id>include-new-ui</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>new-ui</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-web-frontend</artifactId>
-                    <type>war</type>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 </project>
 
 
