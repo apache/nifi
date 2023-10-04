@@ -69,6 +69,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Relationship, List<MockFlowFile>> transferMap = new ConcurrentHashMap<>();
     private final MockFlowFileQueue processorQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
+    private final Set<Long> created = new HashSet<>();
     private final List<MockFlowFile> penalized = new ArrayList<>();
     private final Processor processor;
 
@@ -213,6 +214,10 @@ public class MockProcessSession implements ProcessSession {
             if (removedFlowFiles.remove(flowFile.getId())) {
                 newOwner.removedFlowFiles.add(flowFile.getId());
             }
+
+            if (created.remove(flowFile.getId())) {
+                newOwner.created.add(flowFile.getId());
+            }
         }
 
         final Set<String> flowFileIds = flowFiles.stream()
@@ -226,8 +231,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile clone(FlowFile flowFile) {
         flowFile = validateState(flowFile);
         final MockFlowFile newFlowFile = new MockFlowFile(sharedState.nextFlowFileId(), flowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -242,8 +246,7 @@ public class MockProcessSession implements ProcessSession {
         final byte[] newContent = Arrays.copyOfRange(((MockFlowFile) flowFile).getData(), (int) offset, (int) (offset + size));
         newFlowFile.setData(newContent);
 
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -290,6 +293,7 @@ public class MockProcessSession implements ProcessSession {
         beingProcessed.clear();
         currentVersions.clear();
         originalVersions.clear();
+        created.clear();
 
         for (final Map.Entry<String, Long> entry : counterMap.entrySet()) {
             sharedState.adjustCounter(entry.getKey(), entry.getValue());
@@ -339,8 +343,7 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public MockFlowFile create() {
         final MockFlowFile flowFile = new MockFlowFile(sharedState.nextFlowFileId());
-        currentVersions.put(flowFile.getId(), flowFile);
-        beingProcessed.add(flowFile.getId());
+        updateStateWithNewFlowFile(flowFile);
         return flowFile;
     }
 
@@ -348,8 +351,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile create(final FlowFile flowFile) {
         MockFlowFile newFlowFile = create();
         newFlowFile = (MockFlowFile) inheritAttributes(flowFile, newFlowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -357,8 +359,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile create(final Collection<FlowFile> flowFiles) {
         MockFlowFile newFlowFile = create();
         newFlowFile = (MockFlowFile) inheritAttributes(flowFiles, newFlowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -802,9 +803,11 @@ public class MockProcessSession implements ProcessSession {
 
         for (final List<MockFlowFile> list : transferMap.values()) {
             for (final MockFlowFile flowFile : list) {
-                processorQueue.offer(flowFile);
-                if (penalize) {
-                    penalized.add(flowFile);
+                if (!created.contains(flowFile.getId())) {
+                    processorQueue.offer(flowFile);
+                    if (penalize) {
+                        penalized.add(flowFile);
+                    }
                 }
             }
         }
@@ -812,9 +815,11 @@ public class MockProcessSession implements ProcessSession {
         for (final Long flowFileId : beingProcessed) {
             final MockFlowFile flowFile = originalVersions.get(flowFileId);
             if (flowFile != null) {
-                processorQueue.offer(flowFile);
-                if (penalize) {
-                    penalized.add(flowFile);
+                if (!created.contains(flowFile.getId())) {
+                    processorQueue.offer(flowFile);
+                    if (penalize) {
+                        penalized.add(flowFile);
+                    }
                 }
             }
         }
@@ -824,6 +829,7 @@ public class MockProcessSession implements ProcessSession {
         currentVersions.clear();
         originalVersions.clear();
         transferMap.clear();
+        created.clear();
         clearTransferState();
         if (!penalize) {
             penalized.clear();
@@ -856,6 +862,15 @@ public class MockProcessSession implements ProcessSession {
         // which is called when a flow file is transferred to a relationship.
         mockFlowFile.setLastEnqueuedDate(System.currentTimeMillis());
         mockFlowFile.setEnqueuedIndex(enqueuedIndex.incrementAndGet());
+    }
+
+    private void updateStateWithNewFlowFile(MockFlowFile newFlowFile) {
+        if (newFlowFile == null) {
+            throw new IllegalArgumentException("argument cannot be null");
+        }
+        currentVersions.put(newFlowFile.getId(), newFlowFile);
+        beingProcessed.add(newFlowFile.getId());
+        created.add(newFlowFile.getId());
     }
 
     @Override
@@ -1072,6 +1087,7 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile newFlowFile = new MockFlowFile(destination.getId(), destination);
         newFlowFile.setData(baos.toByteArray());
         currentVersions.put(newFlowFile.getId(), newFlowFile);
+        created.add(newFlowFile.getId());
 
         return newFlowFile;
     }
