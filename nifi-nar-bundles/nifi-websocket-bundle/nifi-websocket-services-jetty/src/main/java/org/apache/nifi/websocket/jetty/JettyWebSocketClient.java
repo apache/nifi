@@ -388,9 +388,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
 
     private Session attemptConnection(RoutingWebSocketListener listener, ClientUpgradeRequest request, int connectCount) throws IOException {
         int backoffMillis = INITIAL_BACKOFF_MILLIS;
-        int backoffJitterMillis = (int) (INITIAL_BACKOFF_MILLIS * getBackoffJitter(-0.2, 0.2));
-
+        int backoffJitterMillis;
         for (int i = 0; i < connectCount; i++) {
+            backoffJitterMillis = (int) (INITIAL_BACKOFF_MILLIS * getBackoffJitter(-0.2, 0.2));
             final Future<Session> connect = createWebsocketSession(listener, request);
             getLogger().info("Connecting to : {}", webSocketUri);
             try {
