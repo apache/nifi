@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3EncryptionClient;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Builder;
+import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
+import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
+import com.amazonaws.services.s3.model.CryptoConfigurationV2;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
@@ -27,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.util.function.Consumer;
 
 /**
  * This strategy uses a client master key to perform client-side encryption.   Use this strategy when you want the client to perform the encryption,
@@ -39,26 +43,31 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
     /**
      * Create an encryption client.
      *
-     * @param credentialsProvider AWS credentials provider.
-     * @param clientConfiguration Client configuration
+     * @param clientBuilder A consumer that is responsible for configuring the client builder
      * @param kmsRegion not used by this encryption strategy
      * @param keyIdOrMaterial client master key, always base64 encoded
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String kmsRegion, String keyIdOrMaterial) {
-        ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
+    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+        final ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
         if (!keyValidationResult.isValid()) {
             throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
         }
 
-        byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
-        SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
-        StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
+        final byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
+        final SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
+        final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
 
-        AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider);
+        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
+        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.fromName(kmsRegion)));
 
-        return client;
+        final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
+                .disableChunkedEncoding()
+                .withCryptoConfiguration(cryptoConfig)
+                .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
+        clientBuilder.accept(builder);
+        return builder.build();
     }
 
     @Override

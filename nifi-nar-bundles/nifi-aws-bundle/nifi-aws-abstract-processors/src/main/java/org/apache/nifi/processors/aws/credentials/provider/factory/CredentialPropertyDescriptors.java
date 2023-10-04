@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
+import com.amazonaws.auth.Signer;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
 import org.apache.nifi.ssl.SSLContextService;
 import software.amazon.awssdk.regions.Region;
 
@@ -71,7 +71,7 @@ public class CredentialPropertyDescriptors {
             .description("Path to a file containing AWS access key and secret key in properties file format.")
             .build();
 
-    public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ACCESS_KEY_ID = new PropertyDescriptor.Builder()
             .name("Access Key")
             .displayName("Access Key ID")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -245,13 +245,25 @@ public class CredentialPropertyDescriptors {
             .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_CLASS_NAME)
+            .name("custom-signer-class-name")
+            .displayName("Custom Signer Class Name")
+            .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
             .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_MODULE_LOCATION)
+            .name("custom-signer-module-location")
+            .displayName("Custom Signer Module Location")
+            .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
+            .dynamicallyModifiesClasspath(true)
             .build();
 
     public static AllowableValue createAllowableValue(final Region region) {

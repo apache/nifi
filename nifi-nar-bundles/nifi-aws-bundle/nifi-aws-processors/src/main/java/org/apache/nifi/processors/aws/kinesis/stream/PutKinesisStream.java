@@ -33,8 +33,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsRequest;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsRequestEntry;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsResponse;
@@ -42,8 +44,6 @@ import software.amazon.awssdk.services.kinesis.model.PutRecordsResultEntry;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +60,7 @@ import java.util.Random;
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
 @SeeAlso(ConsumeKinesisStream.class)
-public class PutKinesisStream extends AbstractKinesisStreamSyncProcessor {
+public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, KinesisClientBuilder> {
     /**
      * Kinesis put record response error message
      */
@@ -104,14 +104,32 @@ public class PutKinesisStream extends AbstractKinesisStreamSyncProcessor {
             .sensitive(false)
             .build();
 
-    public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractKinesisStreamSyncProcessor.KINESIS_STREAM_NAME)
+    static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KINESIS_STREAM_NAME, KINESIS_PARTITION_KEY, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
-                AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, ENDPOINT_OVERRIDE));
+    public static final List<PropertyDescriptor> properties = List.of(
+            KINESIS_STREAM_NAME,
+            KINESIS_PARTITION_KEY,
+            BATCH_SIZE,
+            MAX_MESSAGE_BUFFER_SIZE_MB,
+            REGION,
+            ACCESS_KEY,
+            SECRET_KEY,
+            CREDENTIALS_FILE,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            TIMEOUT,
+            PROXY_CONFIGURATION_SERVICE,
+            PROXY_HOST,
+            PROXY_HOST_PORT,
+            PROXY_USERNAME,
+            PROXY_PASSWORD,
+            ENDPOINT_OVERRIDE);
 
     /** A random number generator for cases where partition key is not available */
     protected Random randomPartitionKeyGenerator = new Random();
@@ -206,4 +224,10 @@ public class PutKinesisStream extends AbstractKinesisStreamSyncProcessor {
             context.yield();
         }
     }
+
+    @Override
+    protected KinesisClientBuilder createClientBuilder(final ProcessContext context) {
+        return KinesisClient.builder();
+    }
+
 }

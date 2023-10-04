@@ -40,8 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -101,7 +99,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
+            validateServiceExceptionAttributes(flowFile);
         }
 
     }

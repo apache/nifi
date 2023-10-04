@@ -39,7 +39,6 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.ArrayList;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -47,8 +46,6 @@ import java.util.Map;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -411,7 +408,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
+            validateServiceExceptionAttributes(flowFile);
         }
 
     }

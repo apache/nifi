@@ -30,13 +30,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchResponse;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @SupportsBatching
@@ -44,7 +44,15 @@ import java.util.List;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Delete"})
 @CapabilityDescription("Deletes a message from an Amazon Simple Queuing Service Queue")
-public class DeleteSQS extends AbstractSQSProcessor {
+public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder> {
+
+    public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
+            .name("Queue URL")
+            .description("The URL of the queue delete from")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
             .name("Receipt Handle")
@@ -55,9 +63,20 @@ public class DeleteSQS extends AbstractSQSProcessor {
             .defaultValue("${sqs.receipt.handle}")
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, RECEIPT_HANDLE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                    REGION, TIMEOUT, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+            QUEUE_URL,
+            RECEIPT_HANDLE,
+            ACCESS_KEY,
+            SECRET_KEY,
+            CREDENTIALS_FILE,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            REGION,
+            TIMEOUT,
+            ENDPOINT_OVERRIDE,
+            PROXY_HOST,
+            PROXY_HOST_PORT,
+            PROXY_USERNAME,
+            PROXY_PASSWORD);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -101,8 +120,11 @@ public class DeleteSQS extends AbstractSQSProcessor {
             getLogger().error("Failed to delete message from SQS due to {}", new Object[] { e });
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
+    @Override
+    protected SqsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SqsClient.builder();
+    }
 }

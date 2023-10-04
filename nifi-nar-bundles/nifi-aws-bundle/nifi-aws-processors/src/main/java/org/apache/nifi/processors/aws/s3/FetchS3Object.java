@@ -214,13 +214,13 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            BUCKET,
+            BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             S3_REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
             ACCESS_KEY,
             SECRET_KEY,
             CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             VERSION_ID,
             SSL_CONTEXT_SERVICE,
@@ -268,7 +268,7 @@ public class FetchS3Object extends AbstractS3Processor {
     public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
         final AmazonS3Client client = createClient(context, attributes);
@@ -319,7 +319,7 @@ public class FetchS3Object extends AbstractS3Processor {
         if (encryptionService != null) {
             attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
         }
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
@@ -333,7 +333,7 @@ public class FetchS3Object extends AbstractS3Processor {
 
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
             if (metadata.getContentDisposition() != null) {
-                final String contentDisposition = URLDecoder.decode(metadata.getContentDisposition(), StandardCharsets.UTF_8.name());
+                final String contentDisposition = URLDecoder.decode(metadata.getContentDisposition(), StandardCharsets.UTF_8);
 
                 if (contentDisposition.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || contentDisposition.startsWith("attachment; filename=")) {
                     setFilePathAttributes(attributes, key);
@@ -401,7 +401,7 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
@@ -417,7 +417,7 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     private GetObjectRequest createGetObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();

@@ -21,11 +21,10 @@ import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,26 +36,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * configuration and resources to work.
  */
 public class ITTagS3Object extends AbstractS3IT {
+    private static final String TAG_KEY_NIFI = "nifi-key";
+    private static final String TAG_VALUE_NIFI = "nifi-val";
+    private static final String TEST_FILE = "test-file";
+    private static final Tag OLD_TAG = new Tag("oldkey", "oldvalue");
+    private static final Tag TAG = new Tag(TAG_KEY_NIFI, TAG_VALUE_NIFI);
+
+    private TestRunner initRunner() {
+        final TestRunner runner = initRunner(TagS3Object.class);
+        runner.setProperty(TagS3Object.TAG_KEY, TAG_KEY_NIFI);
+        runner.setProperty(TagS3Object.TAG_VALUE, TAG_VALUE_NIFI);
+        return runner;
+    }
 
     @Test
     public void testSimpleTag() {
-        String objectKey = "test-file";
-        String tagKey = "nifi-key";
-        String tagValue = "nifi-val";
-
         // put file in s3
-        putTestFile(objectKey, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        putTestFile(TEST_FILE, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
         // Set up processor
-        final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
-        runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.S3_REGION, REGION);
-        runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(TagS3Object.TAG_KEY, tagKey);
-        runner.setProperty(TagS3Object.TAG_VALUE, tagValue);
+        final TestRunner runner = initRunner();
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", objectKey);
+        attrs.put("filename", TEST_FILE);
         runner.enqueue(new byte[0], attrs);
 
         // tag file
@@ -64,33 +66,31 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify processor succeeds
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
+        assertTagsCorrect(false);
+    }
 
+    private void assertTagsCorrect(final boolean expectOldTag) {
         // Verify tag exists on S3 object
-        GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected tag not found on S3 object");
+        GetObjectTaggingResult res = getClient().getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, TEST_FILE));
+        assertTrue(res.getTagSet().contains(TAG), "Expected tag not found on S3 object");
+
+        if (expectOldTag) {
+            assertTrue(res.getTagSet().contains(OLD_TAG), "Expected existing tag not found on S3 object");
+        } else {
+            assertFalse(res.getTagSet().contains(OLD_TAG), "Existing tag found on S3 object");
+        }
     }
 
     @Test
     public void testAppendTag() {
-        String objectKey = "test-file";
-        String tagKey = "nifi-key";
-        String tagValue = "nifi-val";
-
-        Tag existingTag = new Tag("oldkey", "oldvalue");
-
         // put file in s3
-        putFileWithObjectTag(objectKey, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), Arrays.asList(existingTag));
+        putFileWithObjectTag(TEST_FILE, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), List.of(OLD_TAG));
 
         // Set up processor
-        final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
-        runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.S3_REGION, REGION);
-        runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(TagS3Object.TAG_KEY, tagKey);
-        runner.setProperty(TagS3Object.TAG_VALUE, tagValue);
+        final TestRunner runner = initRunner();
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", objectKey);
+        attrs.put("filename", TEST_FILE);
         runner.enqueue(new byte[0], attrs);
 
         // tag file
@@ -98,36 +98,21 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify processor succeeds
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-
-        // Verify new tag and existing exist on S3 object
-        GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected new tag not found on S3 object");
-        assertTrue(res.getTagSet().contains(existingTag), "Expected existing tag not found on S3 object");
+        assertTagsCorrect(true);
     }
 
     @Test
     public void testReplaceTags() {
-        String objectKey = "test-file";
-        String tagKey = "nifi-key";
-        String tagValue = "nifi-val";
-
-        Tag existingTag = new Tag("s3.tag.oldkey", "oldvalue");
-
         // put file in s3
-        putFileWithObjectTag(objectKey, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), Arrays.asList(existingTag));
+        putFileWithObjectTag(TEST_FILE, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), List.of(OLD_TAG));
 
         // Set up processor
-        final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
-        runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.S3_REGION, REGION);
-        runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(TagS3Object.TAG_KEY, tagKey);
-        runner.setProperty(TagS3Object.TAG_VALUE, tagValue);
+        final TestRunner runner = initRunner();
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", objectKey);
-        attrs.put("s3.tag."+existingTag.getKey(), existingTag.getValue());
+        attrs.put("filename", TEST_FILE);
+        attrs.put("s3.tag." + OLD_TAG.getKey(), OLD_TAG.getValue());
         runner.enqueue(new byte[0], attrs);
 
         // tag file
@@ -138,13 +123,10 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify flowfile attributes match s3 tags
         MockFlowFile flowFiles = runner.getFlowFilesForRelationship(TagS3Object.REL_SUCCESS).get(0);
-        flowFiles.assertAttributeNotExists(existingTag.getKey());
-        flowFiles.assertAttributeEquals("s3.tag."+tagKey, tagValue);
+        flowFiles.assertAttributeNotExists(OLD_TAG.getKey());
+        flowFiles.assertAttributeEquals("s3.tag." + TAG_KEY_NIFI, TAG_VALUE_NIFI);
 
-        // Verify new tag exists on S3 object and prior tag removed
-        GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected new tag not found on S3 object");
-        assertFalse(res.getTagSet().contains(existingTag), "Existing tag not replaced on S3 object");
+        assertTagsCorrect(false);
     }
 }
 

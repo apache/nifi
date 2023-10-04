@@ -19,8 +19,9 @@ package org.apache.nifi.processors.aws.ml.polly;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.polly.AmazonPollyClient;
-import com.amazonaws.services.polly.AmazonPollyClientBuilder;
 import com.amazonaws.services.polly.model.StartSpeechSynthesisTaskRequest;
 import com.amazonaws.services.polly.model.StartSpeechSynthesisTaskResult;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -34,11 +35,16 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 @CapabilityDescription("Trigger a AWS Polly job. It should be followed by GetAwsPollyJobStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsPollyJobStatus.class})
 public class StartAwsPollyJob extends AwsMachineLearningJobStarter<AmazonPollyClient, StartSpeechSynthesisTaskRequest, StartSpeechSynthesisTaskResult> {
+
     @Override
-    protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonPollyClient) AmazonPollyClientBuilder.standard()
+    protected AmazonPollyClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                             final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+
+        return (AmazonPollyClient) AmazonPollyClient.builder()
                 .withRegion(context.getProperty(REGION).getValue())
                 .withCredentials(credentialsProvider)
+                .withClientConfiguration(config)
+                .withEndpointConfiguration(endpointConfiguration)
                 .build();
     }
 

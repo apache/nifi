@@ -18,6 +18,9 @@ package org.apache.nifi.processors.aws.dynamodb;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
+import org.apache.nifi.util.MockFlowFile;
+
+import java.util.List;
 
 /**
  * Provides reused elements and utilities for the AWS DynamoDB related tests
@@ -27,6 +30,21 @@ import com.amazonaws.AmazonServiceException.ErrorType;
  * @see DeleteDynamoDBTest
  */
 public abstract class AbstractDynamoDBTest {
+    public static final String REGION = "us-west-2";
+    public static final String stringHashStringRangeTableName = "StringHashStringRangeTable";
+
+    private static final List<String> errorAttributes = List.of(
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE
+    );
 
     protected AmazonServiceException getSampleAwsServiceException() {
         final AmazonServiceException testServiceException = new AmazonServiceException("Test AWS Service Exception");
@@ -38,4 +56,9 @@ public abstract class AbstractDynamoDBTest {
 
         return testServiceException;
     }
+
+    protected static void validateServiceExceptionAttributes(final MockFlowFile flowFile) {
+        errorAttributes.forEach(flowFile::assertAttributeExists);
+    }
+
 }

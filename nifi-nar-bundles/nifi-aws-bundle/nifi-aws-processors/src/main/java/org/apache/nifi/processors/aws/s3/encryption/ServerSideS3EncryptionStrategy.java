@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
  * perform the encryption (meaning you pay the cost of processing) and you want AWS to completely manage the key.
  *
  *
- * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html
+ * See <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html">Using Server Side Encryption</a>
  *
  */
 public class ServerSideS3EncryptionStrategy implements S3EncryptionStrategy {

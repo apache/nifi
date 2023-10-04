@@ -19,14 +19,13 @@ package org.apache.nifi.processors.aws.ml.polly;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.polly.AmazonPollyClient;
-import com.amazonaws.services.polly.AmazonPollyClientBuilder;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskRequest;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskResult;
 import com.amazonaws.services.polly.model.TaskStatus;
 import com.amazonaws.services.textract.model.ThrottlingException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -37,6 +36,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
 @CapabilityDescription("Retrieves the current status of an AWS Polly job.")
@@ -54,10 +56,13 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
     private static final String AWS_S3_KEY = "filename";
 
     @Override
-    protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonPollyClient) AmazonPollyClientBuilder.standard()
+    protected AmazonPollyClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                             final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+        return (AmazonPollyClient) AmazonPollyClient.builder()
                 .withCredentials(credentialsProvider)
                 .withRegion(context.getProperty(REGION).getValue())
+                .withEndpointConfiguration(endpointConfiguration)
+                .withClientConfiguration(config)
                 .build();
     }
 

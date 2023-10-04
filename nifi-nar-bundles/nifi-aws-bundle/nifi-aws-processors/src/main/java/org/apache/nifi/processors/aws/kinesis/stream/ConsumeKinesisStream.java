@@ -50,6 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
+import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
 import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -60,6 +61,7 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClientBuilder;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClientBuilder;
 import software.amazon.kinesis.checkpoint.CheckpointConfig;
 import software.amazon.kinesis.common.ConfigsBuilder;
 import software.amazon.kinesis.common.InitialPositionInStream;
@@ -142,7 +144,8 @@ import java.util.stream.Collectors;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
-public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
+public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder> {
+
     private static final String CHECKPOINT_CONFIG = "checkpointConfig";
     private static final String COORDINATOR_CONFIG = "coordinatorConfig";
     private static final String LEASE_MANAGEMENT_CONFIG = "leaseManagementConfig";
@@ -165,6 +168,14 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
             InitialPositionInStream.AT_TIMESTAMP.toString(),
             InitialPositionInStream.AT_TIMESTAMP.toString(), "Start reading from the position denoted by a specific time stamp, provided in the value Timestamp."
     );
+
+    static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor APPLICATION_NAME = new PropertyDescriptor.Builder()
             .displayName("Application Name")
@@ -305,21 +316,35 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
                     " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(
-                    // Kinesis Stream specific properties
-                    KINESIS_STREAM_NAME, APPLICATION_NAME, RECORD_READER, RECORD_WRITER, REGION, ENDPOINT_OVERRIDE,
-                    DYNAMODB_ENDPOINT_OVERRIDE, INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
-                    FAILOVER_TIMEOUT, GRACEFUL_SHUTDOWN_TIMEOUT, CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
-                    // generic AWS processor properties
-                    TIMEOUT, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_CONFIGURATION_SERVICE
-            )
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            // Kinesis Stream specific properties
+            KINESIS_STREAM_NAME,
+            APPLICATION_NAME,
+            RECORD_READER,
+            RECORD_WRITER,
+            REGION,
+            ENDPOINT_OVERRIDE,
+            DYNAMODB_ENDPOINT_OVERRIDE,
+            INITIAL_STREAM_POSITION,
+            STREAM_POSITION_TIMESTAMP,
+            TIMESTAMP_FORMAT,
+            FAILOVER_TIMEOUT,
+            GRACEFUL_SHUTDOWN_TIMEOUT,
+            CHECKPOINT_INTERVAL,
+            NUM_RETRIES,
+            RETRY_WAIT,
+            REPORT_CLOUDWATCH_METRICS,
+
+            // generic AWS processor properties
+            TIMEOUT,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            PROXY_CONFIGURATION_SERVICE
     );
 
-    private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = new HashMap<>() {{
-        put("leaseManagementConfig.initialPositionInStream", INITIAL_STREAM_POSITION);
-        put("leaseManagementConfig.failoverTimeMillis", FAILOVER_TIMEOUT);
-    }};
+    private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = Map.of(
+            "leaseManagementConfig.initialPositionInStream", INITIAL_STREAM_POSITION,
+            "leaseManagementConfig.failoverTimeMillis", FAILOVER_TIMEOUT
+    );
 
     private static final Object WORKER_LOCK = new Object();
     private static final String SCHEDULER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Scheduler.class.getSimpleName() + "-";
@@ -459,11 +484,11 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
     private ValidationResult buildDynamicPropertyBeanValidationResult(final ValidationResult.Builder validationResult,
                                                                       final String subject, final String input, final String message) {
         return validationResult
-                .explanation(
-                        String.format("Kinesis Client Configuration Builder property with name %s cannot be used with value \"%s\" : %s",
-                                StringUtils.capitalize(subject), input, message)
-                )
-                .valid(false).build();
+                .input(input)
+                .subject(subject)
+                .explanation("Kinesis Client Configuration Builder property with name %s cannot be used with value \"%s\" : %s".formatted(StringUtils.capitalize(subject), input, message))
+                .valid(false)
+                .build();
     }
 
     @Override
@@ -702,13 +727,13 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
 
     private CloudWatchAsyncClient getCloudwatchClient(final ProcessContext context) {
         final CloudWatchAsyncClientBuilder builder = CloudWatchAsyncClient.builder();
-        configureClientBuilder(builder, context, null);
+        configureClientBuilder(builder, getRegion(context), context, null);
         return builder.build();
     }
 
     private DynamoDbAsyncClient getDynamoClient(final ProcessContext context) {
         final DynamoDbAsyncClientBuilder dynamoClientBuilder = DynamoDbAsyncClient.builder();
-        configureClientBuilder(dynamoClientBuilder, context, DYNAMODB_ENDPOINT_OVERRIDE);
+        configureClientBuilder(dynamoClientBuilder, getRegion(context), context, DYNAMODB_ENDPOINT_OVERRIDE);
         return dynamoClientBuilder.build();
     }
 
@@ -806,5 +831,10 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
                 .withZoneSameInstant(ZoneOffset.UTC) // convert to UTC
                 .toInstant().toEpochMilli() // convert to epoch milliseconds for creating Date
         );
+    }
+
+    @Override
+    protected KinesisAsyncClientBuilder createClientBuilder(final ProcessContext context) {
+        return KinesisAsyncClient.builder();
     }
 }

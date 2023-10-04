@@ -18,8 +18,9 @@
 package org.apache.nifi.processors.aws.ml.transcribe;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.transcribe.AmazonTranscribeClient;
 import com.amazonaws.services.transcribe.model.StartTranscriptionJobRequest;
 import com.amazonaws.services.transcribe.model.StartTranscriptionJobResult;
@@ -34,17 +35,16 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 @CapabilityDescription("Trigger a AWS Transcribe job. It should be followed by GetAwsTranscribeStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTranscribeJobStatus.class})
 public class StartAwsTranscribeJob extends AwsMachineLearningJobStarter<AmazonTranscribeClient, StartTranscriptionJobRequest, StartTranscriptionJobResult> {
-    @Override
-    protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withCredentials(credentialsProvider)
-                .build();
-    }
 
     @Override
-    protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder().build();
+    protected AmazonTranscribeClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withClientConfiguration(config)
+                .withEndpointConfiguration(endpointConfiguration)
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override

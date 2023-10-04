@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -33,13 +32,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-
-import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
-
+import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -51,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 
 @Tags({"service", "aws", "s3", "encryption", "encrypt", "decryption", "decrypt", "key"})
@@ -58,14 +57,13 @@ import java.util.Map;
 public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {
     private static final Logger logger = LoggerFactory.getLogger(StandardS3EncryptionService.class);
 
-    private static final Map<String, S3EncryptionStrategy> NAMED_STRATEGIES = new HashMap<String, S3EncryptionStrategy>() {{
-        put(STRATEGY_NAME_NONE, new NoOpEncryptionStrategy());
-        put(STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy());
-        put(STRATEGY_NAME_SSE_KMS, new ServerSideKMSEncryptionStrategy());
-        put(STRATEGY_NAME_SSE_C, new ServerSideCEncryptionStrategy());
-        put(STRATEGY_NAME_CSE_KMS, new ClientSideKMSEncryptionStrategy());
-        put(STRATEGY_NAME_CSE_C, new ClientSideCEncryptionStrategy());
-    }};
+    private static final Map<String, S3EncryptionStrategy> NAMED_STRATEGIES = Map.of(
+            STRATEGY_NAME_NONE, new NoOpEncryptionStrategy(),
+            STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy(),
+            STRATEGY_NAME_SSE_KMS, new ServerSideKMSEncryptionStrategy(),
+            STRATEGY_NAME_SSE_C, new ServerSideCEncryptionStrategy(),
+            STRATEGY_NAME_CSE_C, new ClientSideCEncryptionStrategy()
+    );
 
     private static final AllowableValue NONE = new AllowableValue(STRATEGY_NAME_NONE, "None","No encryption.");
     private static final AllowableValue SSE_S3 = new AllowableValue(STRATEGY_NAME_SSE_S3, "Server-side S3","Use server-side, S3-managed encryption.");
@@ -100,7 +98,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
                     "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
             .required(false)
             .sensitive(true)
-            .addValidator((subject, input, context) -> new ValidationResult.Builder().valid(true).build()) // will be validated in customValidate()
+            .addValidator(Validator.VALID) // will be validated in customValidate()
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
@@ -123,11 +121,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         final String newStrategyName = context.getProperty(ENCRYPTION_STRATEGY).getValue();
         final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
         final S3EncryptionStrategy newEncryptionStrategy = NAMED_STRATEGIES.get(newStrategyName);
-        String newKmsRegion = null;
 
-        if (context.getProperty(KMS_REGION) != null ) {
-            newKmsRegion = context.getProperty(KMS_REGION).getValue();
-        }
+        kmsRegion = context.getProperty(KMS_REGION).getValue();
 
         if (newEncryptionStrategy == null) {
             final String msg = "No encryption strategy found for name: " + strategyName;
@@ -138,7 +133,6 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         strategyName = newStrategyName;
         encryptionStrategy = newEncryptionStrategy;
         keyValue = newKeyValue;
-        kmsRegion = newKmsRegion;
     }
 
     @Override
@@ -224,8 +218,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration) {
-        return encryptionStrategy.createEncryptionClient(credentialsProvider, clientConfiguration, kmsRegion, keyValue);
+    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder) {
+        return encryptionStrategy.createEncryptionClient(clientBuilder, kmsRegion, keyValue);
     }
 
     @Override

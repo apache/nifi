@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
+import java.util.Objects;
 
 /**
  * Utility class to keep a map of keys and flow files
@@ -29,25 +26,35 @@ class ItemKeys {
     protected Object hashKey = "";
     protected Object rangeKey = "";
 
-    public ItemKeys(Object hashKey, Object rangeKey) {
-        if ( hashKey != null )
+    public ItemKeys(final Object hashKey, final Object rangeKey) {
+        if (hashKey != null) {
             this.hashKey = hashKey;
-        if ( rangeKey != null )
+        }
+
+        if (rangeKey != null) {
             this.rangeKey = rangeKey;
+        }
     }
 
     @Override
     public String toString() {
-        return ToStringBuilder.reflectionToString(this,ToStringStyle.SHORT_PREFIX_STYLE);
+        return "ItemKeys[hashKey=" + hashKey + ", rangeKey=" + rangeKey + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ItemKeys itemKeys = (ItemKeys) o;
+        return Objects.equals(hashKey, itemKeys.hashKey) && Objects.equals(rangeKey, itemKeys.rangeKey);
     }
 
     @Override
     public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this, false);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return EqualsBuilder.reflectionEquals(this, other, false);
+        return Objects.hash(hashKey, rangeKey);
     }
 }

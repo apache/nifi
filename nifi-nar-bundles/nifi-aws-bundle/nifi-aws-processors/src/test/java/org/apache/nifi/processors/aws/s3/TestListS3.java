@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -70,7 +72,8 @@ public class TestListS3 {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         final ListS3 mockListS3 = new ListS3() {
             @Override
-            protected AmazonS3Client createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
         };
@@ -81,7 +84,7 @@ public class TestListS3 {
     @Test
     public void testList() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         Date lastModified = new Date();
         ObjectListing objectListing = new ObjectListing();
@@ -133,7 +136,7 @@ public class TestListS3 {
     @Test
     public void testListWithRecords() throws InitializationException {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         runner.addControllerService("record-writer", recordWriter);
@@ -184,7 +187,7 @@ public class TestListS3 {
     @Test
     public void testListWithRequesterPays() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
 
         Date lastModified = new Date();
@@ -230,7 +233,7 @@ public class TestListS3 {
     @Test
     public void testListWithRequesterPays_invalid() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.USE_VERSIONS, "true"); // requester pays cannot be used with versions
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
 
@@ -240,7 +243,7 @@ public class TestListS3 {
     @Test
     public void testListVersion2() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.LIST_TYPE, "2");
 
         Date lastModified = new Date();
@@ -286,7 +289,7 @@ public class TestListS3 {
     @Test
     public void testListVersion2WithRequesterPays() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
         runner.setProperty(ListS3.LIST_TYPE, "2");
 
@@ -333,7 +336,7 @@ public class TestListS3 {
     @Test
     public void testListVersions() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.USE_VERSIONS, "true");
 
         Date lastModified = new Date();
@@ -377,7 +380,7 @@ public class TestListS3 {
     @Test
     public void testListObjectsNothingNew() throws IOException {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(2017, Calendar.JUNE, 2);
@@ -413,7 +416,7 @@ public class TestListS3 {
     @Test
     public void testListIgnoreByMinAge() throws IOException {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.MIN_AGE, "30 sec");
 
         Date lastModifiedNow = new Date();
@@ -464,7 +467,7 @@ public class TestListS3 {
     @Test
     public void testListIgnoreByMaxAge() throws IOException {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.MAX_AGE, "30 sec");
         Date lastModifiedNow = new Date();
         Date lastModifiedMinus1Hour = DateUtils.addHours(lastModifiedNow, -1);
@@ -512,7 +515,7 @@ public class TestListS3 {
     @Test
     public void testWriteObjectTags() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
 
         Date lastModified = new Date();
@@ -539,7 +542,7 @@ public class TestListS3 {
     @Test
     public void testWriteUserMetadata() {
         runner.setProperty(ListS3.REGION, "eu-west-1");
-        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
 
         Date lastModified = new Date();
