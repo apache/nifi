@@ -49,7 +49,12 @@ public class PropertyMigrationIT extends NiFiSystemIT {
 
     @AfterEach
     public void restoreNars() {
+        // Stop the NiFi instance, ensure that the nifi-system-test-extensions-nar and nifi-alternate-config-extensions bundles
+        // are where they need to be. Then, restart the instance so that everything is in the right state for the next test that
+        // will run
+        getNiFiInstance().stop();
         switchNarsBack();
+        getNiFiInstance().start(true);
     }
 
     @Test
