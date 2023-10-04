@@ -22,21 +22,21 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http2.HttpConversionUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.opentelemetry.encoding.ResponseBodyWriter;
 import org.apache.nifi.processors.opentelemetry.encoding.StandardResponseBodyWriter;
 import org.apache.nifi.processors.opentelemetry.io.RequestContentListener;
+import org.apache.nifi.processors.opentelemetry.protocol.GrpcHeader;
+import org.apache.nifi.processors.opentelemetry.protocol.GrpcStatusCode;
 import org.apache.nifi.processors.opentelemetry.protocol.ServiceResponse;
 import org.apache.nifi.processors.opentelemetry.protocol.ServiceResponseStatus;
 import org.apache.nifi.processors.opentelemetry.protocol.ServiceRequestDescription;
@@ -50,23 +50,12 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * HTTP Handler for OTLP Export Service Requests encoded as JSON or Protobuf over HTTP/1.1
+ * HTTP Handler for OTLP Export Service Requests over gGRPC or encoded as JSON or Protobuf over HTTP
  */
-public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private final ResponseBodyWriter responseBodyWriter = new StandardResponseBodyWriter();
-
-    private final AtomicReference<HttpRequest> httpRequestRef = new AtomicReference<>();
-
-    private final AtomicReference<TelemetryContentEncoding> contentEncodingRef = new AtomicReference<>();
-
-    private final AtomicReference<TelemetryContentType> contentTypeRef = new AtomicReference<>();
-
-    private final AtomicReference<TelemetryRequestType> requestTypeRef = new AtomicReference<>();
-
-    private final RequestContentBuffer requestContentBuffer = new RequestContentBuffer();
 
     private final ComponentLog log;
 
@@ -84,78 +73,65 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
     }
 
     /**
-     * Channel Read handles HTTP Request and HTTP Content objects
+     * Channel Read handles Full HTTP Request objects
      *
      * @param channelHandlerContext Channel Handler Context
-     * @param httpObject HTTP object to be processed
+     * @param httpRequest Full HTTP Request to be processed
      */
     @Override
-    protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final HttpObject httpObject) {
-        if (httpObject instanceof HttpRequest) {
-            final HttpRequest httpRequest;
-            httpRequest = (HttpRequest) httpObject;
-            handleHttpRequest(channelHandlerContext, httpRequest);
-        } else if (httpObject instanceof HttpContent) {
-            final HttpContent httpContent;
-            httpContent = (HttpContent) httpObject;
-            handleHttpContent(channelHandlerContext, httpContent);
-        }
-    }
-
-    private void handleHttpRequest(final ChannelHandlerContext channelHandlerContext, final HttpRequest httpRequest) {
-        httpRequestRef.getAndSet(httpRequest);
-
+    protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final FullHttpRequest httpRequest) {
         if (HttpMethod.POST == httpRequest.method()) {
-            final String uri = httpRequest.uri();
-            final TelemetryRequestType telemetryRequestType = getTelemetryType(uri);
-            if (telemetryRequestType == null) {
-                sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.NOT_FOUND);
-            } else {
-                requestTypeRef.getAndSet(telemetryRequestType);
-                final HttpHeaders headers = httpRequest.headers();
-                final String requestContentType = headers.get(HttpHeaderNames.CONTENT_TYPE);
-                final TelemetryContentType telemetryContentType = getTelemetryContentType(requestContentType);
-                if (telemetryContentType == null) {
-                    sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.UNSUPPORTED_MEDIA_TYPE);
-                } else {
-                    final String requestContentEncoding = headers.get(HttpHeaderNames.CONTENT_ENCODING);
-                    final TelemetryContentEncoding telemetryContentEncoding = getTelemetryContentEncoding(requestContentEncoding);
-                    contentEncodingRef.getAndSet(telemetryContentEncoding);
-                    contentTypeRef.getAndSet(telemetryContentType);
-                }
-            }
+            handleHttpPostRequest(channelHandlerContext, httpRequest);
         } else {
             sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
-    private void handleHttpContent(final ChannelHandlerContext channelHandlerContext, final HttpContent httpContent) {
-        final InetSocketAddress remoteAddress = (InetSocketAddress) channelHandlerContext.channel().remoteAddress();
-
-        final ByteBuf content = httpContent.content();
-        final int readableBytes = content.readableBytes();
-
-        final TelemetryContentType telemetryContentType = contentTypeRef.get();
+    private void handleHttpPostRequest(final ChannelHandlerContext channelHandlerContext, final FullHttpRequest httpRequest) {
+        final HttpHeaders headers = httpRequest.headers();
+        final String requestContentType = headers.get(HttpHeaderNames.CONTENT_TYPE);
+        final TelemetryContentType telemetryContentType = getTelemetryContentType(requestContentType);
         if (telemetryContentType == null) {
-            log.debug("HTTP Content Unsupported: Client Address [{}] Bytes [{}]", remoteAddress, readableBytes);
+            sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.UNSUPPORTED_MEDIA_TYPE);
         } else {
-            log.debug("HTTP Content Received: Client Address [{}] Content-Type [{}] Bytes [{}]", remoteAddress, telemetryContentType.getContentType(), readableBytes);
-            requestContentBuffer.updateBuffer(channelHandlerContext, content);
-
-            if (httpContent instanceof LastHttpContent) {
-                final ServiceRequestDescription serviceRequestDescription = new StandardServiceRequestDescription(
-                        contentEncodingRef.get(),
-                        telemetryContentType,
-                        requestTypeRef.get(),
-                        remoteAddress
-                );
-                final ByteBuffer contentBuffer = requestContentBuffer.getBuffer().nioBuffer();
-                final ServiceResponse serviceResponse = requestContentListener.onRequest(contentBuffer, serviceRequestDescription);
-                requestContentBuffer.clearBuffer();
-
-                sendResponse(channelHandlerContext, serviceRequestDescription, serviceResponse);
+            final String uri = httpRequest.uri();
+            final TelemetryRequestType telemetryRequestType = getTelemetryRequestType(uri, telemetryContentType);
+            if (telemetryRequestType == null) {
+                sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.NOT_FOUND);
+            } else {
+                handleHttpPostRequestTypeSupported(channelHandlerContext, httpRequest, telemetryRequestType, telemetryContentType);
             }
         }
+    }
+
+    private void handleHttpPostRequestTypeSupported(
+            final ChannelHandlerContext channelHandlerContext,
+            final FullHttpRequest httpRequest,
+            final TelemetryRequestType telemetryRequestType,
+            final TelemetryContentType telemetryContentType
+    ) {
+        final HttpHeaders headers = httpRequest.headers();
+        final String requestContentEncoding = headers.get(HttpHeaderNames.CONTENT_ENCODING);
+        final TelemetryContentEncoding telemetryContentEncoding = getTelemetryContentEncoding(requestContentEncoding);
+
+        final InetSocketAddress remoteAddress = (InetSocketAddress) channelHandlerContext.channel().remoteAddress();
+        final ServiceRequestDescription serviceRequestDescription = new StandardServiceRequestDescription(
+                telemetryContentEncoding,
+                telemetryContentType,
+                telemetryRequestType,
+                remoteAddress
+        );
+
+        final ByteBuf content = httpRequest.content();
+        final int readableBytes = content.readableBytes();
+
+        final TelemetryContentType contentType = serviceRequestDescription.getContentType();
+        log.debug("HTTP Content Received: Client Address [{}] Content-Type [{}] Bytes [{}]", remoteAddress, contentType.getContentType(), readableBytes);
+
+        final ByteBuffer contentBuffer = content.nioBuffer();
+        final ServiceResponse serviceResponse = requestContentListener.onRequest(contentBuffer, serviceRequestDescription);
+
+        sendResponse(channelHandlerContext, httpRequest, serviceRequestDescription, serviceResponse);
     }
 
     private TelemetryContentEncoding getTelemetryContentEncoding(final String requestContentEncoding) {
@@ -172,11 +148,18 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
         return telemetryContentEncoding;
     }
 
-    private TelemetryRequestType getTelemetryType(final String path) {
+    private TelemetryRequestType getTelemetryRequestType(final String path, final TelemetryContentType telemetryContentType) {
         TelemetryRequestType telemetryRequestType = null;
 
         for (final TelemetryRequestType currentType :  TelemetryRequestType.values()) {
-            if (currentType.getPath().equals(path)) {
+            final String requestTypePath;
+            if (TelemetryContentType.APPLICATION_GRPC == telemetryContentType) {
+                requestTypePath = currentType.getGrpcPath();
+            } else {
+                requestTypePath = currentType.getPath();
+            }
+
+            if (requestTypePath.contentEquals(path)) {
                 telemetryRequestType = currentType;
                 break;
             }
@@ -198,6 +181,25 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
         return telemetryContentType;
     }
 
+
+    private GrpcStatusCode getGrpcStatusCode(final ServiceResponseStatus serviceResponseStatus) {
+        final GrpcStatusCode grpcStatusCode;
+
+        if (ServiceResponseStatus.SUCCESS == serviceResponseStatus) {
+            grpcStatusCode = GrpcStatusCode.OK;
+        } else if (ServiceResponseStatus.INVALID == serviceResponseStatus) {
+            grpcStatusCode = GrpcStatusCode.INVALID_ARGUMENT;
+        } else if (ServiceResponseStatus.PARTIAL_SUCCESS == serviceResponseStatus) {
+            grpcStatusCode = GrpcStatusCode.OK;
+        } else if (ServiceResponseStatus.UNAVAILABLE == serviceResponseStatus) {
+            grpcStatusCode = GrpcStatusCode.UNAVAILABLE;
+        } else {
+            grpcStatusCode = GrpcStatusCode.UNKNOWN;
+        }
+
+        return grpcStatusCode;
+    }
+
     private void sendCloseResponse(final ChannelHandlerContext channelHandlerContext, final HttpRequest httpRequest, final HttpResponseStatus httpResponseStatus) {
         final SocketAddress remoteAddress = channelHandlerContext.channel().remoteAddress();
         final HttpMethod method = httpRequest.method();
@@ -207,14 +209,19 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
         log.debug("HTTP Request Closed: Client Address [{}] Method [{}] URI [{}] Version [{}] HTTP {}", remoteAddress, method, uri, httpVersion, httpResponseStatus.code());
 
         final FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, httpResponseStatus);
-        response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        setStreamId(httpRequest.headers(), response);
+
         final ChannelFuture future = channelHandlerContext.writeAndFlush(response);
         future.addListener(ChannelFutureListener.CLOSE);
     }
 
-    private void sendResponse(final ChannelHandlerContext channelHandlerContext, final ServiceRequestDescription serviceRequestDescription, final ServiceResponse serviceResponse) {
+    private void sendResponse(
+            final ChannelHandlerContext channelHandlerContext,
+            final FullHttpRequest httpRequest,
+            final ServiceRequestDescription serviceRequestDescription,
+            final ServiceResponse serviceResponse
+    ) {
         final SocketAddress remoteAddress = channelHandlerContext.channel().remoteAddress();
-        final HttpRequest httpRequest = httpRequestRef.get();
         final HttpMethod method = httpRequest.method();
         final String uri = httpRequest.uri();
         final HttpVersion httpVersion = httpRequest.protocolVersion();
@@ -225,13 +232,27 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
         log.debug("HTTP Request Completed: Client Address [{}] Method [{}] URI [{}] Version [{}] HTTP {}", remoteAddress, method, uri, httpVersion, httpResponseStatus.code());
 
         final FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, httpResponseStatus);
+        setStreamId(httpRequest.headers(), response);
+
         final TelemetryContentType telemetryContentType = serviceRequestDescription.getContentType();
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, telemetryContentType.getContentType());
+
+        if (TelemetryContentType.APPLICATION_GRPC == telemetryContentType) {
+            final GrpcStatusCode grpcStatusCode = getGrpcStatusCode(serviceResponseStatus);
+            response.headers().setInt(GrpcHeader.GRPC_STATUS.getHeader(), grpcStatusCode.getCode());
+        }
 
         final byte[] responseBody = responseBodyWriter.getResponseBody(serviceRequestDescription, serviceResponse);
         response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, responseBody.length);
         response.content().writeBytes(responseBody);
 
         channelHandlerContext.writeAndFlush(response);
+    }
+
+    private void setStreamId(final HttpHeaders requestHeaders, final FullHttpResponse response) {
+        final String streamId = requestHeaders.get(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text());
+        if (streamId != null) {
+            response.headers().set(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), streamId);
+        }
     }
 }

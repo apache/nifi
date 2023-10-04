@@ -20,8 +20,14 @@ import com.google.protobuf.Message;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.http.HttpContentCompressor;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpServerExpectContinueHandler;
+import io.netty.handler.codec.http2.DefaultHttp2Connection;
+import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandler;
+import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandlerBuilder;
+import io.netty.handler.codec.http2.InboundHttp2ToHttpAdapter;
+import io.netty.handler.codec.http2.InboundHttp2ToHttpAdapterBuilder;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
@@ -36,7 +42,13 @@ import java.util.concurrent.BlockingQueue;
  * HTTP Protocol Negotiation Handler configures Channel Pipeline based on HTTP/2 or HTTP/1.1
  */
 public class HttpProtocolNegotiationHandler extends ApplicationProtocolNegotiationHandler {
+    /** Set HTTP/1.1 as the default Application Protocol when not provided during TLS negotiation */
     private static final String DEFAULT_APPLICATION_PROTOCOL = ApplicationProtocolNames.HTTP_1_1;
+
+    /** Set maximum input content length to 10 MB */
+    private static final int DEFAULT_MAXIMUM_CONTENT_LENGTH = 10485760;
+
+    private static final boolean SERVER_CONNECTION = true;
 
     private final ComponentLog log;
 
@@ -66,16 +78,30 @@ public class HttpProtocolNegotiationHandler extends ApplicationProtocolNegotiati
         final RequestContentListener requestContentListener = new StandardRequestContentListener(log, messages);
         final String applicationProtocol = getApplicationProtocol(channelHandlerContext);
 
+        final HttpRequestHandler httpRequestHandler = new HttpRequestHandler(log, requestContentListener);
+
         if (ApplicationProtocolNames.HTTP_2.equals(applicationProtocol)) {
-            final Http2RequestHandlerBuilder handlerBuilder = new Http2RequestHandlerBuilder(log, requestContentListener);
-            final Http2RequestHandler handler = handlerBuilder.build();
-            pipeline.addLast(handler);
+            // Build Connection Handler for HTTP/2 processing as FullHttpRequest objects for HttpRequestHandler
+            final DefaultHttp2Connection connection = new DefaultHttp2Connection(SERVER_CONNECTION);
+            final InboundHttp2ToHttpAdapter frameListener = new InboundHttp2ToHttpAdapterBuilder(connection)
+                    .propagateSettings(true)
+                    .validateHttpHeaders(false)
+                    .maxContentLength(DEFAULT_MAXIMUM_CONTENT_LENGTH)
+                    .build();
+
+            final HttpToHttp2ConnectionHandler connectionHandler = new HttpToHttp2ConnectionHandlerBuilder()
+                    .frameListener(frameListener)
+                    .connection(connection)
+                    .build();
+
+            pipeline.addLast(connectionHandler, httpRequestHandler);
         } else if (ApplicationProtocolNames.HTTP_1_1.equals(applicationProtocol)) {
             pipeline.addLast(
                     new HttpServerCodec(),
                     new HttpContentCompressor(),
                     new HttpServerExpectContinueHandler(),
-                    new HttpRequestHandler(log, requestContentListener)
+                    new HttpObjectAggregator(DEFAULT_MAXIMUM_CONTENT_LENGTH),
+                    httpRequestHandler
             );
         } else {
             throw new IllegalStateException(String.format("Application Protocol [%s] not supported", applicationProtocol));

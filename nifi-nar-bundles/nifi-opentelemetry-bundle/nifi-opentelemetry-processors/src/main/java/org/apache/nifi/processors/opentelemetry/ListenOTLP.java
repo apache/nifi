@@ -125,7 +125,7 @@ public class ListenOTLP extends AbstractProcessor {
             .displayName("Queue Capacity")
             .description("Maximum number of OTLP request resource elements that can be received and queued")
             .required(true)
-            .defaultValue("10000")
+            .defaultValue("1000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -135,7 +135,7 @@ public class ListenOTLP extends AbstractProcessor {
             .displayName("Batch Size")
             .description("Maximum number of OTLP request resource elements included in each FlowFile produced")
             .required(true)
-            .defaultValue("1000")
+            .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
