@@ -6079,6 +6079,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
+        //Add flow file repository, content repository and provenance repository usage to NiFi metrics
+        final SystemDiagnostics systemDiagnostics = controllerFacade.getSystemDiagnostics();
+        PrometheusMetricsUtil.createStorageUsageMetrics(nifiMetricsRegistry, systemDiagnostics, instanceId, ROOT_PROCESS_GROUP,
+                rootPGName, rootPGId, "");
+
         //Add total task duration for root to the NiFi metrics registry
         // The latest aggregated status history is the last element in the list so we need the last element only
         final StatusHistoryEntity rootGPStatusHistory = getProcessGroupStatusHistory(rootPGId);
