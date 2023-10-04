@@ -24,6 +24,7 @@ import com.splunk.ServiceArgs;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -35,11 +36,13 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -80,11 +83,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
         @WritesAttribute(attribute="splunk.earliest.time", description = "The value of the earliest time that was used when performing the query."),
         @WritesAttribute(attribute="splunk.latest.time", description = "The value of the latest time that was used when performing the query.")
 })
+@RequiresInstanceClassLoading(cloneAncestorResources = true)
 @Stateful(scopes = Scope.CLUSTER, description = "If using one of the managed Time Range Strategies, this processor will " +
         "store the values of the latest and earliest times from the previous execution so that the next execution of the " +
         "can pick up where the last execution left off. The state will be cleared and start over if the query is changed.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-public class GetSplunk extends AbstractProcessor {
+public class GetSplunk extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
 
     public static final String HTTP_SCHEME = "http";
     public static final String HTTPS_SCHEME = "https";
@@ -617,6 +621,19 @@ public class GetSplunk extends AbstractProcessor {
             return null;
         } else {
             return new TimeRange(earliest, latest);
+        }
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(PropertyContext context) {
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            // Class loader isolation is only necessary when SSL is enabled, as Service.setSSLSocketFactory
+            // changes the Socket Factory for all instances.
+            return sslContextService.getIdentifier();
+        } else {
+            // This workaround ensures that instances don't unnecessarily use an isolated classloader.
+            return getClass().getName();
         }
     }
 
