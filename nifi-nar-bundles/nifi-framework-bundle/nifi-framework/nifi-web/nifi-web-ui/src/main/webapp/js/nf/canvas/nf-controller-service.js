@@ -30,9 +30,11 @@
                 'nf.CustomUi',
                 'nf.Verify',
                 'nf.CanvasUtils',
+                'nf.ProcessGroup',
+                'nf.ProcessGroupConfiguration',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -47,6 +49,8 @@
                 require('nf.CustomUi'),
                 require('nf.Verify'),
                 require('nf.CanvasUtils'),
+                require('nf.ProcessGroup'),
+                require('nf.ProcessGroupConfiguration'),
                 require('nf.Processor')));
     } else {
         nf.ControllerService = factory(root.$,
@@ -60,9 +64,11 @@
             root.nf.CustomUi,
             root.nf.Verify,
             root.nf.CanvasUtils,
+            root.nf.ProcessGroup,
+            root.nf.ProcessGroupConfiguration,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfProcessor) {
     'use strict';
 
     var nfControllerServices,
@@ -543,8 +549,18 @@
 
                         // select the selected row
                         var row = controllerServiceData.getRowById(referencingComponent.id);
-                        controllerServiceGrid.setSelectedRows([row]);
-                        controllerServiceGrid.scrollRowIntoView(row);
+                        if (nfCommon.isUndefined(row)) {
+                            getControllerService(referencingComponent.id, controllerServiceData).done(function(controllerServiceEntity) {
+                                nfProcessGroup.enterGroup(controllerServiceEntity.parentGroupId).done(function () {
+                                    nfProcessGroupConfiguration.loadConfiguration(controllerServiceEntity.parentGroupId).done(function () {
+                                        nfProcessGroupConfiguration.selectControllerService(referencingComponent.id);
+                                    });
+                                });
+                            });
+                        } else {
+                            controllerServiceGrid.setSelectedRows([row]);
+                            controllerServiceGrid.scrollRowIntoView(row);
+                        }
 
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
