@@ -16,79 +16,57 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.processors.aws.sns.PutSNS;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.util.List;
+import java.util.Map;
 
-public class ITGetSQS {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
-    private final String QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000";
+public class ITGetSQS extends AbstractSQSIT {
 
     @Test
     public void testSimpleGet() {
-        final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
-        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        final int messageCount = 4;
+
+        for (int i = 0; i < messageCount; i++) {
+            final SendMessageRequest request = SendMessageRequest.builder()
+                    .queueUrl(getQueueUrl())
+                    .messageBody("Hello World " + i)
+                    .messageAttributes(Map.of("i", MessageAttributeValue.builder().stringValue(Integer.toString(i)).dataType("String").build()))
+                    .build();
+            final SendMessageResponse response = getClient().sendMessage(request);
+            assertTrue(response.sdkHttpResponse().isSuccessful());
+        }
+
+        final TestRunner runner = initRunner(GetSQS.class);
         runner.setProperty(GetSQS.TIMEOUT, "30 secs");
-        runner.setProperty(GetSQS.QUEUE_URL, QUEUE_URL);
 
-        runner.run(1);
+        runner.run();
+        int count = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS).size();
+        while (count < messageCount) {
+            runner.run(1, false, false);
+            count = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS).size();
+        }
+        runner.run();
 
+        runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, messageCount);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
-        for (final MockFlowFile mff : flowFiles) {
-            System.out.println(mff.getAttributes());
-            System.out.println(new String(mff.toByteArray()));
+        for (int i = 0; i < messageCount; i++) {
+            final String attributeValue = Integer.toString(i);
+            final String messageBody = "Hello World " + i;
+
+            final long matchingCount = flowFiles.stream()
+                    .filter(ff -> attributeValue.equals(ff.getAttribute("sqs.i")))
+                    .filter(ff -> messageBody.equals(ff.getContent()))
+                    .count();
+            assertEquals(1L, matchingCount);
         }
     }
-
-    @Test
-    public void testSimpleGetWithEL() {
-        System.setProperty("test-account-property", "100515378163");
-        System.setProperty("test-queue-property", "test-queue-000000000");
-        final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
-        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(GetSQS.TIMEOUT, "30 secs");
-        runner.setProperty(GetSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/${test-account-property}/${test-queue-property}");
-
-        runner.run(1);
-
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
-        for (final MockFlowFile mff : flowFiles) {
-            System.out.println(mff.getAttributes());
-            System.out.println(new String(mff.toByteArray()));
-        }
-    }
-
-    @Test
-    public void testSimpleGetUsingCredentialsProviderService() throws Throwable {
-        final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
-
-        runner.setProperty(GetSQS.TIMEOUT, "30 secs");
-        runner.setProperty(GetSQS.QUEUE_URL, QUEUE_URL);
-
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.enableControllerService(serviceImpl);
-
-        runner.assertValid(serviceImpl);
-
-        runner.setProperty(GetSQS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.run(1);
-
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
-        for (final MockFlowFile mff : flowFiles) {
-            System.out.println(mff.getAttributes());
-            System.out.println(new String(mff.toByteArray()));
-        }
-    }
-
 }

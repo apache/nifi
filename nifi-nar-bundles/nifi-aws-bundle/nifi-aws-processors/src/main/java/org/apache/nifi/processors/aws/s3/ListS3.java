@@ -64,8 +64,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListableEntityWrapper;
 import org.apache.nifi.processor.util.list.ListedEntity;
@@ -285,22 +285,22 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+            BUCKET_WITHOUT_DEFAULT_VALUE,
+            REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             INITIAL_LISTING_TARGET,
             TRACKING_TIME_WINDOW,
-            BUCKET,
-            REGION,
-            ACCESS_KEY,
-            SECRET_KEY,
             RECORD_WRITER,
             MIN_AGE,
             MAX_AGE,
             BATCH_SIZE,
             WRITE_OBJECT_TAGS,
             WRITE_USER_METADATA,
+            ACCESS_KEY,
+            SECRET_KEY,
             CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
@@ -482,7 +482,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final long listingTimestamp = System.currentTimeMillis();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         final ListingSnapshot currentListing = listing.get();
@@ -703,7 +703,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final String delimiter = context.getProperty(DELIMITER).getValue();
         final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
@@ -1138,7 +1138,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final AmazonS3Client client = createClient(context);
 
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
-        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
 

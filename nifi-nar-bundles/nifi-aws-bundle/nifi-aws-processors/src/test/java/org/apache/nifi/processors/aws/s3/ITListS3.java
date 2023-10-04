@@ -17,11 +17,9 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.model.Tag;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileNotFoundException;
@@ -37,18 +35,13 @@ import java.util.Map;
  */
 public class ITListS3 extends AbstractS3IT {
     @Test
-    public void testSimpleList() throws IOException {
+    public void testSimpleList() throws IOException, InitializationException {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(ListS3.class);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -65,20 +58,7 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.enableControllerService(serviceImpl);
-        runner.assertValid(serviceImpl);
-
-        runner.setProperty(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(ListS3.class);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -95,11 +75,7 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(ListS3.class);
         runner.setProperty(ListS3.DELIMITER, "/");
 
         runner.run();
@@ -116,11 +92,7 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(ListS3.class);
         runner.setProperty(ListS3.PREFIX, "b/");
 
         runner.run();
@@ -137,11 +109,7 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(ListS3.class);
         runner.setProperty(ListS3.PREFIX, "b/");
         runner.setProperty(ListS3.USE_VERSIONS, "true");
 
@@ -153,7 +121,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testObjectTagsWritten() {
+    public void testObjectTagsWritten() throws InitializationException {
         List<Tag> objectTags = new ArrayList<>();
         objectTags.add(new Tag("dummytag1", "dummyvalue1"));
         objectTags.add(new Tag("dummytag2", "dummyvalue2"));
@@ -161,12 +129,9 @@ public class ITListS3 extends AbstractS3IT {
         putFileWithObjectTag("t/fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        final TestRunner runner = initRunner(ListS3.class);
         runner.setProperty(ListS3.PREFIX, "t/");
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
 
         runner.run();
@@ -183,7 +148,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testUserMetadataWritten() throws FileNotFoundException {
+    public void testUserMetadataWritten() throws FileNotFoundException, InitializationException {
         Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("dummy.metadata.1", "dummyvalue1");
         userMetadata.put("dummy.metadata.2", "dummyvalue2");
@@ -191,12 +156,9 @@ public class ITListS3 extends AbstractS3IT {
         putFileWithUserMetadata("m/fileWithUserMetadata", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), userMetadata);
         waitForFilesAvailable();
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
-
-        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        final TestRunner runner = initRunner(ListS3.class);
         runner.setProperty(ListS3.PREFIX, "m/");
-        runner.setProperty(ListS3.REGION, REGION);
-        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
 
         runner.run();
@@ -210,14 +172,6 @@ public class ITListS3 extends AbstractS3IT {
         flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.2");
         flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.1", "dummyvalue1");
         flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.2", "dummyvalue2");
-    }
-
-    private void waitForFilesAvailable() {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }

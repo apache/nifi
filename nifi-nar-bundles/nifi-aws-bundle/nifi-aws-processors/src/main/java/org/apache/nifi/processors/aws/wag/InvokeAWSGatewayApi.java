@@ -17,17 +17,6 @@
 package org.apache.nifi.processors.aws.wag;
 
 import com.amazonaws.http.AmazonHttpClient;
-import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -54,6 +43,18 @@ import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayRequest;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayResponse;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"Amazon", "AWS", "Client", "Gateway-API", "Rest", "http", "https"})
@@ -76,7 +77,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays
             .asList(
                     PROP_METHOD,
-                    PROP_AWS_GATEWAY_API_REGION,
+                    REGION,
                     ACCESS_KEY,
                     SECRET_KEY,
                     CREDENTIALS_FILE,
@@ -249,17 +250,12 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 // transfer the message body to the payload
                 // can potentially be null in edge cases
                 if (bodyExists) {
-                    final String contentType = response.getHttpResponse().getHeaders()
-                                                       .get("Content-Type");
-                    if (!(contentType == null) && !contentType.trim().isEmpty()) {
-                        responseFlowFile = session
-                            .putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(),
-                                          contentType.trim());
+                    final List<String> contentTypes = response.getHttpResponse().getHeaderValues("Content-Type");
+                    if (contentTypes != null && !contentTypes.isEmpty()) {
+                        responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), contentTypes.get(0).trim());
                     }
 
-                    responseFlowFile = session
-                        .importFrom(new ByteArrayInputStream(response.getBody().getBytes()),
-                                    responseFlowFile);
+                    responseFlowFile = session.importFrom(new ByteArrayInputStream(response.getBody().getBytes()), responseFlowFile);
 
                     // emit provenance event
                     final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);

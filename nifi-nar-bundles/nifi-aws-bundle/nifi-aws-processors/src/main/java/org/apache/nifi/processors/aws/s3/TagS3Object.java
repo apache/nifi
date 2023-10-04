@@ -62,8 +62,7 @@ import java.util.stream.Collectors;
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sets tags on a FlowFile within an Amazon S3 Bucket. " +
-        "If attempting to tag a file that does not exist, FlowFile is routed to success.")
+@CapabilityDescription("Adds or updates a tag on an Amazon S3 Object.")
 public class TagS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor TAG_KEY = new PropertyDescriptor.Builder()
@@ -107,17 +106,17 @@ public class TagS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+            BUCKET_WITH_DEFAULT_VALUE,
             KEY,
-            BUCKET,
-            VERSION_ID,
+            S3_REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
             TAG_KEY,
             TAG_VALUE,
             APPEND_TAG,
+            VERSION_ID,
             ACCESS_KEY,
             SECRET_KEY,
             CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            S3_REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
@@ -155,13 +154,13 @@ public class TagS3Object extends AbstractS3Processor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagKey = context.getProperty(TAG_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
         if(StringUtils.isBlank(bucket)){
-            failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET);
+            failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET_WITH_DEFAULT_VALUE);
             return;
         }
 

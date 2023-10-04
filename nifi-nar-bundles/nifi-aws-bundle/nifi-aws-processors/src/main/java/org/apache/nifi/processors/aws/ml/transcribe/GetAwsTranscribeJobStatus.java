@@ -19,6 +19,8 @@ package org.apache.nifi.processors.aws.ml.transcribe;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.textract.model.ThrottlingException;
 import com.amazonaws.services.transcribe.AmazonTranscribeClient;
 import com.amazonaws.services.transcribe.model.GetTranscriptionJobRequest;
@@ -42,11 +44,15 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
         @WritesAttribute(attribute = "outputLocation", description = "S3 path-style output location of the result.")
 })
 public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonTranscribeClient> {
+
     @Override
-    protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
+    protected AmazonTranscribeClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
                 .withRegion(context.getProperty(REGION).getValue())
                 .withCredentials(credentialsProvider)
+                .withEndpointConfiguration(endpointConfiguration)
+                .withClientConfiguration(config)
                 .build();
     }
 

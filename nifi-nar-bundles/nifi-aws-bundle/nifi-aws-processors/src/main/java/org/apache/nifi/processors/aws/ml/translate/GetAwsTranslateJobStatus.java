@@ -19,6 +19,8 @@ package org.apache.nifi.processors.aws.ml.translate;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.textract.model.ThrottlingException;
 import com.amazonaws.services.translate.AmazonTranslateClient;
 import com.amazonaws.services.translate.model.DescribeTextTranslationJobRequest;
@@ -42,11 +44,15 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
         @WritesAttribute(attribute = "outputLocation", description = "S3 path-style output location of the result.")
 })
 public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonTranslateClient> {
+
     @Override
-    protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
+    protected AmazonTranslateClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                 final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         return (AmazonTranslateClient) AmazonTranslateClient.builder()
                 .withRegion(context.getProperty(REGION).getValue())
                 .withCredentials(credentialsProvider)
+                .withClientConfiguration(config)
+                .withEndpointConfiguration(endpointConfiguration)
                 .build();
     }
 
@@ -76,11 +82,9 @@ public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcess
         } catch (ThrottlingException e) {
             getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
-            return;
         } catch (Exception e) {
             getLogger().warn("Failed to get Polly Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 

@@ -73,7 +73,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     }
 
     public void setupEndpointAndRegion() {
-        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_REGION, "us-east-1");
+        runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, mockWebServer.url("/").toString());
     }
@@ -324,7 +324,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
 
     @Test
-    // NOTE : Amazon does not support multiple headers with the same name!!!
     public void testMultipleSameHeaders() throws Exception {
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("double", "2").addHeader("double", "2"));
 
@@ -362,7 +361,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // amazon does not support headers with the same name, we'll only get 2 here
         // this is in the amazon layer, we only get Map<String,String> for headers so the 1 has been stripped
         // already
-        bundle1.assertAttributeEquals("double", "2");
+        bundle1.assertAttributeEquals("double", "2,2");
     }
 
     @Test

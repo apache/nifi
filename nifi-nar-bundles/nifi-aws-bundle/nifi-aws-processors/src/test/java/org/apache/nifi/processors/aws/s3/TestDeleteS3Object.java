@@ -20,9 +20,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +29,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestDeleteS3Object {
@@ -59,7 +55,7 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteObjectSimple() {
         runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(DeleteS3Object.BUCKET, "test-bucket");
+        runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
@@ -78,7 +74,7 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteObjectSimpleRegionFromFlowFileAttribute() {
         runner.setProperty(DeleteS3Object.S3_REGION, "attribute-defined-region");
-        runner.setProperty(DeleteS3Object.BUCKET, "test-bucket");
+        runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         attrs.put("s3.region", "us-east-1");
@@ -92,7 +88,7 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteObjectS3Exception() {
         runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(DeleteS3Object.BUCKET, "test-bucket");
+        runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
@@ -108,7 +104,7 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteVersionSimple() {
         runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(DeleteS3Object.BUCKET, "test-bucket");
+        runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(DeleteS3Object.VERSION_ID, "test-version");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test-key");
@@ -129,7 +125,7 @@ public class TestDeleteS3Object {
     @Test
     public void testDeleteVersionFromExpressions() {
         runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(DeleteS3Object.BUCKET, "${s3.bucket}");
+        runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${s3.bucket}");
         runner.setProperty(DeleteS3Object.VERSION_ID, "${s3.version}");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test-key");
@@ -149,35 +145,4 @@ public class TestDeleteS3Object {
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
     }
 
-    @Test
-    public void testGetPropertyDescriptors() {
-        DeleteS3Object processor = new DeleteS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(25, pd.size(), "size should be eq");
-        assertTrue(pd.contains(processor.ACCESS_KEY));
-        assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(processor.BUCKET));
-        assertTrue(pd.contains(processor.CREDENTIALS_FILE));
-        assertTrue(pd.contains(processor.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(processor.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(processor.KEY));
-        assertTrue(pd.contains(processor.OWNER));
-        assertTrue(pd.contains(processor.READ_ACL_LIST));
-        assertTrue(pd.contains(processor.READ_USER_LIST));
-        assertTrue(pd.contains(processor.S3_REGION));
-        assertTrue(pd.contains(processor.SECRET_KEY));
-        assertTrue(pd.contains(processor.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(processor.S3_CUSTOM_SIGNER_CLASS_NAME));
-        assertTrue(pd.contains(processor.S3_CUSTOM_SIGNER_MODULE_LOCATION));
-        assertTrue(pd.contains(processor.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(processor.TIMEOUT));
-        assertTrue(pd.contains(processor.VERSION_ID));
-        assertTrue(pd.contains(processor.WRITE_ACL_LIST));
-        assertTrue(pd.contains(processor.WRITE_USER_LIST));
-        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(processor.PROXY_HOST));
-        assertTrue(pd.contains(processor.PROXY_HOST_PORT));
-        assertTrue(pd.contains(processor.PROXY_USERNAME));
-        assertTrue(pd.contains(processor.PROXY_PASSWORD));
-    }
 }

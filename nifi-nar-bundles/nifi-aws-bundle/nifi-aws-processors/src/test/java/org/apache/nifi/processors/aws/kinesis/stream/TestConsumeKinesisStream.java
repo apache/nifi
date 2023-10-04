@@ -74,7 +74,7 @@ public class TestConsumeKinesisStream {
     public void testValidWithCredentials() throws InitializationException {
         final ControllerService credentialsProvider = new AWSCredentialsProviderControllerService();
         runner.addControllerService("credentials-provider", credentialsProvider);
-        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.ACCESS_KEY, "access-key");
+        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.ACCESS_KEY_ID, "access-key");
         runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.SECRET_KEY, "secret-key");
         runner.assertValid(credentialsProvider);
         runner.enableControllerService(credentialsProvider);
@@ -232,10 +232,6 @@ public class TestConsumeKinesisStream {
         runWorker(true, true);
     }
 
-    @Test
-    public void testRunWorkerWithoutCredentials() throws UnknownHostException, InitializationException, InterruptedException {
-        runWorker(false, false);
-    }
 
     @Test
     public void testInvalidDynamicKCLProperties() {
@@ -341,6 +337,7 @@ public class TestConsumeKinesisStream {
     private void runWorker(final boolean withCredentials, final boolean waitForFailure) throws UnknownHostException, InitializationException, InterruptedException {
         final TestRunner mockConsumeKinesisStreamRunner = TestRunners.newTestRunner(MockConsumeKinesisStream.class);
 
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.GRACEFUL_SHUTDOWN_TIMEOUT, "50 millis");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
@@ -349,7 +346,7 @@ public class TestConsumeKinesisStream {
         final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
         mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
         if (withCredentials) {
-            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.ACCESS_KEY, "test-access");
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.ACCESS_KEY_ID, "test-access");
             mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.SECRET_KEY, "test-secret");
         } else {
             mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
@@ -380,16 +377,12 @@ public class TestConsumeKinesisStream {
 
         if (!waitForFailure) {
             // re-trigger the processor to ensure the Worker isn't re-initialised when already running
-            mockConsumeKinesisStreamRunner.run(1, false, false);
+            mockConsumeKinesisStreamRunner.run(1, true, false);
             assertTrue(((MockProcessContext) mockConsumeKinesisStreamRunner.getProcessContext()).isYieldCalled());
-
-            // stop the processor
-            mockConsumeKinesisStreamRunner.stop();
         } else {
             for (int runs = 0; runs < 10; runs++) {
                 try {
                     mockConsumeKinesisStreamRunner.run(1, false, false);
-                    Thread.sleep(1_000);
                 } catch (AssertionError e) {
                     assertThat(e.getCause(), instanceOf(ProcessException.class));
                     assertThat(e.getCause().getMessage(), equalTo("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details"));

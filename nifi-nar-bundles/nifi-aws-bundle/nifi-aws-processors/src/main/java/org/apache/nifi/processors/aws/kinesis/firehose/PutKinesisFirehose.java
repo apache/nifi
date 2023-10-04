@@ -25,21 +25,23 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.firehose.FirehoseClient;
+import software.amazon.awssdk.services.firehose.FirehoseClientBuilder;
 import software.amazon.awssdk.services.firehose.model.PutRecordBatchRequest;
 import software.amazon.awssdk.services.firehose.model.PutRecordBatchResponse;
 import software.amazon.awssdk.services.firehose.model.PutRecordBatchResponseEntry;
 import software.amazon.awssdk.services.firehose.model.Record;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,36 +55,66 @@ import java.util.Map;
     @WritesAttribute(attribute = "aws.kinesis.firehose.error.message", description = "Error message on posting message to AWS Kinesis Firehose"),
     @WritesAttribute(attribute = "aws.kinesis.firehose.error.code", description = "Error code for the message when posting to AWS Kinesis Firehose"),
     @WritesAttribute(attribute = "aws.kinesis.firehose.record.id", description = "Record id of the message posted to Kinesis Firehose")})
-public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
+public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient, FirehoseClientBuilder> {
 
-    /**
-     * Kinesis put record response error message
-     */
     public static final String AWS_KINESIS_FIREHOSE_ERROR_MESSAGE = "aws.kinesis.firehose.error.message";
-
-    /**
-     * Kinesis put record response error code
-     */
     public static final String AWS_KINESIS_FIREHOSE_ERROR_CODE = "aws.kinesis.firehose.error.code";
-
-    /**
-     * Kinesis put record response record id
-     */
     public static final String AWS_KINESIS_FIREHOSE_RECORD_ID = "aws.kinesis.firehose.record.id";
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                    PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, ENDPOINT_OVERRIDE));
+    public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("Amazon Kinesis Firehose Delivery Stream Name")
+            .description("The name of kinesis firehose delivery stream")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    /**
-     * Max buffer size 1 MB
-     */
-    public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("Batch size for messages (1-500).")
+            .defaultValue("250")
+            .required(false)
+            .addValidator(StandardValidators.createLongValidator(1, 500, true))
+            .sensitive(false)
+            .build();
+
+    public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
+            .name("Max message buffer size")
+            .description("Max message buffer")
+            .defaultValue("1 MB")
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .sensitive(false)
+            .build();
+
+    private static final List<PropertyDescriptor> properties = List.of(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME,
+            BATCH_SIZE,
+            MAX_MESSAGE_BUFFER_SIZE_MB,
+            REGION,
+            ACCESS_KEY,
+            SECRET_KEY,
+            CREDENTIALS_FILE,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            TIMEOUT,
+            PROXY_CONFIGURATION_SERVICE,
+            PROXY_HOST,
+            PROXY_HOST_PORT,
+            PROXY_USERNAME,
+            PROXY_PASSWORD,
+            ENDPOINT_OVERRIDE);
+
+    public static final int MAX_MESSAGE_SIZE = KinesisProcessorUtils.MAX_MESSAGE_SIZE;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
+
+    @Override
+    protected FirehoseClientBuilder createClientBuilder(final ProcessContext context) {
+        return FirehoseClient.builder();
+    }
+
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
@@ -101,27 +133,19 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             final List<FlowFile> successfulFlowFiles = new ArrayList<>();
 
             // Prepare batch of records
-            for (int i = 0; i < flowFiles.size(); i++) {
-                FlowFile flowFile = flowFiles.get(i);
-
+            for (final FlowFile flowFile : flowFiles) {
                 final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
                 session.read(flowFile, in -> recordHash.get(firehoseStreamName).add(Record.builder().data(SdkBytes.fromInputStream(in)).build()));
 
-                if (recordHash.containsKey(firehoseStreamName) == false) {
-                    recordHash.put(firehoseStreamName, new ArrayList<>());
-                }
-
-                if (hashFlowFiles.containsKey(firehoseStreamName) == false) {
-                    hashFlowFiles.put(firehoseStreamName, new ArrayList<>());
-                }
-
-                hashFlowFiles.get(firehoseStreamName).add(flowFile);
+                recordHash.computeIfAbsent(firehoseStreamName, k -> new ArrayList<>());
+                final List<FlowFile> flowFilesForStream = hashFlowFiles.computeIfAbsent(firehoseStreamName, k -> new ArrayList<>());
+                flowFilesForStream.add(flowFile);
             }
 
-            for (final Map.Entry<String, List<Record>> entryRecord : recordHash.entrySet()) {
-                final String streamName = entryRecord.getKey();
-                final List<Record> records = entryRecord.getValue();
+            for (final Map.Entry<String, List<Record>> entry : recordHash.entrySet()) {
+                final String streamName = entry.getKey();
+                final List<Record> records = entry.getValue();
 
                 if (records.size() > 0) {
                     // Send the batch
@@ -135,15 +159,15 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                     final List<PutRecordBatchResponseEntry> responseEntries = response.requestResponses();
                     for (int i = 0; i < responseEntries.size(); i++ ) {
 
-                        final PutRecordBatchResponseEntry entry = responseEntries.get(i);
+                        final PutRecordBatchResponseEntry responseEntry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
                         final Map<String,String> attributes = new HashMap<>();
-                        attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, entry.recordId());
-                        flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, entry.recordId());
-                        if (StringUtils.isNotBlank(entry.errorCode())) {
-                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, entry.errorCode());
-                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, entry.errorMessage());
+                        attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, responseEntry.recordId());
+                        flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, responseEntry.recordId());
+                        if (StringUtils.isNotBlank(responseEntry.errorCode())) {
+                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, responseEntry.errorCode());
+                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, responseEntry.errorMessage());
                             flowFile = session.putAllAttributes(flowFile, attributes);
                             failedFlowFiles.add(flowFile);
                         } else {
@@ -158,15 +182,14 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
             if (failedFlowFiles.size() > 0) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
-                getLogger().error("Failed to publish to kinesis firehose {}", new Object[]{failedFlowFiles});
+                getLogger().error("Failed to publish to kinesis firehose {}", failedFlowFiles);
             }
             if (successfulFlowFiles.size() > 0) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                getLogger().info("Successfully published to kinesis firehose {}", new Object[]{successfulFlowFiles});
+                getLogger().info("Successfully published to kinesis firehose {}", successfulFlowFiles);
             }
-
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish to kinesis firehose {} with exception {}", new Object[]{flowFiles, exception});
+            getLogger().error("Failed to publish to kinesis firehose {} with exception {}", flowFiles, exception);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

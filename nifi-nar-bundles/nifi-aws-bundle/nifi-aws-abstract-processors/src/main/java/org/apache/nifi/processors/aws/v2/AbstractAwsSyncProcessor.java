@@ -24,6 +24,7 @@ import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
 
 import javax.net.ssl.TrustManager;
 import java.net.URI;
@@ -55,10 +56,13 @@ public abstract class AbstractAwsSyncProcessor<
      * @param context The process context
      * @return The created client
      */
-    @Override
     public T createClient(final ProcessContext context) {
+        return createClient(context, getRegion(context));
+    }
+
+    public T createClient(final ProcessContext context, final Region region) {
         final U clientBuilder = createClientBuilder(context);
-        this.configureClientBuilder(clientBuilder, context);
+        this.configureClientBuilder(clientBuilder, region, context);
         return clientBuilder.build();
     }
 

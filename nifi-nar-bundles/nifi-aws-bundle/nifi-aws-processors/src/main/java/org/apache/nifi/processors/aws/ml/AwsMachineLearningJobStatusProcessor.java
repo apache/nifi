@@ -17,23 +17,18 @@
 
 package org.apache.nifi.processors.aws.ml;
 
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.ResponseMetadata;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.SdkHttpMetadata;
+import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -41,6 +36,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 
 public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebServiceClient>
         extends AbstractAWSCredentialsProviderProcessor<T>  {
@@ -89,14 +89,14 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
     public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
             TASK_ID,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
-            PROXY_CONFIGURATION_SERVICE));
+            PROXY_CONFIGURATION_SERVICE);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
@@ -116,13 +116,13 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
         return relationships;
     }
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> relationships = Set.of(
             REL_ORIGINAL,
             REL_SUCCESS,
             REL_RUNNING,
             REL_THROTTLED,
             REL_FAILURE
-    )));
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -130,8 +130,9 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
     }
 
     @Override
-    protected T createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
-        throw new UnsupportedOperationException("Client creation not supported");
+    protected T createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                             final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+        throw new UnsupportedOperationException();
     }
 
     protected void writeToFlowFile(ProcessSession session, FlowFile flowFile, Object response) {

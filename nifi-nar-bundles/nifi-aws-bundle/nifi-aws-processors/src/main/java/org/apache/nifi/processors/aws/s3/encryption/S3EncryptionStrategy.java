@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.ValidationResult;
+
+import java.util.function.Consumer;
 
 /**
  * This interface defines the API for S3 encryption strategies.  The methods have empty defaults
@@ -72,11 +73,8 @@ public interface S3EncryptionStrategy {
     /**
      * Create an S3 encryption client.
      *
-     * @param credentialsProvider AWS credentials provider.
-     * @param clientConfiguration Client configuration.
-     * @return {@link AmazonS3Client}, perhaps an {@link com.amazonaws.services.s3.AmazonS3EncryptionClient}
      */
-    default AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String kmsRegion, String keyIdOrMaterial) {
+    default AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
         return null;
     }
 

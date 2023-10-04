@@ -63,13 +63,13 @@ public class DeleteS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+            BUCKET_WITH_DEFAULT_VALUE,
             KEY,
-            BUCKET,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            S3_REGION,
             ACCESS_KEY,
             SECRET_KEY,
             CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            S3_REGION,
             TIMEOUT,
             VERSION_ID,
             FULL_CONTROL_USER_LIST,
@@ -114,7 +114,7 @@ public class DeleteS3Object extends AbstractS3Processor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 

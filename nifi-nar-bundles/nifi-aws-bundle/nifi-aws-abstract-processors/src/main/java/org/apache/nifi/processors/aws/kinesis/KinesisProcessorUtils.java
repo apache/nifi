@@ -49,22 +49,24 @@ public class KinesisProcessorUtils {
      */
     public static List<FlowFile> filterMessagesByMaxSize(final ProcessSession session, final int batchSize, final long maxBufferSizeBytes,
                                                          final String errorMessageAttribute, final ComponentLog logger) {
-        final List<FlowFile> flowFiles = new ArrayList<>(batchSize);
+        final List<FlowFile> flowFiles = new ArrayList<>();
 
         long currentBufferSizeBytes = 0;
         for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
             final FlowFile flowFileCandidate = session.get();
-            if (flowFileCandidate != null) {
-                if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
-                    handleFlowFileTooBig(session, flowFileCandidate, errorMessageAttribute, logger);
-                    continue;
-                }
-
-                currentBufferSizeBytes += flowFileCandidate.getSize();
-
-                flowFiles.add(flowFileCandidate);
+            if (flowFileCandidate == null) {
+                break;
             }
+
+            if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
+                handleFlowFileTooBig(session, flowFileCandidate, errorMessageAttribute, logger);
+                continue;
+            }
+
+            currentBufferSizeBytes += flowFileCandidate.getSize();
+            flowFiles.add(flowFileCandidate);
         }
+
         return flowFiles;
     }
 

@@ -18,13 +18,15 @@ package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.Signer;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.S3ClientOptions;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
@@ -40,6 +42,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -48,9 +52,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.AwsClientDetails;
-import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 
@@ -59,6 +60,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
@@ -126,12 +128,16 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${s3.owner}")
             .build();
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BUCKET_WITHOUT_DEFAULT_VALUE = new PropertyDescriptor.Builder()
             .name("Bucket")
             .description("The S3 Bucket to interact with")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor BUCKET_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BUCKET_WITHOUT_DEFAULT_VALUE)
+            .defaultValue("${s3.bucket}")
             .build();
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
             .name("Object Key")
@@ -155,13 +161,25 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
 
     public static final PropertyDescriptor S3_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_CLASS_NAME)
+            .name("custom-signer-class-name")
+            .displayName("Custom Signer Class Name")
+            .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
             .build();
 
     public static final PropertyDescriptor S3_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_MODULE_LOCATION)
+            .name("custom-signer-module-location")
+            .displayName("Custom Signer Module Location")
+            .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
+            .dynamicallyModifiesClasspath(true)
             .build();
 
     public static final String S3_REGION_ATTRIBUTE = "s3.region" ;
@@ -170,7 +188,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             "Uses '" + S3_REGION_ATTRIBUTE + "' FlowFile attribute as region.");
 
     public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractAWSProcessor.REGION)
+            .fromPropertyDescriptor(REGION)
             .allowableValues(getAvailableS3Regions())
             .build();
 
@@ -203,36 +221,42 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region,
+                                          final ClientConfiguration config, final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         getLogger().info("Creating client with credentials provider");
         initializeSignerOverride(context, config);
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
-        AmazonS3Client s3 = null;
 
+        final Consumer<AmazonS3Builder<?, ?>> clientBuilder = builder -> {
+            builder.withEndpointConfiguration(endpointConfiguration);
+            builder.withClientConfiguration(config);
+            builder.withCredentials(credentialsProvider);
+
+            final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
+            if (useChunkedEncoding == Boolean.FALSE) {
+                builder.disableChunkedEncoding();
+            }
+
+            final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
+            final boolean endpointOverrideSet = !StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty();
+            if (usePathStyleAccess == Boolean.TRUE || endpointOverrideSet) {
+                builder.withPathStyleAccessEnabled(true);
+            }
+        };
+
+        AmazonS3 s3Client = null;
         if (encryptionService != null) {
-            s3 = encryptionService.createEncryptionClient(credentialsProvider, config);
+            s3Client = encryptionService.createEncryptionClient(clientBuilder);
+        }
+        if (s3Client == null) {
+            final AmazonS3ClientBuilder builder = AmazonS3Client.builder();
+            clientBuilder.accept(builder);
+            s3Client = builder.build();
         }
 
-        if (s3 == null) {
-            s3 = new AmazonS3Client(credentialsProvider, config);
-        }
-
-        configureClientOptions(context, s3);
-
-        return s3;
+        return (AmazonS3Client) s3Client;
     }
 
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Deprecated
-    @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with AWS credentials");
-        return createClient(context, new AWSStaticCredentialsProvider(credentials), config);
-    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
@@ -264,8 +288,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @return The created S3 client
      */
     protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
-        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
-        return getClient(context, clientDetails);
+        final Region region = resolveRegion(context, attributes);
+        return getClient(context, region);
     }
 
     /**
@@ -275,8 +299,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @return The newly created S3 client
      */
     protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
-        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
-        return createClient(context, clientDetails);
+        final Region region = resolveRegion(context, attributes);
+        return createClient(context, region);
     }
 
     @Override
@@ -287,28 +311,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
-    private void configureClientOptions(final ProcessContext context, final AmazonS3Client s3) {
-        final S3ClientOptions.Builder builder = S3ClientOptions.builder();
-
-        // disable chunked encoding if "Use Chunked Encoding" has been set to false, otherwise use the default (not disabled)
-        final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
-        if (useChunkedEncoding != null && !useChunkedEncoding) {
-            builder.disableChunkedEncoding();
-        }
-
-        // use PathStyleAccess if "Use Path Style Access" has been set to true, otherwise use the default (false)
-        final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
-        if (usePathStyleAccess != null && usePathStyleAccess) {
-            builder.setPathStyleAccess(true);
-        }
-
-        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
-        if (!StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty()){
-            builder.setPathStyleAccess(true);
-        }
-
-        s3.setS3ClientOptions(builder.build());
-    }
 
     private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
         final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
@@ -323,12 +325,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
-    @Override
-    protected boolean isCustomSignerConfigured(final ProcessContext context) {
-        final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
-        final AwsSignerType signerType = AwsSignerType.forValue(signer);
-        return signerType == CUSTOM_SIGNER;
-    }
 
     protected Grantee createGrantee(final String value) {
         if (StringUtils.isEmpty(value)) {
@@ -374,9 +370,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         if (!StringUtils.isEmpty(ownerId)) {
             final Owner owner = new Owner();
             owner.setId(ownerId);
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
+            acl = new AccessControlList();
             acl.setOwner(owner);
         }
 
@@ -423,8 +417,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         if (e instanceof AmazonS3Exception) {
             flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
         }
-        if (e instanceof AmazonServiceException) {
-            final AmazonServiceException ase = (AmazonServiceException) e;
+        if (e instanceof final AmazonServiceException ase) {
             flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());
             flowFile = putAttribute(session, flowFile, "s3.errorCode", ase.getErrorCode());
             flowFile = putAttribute(session, flowFile, "s3.errorMessage", ase.getErrorMessage());
@@ -486,8 +479,4 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
     }
 
-    private AwsClientDetails getAwsClientDetails(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveRegion(context, attributes);
-        return new AwsClientDetails(region);
-    }
 }
