@@ -135,6 +135,40 @@ public class TestMockProcessSession {
     }
 
     @Test
+    public void testRollbackWithCreatedFlowFile() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        session.transfer(ff1, PoorlyBehavedProcessor.REL_FAILURE);
+        session.rollback();
+        session.assertQueueEmpty();
+    }
+
+    @Test
+    public void testRollbackWithClonedFlowFile() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        session.clone(ff1);
+        session.transfer(ff1, PoorlyBehavedProcessor.REL_FAILURE);
+        session.rollback();
+        session.assertQueueEmpty();
+    }
+
+    @Test
+    public void testRollbackWithMigratedFlowFile() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        final MockProcessSession newSession = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        session.migrate(newSession);
+        newSession.transfer(ff1, PoorlyBehavedProcessor.REL_FAILURE);
+        newSession.rollback();
+        session.assertQueueEmpty();
+        newSession.assertQueueEmpty();
+    }
+
+    @Test
     public void testAttributePreservedAfterWrite() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
