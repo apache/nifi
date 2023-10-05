@@ -19,7 +19,6 @@ package org.apache.nifi.reporting.prometheus;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.StorageUsage;
-import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
@@ -316,9 +315,12 @@ public class TestPrometheusMetricsUtil {
     @Test
     public void testStorageUsageAddedToNifiMetrics() {
         final NiFiMetricsRegistry niFiMetricsRegistry = new NiFiMetricsRegistry();
-        final SystemDiagnostics systemDiagnostics = createSystemDiagnostics();
+        final StorageUsage floeFileRepositoryUsage = createFloFileRepositoryUsage();
+        final Map<String, StorageUsage> contentRepositoryUsage = createContentRepositoryUsage();
+        final Map<String, StorageUsage> provenanceRepositoryUsage = createProvenanceRepositoryUsage();
 
-        PrometheusMetricsUtil.createStorageUsageMetrics(niFiMetricsRegistry, systemDiagnostics, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        PrometheusMetricsUtil.createStorageUsageMetrics(niFiMetricsRegistry, floeFileRepositoryUsage, contentRepositoryUsage, provenanceRepositoryUsage,
+                EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
         final Set<String> result = getRepoIdentifierSampleLabelNames(niFiMetricsRegistry);
 
         assertEquals(4, result.size());
@@ -425,12 +427,16 @@ public class TestPrometheusMetricsUtil {
         }
     }
 
-    private SystemDiagnostics createSystemDiagnostics() {
-        final SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
-        systemDiagnostics.setFlowFileRepositoryStorageUsage(createStorageUsage(FLOW_FILE_REPO_IDENTIFIER));
-        systemDiagnostics.setContentRepositoryStorageUsage(createStorageUsages(CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO));
-        systemDiagnostics.setProvenanceRepositoryStorageUsage(createStorageUsages(PROVENANCE_REPO_IDENTIFIER));
-        return systemDiagnostics;
+    private StorageUsage createFloFileRepositoryUsage() {
+        return createStorageUsage(FLOW_FILE_REPO_IDENTIFIER);
+    }
+
+    private Map<String, StorageUsage> createContentRepositoryUsage() {
+        return createStorageUsages(CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO);
+    }
+
+    private Map<String, StorageUsage> createProvenanceRepositoryUsage() {
+        return createStorageUsages(PROVENANCE_REPO_IDENTIFIER);
     }
 
     private StorageUsage createStorageUsage(final String repoIdentifier) {
