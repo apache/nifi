@@ -245,8 +245,9 @@ The following properties may be used to configure the Python 3 installation and 
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Default Value | Description
-| nifi.python.command | python3 | The command used to launch Python. By default, this property is set to "python3" but commented out. In order to enable Python-based Processors,
-uncomment this line and set it to the command that should be used to invoke Python 3.
+| nifi.python.enabled | false | The command used to launch Python. By default, this property is set to "false". In order to enable Python-based Processors,
+set this property to true.
+| nifi.python.command | python3 | The command used to launch Python. By default, this property is set to "python3". In order to work, set the command that should be used to invoke Python 3.
 | nifi.python.framework.source.directory | ./python/framework | The directory that contains the Python framework for communicating between the Python and Java processes. The API is expected to be
 located as a sibling of this directory. For example, if the value of this property is `./python/framework`, then the API should be located at `./python/api`.
 | nifi.python.extensions.source.directory.default | ./python/extensions | The directory that NiFi should look in to find Python-based Processors. Note that this property is supplied

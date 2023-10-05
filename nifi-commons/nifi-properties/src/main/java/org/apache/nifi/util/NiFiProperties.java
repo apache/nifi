@@ -314,6 +314,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE = "nifi.diagnostics.on.shutdown.max.directory.size";
 
     // python properties
+    public static final String PYTHON_SUPPORT_ENABLED = "nifi.python.enabled";
     public static final String PYTHON_COMMAND = "nifi.python.command";
     public static final String PYTHON_FRAMEWORK_SOURCE_DIRECTORY = "nifi.python.framework.source.directory";
     public static final String PYTHON_EXTENSION_DIRECTORY_PREFIX = "nifi.python.extensions.source.directory.";
@@ -1789,6 +1790,15 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public Path getQuestDbStatusRepositoryPath() {
         return Paths.get(getProperty(STATUS_REPOSITORY_QUESTDB_PERSIST_LOCATION, DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION));
+    }
+
+    /**
+     * Returns true if python processor support is enabled.
+     *
+     * @return true if python processor support is enabled.
+     */
+    public boolean isPythonProcessorsDisabled() {
+        return this.getProperty(PYTHON_SUPPORT_ENABLED, Boolean.FALSE.toString()).equals(Boolean.FALSE.toString());
     }
 
     /**

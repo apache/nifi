@@ -177,11 +177,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.python.ControllerServiceTypeLookup;
-import org.apache.nifi.python.DisabledPythonBridge;
 import org.apache.nifi.python.PythonBridge;
-import org.apache.nifi.python.PythonBridgeInitializationContext;
-import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -229,7 +225,6 @@ import java.io.OutputStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -255,9 +250,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.nifi.controller.python.PythonBridgeFactory.createPythonBridge;
 
 public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
-    private static final String STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS = "org.apache.nifi.py4j.StandardPythonBridge";
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -584,7 +579,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new NiFiRegistryFlowMapper(extensionManager),
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
-        final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
+        final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider, extensionManager);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
         final PythonBridge classloaderAwareBridge = new ClassLoaderAwarePythonBridge(rawPythonBridge, pythonBridgeClassLoader);
         this.pythonBridge = classloaderAwareBridge;
@@ -871,89 +866,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             throw new RuntimeException(e);
         }
     }
-
-
-    private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
-        final String pythonCommand = nifiProperties.getProperty(NiFiProperties.PYTHON_COMMAND);
-        if (pythonCommand == null) {
-            LOG.info("Python Extensions disabled because the nifi.python.command property has not been configured in nifi.properties");
-            return new DisabledPythonBridge();
-        }
-
-        final String commsTimeout = nifiProperties.getProperty(NiFiProperties.PYTHON_COMMS_TIMEOUT);
-        final File pythonFrameworkSourceDirectory = nifiProperties.getPythonFrameworkSourceDirectory();
-        final List<File> pythonExtensionsDirectories = nifiProperties.getPythonExtensionsDirectories();
-        final File pythonWorkingDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_WORKING_DIRECTORY));
-        final File pythonLogsDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_LOGS_DIRECTORY));
-
-        int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
-        int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
-
-        final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
-        final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
-        final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_HOST, "localhost");
-        final String debugLogs = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR, "logs");
-
-        // Validate configuration for max numbers of processes.
-        if (maxProcessesPerType < 1) {
-            LOG.warn("Configured value for {} in nifi.properties is {}, which is invalid. Defaulting to 2.", NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, maxProcessesPerType);
-            maxProcessesPerType = 2;
-        }
-        if (maxProcesses < 0) {
-            LOG.warn("Configured value for {} in nifi.properties is {}, which is invalid. Defaulting to 20.", NiFiProperties.PYTHON_MAX_PROCESSES, maxProcessesPerType);
-            maxProcesses = 20;
-        }
-        if (maxProcesses == 0) {
-            LOG.warn("Will not enable Python Extensions because the {} property in nifi.properties is set to 0.", NiFiProperties.PYTHON_MAX_PROCESSES);
-            return new DisabledPythonBridge();
-        }
-        if (maxProcessesPerType > maxProcesses) {
-            LOG.warn("Configured values for {} and {} in nifi.properties are {} and {} (respectively), which is invalid. " +
-                "Cannot set max process count per extension type greater than the max number of processors. Setting both to {}",
-                NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, NiFiProperties.PYTHON_MAX_PROCESSES, maxProcessesPerType, maxProcesses, maxProcesses);
-
-            maxProcessesPerType = maxProcesses;
-        }
-
-        final PythonProcessConfig pythonProcessConfig = new PythonProcessConfig.Builder()
-            .pythonCommand(pythonCommand)
-            .pythonFrameworkDirectory(pythonFrameworkSourceDirectory)
-            .pythonExtensionsDirectories(pythonExtensionsDirectories)
-            .pythonLogsDirectory(pythonLogsDirectory)
-            .pythonWorkingDirectory(pythonWorkingDirectory)
-            .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
-            .maxPythonProcesses(maxProcesses)
-            .maxPythonProcessesPerType(maxProcessesPerType)
-            .enableControllerDebug(enableControllerDebug)
-            .debugPort(debugPort)
-            .debugHost(debugHost)
-            .debugLogsDirectory(new File(debugLogs))
-            .build();
-
-        final ControllerServiceTypeLookup serviceTypeLookup = serviceProvider::getControllerServiceType;
-
-        try {
-            final PythonBridge bridge = NarThreadContextClassLoader.createInstance(extensionManager, STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS, PythonBridge.class, null);
-
-            final PythonBridgeInitializationContext initializationContext = new PythonBridgeInitializationContext() {
-                @Override
-                public PythonProcessConfig getPythonProcessConfig() {
-                    return pythonProcessConfig;
-                }
-
-                @Override
-                public ControllerServiceTypeLookup getControllerServiceTypeLookup() {
-                    return serviceTypeLookup;
-                }
-            };
-
-            bridge.initialize(initializationContext);
-            return bridge;
-        } catch (final Exception e) {
-            throw new RuntimeException("Python Bridge initialization failed", e);
-        }
-    }
-
 
     public FlowFileSwapManager createSwapManager() {
         final String implementationClassName = isEncryptionProtocolVersionConfigured(nifiProperties)

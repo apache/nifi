@@ -264,6 +264,7 @@
         <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
 
         <!-- python properties -->
+        <nifi.python.enabled>false</nifi.python.enabled>
         <nifi.python.command>python3</nifi.python.command>
         <nifi.python.source.directory>python</nifi.python.source.directory>
         <nifi.python.framework.source.directory>./python/framework</nifi.python.framework.source.directory>
