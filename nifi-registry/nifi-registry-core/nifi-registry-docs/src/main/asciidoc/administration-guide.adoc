@@ -253,6 +253,63 @@ The `kerberos-identity-provider` has the following properties:
 
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
+[[openid_connect]]
+=== OpenID Connect
+
+OpenID Connect integration provides single sign-on using a specified Authorization Server.
+The implementation supports the Authorization Code Grant Type as described in
+link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] and
+link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
+
+After successful authentication with the Authorization Server, NiFi generates an application Bearer Token with an
+expiration based on the OAuth2 Access Token expiration. NiFi stores authorized tokens using the local State
+Provider and encrypts serialized information using the application Sensitive Properties Key.
+
+The implementation enables
+link:https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect RP-Initiated Logout 1.0^] when the
+Authorization Server includes an `end_session_endpoint` element in the OpenID Discovery configuration.
+
+OpenID Connect integration supports using Refresh Tokens as described in
+link:https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens[OpenID Connect Core Section 12].
+NiFi tracks the expiration of the application Bearer Token and uses the stored Refresh Token to renew
+access prior to Bearer Token expiration, based on the configured token refresh window. NiFi does not require OpenID
+Connect Providers to support Refresh Tokens. When an OpenID Connect Provider does not return a Refresh Token, NiFi
+requires the user to initiate a new session when the application Bearer Token expires.
+
+The Refresh Token implementation allows the NiFi session to continue as long as the Refresh Token is valid and the
+user agent presents a valid Bearer Token. The default value for the token refresh window is 60 seconds. For an Access
+Token with an expiration of one hour, NiFi will attempt to renew access using the Refresh Token when receiving an HTTP
+request 59 minutes after authenticating the Access Token. Revoked Refresh Tokens or expired application Bearer Tokens
+result in standard session timeout behavior, requiring the user to initiate a new session.
+
+The OpenID Connect implementation supports OAuth 2.0 Token Revocation as defined in
+link:https://www.rfc-editor.org/rfc/rfc7009[RFC 7009^]. OpenID Connect Discovery configuration must include a
+`revocation_endpoint` element that supports RFC 7009 standards. The application sends revocation requests for Refresh
+Tokens when the authenticated Resource Owner initiates the logout process.
+
+The implementation includes a scheduled process for removing and revoking expired Refresh Tokens when the corresponding
+Access Token has expired, indicating that the Resource Owner has terminated the application session. Scheduled session
+termination occurs when the user closes the browser without initiating the logout process. The scheduled process avoids
+extended storage of Refresh Tokens for users who are no longer interacting with the application.
+
+OpenID Connect integration supports the following settings in _nifi.properties_.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name                                             | Description
+|`nifi.registry.security.user.oidc.discovery.url`                    | The link:http://openid.net/specs/openid-connect-discovery-1_0.html[Discovery Configuration URL^] for the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.connect.timeout`                  | Socket Connect timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.registry.security.user.oidc.read.timeout`                     | Socket Read timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.registry.security.user.oidc.client.id`                        | The Client ID for NiFi registered with the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.client.secret`                    | The Client Secret for NiFi registered with the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.preferred.jwsalgorithm`           | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+by the OpenID Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
+If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
+JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL
+|`nifi.registry.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`. Authorization Servers require the `offline_access` scope to return a Refresh Token.
+|`nifi.registry.security.user.oidc.claim.identifying.user`           | Claim that identifies the authenticated user. The default value is `email`. Claim names may need to be requested using the `nifi.registry.security.user.oidc.additional.scopes` property
+|==================================================================================================================================================
+
 [[authorization]]
 == Authorization
 
