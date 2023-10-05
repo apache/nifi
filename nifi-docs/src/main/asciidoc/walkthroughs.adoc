@@ -219,194 +219,9 @@ Apache NiFi requires link:https://en.wikipedia.org/wiki/Transport_Layer_Security
 
 NiFi intentionally does not allow any authentication or authorization features over plaintext HTTP. Without the confidentiality and integrity provided by TLS and the user & group access controls, any malicious entity can intercept and modify NiFi API requests, corrupt and steal data, and otherwise interfere with the NiFi instance. Because of NiFi's robust feature set, this can even lead to complete control over the host running NiFi. For more information, see link:administration-guide.html#security_configuration[Administrator's Guide: Security Configuration^].
 
-=== Securing NiFi with TLS Toolkit
-
-NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
-
-|=======================================================================================================================
-|Description        | Instructions on enabling link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using the TLS Toolkit
-|Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
-|Starting Point     | <<starting-nifi>>
-|Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
-|Estimated Duration | 10 minutes
-|=======================================================================================================================
-
-Apache NiFi provides a toolkit (a collection of command-line tools for system administration). One of these is the TLS Toolkit, which provides a self-signed link:https://en.wikipedia.org/wiki/Certificate_authority[Certificate Authority (CA)^] and can easily issue and sign certificates in the format expected by NiFi. The toolkit can be run by a user or scripted to perform automated certificate generation. For more information, see link:toolkit-guide.html#tls_toolkit[NiFi Toolkit Guide: TLS Toolkit^].
-
-The end result will consist of a self-signed NiFi CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
-
-image::nifi-tls-toolkit-standalone-cert-diagram.png["NiFi TLS Toolkit Standalone Certificate Diagram"]
-
-. Start in the directory where the NiFi toolkit was downloaded and unarchived. For this section, the directory `/etc/nifi-toolkit-1.11.4` will be used. This directory will be referred to as the "NiFi Toolkit home directory" and can be set explicitly (this is not done automatically by NiFi Toolkit nor is it required).
-* `export NIFI_TOOLKIT_HOME="/etc/nifi-toolkit-1.11.4/"` -- Sets an environment variable (`$NIFI_TOOLKIT_HOME`) which references the installation directory (optional)
-* `cd /etc/nifi-toolkit-1.11.4` -- Changes the terminal to the NiFi Toolkit home directory
-* `ls -alGh` -- Lists the contents of the directory (optional)
-+
-image::nifi-toolkit-home-dir-listing.png["NiFi Toolkit Home directory contents"]
-. Generate the certificate and key for the NiFi instance. Running this command will first generate the NiFi CA root certificate and private key, then generate and sign the certificate for the application instance, and finally generate a pre-configured `nifi.properties` file.
-* `./bin/tls-toolkit.sh standalone -n "localhost"` -- Generates the signed certificate for `localhost`
-+
-[source]
-----
-nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -n "localhost"
-2020/04/04 19:13:29 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
-2020/04/04 19:13:29 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
-2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Generated new CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
-2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to ../nifi-toolkit-1.11.4/localhost
-2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for localhost 1 in ../nifi-toolkit-1.11.4/localhost
-2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
-2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
-----
-. The toolkit has created three files in the `localhost` directory: `keystore.jks`, `truststore.jks`, and `nifi.properties`. To see what was automatically populated in `nifi.properties`, compare it to the default file in the NiFi instance.
-* `diff /etc/nifi-1.11.4/conf/nifi.properties localhost/nifi.properties` -- Compares the original configuration with the newly-generated one
-+
---
-[source]
-----
-nifi-toolkit-1.11.4 % diff ../nifi-1.11.4/conf/nifi.properties localhost/nifi.properties
-135,137c135,137
-< nifi.remote.input.host=
-< nifi.remote.input.secure=false
-< nifi.remote.input.socket.port=
----
-> nifi.remote.input.host=localhost
-> nifi.remote.input.secure=true
-> nifi.remote.input.socket.port=10443
-145c145
-< nifi.web.http.port=8080
----
-> nifi.web.http.port=
-147,148c147,148
-< nifi.web.https.host=
-< nifi.web.https.port=
----
-> nifi.web.https.host=localhost
-> nifi.web.https.port=9443
-163,169c163,169
-< nifi.security.keystore=
-< nifi.security.keystoreType=
-< nifi.security.keystorePasswd=
-< nifi.security.keyPasswd=
-< nifi.security.truststore=
-< nifi.security.truststoreType=
-< nifi.security.truststorePasswd=
----
-> nifi.security.keystore=./conf/keystore.jks
-> nifi.security.keystoreType=jks
-> nifi.security.keystorePasswd=aCeVndQ8JxIi9kLoz9YS65RClHPxB516tmIA/n26b54
-> nifi.security.keyPasswd=aCeVndQ8JxIi9kLoz9YS65RClHPxB516tmIA/n26b54
-> nifi.security.truststore=./conf/truststore.jks
-> nifi.security.truststoreType=jks
-> nifi.security.truststorePasswd=hbuVighksEPIxl6iGl1WFCIrFqdb65KZuamj72J7Yp8
-213c213
-< nifi.cluster.protocol.is.secure=false
----
-> nifi.cluster.protocol.is.secure=true
-217,218c217,218
-< nifi.cluster.node.address=
-< nifi.cluster.node.protocol.port=
----
-> nifi.cluster.node.address=localhost
-> nifi.cluster.node.protocol.port=11443
-----
-
-The `nifi.remote` section configures link:user-guide.html#site-to-site[Site to Site^] connections. The `nifi.web` section disables the plaintext HTTP connector and enables an HTTPS connector at `localhost:9443` (the default HTTPS port for NiFi). The `nifi.security` section populates the paths to the keystore and truststore and randomly-generated passwords for each. The `nifi.cluster` section configures the link:administration-guide.html#clustering[cluster communication protocol^] (not used in a standalone instance).
---
-. Copy the contents of the `localhost` directory to the `conf/` directory in the location of the NiFi installation. **This command will overwrite any existing `nifi.properties` file or keystore/truststore present in the destination.**
-* `cp -rv ./localhost/* /etc/nifi-1.11.4/conf/.` -- Copies the generated files into the NiFi instance
-. Generate the user's client certificate to authenticate to NiFi. The toolkit will create the certificate and sign it with the same NiFi CA certificate used for the NiFi server certificate. Because the NiFi truststore includes this public certificate, it will trust the client certificate and allow it to authenticate.
-* `./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiFi"` -- Generates and signs the client certificate
-+
-[source]
-----
-nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiFi"
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=localhost,OU=NIFI
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=localhost,OU=NIFI signature with CN=localhost,OU=NIFI
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=localhost,OU=NIFI
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No hostnames specified, not generating any host certificates or configuration.
-2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Generating new client certificate ../nifi-toolkit-1.11.4/CN=my_username_OU=NiFi.p12
-2020/04/04 19:38:31 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated client certificate ../nifi-toolkit-1.11.4/CN=my_username_OU=NiFi.p12
-2020/04/04 19:38:31 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
-----
-
-[[load-client-certificate-to-browser]]
-
-[start=6]
-. Load the client certificate into the web browser. Some browsers (e.g. Mozilla Firefox) maintain their own internal keychain separate from the operating system's (OS). Others (e.g. Apple Safari, Google Chrome) rely on the OS keychain. On most modern OS, double-clicking the PKCS12 keystore (`CN=my_username_OU=NiFi.p12`) will open it with the default handler and load it into the OS keychain. The randomly-generated password is available in `CN=my_username_OU=NiFi.password`.
-. Populate the *Initial Admin Identity* in NiFi. This is the identity that will be allowed to access the NiFi instance and configure user and group access via the UI or API.
-* `$EDITOR /etc/nifi-1.11.4/conf/authorizers.xml` -- Opens the `authorizers.xml` file in the text editor.
-* Replace `<property name="Initial User Identity 1"></property>` in the `userGroupProvider` section with `<property name="Initial User Identity 1">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step
-* Replace `<property name="Initial Admin Identity"></property>` in the `accessPolicyProvider` section with `<property name="Initial Admin Identity">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step
-+
-WARNING: This is a frequent problem area when configuring security for NiFi. The DN must match *exactly* to be authenticated. Check capitalization and whitespace especially.
-. Start NiFi with the new configuration.
-* `cd /etc/nifi-1.11.4/` -- Changes to the NiFi home directory
-* `./bin/nifi.sh start` -- Starts NiFi
-* `tail -f logs/nifi-app.log` -- Tails the application log
-+
---
-Note that there are now log entries about the keystore and truststore being loaded and the available URLs are HTTPS.
-[source]
-----
-2020-04-04 19:52:01,122 INFO [main] o.e.jetty.server.handler.ContextHandler Started o.e.j.w.WebAppContext@623ebac7{nifi-error,/,file:///Users/alopresto/Workspace/scratch/release_verification/nifi-1.11.4-bin/nifi-1.11.4/work/jetty/nifi-web-error-1.11.4.war/webapp/,AVAILABLE}{./work/nar/framework/nifi-framework-nar-1.11.4.nar-unpacked/NAR-INF/bundled-dependencies/nifi-web-error-1.11.4.war}
-2020-04-04 19:52:01,155 INFO [main] o.e.jetty.util.ssl.SslContextFactory x509=X509@b96fb73(nifi-key,h=[localhost],w=[]) for SslContextFactory@5edd911f[provider=null,keyStore=file:///Users/alopresto/Workspace/scratch/release_verification/nifi-1.11.4-bin/nifi-1.11.4/conf/keystore.jks,trustStore=file:///Users/alopresto/Workspace/scratch/release_verification/nifi-1.11.4-bin/nifi-1.11.4/conf/truststore.jks]
-2020-04-04 19:52:01,191 INFO [main] o.eclipse.jetty.server.AbstractConnector Started ServerConnector@767191b1{SSL,[ssl, http/1.1]}{localhost:9443}
-2020-04-04 19:52:01,192 INFO [main] org.eclipse.jetty.server.Server Started @24336ms
-2020-04-04 19:52:01,215 INFO [main] org.apache.nifi.nar.NarAutoLoader Starting NAR Auto-Loader for directory ./extensions ...
-2020-04-04 19:52:01,216 INFO [main] org.apache.nifi.nar.NarAutoLoader NAR Auto-Loader started
-2020-04-04 19:52:01,216 INFO [main] org.apache.nifi.web.server.JettyServer NiFi has started. The UI is available at the following URLs:
-2020-04-04 19:52:01,216 INFO [main] org.apache.nifi.web.server.JettyServer https://localhost:9443/nifi
-2020-04-04 19:52:01,218 INFO [main] org.apache.nifi.BootstrapListener Successfully initiated communication with Bootstrap
-2020-04-04 19:52:01,219 INFO [main] org.apache.nifi.NiFi Controller initialization took 16457023826 nanoseconds (16 seconds).
-----
---
-. Open the web browser to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]. The browser will present a warning that the site you are attempting to visit is insecure because the NiFi certificate is not signed by a trusted CA. Make an exception and acknowledge the risk (all communications are still encrypted even if the browser does not recognize the certificate). The browser may prompt to select the client certificate you wish to present to NiFi. Choose the entry for `CN=my_username` generated by the toolkit.
-+
---
-The browser warning of an insecure server certificate
-
-image::browser-warning-insecure-site.png["Browser warning on untrusted server TLS certificate"]
-
-The browser prompting for a client certificate to present
-
-image::browser-present-client-cert.png["Browser prompting for client certificate to present"]
-
-The application running. Note the user's DN in the top-right corner
-
-image::nifi-running-tls-client-certificate.png["NiFi running with user logged in by client certificate]
---
-
-==== Additional Notes
-
-* While it is recommended to configure NiFi with security immediately, some admins have already run NiFi with other configuration modifications before securing it. The TLS Toolkit provides an option to consume an existing `nifi.properties` file and make the security changes to it rather than using a default template. Use `-f /etc/nifi-1.11.4/conf/nifi.properties` or `--nifiPropertiesFile /etc/nifi-1.11.4/conf/nifi.properties` if this file already exists. For more toolkit options, see link:toolkit-guide.html#tls_operation_modes[NiFi Toolkit Guide: TLS Toolkit Operation Modes^].
-* To generate a certificate for a hostname other than `localhost`, use the `-n somehost.com` argument. To run on the local machine, DNS settings must allow for this. Either modify the `/etc/hosts` file or use a tool like link:https://en.wikipedia.org/wiki/Dnsmasq[dnsmasq^] to set up custom DNS routing. This is beyond the scope of this document.
-* The browser will warn about an insecure connection because it does not trust the self-signed CA certificate. To explicitly mark this certificate as trusted, follow the instructions for the relevant OS and browser combination. For example, using macOS Catalina and Google Chrome:
-+
---
-. Open the NiFi CA cert in the Keychain Access app. Double-click on `nifi-cert.pem` or run the following command:
-* `open /etc/nifi-toolkit-1.11.4/nifi-cert.pem` -- Opens the certificate in Keychain Access
-* Right-click the `localhost` certificate and select *Get Info*
-
-image::keychain-access-certificate-listing.png["Keychain Access listing certificates"]
-
-* Expand the *Trust* section in the dialog
-* Change *Secure Sockets Layer (SSL)* to *Always Trust*
-
-image::keychain-access-trust-certificate.png["Trusting the CA certificate for TLS/SSL"]
-
-* Close the dialog
-* Restart the browser
-* Navigate to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]
-
-image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server certificate"]
---
-
 === Securing NiFi with Provided Certificates
 
-NOTE: This section assumes an enterprise IT department or other mechanism to provide signed certificates. For a scenario with self-signed certificates, see <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>.
+NOTE: This section assumes an enterprise IT department or other mechanism to provide signed certificates.
 
 |=======================================================================================================================
 |Description        | Instructions on enabling link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using provided certificates
@@ -545,8 +360,6 @@ The prerequisites for the scenario (issued by the IT department):
 * A signed client certificate for the specified user (`CN=my_username, ...` for this example) in PEM format (`client.pem`)
 * The matching private key in PEM format (`client.key`)
 * The CA certificate in PEM format (`cacert.pem`)
-
-NOTE: For more information on converting certificates between various forms, see link:toolkit-guide.html#additional_certificate_commands[Toolkit Guide: Additional Certificate Commands^].
 
 The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
@@ -814,17 +627,6 @@ Certificate was added to keystore
 . Generate the client certificate keystore from the client certificate and key.
 * `openssl pkcs12 -export -out CN=my_username.p12 -inkey client.key -in client.pem` -- Creates the PKCS12 keystore containing the client certificate and private key. This command prompts for an *export password* twice
 
-From this point, the instructions are identical to those using the TLS Toolkit, starting at <<load-client-certificate-to-browser,Loading the client certificate in the browser>>.
-
-==== Securing NiFi with TLS Toolkit and Provided Intermediate CA
-
-Occasionally, an IT department will provide an intermediate CA certificate which is signed by a trusted certificate and can be used to generate server and client certificates on-demand by the NiFi admin without further intervention by the IT department. The TLS toolkit provides a mechanism to use the intermediate certificate to sign generated certificates.
-
-The end result will consist of a self-signed external CA (the root), an intermediate CA used to sign NiFi certificates, a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
-
-// TODO: Write
-CAUTION: Develop section
-
 == Deploying a NiFi Cluster
 
 Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see link:administration-guide.html#clustering[NiFi Administrator's Guide: Clustering^].
@@ -936,315 +738,71 @@ PING imaginary.node.nifi (127.0.0.1): 56 data bytes
 Here the `*.nifi` resolution redirects to the host machine's IP (`127.0.0.1`) which was configured via the  `/etc/resolver/nifi` file.
 --
 
-=== Creating a NiFi Cluster
+=== Securing NiFi with mTLS
 
-|=======================================================================================================================
-|Description        | Instructions on configuring a 3 node unsecured cluster
-|Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
-|Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
-|Expected Outcome   | 3 nodes of latest version of Apache NiFi in an unsecured cluster running on local machine
-|Helpful Reading    | <<starting-nifi,Starting NiFi>>
-|Estimated Duration | 10 minutes
-|=======================================================================================================================
+NOTE: link:https://lists.apache.org/thread/vn1nzobtz4fh7fs461sgg8jj9zygrk0f[(recent mailing list discussion)^]
 
-// TODO: Write
-CAUTION: Needs a diagram
+A secure setup of a NiFi cluster involves a set of keystores and truststores to facilitate secure communication between cluster nodes via the mTLS protocol.  Each cluster node will use a keystore containing a private key and certificate used to identify itself, and a truststore with a certificate that specifies trusted remote endpoints.  Commonly, the truststore will specify a single certificate authority, which can enable a trust relationship with any certificate signed by the authority.
 
-CAUTION: Develop section
+Multiple options are available to create the needed keystores and truststores:
 
-. Copy the NiFi run directory 3x
-. Configure the settings
-. Start each node
+* kubernetes / cert-manager link:https://cert-manager.io/[(link)^]
+* Let's Encrypt link:https://letsencrypt.org/[(link)^]
+* organization-specific Certificate Authorities
+* mkcert link:https://github.com/FiloSottile/mkcert/[(link)^]
 
-=== Creating and Securing a NiFi Cluster with the TLS Toolkit
+In the special case of a single node NiFi development instance, automatic self-signed certificate generation has been available in NiFi since version 1.14.0.  This utility performs the needed certificate generation and configuration on the first run of a freshly built NiFi assembly.
 
-NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
+[[manual-keystore]]
+==== Manual Keystore Generation
+Manual use of link:https://www.openssl.org/[openssl^] and/or the Java `keytool` utility can also help to provide the keystores and truststores to secure NiFi cluster communications.  While use of one of the previously mentioned alternatives is encouraged, these commands are documented for informational purposes, and as an additional alternative if needed.
 
-|=======================================================================================================================
-|Description        | Instructions on configuring and securing a 3 node cluster
-|Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
-|Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
-|Expected Outcome   | 3 nodes of latest version of Apache NiFi in secured cluster running on local machine
-|Helpful Reading    | <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>, <<creating-a-nifi-cluster,Creating a NiFi Cluster>>, <<configuring-a-host-to-resolve-arbitrary-dns-hostnames,Configuring a Host to Resolve Arbitrary DNS Hostnames>>
-|Estimated Duration | 15 minutes
-|=======================================================================================================================
+NOTE: The following OpenSSL version is known to support generation of certificates with "subjectAltName": `OpenSSL 3.0.7 1 Nov 2022`.  The following OpenSSL version is known not to support generation of certificates with "subjectAltName": `LibreSSL 2.8.3`.
 
-Similar to a standalone instance, a NiFi cluster must have TLS configured to enable authentication and authorization mechanisms. However, the cluster communication protocol used by NiFi and the framework authentication and authorization must also be configured to allow nodes to communicate.
+NOTE: In the below instructions, values for `subjectAltName IP` and `subjectAltName DNS` should be substituted as appropriate for the use case.  The instructions intend only to convey syntax.
 
-For this guide, the three nodes will be referred to as `node1`, `node2`, and `node3`. Each will have a `$NIFI_HOME` environment variable which points to the respective "NiFi home directory".
+NOTE: Many of the below commands will request a password that will protect the data generated by the command.  Choose a password appropriately strong for the use case.  Protect the security of the passwords and generated files in a manner appropriate for the use case.
 
-Prerequisites:
+. Generate certificate authority key.
+- `openssl genrsa -aes256 -out ca.key 3072`
 
-* DNS configuration for three hosts using the addresses `node1.nifi`, `node2.nifi`, `node3.nifi`
-** This can be all side-by-side on the same physical host, using virtual machines, or using independent physical machines
-* Ports open to allow the nodes to communicate
-** If these machines are subject to a firewall, ensure that the following ports are open:
-*** `2181`, `2888`, `3888` -- ZooKeeper ports
-*** `6342` -- Load-balancing port
-*** `9443` -- HTTPS port for NiFi UI/API
-*** `10443` -- Site to site port
-*** `11443` -- Cluster communications port
-** If all the nodes will run on the same machine, the port scheme will end in the respective node identifier to avoid conflicts (e.g. HTTPS port `9441` for `node1`, `9442` for `node2`, `9443` for `node3`). Ensure that the following ports are open:
-*** `2181, 2182, 2183` -- ZooKeeper ports (client port)
-*** `2881, 2882, 2883` -- ZooKeeper ports (node connection port)
-*** `3881, 3882, 3883` -- ZooKeeper ports (leader election port)
-*** `6341, 6342, 6343` -- Load-balancing port
-*** `9441, 9442, 9443` -- HTTPS port for NiFi UI/API
-*** `10441, 10442, 10443` -- Site to site port
-*** `11441, 11442, 11443` -- Cluster communications port
+. Generate cluster node key (one for each node).
+- `openssl genrsa -aes256 -out nifi1.key 3072`
+- `openssl genrsa -aes256 -out nifi2.key 3072`
+- ...
 
-The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for each NiFi node to operate, and a client certificate for a human user to access NiFi.
+. Generate certificate authority certificate.
+- `openssl req -new -x509 -days 1461 -key ca.key -sha256  -out ca.cer -subj "/CN=nifi-ca/OU=nifi/"`
 
-image::nifi-cluster-tls-toolkit-certificate-diagram.png["NiFi Cluster with TLS Toolkit Certificates Diagram"]
+. Generate cluster node certificate signing request (one for each node).
+- `openssl req -new -key nifi1.key -out nifi1.csr -subj "/CN=nifi1/OU=nifi/" -addext "subjectAltName = IP:192.168.1.1,DNS:localhost"`
+- `openssl req -new -key nifi2.key -out nifi2.csr -subj "/CN=nifi2/OU=nifi/" -addext "subjectAltName = IP:192.168.1.2,DNS:localhost"`
+- ...
 
-. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. By default, the Distinguished Name (DN) will be `CN=<provided_hostname>, OU=NIFI`. For more information on toolkit flag options, see link:toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage^].
-.. Create a directory for the cluster configuration and navigate to it.
-* `mkdir /opt/nifi_cluster_conf && cd /opt/nifi_cluster_conf`
-.. Generate the certificates. Running these commands first generates the NiFi CA public certificate and private key if not present, then generates the server certificates, followed by the client certificate necessary for the *Initial Admin Identity*. An alternative command performing all the steps sequentially is also provided.
-* `/opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node1.nifi' -c 'ca.nifi'` -- Generates the NiFi CA (`ca.nifi`) certificate and key if not present and generates and signs `node1` certificate, placing the `keystore.jks`, `truststore.jks`, and populated `nifi.properties` in a subdirectory called `node1.nifi`
-+
---
-_Note the creation of the CA certificate and key_
-[source]
-----
-% /opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node1.nifi' -c 'ca.nifi'
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine - No nifiPropertiesFile specified, using embedded one.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Running standalone certificate generation with output directory ../nifi_cluster_conf
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Generated new CA certificate ../nifi_cluster_conf/nifi-cert.pem and key ../nifi_cluster_conf/nifi-key.key
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Writing new ssl configuration to ../nifi_cluster_conf/node1.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Successfully generated TLS configuration for node1.nifi 1 in ../nifi_cluster_conf/node1.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - No clientCertDn specified, not generating any client certificates.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - tls-toolkit standalone completed successfully
-% ls -alGh node1.nifi
-total 56
-drwx------@ 5 johndoe  wheel   160B Jun 26 17:33 .
-drwxr-xr-x@ 5 johndoe  wheel   160B Jun 26 17:33 ..
--rw-------@ 1 johndoe  wheel   3.0K Jun 26 17:33 keystore.jks
--rw-------@ 1 johndoe  wheel    17K Jun 26 17:33 nifi.properties
--rw-------@ 1 johndoe  wheel   929B Jun 26 17:33 truststore.jks
-----
---
-* `/opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node2.nifi'` -- Generates and signs `node2` certificate with the same CA
-+
---
-_Note the existing CA certificate being used_
-[source]
-----
-% /opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node2.nifi'
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine - No nifiPropertiesFile specified, using embedded one.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Running standalone certificate generation with output directory ../nifi_cluster_conf
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Verifying the certificate signature for CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Certificate was signed by CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Using existing CA certificate ../nifi_cluster_conf/nifi-cert.pem and key ../nifi_cluster_conf/nifi-key.key
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Writing new ssl configuration to ../nifi_cluster_conf/node2.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Successfully generated TLS configuration for node2.nifi 1 in ../nifi_cluster_conf/node2.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - No clientCertDn specified, not generating any client certificates.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - tls-toolkit standalone completed successfully
-----
---
-* `/opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node3.nifi'` -- Generates and signs `node3` certificate with the same CA
-+
-[source]
-----
-% /opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node3.nifi'
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine - No nifiPropertiesFile specified, using embedded one.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Running standalone certificate generation with output directory ../nifi_cluster_conf
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Verifying the certificate signature for CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Certificate was signed by CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Using existing CA certificate ../nifi_cluster_conf/nifi-cert.pem and key ../nifi_cluster_conf/nifi-key.key
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Writing new ssl configuration to ../nifi_cluster_conf/node3.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Successfully generated TLS configuration for node3.nifi 1 in ../nifi_cluster_conf/node3.nifi
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - No clientCertDn specified, not generating any client certificates.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - tls-toolkit standalone completed successfully
-----
-* `/opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -C 'CN=my_username'` -- Generates and signs `my_username` client certificate with the same CA
-+
-[source]
-----
-% /opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -C 'CN=my_username'
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine - No nifiPropertiesFile specified, using embedded one.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Running standalone certificate generation with output directory ../nifi_cluster_conf
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Verifying the certificate signature for CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.util.TlsHelper - Certificate was signed by CN=ca.nifi,OU=NIFI
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Using existing CA certificate ../nifi_cluster_conf/nifi-cert.pem and key ../nifi_cluster_conf/nifi-key.key
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - No hostnames specified, not generating any host certificates or configuration.
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Generating new client certificate ../nifi_cluster_conf/CN=my_username.p12
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - Successfully generated client certificate ../nifi_cluster_conf/CN=my_username.p12
-[main] INFO org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone - tls-toolkit standalone completed successfully
-----
-+
---
-The resulting directory will contain 7 new entries:
+. Generate cluster node certificate, using certificate authority key (one for each node).
+- `openssl x509 -req -in nifi1.csr -CA ca.cer -CAkey ca.key -CAcreateserial -out nifi1.cer -days 365 -sha256 -copy_extensions=copyall`
+- `openssl x509 -req -in nifi2.csr -CA ca.cer -CAkey ca.key -CAcreateserial -out nifi1.cer -days 365 -sha256 -copy_extensions=copyall`
+- ...
 
-** `CN=my_username.p12` -- The client certificate in a PKCS12 keystore
-** `CN=my_username.password` -- The corresponding file containing the randomly-generated password. Use `-b` or `--clientCertPassword` when generating to specify a password
-** `nifi-cert.pem` -- The CA certificate in PEM format
-** `nifi-key.key` -- The corresponding CA private key in PEM format
-** `node1.nifi/` -- The directory containing `node1` keystore and related files
-** `node2.nifi/` -- The directory containing `node2` keystore and related files
-** `node3.nifi/` -- The directory containing `node3` keystore and related files
---
-Optional command to execute all steps together using the toolkit pattern syntax:
-* `/opt/nifi-toolkit-1.22.0/bin/tls-toolkit.sh standalone -n 'node[1-3].nifi' -C 'CN=my_username' -c 'ca.nifi'` -- Performs all steps listed above simultaneously
-. Create a new `nifi_cluster` folder in an appropriate location. In this example, where all three nodes will run on the same machine, the `/etc/nifi_cluster` directory is used. All further instructions occur from this directory.
-* `mkdir /etc/nifi_cluster` -- Creates the working directory
-* `cd /etc/nifi_cluster` -- Change to the created directory
-. Copy the NiFi installation folder (i.e. `nifi-1.22.0`) to a new folder for *each* node in the `nifi_cluster` folder created in the previous step.
-* `cp -R /etc/nifi-1.22.0 node1.nifi` -- Creates the `node1` directory and copies the NiFi application into it
-* `cp -R /etc/nifi-1.22.0 node2.nifi` -- Creates the `node2` directory and copies the NiFi application into it
-* `cp -R /etc/nifi-1.22.0 node3.nifi` -- Creates the `node3` directory and copies the NiFi application into it
-. Copy the generated `keystore.jks`, `truststore.jks`, and `nifi.properties` to the `conf/` directory of *each* node.
-* `cp -R /etc/nifi_cluster_configuration/node1.nifi/* node1.nifi/conf` -- Copies the `node1` files
-* `cp -R /etc/nifi_cluster_configuration/node2.nifi/* node2.nifi/conf` -- Copies the `node2` files
-* `cp -R /etc/nifi_cluster_configuration/node3.nifi/* node3.nifi/conf` -- Copies the `node3` files
-. Modify the `nifi.properties` file for each node to set the appropriate ports and enable the embedded link:https://zookeeper.apache.org/[ZooKeeper^] server. *If the nodes are being deployed to separate physical or virtual machines (such that each is treated as an independent host for networking), modifying the ports is not required, but enabling the embedded ZooKeeper servers is*. If the nodes are being deployed on the same machine such that the ports cannot conflict, all parts of this step are required. This port selection convention follows the pattern defined at the top of this section, where the last digit corresponds to the node identifier. For more information on ZooKeeper configuration for NiFi, see link:administration-guide.html#embedded_zookeeper[NiFi Administrator's Guide: Embedded ZooKeeper^].
-+
-NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated here because it was added after the TLS Toolkit was last updated. The toolkit correctly populates the hostname in all other necessary properties.
-NOTE: Starting with version 1.14.0, NiFi requires a value for `nifi.sensitive.props.key`. Set the same value on each node.
+. Generate cluster node certificate chain (one for each node).
+- `cat ca.cer nifi1.cer >nifi1.chain.cer`
+- `cat ca.cer nifi2.cer >nifi2.chain.cer`
+- ...
 
-* `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
-* Update the following lines:
-** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
-** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10441`
-** `nifi.web.https.port=9443` -> `nifi.web.https.port=9441`
-** `nifi.sensitive.props.key=` -> `nifi.sensitive.props.key=<secretKey>`
-** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
-** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11441`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node1.nifi`
-** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6341`
-** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
-* `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that the `nifi.cluster.load.balance.port=6342` does not need to change for `node2` and is included for completeness_
-* Update the following lines:
-** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
-** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10442`
-** `nifi.web.https.port=9443` -> `nifi.web.https.port=9442`
-** `nifi.sensitive.props.key=` -> `nifi.sensitive.props.key=<secretKey>`
-** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
-** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11442`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node2.nifi`
-** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6342`
-** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
-* `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that some of the ports do not need to change for `node3` and are included for completeness_
-* Update the following lines:
-** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
-** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10443`
-** `nifi.web.https.port=9443` -> `nifi.web.https.port=9443`
-** `nifi.sensitive.props.key=` -> `nifi.sensitive.props.key=<secretKey>`
-** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
-** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11443`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node3.nifi`
-** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6343`
-** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
-. Update the `zookeeper.properties` file on each node. This file contains the addresses of each embedded ZooKeeper server in the cluster. The `zookeeper.properties` file can be identical on each embedded ZooKeeper server (assuming no other changes were made), so the modified file will be copied to the other nodes.
-* `$EDITOR node1.nifi/conf/zookeeper.properties` -- Opens the `zookeeper.properties` file in a text editor
-* Update the following lines:
-** `server.1=` -> `server.1=node1.nifi:2881:3881;2181`
-** Add the line `server.2=node2.nifi:2882:3882;2182`
-** Add the line `server.3=node3.nifi:2883:3883;2183`
-* `cp node1.nifi/conf/zookeeper.properties node2.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node2`
-* `cp node1.nifi/conf/zookeeper.properties node3.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node3`
-. Create the `myid` file on each node to identify the embedded ZooKeeper server.
-* `mkdir -p node1.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node1`
-* `echo 1 >> node1.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node1` identifier
-* `mkdir -p node2.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node2`
-* `echo 2 >> node2.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node2` identifier
-* `mkdir -p node3.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node3`
-* `echo 3 >> node3.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node3` identifier
-. Update the `state-management.xml` file on each node to allow ZooKeeper connections. The `state-management.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
-* `$EDITOR node1.nifi/conf/state-management.xml` -- Opens the `state-management.xml` file in a text editor
-* Update the following line:
-** `<property name="Connect String"></property>` -> `<property name="Connect String">node1.nifi:2181,node2.nifi:2182,node3.nifi:2183</property>`
-* `cp node1.nifi/conf/state-management.xml node2.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node2`
-* `cp node1.nifi/conf/state-management.xml node3.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node3`
-. Update the `authorizers.xml` file. This file contains the *Initial Node Identities* and *Initial User Identities*. The *users* consist of all human users _and_ all nodes in the cluster. The `authorizers.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
-+
-NOTE: Each `Initial User Identity` must have a **unique** name (`Initial User Identity 1`, `Initial User Identity 2`, etc.).
+. Generate certificate authority keystore.
+- `keytool -importcert -keystore trust.p12 -storetype PKCS12 -file ca.cer -alias 1`
 
-* `$EDITOR node1.nifi/conf/authorizers.xml` -- Opens the `authorizers.xml` file in a text editor
-* Update the following lines:
-** In the `<userGroupProvider>` section, `<property name="Initial User Identity 1"></property>` -> `<property name="Initial User Identity 1">CN=my_username</property>` -- Adds an initial user with the DN generated in the client certificate
-** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 2">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial user for `node1`
-** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 3">CN=node2.nifi, OU=NIFI</property>` -- Adds an initial user for `node2`
-** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 4">CN=node3.nifi, OU=NIFI</property>` -- Adds an initial user for `node3`
-+
-[source,xml]
-    <userGroupProvider>
-        <identifier>file-user-group-provider</identifier>
-        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
-        <property name="Users File">./conf/users.xml</property>
-        <property name="Legacy Authorized Users File"></property>
-        <property name="Initial User Identity 1">CN=my_username</property>
-        <property name="Initial User Identity 2">CN=node1.nifi, OU=NIFI</property>
-        <property name="Initial User Identity 3">CN=node2.nifi, OU=NIFI</property>
-        <property name="Initial User Identity 4">CN=node3.nifi, OU=NIFI</property>
-    </userGroupProvider>
+. Generate cluster node keystore (one for each node).
+- `openssl pkcs12 -export -out nifi1.p12 -inkey nifi1.key -in nifi1.chain.cer`
+- `openssl pkcs12 -export -out nifi2.p12 -inkey nifi2.key -in nifi2.chain.cer`
+- ...
 
-** In the `<accessPolicyProvider>` section, `<property name="Initial Admin Identity"></property>` -> `<property name="Initial Admin Identity">CN=my_username</property>` -- Adds an initial admin with the DN generated in the client certificate
-** In the `<accessPolicyProvider>` section, `<property name="Node Identity 1"></property>` -> `<property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial node with the DN generated in the `node1` certificate
-** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 2">CN=node2.nifi, OU=NIFI</property>`
-** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 3">CN=node3.nifi, OU=NIFI</property>`
-+
-[source,xml]
-    <accessPolicyProvider>
-        <identifier>file-access-policy-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
-        <property name="User Group Provider">file-user-group-provider</property>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
-        <property name="Initial Admin Identity">CN=my_username</property>
-        <property name="Legacy Authorized Users File"></property>
-        <property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>
-        <property name="Node Identity 2">CN=node2.nifi, OU=NIFI</property>
-        <property name="Node Identity 3">CN=node3.nifi, OU=NIFI</property>
-        <property name="Node Group"></property>
-    </accessPolicyProvider>
+After completing these steps, use the generated keystores and truststore as follows:
+[options="header"]
+|======================
+|Node  |Keystore  |Truststore
+|nifi1 |nifi1.p12 |trust.p12
+|nifi2 |nifi2.p12 |trust.p12
+|...   |...       |trust.p12
+|======================
 
-* `cp node1.nifi/conf/authorizers.xml node2.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node2`
-* `cp node1.nifi/conf/authorizers.xml node3.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node3`
-. By default, NiFi waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
-* `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
-* Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
-* `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
-* Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
-* `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
-* Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
-. Start the NiFi cluster. Once all three nodes have started and joined the cluster, the flow is agreed upon and a cluster coordinator is elected, the UI is available on any of the three nodes.
-* `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
-* `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
-* `./node3.nifi/bin/nifi.sh start` -- Starts `node3`
-. Wait approximately 30 seconds and open the web browser to link:https://node3.nifi:9443/nifi[`https://node3.nifi:9443/nifi`^]. The cluster should be available. _Note that the Initial Admin Identity has no permissions on the root process group. This is an artifact of legacy design decisions where the root process group ID is not known at initial start time._
-+
---
-_The running cluster_
-
-image::nifi-secure-cluster-no-permissions.png["NiFi secure cluster running with no Initial Admin Identity permissions"]
-
-_The cluster status from the global menu at the top right_
-
-image::nifi-secure-cluster-status.png["NiFi secure cluster status pane"]
---
-. To update the Initial Admin Identity's permissions for the root process group, stop each node in the cluster and remove the `authorizations.xml` and `users.xml` file from each node. These files will be regenerated when the node starts again and be populated with the correct permissions.
-* `./node1.nifi/bin/nifi.sh stop` -- Stops `node1`
-* `rm node1.nifi/conf/authorizations.xml node1.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node1`
-* `./node2.nifi/bin/nifi.sh stop` -- Stops `node2`
-* `rm node2.nifi/conf/authorizations.xml node2.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node2`
-* `./node3.nifi/bin/nifi.sh stop` -- Stops `node3`
-* `rm node3.nifi/conf/authorizations.xml node3.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node3`
-. Start the nodes again.
-* `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
-* `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
-* `./node3.nifi/bin/nifi.sh start` -- Starts `node3`
-+
---
-_The running cluster with permissions_
-
-image::nifi-secure-cluster-permissions.png["NiFi secure cluster running with Initial Admin Identity permissions"]
---
