@@ -76,6 +76,14 @@
 
 /* general */
 
+#general-process-group-configuration div.settings-columns {
+    display: flex;
+}
+
+#general-process-group-configuration div.settings-columns .settings-column {
+    margin-right: 50px;
+}
+
 #general-process-group-configuration input, #general-process-group-configuration textarea {
     width: 350px;
     vertical-align: middle;
@@ -107,6 +115,7 @@
 
 #process-group-comments {
     height: 100px;
+    width: 750px;
 }
 
 #read-only-process-group-comments {
