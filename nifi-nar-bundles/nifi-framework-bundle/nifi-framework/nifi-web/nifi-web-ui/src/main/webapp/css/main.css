@@ -25,7 +25,7 @@ body {
     left: 0px;
     right: 0px;
     bottom: 0px;
-    background: #7098AD;
+    background: #B8C6CD;
     z-index: 2000;
 }
 
@@ -35,7 +35,7 @@ body {
     bottom: 10%;
     left: 10%;
     right: 10%;
-    background: transparent url(../images/nifi-drop-splash.svg) no-repeat center center;
+    background: transparent url(../images/nifi-loading-animation.gif) no-repeat center center;
 }
 
 div.context-menu-provenance {

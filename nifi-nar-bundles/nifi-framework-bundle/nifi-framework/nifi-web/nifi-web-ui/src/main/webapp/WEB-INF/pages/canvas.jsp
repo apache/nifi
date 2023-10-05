@@ -94,9 +94,7 @@
     </head>
     <body ng-controller="ngCanvasAppCtrl" id="canvas-body">
         <div id="splash">
-            <div id="splash-img" layout="row" layout-align="center center">
-                <md-progress-circular md-mode="indeterminate" class="md-warn" md-diameter="150"></md-progress-circular>
-            </div>
+            <div id="splash-img" layout="row" layout-align="center center"></div>
         </div>
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-main.jsp"/>
