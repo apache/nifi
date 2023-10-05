@@ -492,6 +492,36 @@ Here is an example certificate DN entry using the name John Smith:
 </authorizers>
 ----
 
+===== File-based (OIDC Authentication)
+Here is an example as Initial User Identity called Test :
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileUserGroupProvider</class>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial User Identity 1">Test</property>
+    </userGroupProvider>
+   
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">Test</property>
+        <property name="NiFi Group Name"></property>
+    </accessPolicyProvider>
+
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+
+</authorizers>
+----
+
 ===== File-based (Kerberos Authentication)
 Here is an example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
 
