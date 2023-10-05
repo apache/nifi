@@ -253,6 +253,37 @@ The `kerberos-identity-provider` has the following properties:
 
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
+[[openid_connect]]
+=== OpenID Connect
+
+OpenID Connect integration provides single sign-on using a specified Authorization Server.
+The implementation supports the Authorization Code Grant Type as described in
+link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] and
+link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
+
+The implementation enables
+link:https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect RP-Initiated Logout 1.0^] when the
+Authorization Server includes an `end_session_endpoint` element in the OpenID Discovery configuration.
+
+
+OpenID Connect integration supports the following settings in _nifi-registry.properties_.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name                                                      | Description
+|`nifi.registry.security.user.oidc.discovery.url`                    | The link:http://openid.net/specs/openid-connect-discovery-1_0.html[Discovery Configuration URL^] for the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.connect.timeout`                  | Socket Connect timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.registry.security.user.oidc.read.timeout`                     | Socket Read timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.registry.security.user.oidc.client.id`                        | The Client ID for NiFi Registry registered with the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.client.secret`                    | The Client Secret for NiFi Registry registered with the OpenID Connect Provider
+|`nifi.registry.security.user.oidc.preferred.jwsalgorithm`           | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+by the OpenID Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi Registry will attempt to validate HMAC protected tokens using the specified client secret.
+If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
+JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL
+|`nifi.registry.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`.
+|`nifi.registry.security.user.oidc.claim.identifying.user`           | Claim that identifies the authenticated user. The default value is `email`. Claim names may need to be requested using the `nifi.registry.security.user.oidc.additional.scopes` property
+|==================================================================================================================================================
+
 [[authorization]]
 == Authorization
 
@@ -432,6 +463,36 @@ Here is an example certificate DN entry using the name John Smith:
         <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
         <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
+</authorizers>
+----
+
+===== File-based (OIDC Authentication)
+Here is an example as Initial User Identity called `admin` :
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileUserGroupProvider</class>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial User Identity 1">admin</property>
+    </userGroupProvider>
+   
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">admin</property>
+        <property name="NiFi Group Name"></property>
+    </accessPolicyProvider>
+
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+
 </authorizers>
 ----
 
