@@ -3288,7 +3288,7 @@ class ConfigEncryptionToolTest {
         // Assert
         assert !tool.handlingNiFiProperties
         assert !tool.handlingLoginIdentityProviders
-        assert tool.handlingFlowXml
+        assert tool.handlingFlowJson
     }
 
     @Test
@@ -3764,8 +3764,8 @@ class ConfigEncryptionToolTest {
     void testFindFieldsInStream() {
         def verifyTool = new ConfigEncryptionTool()
         verifyTool.isVerbose = true
-        verifyTool.flowXmlPath = new File("src/test/resources/flow.xml.gz").path
-        InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowXmlPath)
+        verifyTool.flowJsonPath = new File("src/test/resources/flow.xml.gz").path
+        InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowJsonPath)
         Set<String> fieldsFound = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
         assert(fieldsFound.size() > 0)
     }

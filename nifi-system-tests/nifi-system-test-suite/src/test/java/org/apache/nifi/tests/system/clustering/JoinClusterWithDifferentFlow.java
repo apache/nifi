@@ -25,7 +25,7 @@ import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -83,7 +83,6 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         );
     }
 
-
     @Test
     public void testStartupWithDifferentFlow() throws IOException, NiFiClientException, InterruptedException {
         // Once we've started up, we want to have node 2 startup with a different flow. We cannot simply startup both nodes at the same time with
@@ -101,9 +100,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
         node2.start(true);
 
-        while (getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream().filter(n -> n.getStatus().equals("CONNECTED")).count() != 2) {
-            Thread.sleep(3000);
-        }
+        waitForAllNodesConnected();
+        switchClientToNode(2);
 
         final File backupFile = getBackupFile(node2ConfDir);
         verifyFlowContentsOnDisk(backupFile);
@@ -119,10 +117,10 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     private File getBackupFile(final File confDir) throws InterruptedException {
         waitFor(() -> getFlowJsonFiles(confDir).size() == 1);
 
-        final List<File> flowXmlFiles = getFlowJsonFiles(confDir);
-        assertEquals(1, flowXmlFiles.size());
+        final List<File> flowJsonFiles = getFlowJsonFiles(confDir);
+        assertEquals(1, flowJsonFiles.size());
 
-        return flowXmlFiles.iterator().next();
+        return flowJsonFiles.iterator().next();
     }
 
     private void verifyFlowContentsOnDisk(final File backupFile) throws IOException {
@@ -146,8 +144,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     }
 
     private void verifyInMemoryFlowContents() throws NiFiClientException, IOException {
-        final NiFiClient node2Client = createClient(5672);
-        final ProcessGroupFlowDTO rootGroupFlow = node2Client.getFlowClient().getProcessGroup("root").getProcessGroupFlow();
+        final FlowClient flowClient = getNifiClient().getFlowClient(DO_NOT_REPLICATE);
+        final ProcessGroupFlowDTO rootGroupFlow = flowClient.getProcessGroup("root").getProcessGroupFlow();
         final FlowDTO flowDto = rootGroupFlow.getFlow();
         assertEquals(1, flowDto.getProcessGroups().size());
 
@@ -155,14 +153,13 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         assertEquals("65b6403c-016e-1000-900b-357b13fcc7c4", paramContextReference.getId());
         assertEquals("Context 1", paramContextReference.getName());
 
-        ProcessorEntity generateFlowFileEntity = node2Client.getProcessorClient().getProcessor("65b8f293-016e-1000-7b8f-6c6752fa921b");
+        final ProcessorEntity generateFlowFileEntity = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor("65b8f293-016e-1000-7b8f-6c6752fa921b");
         final Map<String, String> generateProperties = generateFlowFileEntity.getComponent().getConfig().getProperties();
         assertEquals("01 B", generateProperties.get("File Size"));
         assertEquals("1", generateProperties.get("Batch Size"));
-
         assertEquals("1 hour", generateFlowFileEntity.getComponent().getConfig().getSchedulingPeriod());
 
-        final ParameterContextDTO contextDto = node2Client.getParamContextClient().getParamContext(paramContextReference.getId(), false).getComponent();
+        final ParameterContextDTO contextDto = getNifiClient().getParamContextClient().getParamContext(paramContextReference.getId(), false).getComponent();
         assertEquals(2, contextDto.getBoundProcessGroups().size());
         assertEquals(1, contextDto.getParameters().size());
         final ParameterEntity parameterEntity = contextDto.getParameters().iterator().next();
@@ -175,13 +172,9 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         assertEquals("65b8f293-016e-1000-7b8f-6c6752fa921b", affectedComponent.getId());
         assertEquals(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR, affectedComponent.getReferenceType());
 
-        // The original Controller Service, whose UUID ended with 00 should be removed and a new one inherited.
-        final ControllerServicesEntity controllerLevelServices = node2Client.getFlowClient().getControllerServices();
+        final ControllerServicesEntity controllerLevelServices = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getControllerServices();
         final Set<ControllerServiceEntity> controllerServices = controllerLevelServices.getControllerServices();
-        assertEquals(1, controllerServices.size());
-
-        final ControllerServiceEntity firstService = controllerServices.iterator().next();
-        assertFalse(firstService.getId().endsWith("00"));
+        assertEquals(2, controllerServices.size());
     }
 
     private String readFlow(final File file) throws IOException {

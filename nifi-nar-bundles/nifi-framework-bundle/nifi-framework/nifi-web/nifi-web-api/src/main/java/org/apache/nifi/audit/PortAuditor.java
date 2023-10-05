@@ -27,6 +27,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -38,8 +39,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 @Aspect
 public class PortAuditor extends NiFiAuditor {
@@ -90,9 +89,7 @@ public class PortAuditor extends NiFiAuditor {
         final String comments = port.getComments();
         final int maxConcurrentTasks = port.getMaxConcurrentTasks();
 
-        final Set<String> existingUsers = new HashSet<>();
-        boolean isPublicPort = false;
-
+        boolean isPublicPort = port instanceof PublicPort;
 
         // perform the underlying operation
         final Port updatedPort = (Port) proceedingJoinPoint.proceed();
