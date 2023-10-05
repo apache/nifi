@@ -2203,27 +2203,6 @@ application/avro+binary
 ------------------------------------------------------------------------------------------------
 
 
-== Command Line Tools
-
-=== tls-toolkit
-
-The Client/Server mode of operation came about from the desire to automatically generate required TLS configuration artifacts without needing to perform that generation in a centralized place.  This simplifies configuration in a clustered environment.  Since we don’t necessarily have a central place to run the generation logic or a trusted Certificate Authority, a shared secret is used to authenticate the clients and server to each other.
-
-The tls-toolkit prevents man in the middle attacks using HMAC verification of the public keys of the CA server and the CSR the client sends. A shared secret (the token) is used as the HMAC key.
-
-The basic process goes as follows:
-
-1. The client generates a KeyPair.
-2. The client generates a request json payload containing a CSR and an HMAC with the token as the key and the CSR’s public key fingerprint as the data.
-3. The client connects to the CA Hostname at the https port specified and validates that the CN of the CA’s certificate matches the hostname (NOTE: because we don’t trust the CA at this point, this adds NO security, it is just a way to error out early if possible).
-4. The server validates the HMAC from the client payload using the token as the key and the CSR’s public key fingerprint as the data.  This proves that the client knows the shared secret and that it wanted a CSR with that public key to be signed.  (NOTE: a man in the middle could forward this on but wouldn’t be able to change the CSR without invalidating the HMAC, defeating the purpose).
-5. The server signs the CSR and sends back a response json payload containing the certificate and an HMAC with the token as the key and a fingerprint of its public key as the data.
-6. The client validates the response HMAC using the token as the key and a fingerprint of the certificate public key supplied by the TLS session.  This validates that a CA that knows the shared secret is the one we are talking to over TLS.
-7. The client verifies that the CA certificate from the TLS session signed the certificate in the payload.
-8. The client adds the generated KeyPair to its keystore with the certificate chain and adds the CA certificate from the TLS connection to its truststore.
-9. The client writes out the configuration json containing keystore, truststore passwords and other details about the exchange.
-
-
 == Testing
 
 Testing the components that will be used within a larger framework can often be very cumbersome
