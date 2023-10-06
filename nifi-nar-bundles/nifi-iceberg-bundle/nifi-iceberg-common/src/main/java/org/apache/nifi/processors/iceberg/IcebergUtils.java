@@ -17,10 +17,15 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class IcebergUtils {
 
@@ -38,5 +43,26 @@ public class IcebergUtils {
             }
         }
         return conf;
+    }
+
+    /**
+     * Collects every non-blank dynamic property from the context.
+     *
+     * @param context  process context
+     * @param flowFile FlowFile to evaluate attribute expressions
+     * @return Map of dynamic properties
+     */
+    public static Map<String, String> getDynamicProperties(ProcessContext context, FlowFile flowFile) {
+        return context.getProperties().entrySet().stream()
+                // filter non-blank dynamic properties
+                .filter(e -> e.getKey().isDynamic()
+                        && StringUtils.isNotBlank(e.getValue())
+                        && StringUtils.isNotBlank(context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue())
+                )
+                // convert to Map keys and evaluated property values
+                .collect(Collectors.toMap(
+                        e -> e.getKey().getName(),
+                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue()
+                ));
     }
 }
