@@ -165,38 +165,15 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-bom</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-record-serialization-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-record</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-schema-registry-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -204,27 +181,9 @@
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
-             <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-http-context-map-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-lookup-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kerberos-credentials-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-kerberos-user-service-api</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
@@ -237,24 +196,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-client-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-record-sink-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-oauth2-provider-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-dbcp-service-api</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
@@ -280,23 +221,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-proxy-configuration-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-services-api</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-volatile-provenance-repository</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-mock</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
@@ -309,24 +239,6 @@
             <!-- The following dependencies are marked provided because they must be provided by the container.  Nars can assume they are there-->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-framework-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-server-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
@@ -337,30 +249,7 @@
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-properties</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-web-client-provider-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-file-resource-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
             <!-- Managed dependency versions applicable to all modules -->
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-deprecation-log</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-dbcp2</artifactId>

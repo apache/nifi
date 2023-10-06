@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 import java.net.MalformedURLException;

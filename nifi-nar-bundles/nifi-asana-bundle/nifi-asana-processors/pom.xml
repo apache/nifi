@@ -34,6 +34,11 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
         </dependency>
+        <!-- Included for StringUtils -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-utils</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>

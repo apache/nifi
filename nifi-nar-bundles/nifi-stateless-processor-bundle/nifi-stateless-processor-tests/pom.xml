@@ -44,6 +44,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <scope>compile</scope>
@@ -62,7 +68,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
