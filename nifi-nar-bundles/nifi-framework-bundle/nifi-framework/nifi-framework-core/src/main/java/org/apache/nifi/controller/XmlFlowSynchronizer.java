@@ -574,7 +574,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             parameterProviderConfiguration = new StandardParameterProviderConfiguration(configurationDTO.getParameterProviderId(),
                     configurationDTO.getParameterGroupName(), configurationDTO.getSynchronized());
         }
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds, parameterProviderConfiguration);
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), dto.getDescription(), parameters, referencedIds, parameterProviderConfiguration);
         context.setDescription(dto.getDescription());
         return context;
     }

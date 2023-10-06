@@ -513,6 +513,8 @@ public class TestFlowController {
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
+        final VersionedFlowSynchronizer flowSynchronizer = new VersionedFlowSynchronizer(extensionManager,
+                nifiProperties.getFlowConfigurationFile(), new FlowConfigurationArchiveManager(nifiProperties));
         try {
             controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
