@@ -19,7 +19,7 @@
     </parent>
 
     <properties>
-        <accumulo.version>2.1.1</accumulo.version>
+        <accumulo.version>2.1.2</accumulo.version>
         <guava.version>32.1.2-jre</guava.version>
     </properties>
 
