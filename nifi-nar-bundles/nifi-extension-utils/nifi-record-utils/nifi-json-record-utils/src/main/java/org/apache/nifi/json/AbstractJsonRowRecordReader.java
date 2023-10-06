@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -53,23 +54,29 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
+    public static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
+
     static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
-            .name("max-string-length")
+            .name("Max String Length")
             .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
             .required(true)
-            .defaultValue("20 MB")
+            .defaultValue(DEFAULT_MAX_STRING_LENGTH)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor ALLOW_COMMENTS = new PropertyDescriptor.Builder()
-            .name("json-allow-comments")
+            .name("Allow Comments")
             .displayName("Allow Comments")
             .description("Whether to allow comments when parsing the JSON document")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    private static final StreamReadConstraints DEFAULT_STREAM_READ_CONSTRAINTS = StreamReadConstraints.builder()
+            .maxStringLength(DataUnit.parseDataSize(DEFAULT_MAX_STRING_LENGTH, DataUnit.B).intValue())
             .build();
 
     private final ComponentLog logger;
@@ -160,9 +167,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             if (allowComments) {
                 codec.enable(JsonParser.Feature.ALLOW_COMMENTS);
             }
-            if (streamReadConstraints != null) {
-                codec.getFactory().setStreamReadConstraints(streamReadConstraints);
-            }
+            codec.getFactory().setStreamReadConstraints(streamReadConstraints != null ? streamReadConstraints : DEFAULT_STREAM_READ_CONSTRAINTS);
 
             jsonParser = codec.getFactory().createParser(in);
             jsonParser.setCodec(codec);

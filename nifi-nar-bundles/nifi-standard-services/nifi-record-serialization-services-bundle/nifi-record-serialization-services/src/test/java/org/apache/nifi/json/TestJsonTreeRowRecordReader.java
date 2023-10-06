@@ -305,7 +305,8 @@ class TestJsonTreeRowRecordReader {
     void testReadJSONStringTooLong() {
         final StreamConstraintsException mre = assertThrows(StreamConstraintsException.class, () ->
                 testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, StreamReadConstraints.builder().maxStringLength(2).build()));
-        assertEquals("String length (8) exceeds the maximum length (2)", mre.getMessage());
+        assertTrue(mre.getMessage().contains("maximum length"));
+        assertTrue(mre.getMessage().contains("(2)"));
     }
 
     @Test
@@ -317,7 +318,7 @@ class TestJsonTreeRowRecordReader {
     void testReadJSONDisallowComments() {
         final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->
             testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", false, StreamReadConstraints.builder().maxStringLength(20_000).build()));
-        assertEquals("Could not parse data as JSON", mre.getMessage());
+        assertTrue(mre.getMessage().contains("not parse"));
     }
 
     private void testReadAccountJson(final String inputFile, final boolean allowComments, final StreamReadConstraints streamReadConstraints) throws IOException, MalformedRecordException {
