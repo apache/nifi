@@ -120,4 +120,28 @@ public class TestPutIcebergCustomValidation {
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.assertNotValid();
     }
+
+    @Test
+    public void testInvalidSnapshotSummaryDynamicProperty() throws InitializationException {
+        initRecordReader();
+        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
+
+        runner.setProperty("invalid.dynamic.property", "test value");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testValidSnapshotSummaryDynamicProperty() throws InitializationException {
+        initRecordReader();
+        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
+
+        runner.setProperty("snapshot-property.valid-property", "test value");
+        runner.assertValid();
+    }
 }
