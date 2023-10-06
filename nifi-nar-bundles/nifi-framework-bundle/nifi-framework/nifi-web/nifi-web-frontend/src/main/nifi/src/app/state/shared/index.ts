@@ -24,3 +24,19 @@ export interface Permissions {
     canRead: boolean;
     canWrite: boolean;
 }
+
+export interface RequiredPermission {
+    id: string;
+    label: string;
+}
+
+export enum ComponentType {
+    Processor = 'Processor',
+    ProcessGroup = 'ProcessGroup',
+    RemoteProcessGroup = 'RemoteProcessGroup',
+    InputPort = 'InputPort',
+    OutputPort = 'OutputPort',
+    Label = 'Label',
+    Funnel = 'Funnel',
+    Connection = 'Connection'
+}

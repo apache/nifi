@@ -26,7 +26,8 @@ import { updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UpdateComponent } from '../../state/flow';
-import { ComponentType, Position } from '../../state/shared';
+import { Position } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 
 @Injectable({
     providedIn: 'root'

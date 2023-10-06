@@ -17,8 +17,9 @@
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { UserState } from '../../state/user';
 import { startUserPolling, stopUserPolling } from '../../state/user/user.actions';
+import { loadExtensionTypesForCanvas } from '../../state/extension-types/extension-types.actions';
+import { NiFiState } from '../../state';
 
 @Component({
     selector: 'flow-designer',
@@ -26,10 +27,11 @@ import { startUserPolling, stopUserPolling } from '../../state/user/user.actions
     styleUrls: ['./flow-designer.component.scss']
 })
 export class FlowDesignerComponent implements OnInit, OnDestroy {
-    constructor(private store: Store<UserState>) {}
+    constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(startUserPolling());
+        this.store.dispatch(loadExtensionTypesForCanvas());
     }
 
     ngOnDestroy(): void {

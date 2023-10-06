@@ -16,18 +16,25 @@
  */
 
 import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { CanvasState } from '../../../state';
-import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../state/flow/flow.actions';
 import { Client } from '../../../service/client.service';
 import { EditComponent } from '../../../state/flow';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
+import { Banner } from '../../common/banner/banner.component';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'edit-port',
+    standalone: true,
     templateUrl: './edit-port.component.html',
+    imports: [ReactiveFormsModule, Banner, MatDialogModule, MatInputModule, MatCheckboxModule, MatButtonModule, NgIf],
     styleUrls: ['./edit-port.component.scss']
 })
 export class EditPort {

@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { OkDialogRequest } from '../../../state/shared';
-import { MatButtonModule } from '@angular/material/button';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@Component({
-    selector: 'ok-dialog',
-    standalone: true,
-    imports: [MatDialogModule, MatButtonModule],
-    templateUrl: './ok-dialog.component.html',
-    styleUrls: ['./ok-dialog.component.scss']
-})
-export class OkDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
-}
+import { ExtensionCreation } from './extension-creation.component';
+
+describe('ExtensionCreation', () => {
+    let component: ExtensionCreation;
+    let fixture: ComponentFixture<ExtensionCreation>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ExtensionCreation]
+        });
+        fixture = TestBed.createComponent(ExtensionCreation);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

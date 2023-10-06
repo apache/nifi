@@ -20,6 +20,7 @@ import {
     CreateComponent,
     CreateComponentResponse,
     CreatePort,
+    CreateProcessor,
     DeleteComponent,
     DeleteComponentResponse,
     EditComponent,
@@ -103,6 +104,13 @@ export const createComponentRequest = createAction(
 export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponent }>());
 
 export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponent }>());
+
+export const openNewProcessorDialog = createAction(
+    '[Canvas] Open New Processor Dialog',
+    props<{ request: CreateComponent }>()
+);
+
+export const createProcessor = createAction('[Canvas] Create Processor', props<{ request: CreateProcessor }>());
 
 export const openNewPortDialog = createAction('[Canvas] Open New Port Dialog', props<{ request: CreateComponent }>());
 

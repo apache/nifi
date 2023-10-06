@@ -33,8 +33,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
-import { ComponentType, Dimension } from '../../state/shared';
+import { Dimension } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -58,6 +60,7 @@ export class ProcessorManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
@@ -74,7 +77,6 @@ export class ProcessorManager {
         if (entered.empty()) {
             return entered;
         }
-        const self: ProcessorManager = this;
 
         const processor = entered
             .append('g')
@@ -507,13 +509,13 @@ export class ProcessorManager {
                             // apply ellipsis to the processor type as necessary
                             self.canvasUtils.ellipsis(
                                 processorType,
-                                self.canvasUtils.formatType(d.component),
+                                self.nifiCommon.formatType(d.component),
                                 'processor-type'
                             );
                         })
                         .append('title')
                         .text(function (d: any) {
-                            return self.canvasUtils.formatType(d.component);
+                            return self.nifiCommon.formatType(d.component);
                         });
 
                     // update the processor bundle
@@ -528,13 +530,13 @@ export class ProcessorManager {
                             // apply ellipsis to the processor type as necessary
                             self.canvasUtils.ellipsis(
                                 processorBundle,
-                                self.canvasUtils.formatBundle(d.component.bundle),
+                                self.nifiCommon.formatBundle(d.component.bundle),
                                 'processor-bundle'
                             );
                         })
                         .append('title')
                         .text(function (d: any) {
-                            return self.canvasUtils.formatBundle(d.component.bundle);
+                            return self.nifiCommon.formatBundle(d.component.bundle);
                         });
 
                     // update the processor comments
@@ -542,11 +544,11 @@ export class ProcessorManager {
                         .select('path.component-comments')
                         .style(
                             'visibility',
-                            self.canvasUtils.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
+                            self.nifiCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (
-                                !self.canvasUtils.isBlank(processorData.component.config.comments) &&
+                                !self.nifiCommon.isBlank(processorData.component.config.comments) &&
                                 self.viewContainerRef
                             ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
@@ -641,9 +643,7 @@ export class ProcessorManager {
                     if (color.toLowerCase() === '#ffffff') {
                         color = self.defaultIconColor();
                     } else {
-                        color = self.canvasUtils.determineContrastColor(
-                            self.canvasUtils.substringAfterLast(color, '#')
-                        );
+                        color = self.canvasUtils.determineContrastColor(self.nifiCommon.substringAfterLast(color, '#'));
                     }
                 }
 
@@ -721,12 +721,12 @@ export class ProcessorManager {
 
         // in count value
         updated.select('text.processor-in tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in size value
         updated.select('text.processor-in tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // read/write value
@@ -736,12 +736,12 @@ export class ProcessorManager {
 
         // out count value
         updated.select('text.processor-out tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
         // out size value
         updated.select('text.processor-out tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
         // tasks/time value
@@ -784,7 +784,7 @@ export class ProcessorManager {
      */
     private needsTip(d: any) {
         return (
-            (d.permissions.canRead && !this.canvasUtils.isEmpty(d.component.validationErrors)) ||
+            (d.permissions.canRead && !this.nifiCommon.isEmpty(d.component.validationErrors)) ||
             d.status.aggregateSnapshot.runStatus === 'Validating'
         );
     }

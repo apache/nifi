@@ -31,6 +31,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
 import { Permissions } from '../../state/shared';
+import { NiFiCommon } from '../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -48,7 +49,10 @@ export class CanvasUtils {
 
     private readonly humanizeDuration: Humanizer;
 
-    constructor(private store: Store<CanvasState>) {
+    constructor(
+        private store: Store<CanvasState>,
+        private nifiCommon: NiFiCommon
+    ) {
         this.humanizeDuration = humanizer();
 
         this.store
@@ -411,121 +415,6 @@ export class CanvasUtils {
         return d3.selectAll('g.component.selected, g.connection.selected');
     }
 
-    /**
-     * Extracts the contents of the specified str before the strToFind. If the
-     * strToFind is not found or the first path of the str, an empty string is
-     * returned.
-     *
-     * @argument {string} str       The full string
-     * @argument {string} strToFind The substring to find
-     */
-    public substringBeforeFirst(str: string, strToFind: string) {
-        let result = '';
-        const indexOfStrToFind = str.indexOf(strToFind);
-        if (indexOfStrToFind >= 0) {
-            result = str.substring(0, indexOfStrToFind);
-        }
-        return result;
-    }
-
-    /**
-     * Extracts the contents of the specified str after the strToFind. If the
-     * strToFind is not found or the last part of the str, an empty string is
-     * returned.
-     *
-     * @argument {string} str       The full string
-     * @argument {string} strToFind The substring to find
-     */
-    public substringAfterFirst(str: string, strToFind: string) {
-        var result = '';
-        var indexOfStrToFind = str.indexOf(strToFind);
-        if (indexOfStrToFind >= 0) {
-            var indexAfterStrToFind = indexOfStrToFind + strToFind.length;
-            if (indexAfterStrToFind < str.length) {
-                result = str.substring(indexAfterStrToFind);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Extracts the contents of the specified str after the last strToFind. If the
-     * strToFind is not found or the last part of the str, an empty string is
-     * returned.
-     *
-     * @argument {string} str       The full string
-     * @argument {string} strToFind The substring to find
-     */
-    public substringAfterLast(str: string, strToFind: string): string {
-        let result = '';
-        const indexOfStrToFind = str.lastIndexOf(strToFind);
-        if (indexOfStrToFind >= 0) {
-            const indexAfterStrToFind = indexOfStrToFind + strToFind.length;
-            if (indexAfterStrToFind < str.length) {
-                result = str.substring(indexAfterStrToFind);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Determines whether the specified string is blank (or null or undefined).
-     *
-     * @argument {string} str   The string to test
-     */
-    public isBlank(str: string) {
-        if (str) {
-            return str.trim().length === 0;
-        }
-
-        return true;
-    }
-
-    /**
-     * Determines if the specified array is empty. If the specified arg is not an
-     * array, then true is returned.
-     *
-     * @argument {array} arr    The array to test
-     */
-    public isEmpty(arr: any) {
-        return Array.isArray(arr) ? arr.length === 0 : true;
-    }
-
-    /**
-     * Formats the class name of this component.
-     *
-     * @param dataContext component datum
-     */
-    public formatClassName(dataContext: any): string {
-        return this.substringAfterLast(dataContext.type, '.');
-    }
-
-    /**
-     * Formats the type of this component.
-     *
-     * @param dataContext component datum
-     */
-    public formatType(dataContext: any): string {
-        let typeString: string = this.formatClassName(dataContext);
-        if (dataContext.bundle.version !== 'unversioned') {
-            typeString += ' ' + dataContext.bundle.version;
-        }
-        return typeString;
-    }
-
-    /**
-     * Formats the bundle label.
-     *
-     * @param bundle
-     */
-    public formatBundle(bundle: any): string {
-        let groupString: string = '';
-        if (bundle.group !== 'default') {
-            groupString = bundle.group + ' - ';
-        }
-        return groupString + bundle.artifact;
-    }
-
     public getComponentConnections(id: string): any[] {
         return this.connections.filter((connection) => {
             return (
@@ -571,7 +460,7 @@ export class CanvasUtils {
      * @param {object} connection
      */
     public formatConnectionName(connection: any): string {
-        if (!this.isBlank(connection.name)) {
+        if (!this.nifiCommon.isBlank(connection.name)) {
             return connection.name;
         } else if (connection.selectedRelationships) {
             return connection.selectedRelationships.join(', ');
@@ -790,7 +679,7 @@ export class CanvasUtils {
      * @param bulletins
      */
     public bulletins(viewContainerRef: ViewContainerRef, selection: any, bulletins: string[]): void {
-        if (this.isEmpty(bulletins)) {
+        if (this.nifiCommon.isEmpty(bulletins)) {
             // reset the bulletin icon/background
             selection.select('text.bulletin-icon').style('visibility', 'hidden');
             selection.select('rect.bulletin-background').style('visibility', 'hidden');

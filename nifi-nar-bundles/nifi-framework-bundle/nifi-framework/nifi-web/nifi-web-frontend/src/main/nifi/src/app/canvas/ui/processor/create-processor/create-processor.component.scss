@@ -14,19 +14,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { OkDialogRequest } from '../../../state/shared';
-import { MatButtonModule } from '@angular/material/button';
-
-@Component({
-    selector: 'ok-dialog',
-    standalone: true,
-    imports: [MatDialogModule, MatButtonModule],
-    templateUrl: './ok-dialog.component.html',
-    styleUrls: ['./ok-dialog.component.scss']
-})
-export class OkDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
-}

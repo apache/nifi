@@ -43,7 +43,6 @@ import {
     UpdateComponentFailure,
     UpdateComponentResponse
 } from './index';
-import { CanvasState } from '../index';
 import { Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
@@ -54,18 +53,21 @@ import { ConnectionManager } from '../../service/manager/connection-manager.serv
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
-import { ComponentType } from '../shared';
+import { ComponentType } from '../../../state/shared';
 import { Router } from '@angular/router';
 import { selectUrl } from '../../../state/router/router.selectors';
 import { Client } from '../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasView } from '../../service/canvas-view.service';
+import { selectProcessorTypes } from '../../../state/extension-types/extension-types.selectors';
+import { NiFiState } from '../../../state';
+import { CreateProcessor } from '../../ui/processor/create-processor/create-processor.component';
 
 @Injectable()
 export class FlowEffects {
     constructor(
         private actions$: Actions,
-        private store: Store<CanvasState>,
+        private store: Store<NiFiState>,
         private flowService: FlowService,
         private client: Client,
         private canvasUtils: CanvasUtils,
@@ -163,6 +165,8 @@ export class FlowEffects {
             map((action) => action.request),
             switchMap((request) => {
                 switch (request.type) {
+                    case ComponentType.Processor:
+                        return of(FlowActions.openNewProcessorDialog({ request }));
                     case ComponentType.Funnel:
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:
@@ -174,6 +178,51 @@ export class FlowEffects {
                         return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
                 }
             })
+        )
+    );
+
+    openNewProcessorDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewProcessorDialog),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectProcessorTypes)),
+                tap(([request, processorTypes]) => {
+                    this.dialog
+                        .open(CreateProcessor, {
+                            data: {
+                                request,
+                                processorTypes
+                            },
+                            panelClass: 'medium-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createProcessor$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createProcessor),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createProcessor(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
         )
     );
 

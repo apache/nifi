@@ -15,17 +15,6 @@
  * limitations under the License.
  */
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
-
 export interface Dimension {
     width: number;
     height: number;

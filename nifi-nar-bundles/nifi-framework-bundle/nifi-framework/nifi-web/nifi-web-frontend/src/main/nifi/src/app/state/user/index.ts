@@ -15,17 +15,12 @@
  * limitations under the License.
  */
 
-import { Permissions } from '../shared';
+import { Permissions, RequiredPermission } from '../shared';
 
 export const userFeatureKey = 'user';
 
 export interface LoadUserResponse {
     user: User;
-}
-
-export interface RequiredPermission {
-    id: string;
-    label: string;
 }
 
 export interface ComponentRestrictionPermission {

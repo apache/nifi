@@ -33,9 +33,10 @@ import { Client } from '../client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
-import { ComponentType } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { UpdateComponent } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -59,6 +60,7 @@ export class LabelManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private client: Client,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
@@ -76,7 +78,6 @@ export class LabelManager {
         if (entered.empty()) {
             return entered;
         }
-        const self: LabelManager = this;
 
         const label = entered
             .append('g')
@@ -207,7 +208,7 @@ export class LabelManager {
                         })
                         .style('fill', function () {
                             return self.canvasUtils.determineContrastColor(
-                                self.canvasUtils.substringAfterLast(color, '#')
+                                self.nifiCommon.substringAfterLast(color, '#')
                             );
                         });
                 });

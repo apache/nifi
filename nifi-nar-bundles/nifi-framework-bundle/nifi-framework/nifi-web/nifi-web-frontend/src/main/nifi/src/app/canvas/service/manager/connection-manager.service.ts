@@ -36,9 +36,11 @@ import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
-import { ComponentType, Dimension, Position } from '../../state/shared';
+import { Dimension, Position } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { UpdateComponent } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -86,6 +88,7 @@ export class ConnectionManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private client: Client,
         private selectableBehavior: SelectableBehavior,
         private transitionBehavior: TransitionBehavior
@@ -1120,7 +1123,7 @@ export class ConnectionManager {
                         const connectionNameValue: string = self.canvasUtils.formatConnectionName(d.component);
 
                         // is there a name to render
-                        if (!self.canvasUtils.isBlank(connectionNameValue)) {
+                        if (!self.nifiCommon.isBlank(connectionNameValue)) {
                             // see if the connection name label is already rendered
                             if (connectionName.empty()) {
                                 connectionName = connectionLabelContainer
@@ -1644,7 +1647,7 @@ export class ConnectionManager {
         await new Promise<void>(function (resolve) {
             // queued count value
             updated.select('text.queued tspan.count').text(function (d: any) {
-                return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+                return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
             const backpressurePercentDataSize: any = updated.select('rect.backpressure-percent.data-size');
@@ -1716,7 +1719,7 @@ export class ConnectionManager {
         await new Promise<void>(function (resolve) {
             // queued size value
             updated.select('text.queued tspan.size').text(function (d: any) {
-                return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+                return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
             const backpressurePercentObject: any = updated.select('rect.backpressure-percent.object');

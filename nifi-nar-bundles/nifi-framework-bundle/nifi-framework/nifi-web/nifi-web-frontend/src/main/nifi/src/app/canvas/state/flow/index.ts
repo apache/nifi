@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-import { ComponentType, Position } from '../shared';
-import { Permissions } from '../../../state/shared';
+import { Position } from '../shared';
+import { ComponentType, Permissions } from '../../../state/shared';
+import { DocumentedType } from '../../../state/extension-types';
 
 export const flowFeatureKey = 'flowState';
 
@@ -61,14 +62,23 @@ export interface CreateComponent {
     revision: any;
 }
 
-export interface CreateComponentResponse {
-    type: ComponentType;
-    payload: any;
+export interface CreateProcessorDialogRequest {
+    request: CreateComponent;
+    processorTypes: DocumentedType[];
+}
+
+export interface CreateProcessor extends CreateComponent {
+    processorType: string;
 }
 
 export interface CreatePort extends CreateComponent {
     name: string;
     allowRemoteAccess: boolean;
+}
+
+export interface CreateComponentResponse {
+    type: ComponentType;
+    payload: any;
 }
 
 export interface EditComponentRequest {

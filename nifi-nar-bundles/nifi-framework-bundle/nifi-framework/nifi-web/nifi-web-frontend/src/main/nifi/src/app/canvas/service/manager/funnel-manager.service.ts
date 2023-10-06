@@ -29,7 +29,8 @@ import {
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ComponentType, Dimension } from '../../state/shared';
+import { Dimension } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { filter, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -62,7 +63,6 @@ export class FunnelManager {
         if (entered.empty()) {
             return entered;
         }
-        const self: FunnelManager = this;
 
         const funnel = entered
             .append('g')

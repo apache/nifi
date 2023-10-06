@@ -28,8 +28,7 @@ import {
 } from '@angular/cdk/overlay';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
-import { Router } from '@angular/router';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
 
 @Component({
     selector: 'search',
@@ -74,7 +73,6 @@ export class Search implements OnInit {
 
     constructor(
         private formBuilder: FormBuilder,
-        private store: Store<CanvasState>,
         private searchService: SearchService
     ) {
         this.searchForm = this.formBuilder.group({ searchBar: '' });

@@ -16,18 +16,36 @@
  */
 
 import { Component, Inject } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { selectParentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from 'src/app/canvas/state/flow/flow.actions';
 import { CreateComponent } from '../../../state/flow';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Banner } from '../../common/banner/banner.component';
+import { NgForOf, NgIf } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'create-port',
+    standalone: true,
+    imports: [
+        ReactiveFormsModule,
+        MatDialogModule,
+        MatInputModule,
+        MatSelectModule,
+        MatTooltipModule,
+        Banner,
+        NgIf,
+        NgForOf,
+        MatButtonModule
+    ],
     templateUrl: './create-port.component.html',
     styleUrls: ['./create-port.component.scss']
 })

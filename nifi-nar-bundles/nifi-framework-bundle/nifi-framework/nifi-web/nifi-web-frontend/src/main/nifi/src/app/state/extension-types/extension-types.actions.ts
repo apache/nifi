@@ -15,18 +15,19 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { OkDialogRequest } from '../../../state/shared';
-import { MatButtonModule } from '@angular/material/button';
+import { createAction, props } from '@ngrx/store';
+import { LoadExtensionTypesForCanvasResponse } from './index';
 
-@Component({
-    selector: 'ok-dialog',
-    standalone: true,
-    imports: [MatDialogModule, MatButtonModule],
-    templateUrl: './ok-dialog.component.html',
-    styleUrls: ['./ok-dialog.component.scss']
-})
-export class OkDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
-}
+export const loadExtensionTypesForCanvas = createAction('[Extension Types] Load Extension Types For Canvas');
+
+export const loadExtensionTypesForCanvasSuccess = createAction(
+    '[Extension Types] Load Extension Types For Canvas Success',
+    props<{ response: LoadExtensionTypesForCanvasResponse }>()
+);
+
+export const extensionTypesApiError = createAction(
+    '[Extension Types] Extension Types Api Error',
+    props<{ error: string }>()
+);
+
+export const clearExtensionTypesApiError = createAction('[Extension Types] Clear Extension Types Api Error');

@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { OkDialogRequest } from '../../../state/shared';
-import { MatButtonModule } from '@angular/material/button';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { extensionTypesFeatureKey, ExtensionTypesState } from './index';
 
-@Component({
-    selector: 'ok-dialog',
-    standalone: true,
-    imports: [MatDialogModule, MatButtonModule],
-    templateUrl: './ok-dialog.component.html',
-    styleUrls: ['./ok-dialog.component.scss']
-})
-export class OkDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {}
-}
+export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
+
+export const selectProcessorTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.processorTypes
+);
+
+export const selectControllerServiceTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.controllerServiceTypes
+);

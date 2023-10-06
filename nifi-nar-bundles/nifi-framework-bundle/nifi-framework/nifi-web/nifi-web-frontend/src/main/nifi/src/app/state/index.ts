@@ -19,13 +19,17 @@ import { routerReducer, RouterReducerState } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
 import { UserState, userFeatureKey } from './user';
 import { userReducer } from './user/user.reducer';
+import { extensionTypesFeatureKey, ExtensionTypesState } from './extension-types';
+import { extensionTypesReducer } from './extension-types/extension-types.reducer';
 
-export interface State {
+export interface NiFiState {
     router: RouterReducerState;
     [userFeatureKey]: UserState;
+    [extensionTypesFeatureKey]: ExtensionTypesState;
 }
 
-export const rootReducers: ActionReducerMap<State> = {
+export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
-    [userFeatureKey]: userReducer
+    [userFeatureKey]: userReducer,
+    [extensionTypesFeatureKey]: extensionTypesReducer
 };

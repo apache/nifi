@@ -33,8 +33,10 @@ import { enterProcessGroup } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
 import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
-import { ComponentType, Dimension } from '../../state/shared';
+import { Dimension } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -61,6 +63,7 @@ export class ProcessGroupManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private editableBehavior: EditableBehavior
@@ -1128,11 +1131,11 @@ export class ProcessGroupManager {
                         .select('path.component-comments')
                         .style(
                             'visibility',
-                            self.canvasUtils.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
+                            self.nifiCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (
-                                !self.canvasUtils.isBlank(processGroupData.component.comments) &&
+                                !self.nifiCommon.isBlank(processGroupData.component.comments) &&
                                 self.viewContainerRef
                             ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
@@ -1222,22 +1225,22 @@ export class ProcessGroupManager {
 
         // queued count value
         updated.select('text.process-group-queued tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
         });
 
         // queued size value
         updated.select('text.process-group-queued tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
         });
 
         // in count value
         updated.select('text.process-group-in tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in size value
         updated.select('text.process-group-in tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in ports value
@@ -1271,13 +1274,13 @@ export class ProcessGroupManager {
                 ' ' +
                 String.fromCharCode(8594) +
                 ' ' +
-                self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ')
+                self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ')
             );
         });
 
         // out size value
         updated.select('text.process-group-out tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
         updated.each(function (this: any, d: any) {

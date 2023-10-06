@@ -30,16 +30,14 @@ import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from
 import { rootReducers } from './state';
 import { UserEffects } from './state/user/user.effects';
 import { LoginModule } from './login/feature/login.module';
-import { OkDialog } from './ui/common/ok-dialog/ok-dialog.component';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
+import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
 
 // @ts-ignore
 @NgModule({
-    declarations: [AppComponent, OkDialog],
+    declarations: [AppComponent],
     imports: [
         BrowserModule,
         AppRoutingModule,
@@ -56,14 +54,12 @@ import { AuthInterceptor } from './service/interceptors/auth.interceptor';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(UserEffects),
+        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
         }),
-        MatDialogModule,
-        MatButtonModule,
         MatProgressSpinnerModule
     ],
     providers: [

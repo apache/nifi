@@ -19,9 +19,10 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
-import { CreateComponent, CreatePort, DeleteComponent, Snippet, UpdateComponent } from '../state/flow';
-import { ComponentType } from '../state/shared';
+import { CreateComponent, CreatePort, CreateProcessor, DeleteComponent, Snippet, UpdateComponent } from '../state/flow';
+import { ComponentType } from '../../state/shared';
 import { Client } from './client.service';
+import { NiFiCommon } from '../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService {
@@ -30,7 +31,8 @@ export class FlowService {
     constructor(
         private httpClient: HttpClient,
         private canvasUtils: CanvasUtils,
-        private client: Client
+        private client: Client,
+        private nifiCommon: NiFiCommon
     ) {}
 
     /**
@@ -43,7 +45,7 @@ export class FlowService {
      * @private
      */
     private stripProtocol(url: string): string {
-        return this.canvasUtils.substringAfterFirst(url, ':');
+        return this.nifiCommon.substringAfterFirst(url, ':');
     }
 
     getFlow(processGroupId: string = 'root'): Observable<any> {
@@ -86,6 +88,16 @@ export class FlowService {
             revision: createLabel.revision,
             component: {
                 position: createLabel.position
+            }
+        });
+    }
+
+    createProcessor(processGroupId: string = 'root', createProcessor: CreateProcessor): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/processors`, {
+            revision: createProcessor.revision,
+            component: {
+                position: createProcessor.position,
+                type: createProcessor.processorType
             }
         });
     }

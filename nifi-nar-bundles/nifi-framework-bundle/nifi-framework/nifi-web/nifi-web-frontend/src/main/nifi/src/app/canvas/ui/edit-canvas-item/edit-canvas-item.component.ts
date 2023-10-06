@@ -31,7 +31,7 @@ import {
     selectSingleEditedComponent
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
-import { ComponentType } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { SelectedComponent } from '../../state/flow';
 import { editComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

@@ -32,7 +32,7 @@ import {
     updateComponentSuccess
 } from './flow.actions';
 import { FlowState } from './index';
-import { ComponentType } from '../shared';
+import { ComponentType } from '../../../state/shared';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {

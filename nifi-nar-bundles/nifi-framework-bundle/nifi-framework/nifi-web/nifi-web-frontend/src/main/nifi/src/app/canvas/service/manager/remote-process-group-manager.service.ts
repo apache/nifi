@@ -33,8 +33,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
 import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { ComponentType, Dimension } from '../../state/shared';
+import { Dimension } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -58,6 +60,7 @@ export class RemoteProcessGroupManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
@@ -76,7 +79,6 @@ export class RemoteProcessGroupManager {
         if (entered.empty()) {
             return entered;
         }
-        const self: RemoteProcessGroupManager = this;
 
         const remoteProcessGroup = entered
             .append('g')
@@ -458,11 +460,11 @@ export class RemoteProcessGroupManager {
                         .select('path.component-comments')
                         .style(
                             'visibility',
-                            self.canvasUtils.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
+                            self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
                         .each(function (this: any) {
                             if (
-                                !self.canvasUtils.isBlank(remoteProcessGroupData.component.comments) &&
+                                !self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) &&
                                 self.viewContainerRef
                             ) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
@@ -553,12 +555,12 @@ export class RemoteProcessGroupManager {
 
         // sent count value
         updated.select('text.remote-process-group-sent tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.sent, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.sent, ' ');
         });
 
         // sent size value
         updated.select('text.remote-process-group-sent tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.sent, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.sent, ' ');
         });
 
         // sent ports value
@@ -573,12 +575,12 @@ export class RemoteProcessGroupManager {
 
         // received count value
         updated.select('text.remote-process-group-received tspan.count').text(function (d: any) {
-            return self.canvasUtils.substringBeforeFirst(d.status.aggregateSnapshot.received, ' ');
+            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.received, ' ');
         });
 
         // received size value
         updated.select('text.remote-process-group-received tspan.size').text(function (d: any) {
-            return ' ' + self.canvasUtils.substringAfterFirst(d.status.aggregateSnapshot.received, ' ');
+            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.received, ' ');
         });
 
         // --------------------
@@ -653,10 +655,10 @@ export class RemoteProcessGroupManager {
 
     private getIssues(d: any): any[] {
         let issues: any[] = [];
-        if (!this.canvasUtils.isEmpty(d.component.authorizationIssues)) {
+        if (!this.nifiCommon.isEmpty(d.component.authorizationIssues)) {
             issues = issues.concat(d.component.authorizationIssues);
         }
-        if (!this.canvasUtils.isEmpty(d.component.validationErrors)) {
+        if (!this.nifiCommon.isEmpty(d.component.validationErrors)) {
             issues = issues.concat(d.component.validationErrors);
         }
         return issues;

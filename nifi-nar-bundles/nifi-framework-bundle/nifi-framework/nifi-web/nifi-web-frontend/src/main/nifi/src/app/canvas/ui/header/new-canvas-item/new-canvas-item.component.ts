@@ -25,7 +25,8 @@ import { createComponentRequest, setDragging } from '../../../state/flow/flow.ac
 import { Client } from '../../../service/client.service';
 import { selectDragging } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ComponentType, Position } from '../../../state/shared';
+import { Position } from '../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
 
 @Component({
     selector: 'new-canvas-item',

@@ -33,8 +33,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { TextTip } from '../../ui/common/tooltips/text-tip/text-tip.component';
 import { ValidationErrorsTip } from '../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { ComponentType, Dimension } from '../../state/shared';
+import { Dimension } from '../../state/shared';
+import { ComponentType } from '../../../state/shared';
 import { filter, switchMap } from 'rxjs';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'
@@ -63,6 +65,7 @@ export class PortManager {
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
+        private nifiCommon: NiFiCommon,
         private positionBehavior: PositionBehavior,
         private selectableBehavior: SelectableBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
@@ -104,7 +107,6 @@ export class PortManager {
         if (entered.empty()) {
             return entered;
         }
-        const self: PortManager = this;
 
         const port = entered
             .append('g')
@@ -318,7 +320,7 @@ export class PortManager {
                     port.select('path.component-comments')
                         .style(
                             'visibility',
-                            self.canvasUtils.isBlank(portData.component.comments) ? 'hidden' : 'visible'
+                            self.nifiCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible'
                         )
                         .attr(
                             'transform',
@@ -329,7 +331,7 @@ export class PortManager {
                                 ')'
                         )
                         .each(function (this: any) {
-                            if (!self.canvasUtils.isBlank(portData.component.comments) && self.viewContainerRef) {
+                            if (!self.nifiCommon.isBlank(portData.component.comments) && self.viewContainerRef) {
                                 self.canvasUtils.canvasTooltip(self.viewContainerRef, TextTip, d3.select(this), {
                                     text: portData.component.comments
                                 });
@@ -421,7 +423,7 @@ export class PortManager {
                 // if there are validation errors generate a tooltip
                 if (
                     d.permissions.canRead &&
-                    !self.canvasUtils.isEmpty(d.component.validationErrors) &&
+                    !self.nifiCommon.isEmpty(d.component.validationErrors) &&
                     self.viewContainerRef
                 ) {
                     self.canvasUtils.canvasTooltip(self.viewContainerRef, ValidationErrorsTip, d3.select(this), {

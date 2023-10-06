@@ -20,9 +20,12 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { selectApiError } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgClass, NgIf } from '@angular/common';
 
 @Component({
     selector: 'banner',
+    standalone: true,
+    imports: [NgClass, NgIf],
     templateUrl: './banner.component.html',
     styleUrls: ['./banner.component.scss']
 })
