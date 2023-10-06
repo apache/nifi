@@ -279,7 +279,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             try {
                 headerString = convertMapToJSONString(headers);
             } catch (JsonProcessingException e) {
-                getLogger().debug("error creating json string", e);
+                getLogger().warn("Header formatting as JSON failed", e);
             }
         }
         return headerString;
