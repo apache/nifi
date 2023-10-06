@@ -719,8 +719,8 @@ public class FlowResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null ?
-                serviceFacade.getVersionedReportingTaskSnapshot() :
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
                 serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
 
         return generateOkResponse(snapshot).build();
@@ -758,8 +758,8 @@ public class FlowResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null ?
-                serviceFacade.getVersionedReportingTaskSnapshot() :
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
                 serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
 
         final SimpleDateFormat dateFormat = new SimpleDateFormat(VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT);
