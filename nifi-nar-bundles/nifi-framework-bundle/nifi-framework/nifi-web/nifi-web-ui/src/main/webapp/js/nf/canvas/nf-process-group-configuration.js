@@ -151,10 +151,6 @@
                 saveConfiguration(response.revision.version, groupId);
             });
 
-            $('#process-group-configuration-save-comments').off('click').on('click', function () {
-                saveConfiguration(response.revision.version, groupId);
-            });
-
             var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
 
             $.ajax({
@@ -203,13 +199,10 @@
                 $('#process-group-configuration div.editable').show();
                 $('#process-group-configuration div.read-only').hide();
                 $('#process-group-configuration-save').show();
-                $('#process-group-configuration-save-comments').show();
-
             } else {
                 $('#process-group-configuration div.editable').hide();
                 $('#process-group-configuration div.read-only').show();
                 $('#process-group-configuration-save').hide();
-                $('#process-group-configuration-save-comments').hide();
             }
         };
 
@@ -331,9 +324,6 @@
 
                     // register the click listener for the save button
                     $('#process-group-configuration-save').off('click').on('click', function () {
-                        saveConfiguration(response.revision.version, response.id);
-                    });
-                    $('#process-group-configuration-save-comments').off('click').on('click', function () {
                         saveConfiguration(response.revision.version, response.id);
                     });
                 } else {
@@ -585,7 +575,6 @@
 
         // reset button state
         $('#process-group-configuration-save').mouseout();
-        $('#process-group-configuration-save-comments').mouseout();
 
         // reset the fields
         $('#process-group-id').text('');
@@ -625,9 +614,6 @@
                 }, {
                     name: 'Controller Services',
                     tabContentId: 'process-group-controller-services-tab-content'
-                }, {
-                    name: 'Comments',
-                    tabContentId: 'process-group-comments-tab-content'
                 }],
                 select: function () {
                     var processGroup = $('#process-group-configuration').data('process-group');
@@ -637,17 +623,15 @@
                     if (tab === 'General') {
                         $('#flow-cs-availability').hide();
                         $('#add-process-group-configuration-controller-service').hide();
-                        $('#process-group-comments-content').hide();
 
                         if (canWrite) {
                             $('#process-group-configuration-save').show();
                         } else {
                             $('#process-group-configuration-save').hide();
                         }
-                    } else if (tab === 'Controller Services') {
+                    } else {
                         $('#flow-cs-availability').show();
                         $('#process-group-configuration-save').hide();
-                        $('#process-group-comments-content').hide();
 
                         if (canWrite) {
                             $('#add-process-group-configuration-controller-service').show();
@@ -659,16 +643,6 @@
 
                         // resize the table
                         nfProcessGroupConfiguration.resetTableSize();
-                    } else {
-                        $('#flow-cs-availability').hide();
-                        $('#add-process-group-configuration-controller-service').hide();
-                        $('#process-group-comments-content').show();
-
-                        if (canWrite) {
-                            $('#process-group-configuration-save-comments').show();
-                        } else {
-                            $('#process-group-configuration-save-comments').hide();
-                        }
                     }
                 }
             });

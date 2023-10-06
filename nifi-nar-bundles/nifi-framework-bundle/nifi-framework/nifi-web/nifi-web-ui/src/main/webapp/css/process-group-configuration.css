@@ -132,7 +132,8 @@
 }
 
 #process-group-comments {
-    height: 300px;
+    height: 100px;
+    width: 750px;
 }
 
 #read-only-process-group-comments {

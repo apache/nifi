@@ -104,7 +104,7 @@
                         <div class="settings-column">
                             <div class="setting">
                                 <div class="setting-name">Default FlowFile Expiration
-                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default FLowFile expiration for any new connection. Configuration of existing connections is unaffected."></div>
                                 </div>
                                 <div class="editable setting-field">
                                     <input type="text" id="process-group-default-flowfile-expiration" class="setting-input"/>
@@ -115,7 +115,7 @@
                             </div>
                             <div class="setting">
                                 <div class="setting-name">Default Back Pressure Object Threshold
-                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default back pressure object count for any new connection. Configuration of existing connections is unaffected."></div>
                                 </div>
                                 <div class="editable setting-field">
                                     <input type="text" id="process-group-default-back-pressure-object-threshold" class="setting-input"/>
@@ -126,7 +126,7 @@
                             </div>
                             <div class="setting">
                                 <div class="setting-name">Default Back Pressure Data Size Threshold
-                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default back pressure data size for any new connection. Configuration of existing connections is unaffected."></div>
                                 </div>
                                 <div class="editable setting-field">
                                     <input type="text" id="process-group-default-back-pressure-data-size-threshold" class="setting-input"/>
@@ -148,31 +148,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="editable settings-buttons">
-                        <div id="process-group-configuration-save" class="button">Apply</div>
-                        <div class="clear"></div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">Process group comments</div>
+                    <div class="editable setting-field">
+                        <textarea id="process-group-comments" class="setting-input"></textarea>
                     </div>
+                    <div class="read-only setting-field">
+                        <span id="read-only-process-group-comments" class="unset"></span>
+                    </div>
+                </div>
+
+                <div class="editable settings-buttons">
+                    <div id="process-group-configuration-save" class="button">Apply</div>
+                    <div class="clear"></div>
                 </div>
             </div>
             <div id="process-group-controller-services-tab-content" class="configuration-tab">
                 <div id="process-group-controller-services-table" class="settings-table"></div>
-            </div>
-            <div id="process-group-comments-tab-content" class="comments-tab">
-                <div id="process-group-comments-content">
-                    <div class="setting">
-                        <div class="setting-name">Process group comments</div>
-                        <div class="editable setting-field">
-                            <textarea id="process-group-comments" class="setting-input"></textarea>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-comments" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="editable settings-buttons">
-                        <div id="process-group-configuration-save-comments" class="button">Apply</div>
-                        <div class="clear"></div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
