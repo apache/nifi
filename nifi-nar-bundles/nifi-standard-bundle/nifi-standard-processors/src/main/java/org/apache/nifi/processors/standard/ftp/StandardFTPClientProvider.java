@@ -172,12 +172,10 @@ public class StandardFTPClientProvider implements FTPClientProvider {
 
         final Proxy.Type proxyType = proxyConfiguration.getProxyType();
 
-        FTPClient client;
-        if (Proxy.Type.DIRECT == proxyType) {
-            client = new FTPClient();
-        } else {
+        final FTPClient client = new FTPClient();
+        if (Proxy.Type.HTTP == proxyType || Proxy.Type.SOCKS == proxyType) {
             final SocketFactory socketFactory = SOCKET_FACTORY_PROVIDER.getSocketFactory(proxyConfiguration);
-            client = new ProxyFTPClient(socketFactory);
+            client.setSocketFactory(socketFactory);
             // Disable NAT workaround for proxy connections
             client.setPassiveNatWorkaroundStrategy(null);
         }
