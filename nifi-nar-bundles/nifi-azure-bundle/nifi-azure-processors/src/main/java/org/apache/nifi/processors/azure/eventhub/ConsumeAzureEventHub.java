@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.core.amqp.AmqpTransportType;
-import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -470,10 +469,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         } else {
             eventProcessorClientBuilder.initialPartitionEventPosition(legacyPartitionEventPosition);
         }
-        final ProxyOptions proxyOptions = AzureEventHubUtils.getProxyOptions(context);
-        if (proxyOptions != null) {
-            eventProcessorClientBuilder.proxyOptions(proxyOptions);
-        }
+
+        AzureEventHubUtils.getProxyOptions(context).ifPresent(eventProcessorClientBuilder::proxyOptions);
 
         return eventProcessorClientBuilder.buildEventProcessorClient();
     }

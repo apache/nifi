@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class AzureEventHubUtils {
 
@@ -118,7 +119,7 @@ public final class AzureEventHubUtils {
      * @param propertyContext to supply Proxy configurations
      * @return {@link ProxyOptions proxy options}, null if Proxy is not set
      */
-    public static ProxyOptions getProxyOptions(final PropertyContext propertyContext) {
+    public static Optional<ProxyOptions> getProxyOptions(final PropertyContext propertyContext) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
         final ProxyOptions proxyOptions;
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
@@ -137,7 +138,7 @@ public final class AzureEventHubUtils {
             proxyOptions = null;
         }
 
-        return proxyOptions;
+        return Optional.ofNullable(proxyOptions);
     }
 
     private static Proxy getProxy(ProxyConfiguration proxyConfiguration) {
