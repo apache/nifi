@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.aws.lambda;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.lambda.AWSLambdaClient;
-import com.amazonaws.services.lambda.model.InvalidParameterValueException;
-import com.amazonaws.services.lambda.model.InvalidRequestContentException;
-import com.amazonaws.services.lambda.model.InvocationType;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
-import com.amazonaws.services.lambda.model.LogType;
-import com.amazonaws.services.lambda.model.RequestTooLargeException;
-import com.amazonaws.services.lambda.model.ResourceNotFoundException;
-import com.amazonaws.services.lambda.model.TooManyRequestsException;
-import com.amazonaws.services.lambda.model.UnsupportedMediaTypeException;
 import com.amazonaws.util.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -46,10 +30,23 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.LambdaClientBuilder;
+import software.amazon.awssdk.services.lambda.model.InvalidParameterValueException;
+import software.amazon.awssdk.services.lambda.model.InvalidRequestContentException;
+import software.amazon.awssdk.services.lambda.model.InvocationType;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.LogType;
+import software.amazon.awssdk.services.lambda.model.RequestTooLargeException;
+import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
+import software.amazon.awssdk.services.lambda.model.UnsupportedMediaTypeException;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -70,10 +67,10 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "aws.lambda.exception.cause", description = "Exception cause on invoking from AWS Lambda"),
     @WritesAttribute(attribute = "aws.lambda.exception.error.code", description = "Exception error code on invoking from AWS Lambda"),
     @WritesAttribute(attribute = "aws.lambda.exception.request.id", description = "Exception request id on invoking from AWS Lambda"),
-    @WritesAttribute(attribute = "aws.lambda.exception.status.code", description = "Exception status code on invoking from AWS Lambda"),
-    @WritesAttribute(attribute = "aws.lambda.exception.error.type", description = "Exception error type on invoking from AWS Lambda")
+    @WritesAttribute(attribute = "aws.lambda.exception.status.code", description = "Exception status code on invoking from AWS Lambda")
     })
-public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambdaClient> {
+public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClientBuilder> {
+
     public static final String AWS_LAMBDA_RESULT_FUNCTION_ERROR = "aws.lambda.result.function.error";
     public static final String AWS_LAMBDA_RESULT_STATUS_CODE = "aws.lambda.result.status.code";
     public static final String AWS_LAMBDA_RESULT_LOG = "aws.lambda.result.log";
@@ -83,7 +80,6 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
     public static final String AWS_LAMBDA_EXCEPTION_ERROR_CODE = "aws.lambda.exception.error.code";
     public static final String AWS_LAMBDA_EXCEPTION_REQUEST_ID = "aws.lambda.exception.request.id";
     public static final String AWS_LAMBDA_EXCEPTION_STATUS_CODE = "aws.lambda.exception.status.code";
-    public static final String AWS_LAMBDA_EXCEPTION_ERROR_TYPE = "aws.lambda.exception.error.type";
     public static final long MAX_REQUEST_SIZE = 6 * 1000 * 1000;
 
     static final PropertyDescriptor AWS_LAMBDA_FUNCTION_NAME = new PropertyDescriptor.Builder()
@@ -103,7 +99,6 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-
     public static final List<PropertyDescriptor> properties = List.of(
             AWS_LAMBDA_FUNCTION_NAME,
             AWS_LAMBDA_FUNCTION_QUALIFIER,
@@ -119,6 +114,8 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
             PROXY_USERNAME,
             PROXY_PASSWORD,
             ENDPOINT_OVERRIDE);
+
+    private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -142,33 +139,38 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
             return;
         }
 
-        final AWSLambdaClient client = getClient(context);
+        final LambdaClient client = getClient(context);
 
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFile, baos);
 
-            final InvokeRequest invokeRequest = new InvokeRequest()
-                .withFunctionName(functionName)
-                .withLogType(LogType.Tail).withInvocationType(InvocationType.RequestResponse)
-                .withPayload(ByteBuffer.wrap(baos.toByteArray()))
-                .withQualifier(qualifier);
+            final InvokeRequest.Builder invokeRequestBuilder = InvokeRequest.builder()
+                    .functionName(functionName)
+                    .logType(LogType.TAIL)
+                    .invocationType(InvocationType.REQUEST_RESPONSE)
+                    .qualifier(qualifier);
+
+            session.read(flowFile, in -> invokeRequestBuilder.payload(SdkBytes.fromInputStream(in)));
+            final InvokeRequest invokeRequest = invokeRequestBuilder.build();
 
             final long startTime = System.nanoTime();
-            final InvokeResult result = client.invoke(invokeRequest);
+            final InvokeResponse response = client.invoke(invokeRequest);
 
-            flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_STATUS_CODE, result.getStatusCode().toString());
+            flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_STATUS_CODE, response.statusCode().toString());
 
-            if (!StringUtils.isBlank(result.getLogResult())) {
-                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_LOG, new String(Base64.decode(result.getLogResult()),Charset.defaultCharset()));
+            final String logResult = response.logResult();
+            if (StringUtils.isNotBlank(logResult)) {
+                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_LOG, new String(Base64.decode(logResult), DEFAULT_CHARSET));
             }
 
-            if (result.getPayload() != null) {
-                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_PAYLOAD, new String(result.getPayload().array(),Charset.defaultCharset()));
+            if (response.payload() != null) {
+                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_PAYLOAD, response.payload().asString(DEFAULT_CHARSET));
             }
 
-            if (!StringUtils.isBlank(result.getFunctionError())) {
-                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_FUNCTION_ERROR, result.getFunctionError());
+            final String functionError = response.functionError();
+            if (StringUtils.isNotBlank(functionError)) {
+                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_FUNCTION_ERROR, functionError);
                 session.transfer(flowFile, REL_FAILURE);
             } else {
                 session.transfer(flowFile, REL_SUCCESS);
@@ -185,7 +187,7 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
-        } catch (final AmazonServiceException unrecoverableServiceException) {
+        } catch (final AwsServiceException unrecoverableServiceException) {
             getLogger().error("Failed to invoke lambda {} with exception {} for flow file {} sending to fail", functionName, unrecoverableServiceException, flowFile);
             flowFile = populateExceptionAttributes(session, flowFile, unrecoverableServiceException);
             session.transfer(flowFile, REL_FAILURE);
@@ -205,29 +207,21 @@ public class PutLambda extends AbstractAWSCredentialsProviderProcessor<AWSLambda
      * @return FlowFile the updated flow file
      */
     private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile,
-            final AmazonServiceException exception) {
+            final AwsServiceException exception) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
-        attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_CODE, exception.getErrorCode());
-        attributes.put(AWS_LAMBDA_EXCEPTION_REQUEST_ID, exception.getRequestId());
-        attributes.put(AWS_LAMBDA_EXCEPTION_STATUS_CODE, Integer.toString(exception.getStatusCode()));
-        if (exception.getCause() != null)
+        attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.awsErrorDetails().errorMessage());
+        attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_CODE, exception.awsErrorDetails().errorCode());
+        attributes.put(AWS_LAMBDA_EXCEPTION_REQUEST_ID, exception.requestId());
+        attributes.put(AWS_LAMBDA_EXCEPTION_STATUS_CODE, Integer.toString(exception.statusCode()));
+        if (exception.getCause() != null) {
             attributes.put(AWS_LAMBDA_EXCEPTION_CAUSE, exception.getCause().getMessage());
-        attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_TYPE, exception.getErrorType().toString());
-        attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
+        }
         flowFile = session.putAllAttributes(flowFile, attributes);
         return flowFile;
     }
 
-
     @Override
-    protected AWSLambdaClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                           final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-        return (AWSLambdaClient) AWSLambdaClient.builder()
-                .withRegion(region.getName())
-                .withEndpointConfiguration(endpointConfiguration)
-                .withCredentials(credentialsProvider)
-                .withClientConfiguration(config)
-                .build();
+    protected LambdaClientBuilder createClientBuilder(final ProcessContext context) {
+        return LambdaClient.builder();
     }
 }
