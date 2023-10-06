@@ -67,26 +67,6 @@ public abstract class AbstractSQSIT {
                 .build());
         assertTrue(response.sdkHttpResponse().isSuccessful());
         queueUrl = response.queueUrl();
-
-//        // Even though the response indicated that the queue was created, it may not be available for use
-//        // yet so we keep checking until it is.
-//        boolean created = false;
-//        for (int i=0; i < 10; i++) {
-//            try {
-//                final GetQueueAttributesResponse getQueueAttributesResponse = client.getQueueAttributes(GetQueueAttributesRequest.builder()
-//                        .queueUrl(queueUrl)
-//                        .build());
-//
-//                if (getQueueAttributesResponse.sdkHttpResponse().isSuccessful()) {
-//                    created = true;
-//                    break;
-//                }
-//            } catch (final Exception e) {
-//                Thread.sleep(100L);
-//            }
-//        }
-//
-//        assertTrue(created);
     }
 
 
