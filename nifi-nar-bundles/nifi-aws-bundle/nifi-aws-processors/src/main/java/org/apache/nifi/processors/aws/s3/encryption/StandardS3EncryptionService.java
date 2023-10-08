@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -97,7 +98,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
                     "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
             .required(false)
             .sensitive(true)
-            .addValidator((subject, input, context) -> new ValidationResult.Builder().valid(true).build()) // will be validated in customValidate()
+            .addValidator(Validator.VALID) // will be validated in customValidate()
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
@@ -120,11 +121,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         final String newStrategyName = context.getProperty(ENCRYPTION_STRATEGY).getValue();
         final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
         final S3EncryptionStrategy newEncryptionStrategy = NAMED_STRATEGIES.get(newStrategyName);
-        String newKmsRegion = null;
 
-        if (context.getProperty(KMS_REGION) != null ) {
-            newKmsRegion = context.getProperty(KMS_REGION).getValue();
-        }
+        kmsRegion = context.getProperty(KMS_REGION).getValue();
 
         if (newEncryptionStrategy == null) {
             final String msg = "No encryption strategy found for name: " + strategyName;
@@ -135,7 +133,6 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         strategyName = newStrategyName;
         encryptionStrategy = newEncryptionStrategy;
         keyValue = newKeyValue;
-        kmsRegion = newKmsRegion;
     }
 
     @Override

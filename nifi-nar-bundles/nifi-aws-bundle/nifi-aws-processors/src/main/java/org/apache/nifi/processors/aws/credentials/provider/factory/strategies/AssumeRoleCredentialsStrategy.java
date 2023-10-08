@@ -178,13 +178,13 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
         AWSSecurityTokenServiceClientBuilder securityTokenServiceBuilder = AWSSecurityTokenServiceClient.builder()
                 .withCredentials(primaryCredentialsProvider)
+                .withRegion(assumeRoleSTSRegion)
                 .withClientConfiguration(config);
 
         if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
             AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(assumeRoleSTSEndpoint, assumeRoleSTSRegion);
             securityTokenServiceBuilder.withEndpointConfiguration(endpointConfiguration);
         }
-
 
         STSAssumeRoleSessionCredentialsProvider.Builder builder = new STSAssumeRoleSessionCredentialsProvider.Builder(assumeRoleArn, assumeRoleName)
                 .withStsClient(securityTokenServiceBuilder.build())

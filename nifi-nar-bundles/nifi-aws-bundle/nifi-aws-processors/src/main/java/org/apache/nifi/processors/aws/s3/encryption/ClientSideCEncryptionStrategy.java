@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
 import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
+import com.amazonaws.services.s3.model.CryptoConfigurationV2;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
@@ -56,10 +59,15 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
         final SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
         final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
 
+        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
+        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.valueOf(kmsRegion)));
+
         final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
+                .disableChunkedEncoding()
+                .withCryptoConfiguration(cryptoConfig)
                 .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
         clientBuilder.accept(builder);
-        return builder.disableChunkedEncoding().build();
+        return builder.build();
     }
 
     @Override

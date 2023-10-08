@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -62,7 +63,8 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy builds a client:
         assertNotNull(strategy.createEncryptionClient(builder -> {
-        }, null, randomKeyMaterial));
+            builder.withRegion(Regions.DEFAULT_REGION.getName());
+        }, Regions.DEFAULT_REGION.name(), randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
         assertNull(metadata.getSSEAlgorithm());

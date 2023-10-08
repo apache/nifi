@@ -231,6 +231,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             builder.withEndpointConfiguration(endpointConfiguration);
             builder.withClientConfiguration(config);
             builder.withCredentials(credentialsProvider);
+            builder.withRegion(region.getName());
 
             final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
             if (useChunkedEncoding == Boolean.FALSE) {
