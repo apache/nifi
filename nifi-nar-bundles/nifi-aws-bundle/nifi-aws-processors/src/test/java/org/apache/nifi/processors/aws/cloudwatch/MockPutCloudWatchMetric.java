@@ -17,12 +17,12 @@
 package org.apache.nifi.processors.aws.cloudwatch;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
+import org.apache.nifi.processor.ProcessContext;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
 import java.util.List;
-import org.apache.nifi.processor.ProcessContext;
 
 
 /**
@@ -33,14 +33,14 @@ public class MockPutCloudWatchMetric extends PutCloudWatchMetric {
     protected String actualNamespace;
     protected List<MetricDatum> actualMetricData;
     protected AmazonClientException throwException;
-    protected PutMetricDataResult result = new PutMetricDataResult();
+    protected PutMetricDataResponse result = PutMetricDataResponse.builder().build();
     protected int putMetricDataCallCount = 0;
 
 
-    protected PutMetricDataResult putMetricData(ProcessContext context, PutMetricDataRequest metricDataRequest) throws AmazonClientException {
+    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) throws AmazonClientException {
         putMetricDataCallCount++;
-        actualNamespace = metricDataRequest.getNamespace();
-        actualMetricData = metricDataRequest.getMetricData();
+        actualNamespace = metricDataRequest.namespace();
+        actualMetricData = metricDataRequest.metricData();
 
         if (throwException != null) {
             throw throwException;
