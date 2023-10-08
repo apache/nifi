@@ -16,24 +16,26 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.stream.Stream;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit tests for {@link PutCloudWatchMetric}.
@@ -59,8 +61,8 @@ public class TestPutCloudWatchMetric {
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        assertEquals("TestMetric", datum.getMetricName());
-        assertEquals(1d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.metricName());
+        assertEquals(1d, datum.value(), 0.0001d);
     }
 
     @Test
@@ -150,8 +152,8 @@ public class TestPutCloudWatchMetric {
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        assertEquals("TestMetric", datum.getMetricName());
-        assertEquals(1.23d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.metricName());
+        assertEquals(1.23d, datum.value(), 0.0001d);
     }
 
     @Test
@@ -179,11 +181,11 @@ public class TestPutCloudWatchMetric {
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        assertEquals("TestMetric", datum.getMetricName());
-        assertEquals(1.0d, datum.getStatisticValues().getMinimum(), 0.0001d);
-        assertEquals(2.0d, datum.getStatisticValues().getMaximum(), 0.0001d);
-        assertEquals(3.0d, datum.getStatisticValues().getSum(), 0.0001d);
-        assertEquals(2.0d, datum.getStatisticValues().getSampleCount(), 0.0001d);
+        assertEquals("TestMetric", datum.metricName());
+        assertEquals(1.0d, datum.statisticValues().minimum(), 0.0001d);
+        assertEquals(2.0d, datum.statisticValues().maximum(), 0.0001d);
+        assertEquals(3.0d, datum.statisticValues().sum(), 0.0001d);
+        assertEquals(2.0d, datum.statisticValues().sampleCount(), 0.0001d);
     }
 
     @Test
@@ -209,16 +211,16 @@ public class TestPutCloudWatchMetric {
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        assertEquals("TestMetric", datum.getMetricName());
-        assertEquals(1d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.metricName());
+        assertEquals(1d, datum.value(), 0.0001d);
 
-        List<Dimension> dimensions = datum.getDimensions();
-        Collections.sort(dimensions, (d1, d2) -> d1.getName().compareTo(d2.getName()));
+        List<Dimension> dimensions = new ArrayList<>(datum.dimensions());
+        Collections.sort(dimensions, Comparator.comparing(Dimension::name));
         assertEquals(2, dimensions.size());
-        assertEquals("dim1", dimensions.get(0).getName());
-        assertEquals("1", dimensions.get(0).getValue());
-        assertEquals("dim2", dimensions.get(1).getName());
-        assertEquals("val2", dimensions.get(1).getValue());
+        assertEquals("dim1", dimensions.get(0).name());
+        assertEquals("1", dimensions.get(0).value());
+        assertEquals("dim2", dimensions.get(1).name());
+        assertEquals("val2", dimensions.get(1).value());
     }
 
     @Test
