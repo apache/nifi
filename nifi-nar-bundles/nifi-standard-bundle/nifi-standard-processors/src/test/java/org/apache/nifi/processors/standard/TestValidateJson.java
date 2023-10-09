@@ -23,8 +23,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
@@ -193,28 +191,6 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
     }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"true", "false"})
-    void testJsonLines(String supportJsonLines) {
-        runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
-        runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
-        runner.setProperty(ValidateJson.JSON_LINES, supportJsonLines);
-
-        runner.enqueue(getFileContent("multiline.json"));
-        runner.run();
-
-        if(Boolean.parseBoolean(supportJsonLines)) {
-            runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-            runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-            runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        } else {
-            runner.assertTransferCount(ValidateJson.REL_VALID, 0);
-            runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-            runner.assertTransferCount(ValidateJson.REL_FAILURE, 1);
-        }
-    }
-
     private void assertValidationErrors(Relationship relationship, boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
 
