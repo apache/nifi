@@ -84,6 +84,7 @@ public class StatelessKafkaConnectorUtil {
             config.setFlowDefinition(dataflowDefinitionProperties);
             dataflowDefinitionProperties.put(StatelessNiFiCommonConfig.BOOTSTRAP_FLOW_NAME, dataflowName);
             MDC.setContextMap(Collections.singletonMap("dataflow", dataflowName));
+            StatelessDataflow dataflow;
 
             // Use a Write Lock to ensure that only a single thread is calling StatelessBootstrap.bootstrap().
             // We do this because the bootstrap() method will expand all NAR files into the working directory.
@@ -91,13 +92,16 @@ public class StatelessKafkaConnectorUtil {
             // unpacking NARs at the same time, as it could potentially result in the working directory becoming corrupted.
             unpackNarLock.lock();
             try {
+                StatelessKafkaConnectorWorkingDirectoryUtil.checkWorkingDirectoryIntegrity(engineConfiguration.getWorkingDirectory());
+
                 bootstrap = StatelessBootstrap.bootstrap(engineConfiguration, StatelessNiFiSourceTask.class.getClassLoader());
+
+                dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
+                dataflow = bootstrap.createDataflow(dataflowDefinition);
             } finally {
                 unpackNarLock.unlock();
             }
-
-            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
-            return bootstrap.createDataflow(dataflowDefinition);
+            return dataflow;
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }
