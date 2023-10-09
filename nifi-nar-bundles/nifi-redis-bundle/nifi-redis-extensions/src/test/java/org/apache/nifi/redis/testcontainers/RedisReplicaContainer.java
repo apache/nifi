@@ -50,6 +50,11 @@ public class RedisReplicaContainer extends RedisContainer {
     protected void adjustConfiguration() {
         addConfigurationOption("port " + port);
 
+        if (username != null) {
+            final String userPassword = password == null ? "nopass" : ">" + password;
+            addConfigurationOption("user " + username + " on " + userPassword + " ~* allcommands allchannels");
+        }
+
         if (password != null) {
             addConfigurationOption("requirepass " + password);
             addConfigurationOption("masterauth " + password);

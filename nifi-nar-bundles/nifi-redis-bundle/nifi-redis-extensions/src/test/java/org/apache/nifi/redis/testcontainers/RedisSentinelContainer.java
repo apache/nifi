@@ -44,6 +44,8 @@ public class RedisSentinelContainer extends RedisContainer {
     @NonNull
     protected String masterName = "mymaster";
     @Nullable
+    protected String sentinelUsername = null;
+    @Nullable
     protected String sentinelPassword = null;
     private long downAfterMilliseconds = 60000L;
     private long failoverTimeout = 180000L;
@@ -60,6 +62,10 @@ public class RedisSentinelContainer extends RedisContainer {
 
     public void setMasterName(final @NonNull String masterName) {
         this.masterName = masterName;
+    }
+
+    public void setSentinelUsername(final @Nullable String sentinelUsername) {
+        this.sentinelUsername = sentinelUsername;
     }
 
     public void setSentinelPassword(final @Nullable String sentinelPassword) {
@@ -92,9 +98,20 @@ public class RedisSentinelContainer extends RedisContainer {
         addConfigurationOption(String.format("sentinel failover-timeout %s %d", masterName, failoverTimeout));
         addConfigurationOption(String.format("sentinel parallel-syncs %s %d", masterName, parallelSyncs));
 
+        if (username != null) {
+            addConfigurationOption("sentinel auth-user " + masterName + " " + username);
+        }
+
         if (password != null) {
             addConfigurationOption("sentinel auth-pass " + masterName + " " + password);
         }
+
+        if (sentinelUsername != null) {
+            final String sentinelUserPassword = sentinelPassword == null ? "nopass" : ">" + sentinelPassword;
+            addConfigurationOption("user " + sentinelUsername + " on " + sentinelUserPassword + " ~* allcommands allchannels");
+            addConfigurationOption("sentinel sentinel-user " + sentinelUsername);
+        }
+
         if (sentinelPassword != null) {
             addConfigurationOption("requirepass " + sentinelPassword);
             addConfigurationOption("sentinel sentinel-pass " + sentinelPassword);

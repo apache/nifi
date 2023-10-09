@@ -141,6 +141,13 @@ public class RedisUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+            .name("Username")
+            .description("The username used to authenticate to the Redis server.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .displayName("Password")
@@ -148,6 +155,13 @@ public class RedisUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor SENTINEL_USERNAME = new PropertyDescriptor.Builder()
+            .name("Sentinel Username")
+            .description("The username used to authenticate to the Redis sentinel server.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SENTINEL_PASSWORD = new PropertyDescriptor.Builder()
@@ -293,7 +307,9 @@ public class RedisUtils {
         props.add(RedisUtils.COMMUNICATION_TIMEOUT);
         props.add(RedisUtils.CLUSTER_MAX_REDIRECTS);
         props.add(RedisUtils.SENTINEL_MASTER);
+        props.add(RedisUtils.USERNAME);
         props.add(RedisUtils.PASSWORD);
+        props.add(RedisUtils.SENTINEL_USERNAME);
         props.add(RedisUtils.SENTINEL_PASSWORD);
         props.add(RedisUtils.SSL_CONTEXT_SERVICE);
         props.add(RedisUtils.POOL_MAX_TOTAL);
@@ -318,7 +334,9 @@ public class RedisUtils {
         final RedisConfig redisConfig = new RedisConfig(redisType, connectString);
         redisConfig.setSentinelMaster(context.getProperty(RedisUtils.SENTINEL_MASTER).evaluateAttributeExpressions().getValue());
         redisConfig.setDbIndex(context.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger());
+        redisConfig.setUsername(context.getProperty(RedisUtils.USERNAME).evaluateAttributeExpressions().getValue());
         redisConfig.setPassword(context.getProperty(RedisUtils.PASSWORD).evaluateAttributeExpressions().getValue());
+        redisConfig.setSentinelUsername(context.getProperty(RedisUtils.SENTINEL_USERNAME).evaluateAttributeExpressions().getValue());
         redisConfig.setSentinelPassword(context.getProperty(RedisUtils.SENTINEL_PASSWORD).evaluateAttributeExpressions().getValue());
         redisConfig.setTimeout(context.getProperty(RedisUtils.COMMUNICATION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         redisConfig.setClusterMaxRedirects(context.getProperty(RedisUtils.CLUSTER_MAX_REDIRECTS).asInteger());
@@ -345,7 +363,9 @@ public class RedisUtils {
         final RedisType redisMode = redisConfig.getRedisMode();
         final String connectionString = redisConfig.getConnectionString();
         final Integer dbIndex = redisConfig.getDbIndex();
+        final String username = redisConfig.getUsername();
         final String password = redisConfig.getPassword();
+        final String sentinelUsername = redisConfig.getSentinelUsername();
         final String sentinelPassword = redisConfig.getSentinelPassword();
         final Integer timeout = redisConfig.getTimeout();
         final JedisPoolConfig poolConfig = createJedisPoolConfig(redisConfig);
@@ -373,7 +393,7 @@ public class RedisUtils {
             final String host = hostAndPortSplit[0].trim();
             final Integer port = Integer.parseInt(hostAndPortSplit[1].trim());
             final RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration(host, port);
-            enrichRedisConfiguration(redisStandaloneConfiguration, dbIndex, password, sentinelPassword);
+            enrichRedisConfiguration(redisStandaloneConfiguration, dbIndex, username, password, sentinelUsername, sentinelPassword);
 
             connectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
 
@@ -381,7 +401,7 @@ public class RedisUtils {
             final String[] sentinels = connectionString.split("[,]");
             final String sentinelMaster = redisConfig.getSentinelMaster();
             final RedisSentinelConfiguration sentinelConfiguration = new RedisSentinelConfiguration(sentinelMaster, new HashSet<>(getTrimmedValues(sentinels)));
-            enrichRedisConfiguration(sentinelConfiguration, dbIndex, password, sentinelPassword);
+            enrichRedisConfiguration(sentinelConfiguration, dbIndex, username, password, sentinelUsername, sentinelPassword);
 
             LOGGER.info("Connecting to Redis in sentinel mode...");
             LOGGER.info("Redis master = " + sentinelMaster);
@@ -397,7 +417,7 @@ public class RedisUtils {
             final Integer maxRedirects = redisConfig.getClusterMaxRedirects();
 
             final RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration(getTrimmedValues(clusterNodes));
-            enrichRedisConfiguration(clusterConfiguration, dbIndex, password, sentinelPassword);
+            enrichRedisConfiguration(clusterConfiguration, dbIndex, username, password, sentinelUsername, sentinelPassword);
             clusterConfiguration.setMaxRedirects(maxRedirects);
 
             LOGGER.info("Connecting to Redis in clustered mode...");
@@ -423,15 +443,19 @@ public class RedisUtils {
 
     private static void enrichRedisConfiguration(final RedisConfiguration redisConfiguration,
                                                  final Integer dbIndex,
+                                                 @Nullable final String username,
                                                  @Nullable final String password,
+                                                 @Nullable final String sentinelUsername,
                                                  @Nullable final String sentinelPassword) {
         if (redisConfiguration instanceof RedisConfiguration.WithDatabaseIndex) {
             ((RedisConfiguration.WithDatabaseIndex) redisConfiguration).setDatabase(dbIndex);
         }
         if (redisConfiguration instanceof RedisConfiguration.WithPassword) {
+            ((RedisConfiguration.WithPassword) redisConfiguration).setUsername(username);
             ((RedisConfiguration.WithPassword) redisConfiguration).setPassword(RedisPassword.of(password));
         }
         if (redisConfiguration instanceof RedisConfiguration.SentinelConfiguration) {
+            ((RedisConfiguration.SentinelConfiguration) redisConfiguration).setSentinelUsername(sentinelUsername);
             ((RedisConfiguration.SentinelConfiguration) redisConfiguration).setSentinelPassword(RedisPassword.of(sentinelPassword));
         }
     }
