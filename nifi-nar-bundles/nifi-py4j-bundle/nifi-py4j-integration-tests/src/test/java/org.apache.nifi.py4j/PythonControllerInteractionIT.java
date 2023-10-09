@@ -74,6 +74,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -476,7 +478,7 @@ public class PythonControllerInteractionIT {
         runnerV1.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hello, World");
 
         // Create an instance of WriteMessage V2
-        final PythonProcessorBridge procV2 = bridge.createProcessor(createId(), "WriteMessage", "0.0.2-SNAPSHOT", true);
+        final PythonProcessorBridge procV2 = createProcessor("WriteMessage", "0.0.2-SNAPSHOT");
         final FlowFileTransformProxy wrapperV2 = new FlowFileTransformProxy(procV2);
         final TestRunner runnerV2 = TestRunners.newTestRunner(wrapperV2);
         runnerV2.enqueue("");
@@ -515,7 +517,7 @@ public class PythonControllerInteractionIT {
         // Create a Record to transform and transform it
         final String json = "[{ \"name\": \"John Doe\" }]";
         final RecordSchema schema = createSimpleRecordSchema("name");
-        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().getProcessor();
+        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().get().getProcessor();
         recordTransform.setContext(context);
         final RecordTransformResult result = recordTransform.transformRecord(json, schema, new EmptyAttributeMap()).get(0);
 
@@ -562,7 +564,7 @@ public class PythonControllerInteractionIT {
         // Create a Record to transform and transform it
         final String json = "[{\"name\": \"Jake Doe\", \"father\": { \"name\": \"John Doe\" }}]";
         final RecordSchema recordSchema = createTwoLevelRecord().getSchema();
-        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().getProcessor();
+        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().get().getProcessor();
         recordTransform.setContext(context);
         final RecordTransformResult result = recordTransform.transformRecord(json, recordSchema, new EmptyAttributeMap()).get(0);
 
@@ -574,10 +576,12 @@ public class PythonControllerInteractionIT {
 
 
     @Test
-    public void testLogger() {
+    public void testLogger() throws ExecutionException, InterruptedException {
         bridge.discoverExtensions();
 
         final String procId = createId();
+        // Create the Processor, but we do not use this.createProcessor() because we want to explicitly have access to the
+        // initialization context to inject in the logger that we want.
         final PythonProcessorBridge logContentsBridge = bridge.createProcessor(procId, "LogContents", VERSION, true);
 
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
@@ -593,7 +597,7 @@ public class PythonControllerInteractionIT {
             }
         };
 
-        logContentsBridge.initialize(initContext);
+        logContentsBridge.initialize(initContext).get();
 
         final TestRunner runner = TestRunners.newTestRunner(logContentsBridge.getProcessorProxy());
         runner.enqueue("Hello World");
@@ -668,9 +672,22 @@ public class PythonControllerInteractionIT {
     }
 
     private PythonProcessorBridge createProcessor(final String type) {
+        return createProcessor(type, VERSION);
+    }
+
+    private PythonProcessorBridge createProcessor(final String type, final String version) {
         bridge.discoverExtensions();
-        final PythonProcessorBridge processor = bridge.createProcessor(createId(), type, VERSION, true);
-        processor.initialize(createInitContext());
+        final PythonProcessorBridge processor = bridge.createProcessor(createId(), type, version, true);
+        final Future<Void> future = processor.initialize(createInitContext());
+
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e.getCause());
+        }
+
         return processor;
     }
 

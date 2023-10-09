@@ -54,4 +54,9 @@ public interface PythonProcessorDetails {
      * @return the dependencies that must be imported in order to use the Processor
      */
     List<String> getDependencies();
+
+    /**
+     * @return the name of the Java interface that is implemented by the Python Processor
+     */
+    String getInterface();
 }

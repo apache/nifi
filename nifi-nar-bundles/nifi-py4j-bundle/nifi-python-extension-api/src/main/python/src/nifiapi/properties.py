@@ -259,34 +259,34 @@ class PropertyDescriptor:
 
         return values
 
-    def __add_resource_definition(self, gateway, resouce_definition, builder):
+    def __add_resource_definition(self, gateway, resource_definition, builder):
         allowed_types = 0
-        if resouce_definition.allow_file:
+        if resource_definition.allow_file:
             allowed_types += 1
-        if resouce_definition.allow_directory:
+        if resource_definition.allow_directory:
             allowed_types += 1
-        if resouce_definition.allow_url:
+        if resource_definition.allow_url:
             allowed_types += 1
-        if resouce_definition.allow_text:
+        if resource_definition.allow_text:
             allowed_types += 1
 
         array_type = gateway.jvm.org.apache.nifi.components.resource.ResourceType
         types = gateway.new_array(array_type, allowed_types)
         index = 0
-        if resouce_definition.allow_file:
+        if resource_definition.allow_file:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.FILE
             index += 1
-        if resouce_definition.allow_directory:
+        if resource_definition.allow_directory:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.DIRECTORY
             index += 1
-        if resouce_definition.allow_url:
+        if resource_definition.allow_url:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.URL
             index += 1
-        if resouce_definition.allow_text:
+        if resource_definition.allow_text:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.TEXT
             index += 1
 
-        cardinality = gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.MULTIPLE if resouce_definition.allow_multiple else \
+        cardinality = gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.MULTIPLE if resource_definition.allow_multiple else \
             gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.SINGLE
 
         builder.identifiesExternalResource(cardinality, types[0], types[1:])

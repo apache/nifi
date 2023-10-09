@@ -99,12 +99,24 @@ public class StandardPythonBridge implements PythonBridge {
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
         final PythonController controller = pythonProcess.getController();
-        final PythonProcessorAdapter processorAdapter = controller.createProcessor(type, version, workDirPath);
+
+        final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
+            @Override
+            public void downloadDependencies() {
+                controller.downloadDependencies(type, version, workDirPath);
+            }
+
+            @Override
+            public PythonProcessorAdapter createProcessor() {
+                return controller.createProcessor(type, version, workDirPath);
+            }
+        };
+
+        final PythonProcessorDetails processorDetails = controller.getProcessorDetails(type, version);
         final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
             .controller(controller)
-            .processorAdapter(processorAdapter)
-            .processorType(type)
-            .processorVersion(version)
+            .creationWorkflow(creationWorkflow)
+            .processorDetails(processorDetails)
             .workingDirectory(processConfig.getPythonWorkingDirectory())
             .moduleFile(new File(controller.getModuleFile(type, version)))
             .build();
