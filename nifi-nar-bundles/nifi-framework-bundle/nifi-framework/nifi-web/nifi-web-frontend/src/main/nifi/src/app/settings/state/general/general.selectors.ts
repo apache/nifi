@@ -15,33 +15,8 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { createSelector } from '@ngrx/store';
+import { selectSettingsState, SettingsState } from '../index';
+import { generalFeatureKey } from './index';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
-
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
-
-export interface Revision {
-    version: number,
-    clientId: string
-}
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
+export const selectGeneral = createSelector(selectSettingsState, (state: SettingsState) => state[generalFeatureKey]);

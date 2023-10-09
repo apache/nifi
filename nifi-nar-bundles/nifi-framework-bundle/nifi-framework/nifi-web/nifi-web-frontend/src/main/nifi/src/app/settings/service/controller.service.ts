@@ -15,33 +15,22 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { ControllerEntity } from '../state/general';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
+@Injectable({ providedIn: 'root' })
+export class ControllerService {
+    private static readonly API: string = '../nifi-api';
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
+    constructor(private httpClient: HttpClient) {}
 
-export interface Revision {
-    version: number,
-    clientId: string
-}
+    getControllerConfig(): Observable<any> {
+        return this.httpClient.get(`${ControllerService.API}/controller/config`);
+    }
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
+    updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
+        return this.httpClient.put(`${ControllerService.API}/controller/config`, controllerEntity);
+    }
 }

@@ -21,7 +21,7 @@ import { CanvasState } from '../../../state';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../state/flow/flow.actions';
-import { Client } from '../../../service/client.service';
+import { Client } from '../../../../service/client.service';
 import { EditComponent } from '../../../state/flow';
 import { ComponentType } from '../../../../state/shared';
 import { Banner } from '../../common/banner/banner.component';

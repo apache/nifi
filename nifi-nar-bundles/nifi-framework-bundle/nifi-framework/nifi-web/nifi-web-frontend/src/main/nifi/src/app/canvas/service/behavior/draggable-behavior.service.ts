@@ -23,7 +23,7 @@ import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
 import { updatePositions } from '../../state/flow/flow.actions';
-import { Client } from '../client.service';
+import { Client } from '../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UpdateComponent } from '../../state/flow';
 import { Position } from '../../state/shared';

@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
+/*
+  Canvas Positioning/Transforms
+ */
+
+import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
+import { GeneralState, generalFeatureKey } from './general';
+import { generalReducer } from './general/general.reducer';
+
+export const settingsFeatureKey = 'settings';
+
+export interface SettingsState {
+    [generalFeatureKey]: GeneralState;
 }
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
+export function reducers(state: SettingsState | undefined, action: Action) {
+    return combineReducers({
+        [generalFeatureKey]: generalReducer
+    })(state, action);
 }
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
-
-export interface Revision {
-    version: number,
-    clientId: string
-}
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
+export const selectSettingsState = createFeatureSelector<SettingsState>(settingsFeatureKey);

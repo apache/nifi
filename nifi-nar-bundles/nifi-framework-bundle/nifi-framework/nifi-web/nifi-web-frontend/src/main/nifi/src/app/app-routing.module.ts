@@ -25,6 +25,11 @@ const routes: Routes = [
         loadChildren: () => import('./login/feature/login.module').then((m) => m.LoginModule)
     },
     {
+        path: 'settings',
+        canMatch: [authGuard],
+        loadChildren: () => import('./settings/feature/settings.module').then((m) => m.SettingsModule)
+    },
+    {
         path: '',
         canMatch: [authGuard],
         loadChildren: () => import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)

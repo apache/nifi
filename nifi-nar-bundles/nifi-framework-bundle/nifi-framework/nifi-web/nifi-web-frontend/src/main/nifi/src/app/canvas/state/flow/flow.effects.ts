@@ -56,7 +56,7 @@ import { EditPort } from '../../ui/port/edit-port/edit-port.component';
 import { ComponentType } from '../../../state/shared';
 import { Router } from '@angular/router';
 import { selectUrl } from '../../../state/router/router.selectors';
-import { Client } from '../../service/client.service';
+import { Client } from '../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasView } from '../../service/canvas-view.service';
 import { selectProcessorTypes } from '../../../state/extension-types/extension-types.selectors';
@@ -686,7 +686,7 @@ export class FlowEffects {
                 this.store.select(selectAnySelectedComponentIds)
             ),
             switchMap(([request, processGroupId, selected]) => {
-                let commands: string[] = [];
+                let commands: string[];
                 if (selected.length === 0) {
                     commands = ['/process-groups', processGroupId];
                 } else {

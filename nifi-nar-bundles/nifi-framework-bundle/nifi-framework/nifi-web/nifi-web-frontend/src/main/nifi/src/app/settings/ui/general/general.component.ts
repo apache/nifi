@@ -15,33 +15,23 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { Component, OnInit } from '@angular/core';
+import { GeneralState } from '../../state/general';
+import { Store } from '@ngrx/store';
+import { loadControllerConfig } from '../../state/general/general.actions';
+import { selectGeneral } from '../../state/general/general.selectors';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
+@Component({
+    selector: 'general',
+    templateUrl: './general.component.html',
+    styleUrls: ['./general.component.scss']
+})
+export class General implements OnInit {
+    general$ = this.store.select(selectGeneral);
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
+    constructor(private store: Store<GeneralState>) {}
 
-export interface Revision {
-    version: number,
-    clientId: string
-}
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
+    ngOnInit(): void {
+        this.store.dispatch(loadControllerConfig());
+    }
 }

@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
+import { GeneralForm } from './general-form.component';
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
+describe('GeneralForm', () => {
+    let component: GeneralForm;
+    let fixture: ComponentFixture<GeneralForm>;
 
-export interface Revision {
-    version: number,
-    clientId: string
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [GeneralForm]
+        });
+        fixture = TestBed.createComponent(GeneralForm);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

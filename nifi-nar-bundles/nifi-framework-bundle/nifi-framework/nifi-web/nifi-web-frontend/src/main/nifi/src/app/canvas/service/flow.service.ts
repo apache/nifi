@@ -21,7 +21,7 @@ import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 import { CreateComponent, CreatePort, CreateProcessor, DeleteComponent, Snippet, UpdateComponent } from '../state/flow';
 import { ComponentType } from '../../state/shared';
-import { Client } from './client.service';
+import { Client } from '../../service/client.service';
 import { NiFiCommon } from '../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })

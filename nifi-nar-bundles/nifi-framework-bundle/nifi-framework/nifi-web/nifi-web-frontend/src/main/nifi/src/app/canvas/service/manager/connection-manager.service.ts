@@ -19,7 +19,7 @@ import { DestroyRef, inject, Injectable, ViewContainerRef } from '@angular/core'
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
-import { Client } from '../client.service';
+import { Client } from '../../../service/client.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import * as d3 from 'd3';
 import {

@@ -15,33 +15,29 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
+import { Revision } from '../../../state/shared';
+
+export const generalFeatureKey = 'general';
+
+export interface ControllerConfigResponse {
+    controller: ControllerEntity;
 }
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
+export interface UpdateControllerConfigRequest {
+    controller: ControllerEntity;
 }
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
+export interface Controller {
+    maxTimerDrivenThreadCount: number;
 }
 
-export interface Revision {
-    version: number,
-    clientId: string
+export interface ControllerEntity {
+    revision: Revision,
+    component: Controller
 }
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
+export interface GeneralState {
+    controller: ControllerEntity;
+    error: string | null;
+    status: 'pending' | 'loading' | 'error' | 'success';
 }

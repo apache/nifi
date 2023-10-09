@@ -29,7 +29,7 @@ import {
     selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
-import { Client } from '../client.service';
+import { Client } from '../../../service/client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';

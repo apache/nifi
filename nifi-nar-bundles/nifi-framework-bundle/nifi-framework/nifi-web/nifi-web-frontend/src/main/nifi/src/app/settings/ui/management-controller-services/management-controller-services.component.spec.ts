@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
+import { ManagementControllerServices } from './management-controller-services.component';
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
+describe('ManagementControllerServices', () => {
+    let component: ManagementControllerServices;
+    let fixture: ComponentFixture<ManagementControllerServices>;
 
-export interface Revision {
-    version: number,
-    clientId: string
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ManagementControllerServices]
+        });
+        fixture = TestBed.createComponent(ManagementControllerServices);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

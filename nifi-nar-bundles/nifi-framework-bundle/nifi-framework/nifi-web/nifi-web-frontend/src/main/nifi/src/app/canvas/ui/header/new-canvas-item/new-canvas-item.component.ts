@@ -22,7 +22,7 @@ import { CanvasState } from '../../../state';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../../state/transform/transform.reducer';
 import { selectTransform } from '../../../state/transform/transform.selectors';
 import { createComponentRequest, setDragging } from '../../../state/flow/flow.actions';
-import { Client } from '../../../service/client.service';
+import { Client } from '../../../../service/client.service';
 import { selectDragging } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Position } from '../../../state/shared';

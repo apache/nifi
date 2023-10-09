@@ -15,33 +15,11 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
-}
+import { Component } from '@angular/core';
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
-
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
-
-export interface Revision {
-    version: number,
-    clientId: string
-}
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
-}
+@Component({
+    selector: 'reporting-tasks',
+    templateUrl: './reporting-tasks.component.html',
+    styleUrls: ['./reporting-tasks.component.scss']
+})
+export class ReportingTasks {}

@@ -245,6 +245,14 @@ a:hover {
 }
 
 /*
+    This style is needed due to an incompatibility between material and tailwind.
+ */
+
+.mdc-notched-outline__notch  {
+    border-right: none;
+}
+
+/*
     Dialog styles
  */
 

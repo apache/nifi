@@ -35,6 +35,7 @@ import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
 import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
 import { PollingInterceptor } from './service/interceptors/polling.interceptor';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
 // @ts-ignore
 @NgModule({
@@ -78,7 +79,8 @@ import { PollingInterceptor } from './service/interceptors/polling.interceptor';
             provide: HTTP_INTERCEPTORS,
             useClass: PollingInterceptor,
             multi: true
-        }
+        },
+        {provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: {appearance: 'outline'}}
     ],
     bootstrap: [AppComponent]
 })

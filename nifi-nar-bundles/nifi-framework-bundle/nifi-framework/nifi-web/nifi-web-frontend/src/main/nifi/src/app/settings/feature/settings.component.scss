@@ -15,33 +15,18 @@
  * limitations under the License.
  */
 
-export interface OkDialogRequest {
-    title: string;
-    message: string;
+.settings-header {
+  color: #728E9B;
 }
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
+.close-settings {
+  height: 28px;
+  width: 28px;
+  border: 1px solid #CCDADB;
+  background-color: rgba(249, 250, 251, 0.97);
+  color: #004849;
 }
 
-export interface RequiredPermission {
-    id: string;
-    label: string;
-}
-
-export interface Revision {
-    version: number,
-    clientId: string
-}
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection'
+.settings-tabs {
+  border-bottom-width: 1px;
 }

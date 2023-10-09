@@ -31,14 +31,14 @@ export class PollingInterceptor implements HttpInterceptor {
 
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         return next.handle(request).pipe(
-          tap({
-              error: (error) => {
-                  if (error instanceof HttpErrorResponse && error.status === 0) {
-                      this.store.dispatch(stopUserPolling());
-                      this.store.dispatch(stopProcessGroupPolling());
-                  }
-              }
-          })
+            tap({
+                error: (error) => {
+                    if (error instanceof HttpErrorResponse && error.status === 0) {
+                        this.store.dispatch(stopUserPolling());
+                        this.store.dispatch(stopProcessGroupPolling());
+                    }
+                }
+            })
         );
     }
 }
