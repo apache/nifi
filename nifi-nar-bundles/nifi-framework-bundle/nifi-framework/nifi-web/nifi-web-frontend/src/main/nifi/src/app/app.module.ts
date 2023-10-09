@@ -34,6 +34,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
 import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
+import { PollingInterceptor } from './service/interceptors/polling.interceptor';
 
 // @ts-ignore
 @NgModule({
@@ -71,6 +72,11 @@ import { ExtensionTypesEffects } from './state/extension-types/extension-types.e
         {
             provide: HTTP_INTERCEPTORS,
             useClass: AuthInterceptor,
+            multi: true
+        },
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: PollingInterceptor,
             multi: true
         }
     ],
