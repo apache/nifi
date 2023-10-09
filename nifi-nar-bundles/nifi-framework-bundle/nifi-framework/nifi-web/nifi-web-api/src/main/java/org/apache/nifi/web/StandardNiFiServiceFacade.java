@@ -89,7 +89,9 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.serialization.VersionedReportingTaskSnapshotMapper;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -109,6 +111,7 @@ import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -4156,6 +4159,52 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(controllerFacade);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
         return entityFactory.createControllerConfigurationEntity(dto, revision, permissions);
+    }
+
+    @Override
+    public VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(final String reportingTaskId) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return getVersionedReportingTaskSnapshot(Collections.singleton(reportingTaskNode), user);
+    }
+
+    @Override
+    public VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Set<ReportingTaskNode> reportingTaskNodes = reportingTaskDAO.getReportingTasks();
+        return getVersionedReportingTaskSnapshot(reportingTaskNodes, user);
+    }
+
+    private VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(final Set<ReportingTaskNode> reportingTaskNodes, final NiFiUser user) {
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+        reportingTaskNodes.forEach(reportingTaskNode -> {
+            reportingTaskNode.authorize(authorizer, RequestAction.READ, user);
+            findReferencedControllerServices(reportingTaskNode, serviceNodes, user);
+        });
+
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
+        final ControllerServiceProvider serviceProvider = controllerFacade.getControllerServiceProvider();
+        final VersionedReportingTaskSnapshotMapper snapshotMapper = new VersionedReportingTaskSnapshotMapper(extensionManager, serviceProvider);
+        return snapshotMapper.createMapping(reportingTaskNodes, serviceNodes);
+    }
+
+    private void findReferencedControllerServices(final ComponentNode componentNode, final Set<ControllerServiceNode> serviceNodes, final NiFiUser user) {
+        componentNode.getPropertyDescriptors().forEach(descriptor -> {
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String serviceId = componentNode.getEffectivePropertyValue(descriptor);
+                if (serviceId != null) {
+                    try {
+                        final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
+                        serviceNode.authorize(authorizer, RequestAction.READ, user);
+                        if (serviceNodes.add(serviceNode)) {
+                            findReferencedControllerServices(serviceNode, serviceNodes, user);
+                        }
+                    } catch (ResourceNotFoundException e) {
+                        // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
+                    }
+                }
+            }
+        });
     }
 
     @Override

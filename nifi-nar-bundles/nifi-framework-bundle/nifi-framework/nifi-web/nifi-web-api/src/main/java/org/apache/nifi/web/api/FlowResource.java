@@ -42,6 +42,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -136,10 +137,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.text.Collator;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -172,6 +175,9 @@ public class FlowResource extends ApplicationResource {
 
     private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
     private static final String RECURSIVE = "false";
+
+    private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN = "VersionedReportingTaskSnapshot-%s.json";
+    private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT = "yyyyMMddHHmmss";
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -674,6 +680,86 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets a snapshot of reporting tasks.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks/snapshot")
+    @ApiOperation(
+            value = "Get a snapshot of the given reporting tasks and any controller services they use",
+            response = VersionedReportingTaskSnapshot.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getReportingTaskSnapshot(
+            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @QueryParam("reportingTaskId") final String reportingTaskId
+    ) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
+                serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
+
+        return generateOkResponse(snapshot).build();
+    }
+
+    /**
+     * Downloads a snapshot of reporting tasks.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks/download")
+    @ApiOperation(
+            value = "Download a snapshot of the given reporting tasks and any controller services they use",
+            response = byte[].class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response downloadReportingTaskSnapshot(
+            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @QueryParam("reportingTaskId") final String reportingTaskId
+    ) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
+                serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
+
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT);
+        final String filename = String.format(VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN, dateFormat.format(new Date()));
+        return generateOkResponse(snapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
     }
 
     /**

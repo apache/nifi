@@ -629,8 +629,9 @@ public class NiFiRegistryFlowMapper {
                         continue;
                     }
 
+                    // if mapping a reporting task, serviceGroupId will be null and we don't want to produce external service references
                     final String serviceGroupId = serviceNode.getProcessGroupIdentifier();
-                    if (!includedGroupIds.contains(serviceGroupId)) {
+                    if (serviceGroupId != null && !includedGroupIds.contains(serviceGroupId)) {
                         final String serviceId = getId(serviceNode.getVersionedComponentId(), serviceNode.getIdentifier());
 
                         final ExternalControllerServiceReference controllerServiceReference = new ExternalControllerServiceReference();

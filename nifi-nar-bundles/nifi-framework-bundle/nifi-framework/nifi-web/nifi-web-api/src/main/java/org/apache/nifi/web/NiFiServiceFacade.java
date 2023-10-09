@@ -31,6 +31,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -318,6 +319,21 @@ public interface NiFiServiceFacade {
      * @return Controller configuration transfer object
      */
     ControllerConfigurationEntity getControllerConfiguration();
+
+    /**
+     * Gets the snapshot for the given reporting task.
+     *
+     * @param reportingTaskId the id of the reporting task to get the snapshot for
+     * @return the reporting task snapshot
+     */
+    VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(String reportingTaskId);
+
+    /**
+     * Gets the snapshot of all reporting tasks.
+     *
+     * @return the reporting task snapshot
+     */
+    VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot();
 
     /**
      * Gets the controller level bulletins.

@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
@@ -244,6 +245,23 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving reporting tasks", () -> {
             final WebTarget target = flowTarget.path("reporting-tasks");
             return getRequestBuilder(target).get(ReportingTasksEntity.class);
+        });
+    }
+
+    @Override
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting tasks", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot");
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
+        });
+    }
+
+    @Override
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot(final String reportingTaskId) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot")
+                    .queryParam("reportingTaskId", reportingTaskId);
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
         });
     }
 

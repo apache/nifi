@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -122,6 +123,20 @@ public interface FlowClient {
      * @return the reporting tasks entity
      */
     ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the snapshot of all reporting tasks and their respective controller services.
+     *
+     * @return the snapshot
+     */
+    VersionedReportingTaskSnapshot getReportingTaskSnapshot() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the snapshot of the given reporting task and it's respective controller services.
+     *
+     * @return the snapshot
+     */
+    VersionedReportingTaskSnapshot getReportingTaskSnapshot(String reportingTaskId) throws NiFiClientException, IOException;
 
     /**
      * Retrieves the parameter providers.
