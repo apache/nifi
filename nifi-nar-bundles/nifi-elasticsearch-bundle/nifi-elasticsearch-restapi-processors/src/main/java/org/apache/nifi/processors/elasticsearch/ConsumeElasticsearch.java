@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "application/json"),
-        @WritesAttribute(attribute = "page.number", description = "The number of the page (request) in which the results were returned that are in the output flowfile"),
+        @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
         @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
         @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
@@ -277,6 +277,8 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
 
     private String getTrackingRangeValueOrDefault(final ProcessContext context) throws IOException {
         final StateMap stateMap = context.getStateManager().getState(getStateScope());
-        return stateMap.get(STATE_RANGE_VALUE) == null ? context.getProperty(RANGE_INITIAL_VALUE).getValue() : stateMap.get(STATE_RANGE_VALUE);
+        return stateMap == null || stateMap.get(STATE_RANGE_VALUE) == null
+                ? context.getProperty(RANGE_INITIAL_VALUE).getValue()
+                : stateMap.get(STATE_RANGE_VALUE);
     }
 }
