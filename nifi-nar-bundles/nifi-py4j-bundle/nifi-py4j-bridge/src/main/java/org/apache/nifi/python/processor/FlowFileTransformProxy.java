@@ -17,7 +17,6 @@
 
 package org.apache.nifi.python.processor;
 
-import java.util.Map;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -28,31 +27,30 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import py4j.Py4JNetworkException;
 
+import java.util.Map;
+import java.util.Optional;
+
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
 
     private final PythonProcessorBridge bridge;
     private volatile FlowFileTransform transform;
 
-
     public FlowFileTransformProxy(final PythonProcessorBridge bridge) {
         super(bridge);
         this.bridge = bridge;
-        this.transform = (FlowFileTransform) bridge.getProcessorAdapter().getProcessor();
     }
 
-
-    protected void reloadProcessor() {
-        final boolean reloaded = bridge.reload();
-        if (reloaded) {
-            transform = (FlowFileTransform) bridge.getProcessorAdapter().getProcessor();
-            getLogger().info("Successfully reloaded Processor");
-        }
-    }
 
     @OnScheduled
     public void setContext(final ProcessContext context) {
-        transform.setContext(context);
+        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+        if (optionalAdapter.isEmpty()) {
+            throw new IllegalStateException(this + " is not finished initializing");
+        }
+
+        this.transform = (FlowFileTransform) optionalAdapter.get().getProcessor();
+        this.transform.setContext(context);
     }
 
     @Override

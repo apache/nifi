@@ -48,6 +48,20 @@ class Controller:
     def discoverExtensions(self, dirs, work_dir):
         self.extensionManager.discoverExtensions(dirs, work_dir)
 
+    def getProcessorDetails(self, type, version):
+        processor_details = self.extensionManager.get_processor_details(type, version)
+        if processor_details is None:
+            raise ValueError(f"Invalid Processor Type/Version: {type}/{version}")
+
+        return processor_details
+
+    def downloadDependencies(self, type, version, work_dir):
+        processor_details = self.extensionManager.get_processor_details(type, version)
+        if processor_details is None:
+            raise ValueError(f"Invalid Processor Type/Version: {type}/{version}")
+
+        self.extensionManager.import_external_dependencies(processor_details, work_dir)
+
     def createProcessor(self, processorType, version, work_dir):
         processorClass = self.extensionManager.getProcessorClass(processorType, version, work_dir)
         processor = processorClass(jvm=self.gateway.jvm)
@@ -60,14 +74,6 @@ class Controller:
     def getModuleFile(self, processorType, version):
         module_file = self.extensionManager.get_module_file(processorType, version)
         return module_file
-
-    def getProcessorDependencies(self, processorType, version):
-        deps = self.extensionManager.__get_dependencies_for_extension_type(processorType, version)
-        dependencyList = self.gateway.jvm.java.util.ArrayList()
-        for dep in deps:
-            dependencyList.add(dep)
-
-        return dependencyList
 
     def setGateway(self, gateway):
         self.gateway = gateway

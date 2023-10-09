@@ -139,7 +139,7 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final String headerLine = lines[0];
         final List<String> headers = Stream.of(headerLine.split(","))
             .map(String::trim)
-            .collect(Collectors.toList());
+            .toList();
         assertTrue(headers.contains("name"));
         assertTrue(headers.contains("age"));
         assertTrue(headers.contains("color"));

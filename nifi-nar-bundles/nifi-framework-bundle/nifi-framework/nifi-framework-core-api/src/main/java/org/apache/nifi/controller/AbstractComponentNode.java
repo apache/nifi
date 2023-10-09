@@ -23,6 +23,7 @@ import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -397,16 +398,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             final long startNanos = System.nanoTime();
 
-            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
-            for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
-                final String rawValue = entry.getValue();
-                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
-
-                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
-                descriptorToConfigMap.put(descriptor, propertyConfiguration);
-            }
-
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = createDescriptorToConfigMap(propertyValues);
             final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
                 getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
 
@@ -455,6 +447,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return results;
+    }
+
+    private static Map<PropertyDescriptor, PropertyConfiguration> createDescriptorToConfigMap(final Map<PropertyDescriptor, String> propertyValues) {
+        final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String rawValue = entry.getValue();
+            final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
+            descriptorToConfigMap.put(descriptor, propertyConfiguration);
+        }
+        return descriptorToConfigMap;
     }
 
     @Override
@@ -842,6 +847,25 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 );
             }
 
+            final ConfigurableComponent component = getComponent();
+            if (component instanceof final AsyncLoadedProcessor asyncLoadedProcessor) {
+                if (!asyncLoadedProcessor.isLoaded()) {
+                    final String explanation = switch (asyncLoadedProcessor.getState()) {
+                        case DEPENDENCY_DOWNLOAD_FAILED -> "Failed to download one or more Processor dependencies. See logs for additional details.";
+                        case DOWNLOADING_DEPENDENCIES -> "In the process of downloading third-party dependencies required by the Processor.";
+                        case LOADING_PROCESSOR_CODE -> "In the process of loading Processor code";
+                        case LOADING_PROCESSOR_CODE_FAILED -> "Failed to parse or load Processor code. See logs for additional details.";
+                        default -> null;
+                    };
+
+                    return Collections.singletonList(new ValidationResult.Builder()
+                        .subject("Processor")
+                        .explanation(explanation)
+                        .valid(false)
+                        .build());
+                }
+            }
+
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
             invalidParameterResults.addAll(validateConfig());
 
@@ -851,9 +875,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return invalidParameterResults;
             }
 
-            final List<ValidationResult> validationResults = new ArrayList<>();
             final Collection<ValidationResult> results = getComponent().validate(validationContext);
-            validationResults.addAll(results);
+            final List<ValidationResult> validationResults = new ArrayList<>(results);
 
             // validate selected controller services implement the API required by the processor
             final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
@@ -1423,10 +1446,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return context;
             }
 
+            boolean cacheValidationContext = true;
+            if (getComponent() instanceof final AsyncLoadedProcessor asyncLoadedProcessor) {
+                cacheValidationContext = asyncLoadedProcessor.isLoaded();
+            }
+
             context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext(), true);
 
-            this.validationContext = context;
-            logger.debug("Updating validation context to {}", context);
+            if (cacheValidationContext) {
+                this.validationContext = context;
+                logger.debug("Updating validation context to {}", context);
+            }
+
             return context;
         } finally {
             lock.unlock();

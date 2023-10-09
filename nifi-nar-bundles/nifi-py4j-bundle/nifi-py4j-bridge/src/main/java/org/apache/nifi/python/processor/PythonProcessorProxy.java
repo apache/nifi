@@ -17,16 +17,9 @@
 
 package org.apache.nifi.python.processor;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -34,13 +27,21 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 
-public abstract class PythonProcessorProxy extends AbstractProcessor {
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+public abstract class PythonProcessorProxy extends AbstractProcessor implements AsyncLoadedProcessor {
     private final PythonProcessorBridge bridge;
     private volatile Set<Relationship> cachedRelationships = null;
     private volatile List<PropertyDescriptor> cachedPropertyDescriptors = null;
     private volatile Map<String, PropertyDescriptor> cachedDynamicDescriptors = null;
-    private boolean supportsDynamicProperties;
-    private volatile boolean running = false;
+    private volatile boolean supportsDynamicProperties;
 
     protected static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
@@ -51,22 +52,37 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
         .name("failure")
         .description("The original FlowFile will be routed to this relationship if it unable to be transformed for some reason")
         .build();
-    private static final Set<Relationship> implicitRelationships = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(REL_ORIGINAL, REL_FAILURE)));
+    private static final Set<Relationship> implicitRelationships = Set.of(
+        REL_ORIGINAL,
+        REL_FAILURE);
 
     public PythonProcessorProxy(final PythonProcessorBridge bridge) {
         this.bridge = bridge;
-        supportsDynamicProperties = bridge.getProcessorAdapter().isDynamicPropertySupported();
+    }
+
+    public void onPythonSideInitialized(final PythonProcessorAdapter adapter) {
+        supportsDynamicProperties = adapter.isDynamicPropertySupported();
+    }
+
+    @Override
+    public LoadState getState() {
+        return bridge.getLoadState();
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        if (running && cachedPropertyDescriptors != null) {
+        if (cachedPropertyDescriptors != null) {
             return this.cachedPropertyDescriptors;
         }
 
+        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+        if (optionalAdapter.isEmpty()) {
+            // If we don't have the adapter yet, use whatever is cached, even if it's old, or an empty List if we have nothing cached.
+            return this.cachedPropertyDescriptors == null ? Collections.emptyList() : cachedPropertyDescriptors;
+        }
+
         try {
-            final List<PropertyDescriptor> properties = bridge.getProcessorAdapter().getSupportedPropertyDescriptors();
+            final List<PropertyDescriptor> properties = optionalAdapter.get().getSupportedPropertyDescriptors();
             this.cachedPropertyDescriptors = properties; // cache descriptors in case the processor is updated and the properties can no longer be properly accessed
             return properties;
         } catch (final Exception e) {
@@ -76,19 +92,27 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
         }
     }
 
-
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+        if (optionalAdapter.isEmpty()) {
+            return List.of(new ValidationResult.Builder()
+                .subject("Processor")
+                .explanation("Processor has not yet completed initialization")
+                .valid(false)
+                .build());
+        }
+
         try {
             reload();
-            return bridge.getProcessorAdapter().customValidate(validationContext);
+            return optionalAdapter.get().customValidate(validationContext);
         } catch (final Exception e) {
             getLogger().warn("Failed to perform validation for Python Processor {}; assuming invalid", this, e);
 
             return Collections.singleton(new ValidationResult.Builder()
                 .subject("Perform Validation")
                 .valid(false)
-                .explanation("Unable to communicate with Python Processor")
+                .explanation("Failed to trigger Python Processor to perform validation: " + e)
                 .build());
         }
     }
@@ -106,7 +130,9 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
         }
 
         try {
-            return bridge.getProcessorAdapter().getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
+            final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+            return optionalAdapter.map(adapter -> adapter.getSupportedDynamicPropertyDescriptor(propertyDescriptorName))
+                    .orElse(null);
         } catch (final Exception e) {
             getLogger().warn("Failed to obtain Dynamic Property Descriptor with name {} from Python Processor {}; assuming property is not valid", propertyDescriptorName, this, e);
             return null;
@@ -138,12 +164,10 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
         }
 
         this.cachedDynamicDescriptors = dynamicDescriptors;
-        this.running = true;
     }
 
     @OnStopped
     public void destroyCachedElements() {
-        this.running = false;
         this.cachedRelationships = null;
         this.cachedDynamicDescriptors = null;
     }
@@ -161,11 +185,14 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
     private Set<Relationship> fetchRelationshipsFromPythonProcessor() {
         Set<Relationship> processorRelationships;
         try {
-            processorRelationships = bridge.getProcessorAdapter().getRelationships();
+            processorRelationships = bridge.getProcessorAdapter()
+                    .map(PythonProcessorAdapter::getRelationships)
+                    .orElseGet(HashSet::new);
         } catch (final Exception e) {
             getLogger().warn("Failed to obtain list of Relationships from Python Processor {}; assuming no explicit relationships", this, e);
             processorRelationships = new HashSet<>();
         }
+
         processorRelationships.addAll(getImplicitRelationships());
         return processorRelationships;
     }
@@ -174,12 +201,16 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         reload();
-        bridge.getProcessorAdapter().onScheduled(context);
+        bridge.getProcessorAdapter()
+            .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"))
+            .onScheduled(context);
     }
 
     @OnStopped
     public void onStopped(final ProcessContext context) {
-        bridge.getProcessorAdapter().onStopped(context);
+        bridge.getProcessorAdapter()
+            .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"))
+            .onStopped(context);
     }
 
     @Override
@@ -188,11 +219,15 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
     }
 
     private void reload() {
-        reloadProcessor();
-        supportsDynamicProperties = bridge.getProcessorAdapter().isDynamicPropertySupported();
-    }
+        final boolean reloaded = bridge.reload();
+        if (reloaded) {
+            getLogger().info("Successfully reloaded Processor");
+        }
 
-    protected abstract void reloadProcessor();
+        supportsDynamicProperties = bridge.getProcessorAdapter()
+            .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"))
+            .isDynamicPropertySupported();
+    }
 
     protected Set<Relationship> getImplicitRelationships() {
         return implicitRelationships;
