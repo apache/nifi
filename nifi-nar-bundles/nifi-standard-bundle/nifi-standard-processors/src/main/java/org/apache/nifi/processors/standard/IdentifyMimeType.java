@@ -89,8 +89,7 @@ import org.apache.tika.mime.MimeTypeException;
 @CapabilityDescription("Attempts to identify the MIME Type used for a FlowFile. If the MIME Type can be identified, "
         + "an attribute with the name 'mime.type' is added with the value being the MIME Type. If the MIME Type cannot be determined, "
         + "the value will be set to 'application/octet-stream'. In addition, the attribute mime.extension will be set if a common file "
-        + "extension for the MIME Type is known. If both Config File and Config Body are not set, the default NiFi MIME Types will "
-        + "be used.")
+        + "extension for the MIME Type is known.")
 @WritesAttributes({
 @WritesAttribute(attribute = "mime.type", description = "This Processor sets the FlowFile's mime.type attribute to the detected MIME Type. "
         + "If unable to detect the MIME Type, the attribute's value will be set to application/octet-stream"),
@@ -100,6 +99,7 @@ import org.apache.tika.mime.MimeTypeException;
 }
 )
 public class IdentifyMimeType extends AbstractProcessor {
+    static final AllowableValue PRESET = new AllowableValue("Preset", "Preset", "Use default NiFi MIME Types.");
     static final AllowableValue REPLACE = new AllowableValue("Replace", "Replace", "Use config MIME Types only.");
     static final AllowableValue MERGE = new AllowableValue("Merge", "Merge", "Use config together with default NiFi MIME Types.");
 
@@ -112,6 +112,15 @@ public class IdentifyMimeType extends AbstractProcessor {
            .defaultValue("true")
            .build();
 
+    public static final PropertyDescriptor CONFIG_STRATEGY = new PropertyDescriptor.Builder()
+            .displayName("Config Strategy")
+            .name("config-strategy")
+            .description("Select the loading strategy for MIME Type configuration to be used.")
+            .required(true)
+            .allowableValues(PRESET, REPLACE, MERGE)
+            .defaultValue(PRESET.getValue())
+            .build();
+
     public static final PropertyDescriptor MIME_CONFIG_FILE = new PropertyDescriptor.Builder()
             .displayName("Config File")
             .name("config-file")
@@ -119,6 +128,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             .description("Path to MIME type config file. Only one of Config File or Config Body may be used.")
             .addValidator(new StandardValidators.FileExistsValidator(true))
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
             .build();
 
     public static final PropertyDescriptor MIME_CONFIG_BODY = new PropertyDescriptor.Builder()
@@ -128,17 +138,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             .description("Body of MIME type config file. Only one of Config File or Config Body may be used.")
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
-    public static final PropertyDescriptor CONFIG_STRATEGY = new PropertyDescriptor.Builder()
-            .displayName("Config Strategy")
-            .name("config-strategy")
-            .description("Select the loading strategy for MIME Type configuration provided "
-                    + "in Config Body or Config File properties.  "
-                    + "Only applicable if Config File or Config Body is used.")
-            .required(true)
-            .allowableValues(REPLACE, MERGE)
-            .defaultValue(REPLACE.getValue())
+            .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -162,9 +162,9 @@ public class IdentifyMimeType extends AbstractProcessor {
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(USE_FILENAME_IN_DETECTION);
+        properties.add(CONFIG_STRATEGY);
         properties.add(MIME_CONFIG_BODY);
         properties.add(MIME_CONFIG_FILE);
-        properties.add(CONFIG_STRATEGY);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> rels = new HashSet<>();
@@ -174,19 +174,19 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException {
-        String configBody = context.getProperty(MIME_CONFIG_BODY).getValue();
-        String configFile = context.getProperty(MIME_CONFIG_FILE).evaluateAttributeExpressions().getValue();
+        String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
 
-        if (configBody == null && configFile == null){
+        if (configStrategy.equals(PRESET.getValue())){
             this.detector = config.getDetector();
             this.mimeTypes = config.getMimeRepository();
         } else {
-            setCustomMimeTypes(configBody, configFile, context);
+            setCustomMimeTypes(configStrategy, context);
         }
     }
 
-    private void setCustomMimeTypes(String configBody, String configFile, ProcessContext context) throws IOException {
-        String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
+    private void setCustomMimeTypes(String configStrategy, ProcessContext context) throws IOException {
+        String configBody = context.getProperty(MIME_CONFIG_BODY).getValue();
+        String configFile = context.getProperty(MIME_CONFIG_FILE).evaluateAttributeExpressions().getValue();
 
         try (final InputStream customInputStream = configBody != null ? new ByteArrayInputStream(configBody.getBytes()) : new FileInputStream(configFile);
              final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("org/apache/tika/mime/custom-mimetypes.xml");
@@ -277,13 +277,21 @@ public class IdentifyMimeType extends AbstractProcessor {
         Set<ValidationResult> results = new HashSet<>();
         String body = validationContext.getProperty(MIME_CONFIG_BODY).getValue();
         String file = validationContext.getProperty(MIME_CONFIG_FILE).getValue();
-        if(body != null && file != null) {
-            results.add(new ValidationResult.Builder()
-                    .input(MIME_CONFIG_FILE.getName())
-                    .subject(file)
-                    .valid(false)
-                    .explanation("Can only specify Config Body or Config File.  Not both.")
-                    .build());
+        if(!validationContext.getProperty(CONFIG_STRATEGY).getValue().equals(PRESET.getValue())) {
+            if (body != null && file != null) {
+                results.add(new ValidationResult.Builder()
+                        .subject(MIME_CONFIG_FILE.getDisplayName())
+                        .input(file)
+                        .valid(false)
+                        .explanation("Can only specify Config Body or Config File.  Not both.")
+                        .build());
+            } else if (body == null && file == null) {
+                results.add(new ValidationResult.Builder()
+                        .subject(MIME_CONFIG_FILE.getDisplayName())
+                        .valid(false)
+                        .explanation("Either Config Body or Config File must be set.")
+                        .build());
+            }
         }
         return results;
     }

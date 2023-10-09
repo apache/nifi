@@ -133,7 +133,7 @@ public class TestIdentifyMimeType {
             fileCount++;
         }
 
-
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
 
         runner.setThreadCount(1);
@@ -219,6 +219,7 @@ public class TestIdentifyMimeType {
             fileCount++;
         }
 
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
         runner.setThreadCount(1);
@@ -299,8 +300,8 @@ public class TestIdentifyMimeType {
             fileCount++;
         }
 
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
@@ -345,8 +346,8 @@ public class TestIdentifyMimeType {
             fileCount++;
         }
 
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
@@ -383,10 +384,23 @@ public class TestIdentifyMimeType {
     public void testOnlyOneCustomMimeConfigSpecified() {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
         String configBody = "foo";
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
+
+        runner.setThreadCount(1);
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
+    }
+
+    @Test
+    public void testNoCustomMimeConfigSpecified() {
+        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
 
         runner.setThreadCount(1);
         assertThrows(AssertionError.class, () -> {
