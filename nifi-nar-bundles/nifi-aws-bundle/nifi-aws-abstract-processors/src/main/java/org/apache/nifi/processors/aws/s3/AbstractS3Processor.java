@@ -228,10 +228,13 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
         final Consumer<AmazonS3Builder<?, ?>> clientBuilder = builder -> {
-            builder.withEndpointConfiguration(endpointConfiguration);
+            if (endpointConfiguration == null) {
+                builder.withRegion(region.getName());
+            } else {
+                builder.withEndpointConfiguration(endpointConfiguration);
+            }
             builder.withClientConfiguration(config);
             builder.withCredentials(credentialsProvider);
-            builder.withRegion(region.getName());
 
             final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
             if (useChunkedEncoding == Boolean.FALSE) {
