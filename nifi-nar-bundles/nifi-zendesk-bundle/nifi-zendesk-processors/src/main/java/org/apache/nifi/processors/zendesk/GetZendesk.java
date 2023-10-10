@@ -98,7 +98,7 @@ public class GetZendesk extends AbstractZendesk {
 
     private static final PropertyDescriptor ZENDESK_EXPORT_METHOD = new PropertyDescriptor.Builder()
         .name(ZENDESK_EXPORT_METHOD_NAME)
-        .displayName("Zendesk Export Method")
+        .displayName("Export Method")
         .description("Method for incremental export.")
         .required(true)
         .allowableValues(ZendeskExportMethod.class)
@@ -106,7 +106,7 @@ public class GetZendesk extends AbstractZendesk {
 
     private static final PropertyDescriptor ZENDESK_RESOURCE = new PropertyDescriptor.Builder()
         .name(ZENDESK_RESOURCE_NAME)
-        .displayName("Zendesk Resource")
+        .displayName("Resource")
         .description("The particular Zendesk resource which is meant to be exported.")
         .required(true)
         .allowableValues(ZendeskResource.class)
@@ -114,7 +114,7 @@ public class GetZendesk extends AbstractZendesk {
 
     private static final PropertyDescriptor ZENDESK_QUERY_START_TIMESTAMP = new PropertyDescriptor.Builder()
         .name(ZENDESK_QUERY_START_TIMESTAMP_NAME)
-        .displayName("Zendesk Query Start Timestamp")
+        .displayName("Query Start Timestamp")
         .description("Initial timestamp to query Zendesk API from in Unix timestamp seconds format.")
         .addValidator(POSITIVE_LONG_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -168,7 +168,7 @@ public class GetZendesk extends AbstractZendesk {
         ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(context.getProperty(ZENDESK_EXPORT_METHOD).getValue());
 
         URI uri = createUri(context, zendeskResource, exportMethod);
-        HttpResponseEntity response = zendeskClient.performQuery(uri);
+        HttpResponseEntity response = zendeskClient.performGetRequest(uri);
 
         if (response.statusCode() == OK.getCode()) {
             AtomicInteger resultCount = new AtomicInteger(0);

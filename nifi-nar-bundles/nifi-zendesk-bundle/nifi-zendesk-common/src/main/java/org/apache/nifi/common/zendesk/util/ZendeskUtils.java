@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.common.zendesk.ZendeskProperties;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 
@@ -65,7 +66,7 @@ public final class ZendeskUtils {
      * @param properties property list
      * @return Map of dynamic properties
      */
-    public static Map<String, String> getDynamicProperties(PropertyContext context, Map<PropertyDescriptor, String> properties) {
+    public static Map<String, PropertyValue> getDynamicProperties(PropertyContext context, Map<PropertyDescriptor, String> properties) {
         return properties.entrySet().stream()
                 // filter non-blank dynamic properties
                 .filter(e -> e.getKey().isDynamic()
@@ -75,7 +76,7 @@ public final class ZendeskUtils {
                 // convert to Map keys and evaluated property values
                 .collect(Collectors.toMap(
                         e -> e.getKey().getName(),
-                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties()).getValue()
+                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties())
                 ));
     }
 

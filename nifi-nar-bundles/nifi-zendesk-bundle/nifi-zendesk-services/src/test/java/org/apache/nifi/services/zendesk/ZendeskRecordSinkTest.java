@@ -168,10 +168,10 @@ public class ZendeskRecordSinkTest {
 
     @Test
     public void testSendMessageWithFixPropertiesAndSingleTicket() throws IOException, InterruptedException {
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_SUBJECT_NAME, "%{/subject}");
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "%{/priority}");
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_TYPE_NAME, "%{/type}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_SUBJECT_NAME, "@{/subject}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_TYPE_NAME, "@{/type}");
 
         testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
@@ -207,8 +207,8 @@ public class ZendeskRecordSinkTest {
 
     @Test
     public void testSendMessageWithFixPropertiesAndMultipleTickets() throws IOException, InterruptedException {
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "%{/priority}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
         testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
@@ -246,9 +246,9 @@ public class ZendeskRecordSinkTest {
 
     @Test
     public void testSendMessageWithRecordPathDynamicProperties() throws IOException, InterruptedException {
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
-        testRunner.setProperty(sinkZendeskTicket, "/dp1/dynamicPropertyTarget1", "%{/dynamicPropertySource1}");
-        testRunner.setProperty(sinkZendeskTicket, "/dp1/dp2/dp3/dynamicPropertyTarget2", "%{/dynamicPropertySource2}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(sinkZendeskTicket, "/dp1/dynamicPropertyTarget1", "@{/dynamicPropertySource1}");
+        testRunner.setProperty(sinkZendeskTicket, "/dp1/dp2/dp3/dynamicPropertyTarget2", "@{/dynamicPropertySource2}");
 
         testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
@@ -289,7 +289,7 @@ public class ZendeskRecordSinkTest {
 
     @Test
     public void testSendMessageWithConstantDynamicProperties() throws IOException, InterruptedException {
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dynamicPropertyTarget1", "Constant 1");
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dp2/dp3/dynamicPropertyTarget2", "Constant 2");
 
@@ -332,7 +332,7 @@ public class ZendeskRecordSinkTest {
 
     @Test
     public void testRecordCache() throws IOException, InterruptedException {
-        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
         testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);

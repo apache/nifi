@@ -18,20 +18,20 @@ package org.apache.nifi.common.zendesk;
 
 public class ZendeskAuthenticationContext {
 
-    private final String subDomain;
+    private final String subdomain;
     private final String user;
     private final ZendeskAuthenticationType authenticationType;
     private final String authenticationCredentials;
 
-    public ZendeskAuthenticationContext(String subDomain, String user, ZendeskAuthenticationType authenticationType, String authenticationCredentials) {
-        this.subDomain = subDomain;
+    public ZendeskAuthenticationContext(String subdomain, String user, ZendeskAuthenticationType authenticationType, String authenticationCredentials) {
+        this.subdomain = subdomain;
         this.user = user;
         this.authenticationType = authenticationType;
         this.authenticationCredentials =authenticationCredentials;
     }
 
-    public String getSubDomain() {
-        return subDomain;
+    public String getSubdomain() {
+        return subdomain;
     }
 
     public String getUser() {

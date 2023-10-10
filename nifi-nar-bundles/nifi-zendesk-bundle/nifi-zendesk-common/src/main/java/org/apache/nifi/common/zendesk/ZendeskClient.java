@@ -45,7 +45,7 @@ public class ZendeskClient {
     }
 
     /**
-     * Sends the ticket creation POST request to the Zendesk API.
+     * Sends a POST request to the Zendesk API.
      *
      * @param uri         target uri
      * @param inputStream body of the request
@@ -63,12 +63,12 @@ public class ZendeskClient {
     }
 
     /**
-     * Sends a query GET request to the Zendesk API.
+     * Sends a GET request to the Zendesk API.
      *
      * @param uri target uri
-     * @return result of query
+     * @return response from the Zendesk API
      */
-    public HttpResponseEntity performQuery(URI uri) {
+    public HttpResponseEntity performGetRequest(URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
@@ -85,7 +85,7 @@ public class ZendeskClient {
     public HttpUriBuilder uriBuilder(String resourcePath) {
         return webClientServiceProvider.getHttpUriBuilder()
                 .scheme(HTTPS)
-                .host(format(ZENDESK_HOST_TEMPLATE, authenticationContext.getSubDomain()))
+                .host(format(ZENDESK_HOST_TEMPLATE, authenticationContext.getSubdomain()))
                 .encodedPath(resourcePath);
     }
 

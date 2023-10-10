@@ -1,4 +1,4 @@
-nifi-zendesk-nar
+nifi-zendesk-services-nar
 Copyright 2015-2022 The Apache Software Foundation
 
 This product includes software developed at
@@ -9,11 +9,6 @@ Apache Software License v2
 ===========================================
 
 The following binary components are provided under the Apache Software License v2
-
-  (ASLv2) Apache Commons IO
-    The following NOTICE information applies:
-      Apache Commons IO
-      Copyright 2002-2017 The Apache Software Foundation
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
@@ -37,3 +32,54 @@ The following binary components are provided under the Apache Software License v
       A list of contributors may be found from CREDITS file, which is included
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
+
+  (ASLv2) Caffeine
+    The following NOTICE information applies:
+      Caffeine (caching library)
+      Copyright Ben Manes
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+
+************************
+The MIT License
+************************
+
+The following binary components are provided under the MIT License.  See project link for details.
+
+  (MIT License) Checker Qual
+    The following NOTICE information applies:
+      Copyright (c) Copyright 2004-present by the Checker Framework developers
+      All rights reserved.
+      https://www.checkerframework.org/

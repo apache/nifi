@@ -134,10 +134,10 @@ public class PutZendeskTicketTest {
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
-        testRunner.setProperty(ZENDESK_TICKET_SUBJECT_NAME, "%{/subject}");
-        testRunner.setProperty(ZENDESK_TICKET_PRIORITY_NAME, "%{/priority}");
-        testRunner.setProperty(ZENDESK_TICKET_TYPE_NAME, "%{/type}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_SUBJECT_NAME, "@{/subject}");
+        testRunner.setProperty(ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
+        testRunner.setProperty(ZENDESK_TICKET_TYPE_NAME, "@{/type}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -176,7 +176,7 @@ public class PutZendeskTicketTest {
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -217,9 +217,9 @@ public class PutZendeskTicketTest {
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
-        testRunner.setProperty("/dp1/dynamicPropertyTarget1", "%{/dynamicPropertySource1}");
-        testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "%{/dynamicPropertySource2}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty("/dp1/dynamicPropertyTarget1", "@{/dynamicPropertySource1}");
+        testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "@{/dynamicPropertySource2}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -264,7 +264,7 @@ public class PutZendeskTicketTest {
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
         testRunner.setProperty("/dp1/dynamicPropertyTarget1", "Constant 1");
         testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "Constant2");
 
@@ -309,7 +309,7 @@ public class PutZendeskTicketTest {
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "%{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
 
         // when
         testRunner.enqueue(new byte[0]);

@@ -21,6 +21,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+
 public final class ZendeskProperties {
 
     public static final String WEB_CLIENT_SERVICE_PROVIDER_NAME = "web-client-service-provider";
@@ -56,7 +58,7 @@ public final class ZendeskProperties {
 
     public static final PropertyDescriptor ZENDESK_SUBDOMAIN = new PropertyDescriptor.Builder()
             .name(ZENDESK_SUBDOMAIN_NAME)
-            .displayName("Zendesk Subdomain Name")
+            .displayName("Subdomain Name")
             .description("Name of the Zendesk subdomain.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -65,7 +67,7 @@ public final class ZendeskProperties {
 
     public static final PropertyDescriptor ZENDESK_USER = new PropertyDescriptor.Builder()
             .name(ZENDESK_USER_NAME)
-            .displayName("Zendesk User Name")
+            .displayName("User Name")
             .description("Login user to Zendesk subdomain.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -74,7 +76,7 @@ public final class ZendeskProperties {
 
     public static final PropertyDescriptor ZENDESK_AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
             .name(ZENDESK_AUTHENTICATION_TYPE_NAME)
-            .displayName("Zendesk Authentication Type")
+            .displayName("Authentication Type")
             .description("Type of authentication to Zendesk API.")
             .required(true)
             .allowableValues(ZendeskAuthenticationType.class)
@@ -82,11 +84,40 @@ public final class ZendeskProperties {
 
     public static final PropertyDescriptor ZENDESK_AUTHENTICATION_CREDENTIAL = new PropertyDescriptor.Builder()
             .name(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME)
-            .displayName("Zendesk Authentication Credential")
+            .displayName("Authentication Credential")
             .description("Password or authentication token for Zendesk login user.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor.Builder ZENDESK_TICKET_COMMENT_BODY_BUILDER = new PropertyDescriptor.Builder()
+            .name(ZENDESK_TICKET_COMMENT_BODY_NAME)
+            .displayName("Comment Body")
+            .description("The content or the path to the comment body in the incoming record.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .required(true);
+
+    public static final PropertyDescriptor.Builder ZENDESK_TICKET_SUBJECT_BUILDER = new PropertyDescriptor.Builder()
+            .name(ZENDESK_TICKET_SUBJECT_NAME)
+            .displayName("Subject")
+            .description("The content or the path to the subject in the incoming record.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES);
+
+    public static final PropertyDescriptor.Builder ZENDESK_TICKET_PRIORITY_BUILDER = new PropertyDescriptor.Builder()
+            .name(ZENDESK_TICKET_PRIORITY_NAME)
+            .displayName("Priority")
+            .description("The content or the path to the priority in the incoming record.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES);
+
+    public static final PropertyDescriptor.Builder ZENDESK_TICKET_TYPE_BUILDER = new PropertyDescriptor.Builder()
+            .name(ZENDESK_TICKET_TYPE_NAME)
+            .displayName("Type")
+            .description("The content or the path to the type in the incoming record.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES);
 }

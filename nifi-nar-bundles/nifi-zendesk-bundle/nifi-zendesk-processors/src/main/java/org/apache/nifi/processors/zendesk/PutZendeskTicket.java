@@ -25,13 +25,13 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.common.zendesk.validation.JsonPointerPropertyNameValidator;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -60,17 +60,16 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTIC
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_BUILDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addDynamicField;
-import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolveFieldValue;
+import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addField;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.createRequestObject;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getDynamicProperties;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.ERROR_CODE_ATTRIBUTE_NAME;
@@ -104,50 +103,18 @@ public class PutZendeskTicket extends AbstractZendesk {
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
-    public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_COMMENT_BODY_NAME)
-            .displayName("Comment Body")
-            .description("The content or the path to the comment body in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .dependsOn(RECORD_READER)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_SUBJECT_NAME)
-            .displayName("Subject")
-            .description("The content or the path to the subject in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-            .dependsOn(RECORD_READER)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_PRIORITY_NAME)
-            .displayName("Priority")
-            .description("The content or the path to the priority in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-            .dependsOn(RECORD_READER)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_TYPE = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_TYPE_NAME)
-            .displayName("Type")
-            .description("The content or the path to the type in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-            .dependsOn(RECORD_READER)
-            .build();
+    public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = ZENDESK_TICKET_COMMENT_BODY_BUILDER.dependsOn(RECORD_READER).build();
+    public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = ZENDESK_TICKET_SUBJECT_BUILDER.dependsOn(RECORD_READER).build();
+    public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = ZENDESK_TICKET_PRIORITY_BUILDER.dependsOn(RECORD_READER).build();
+    public static final PropertyDescriptor ZENDESK_TICKET_TYPE = ZENDESK_TICKET_TYPE_BUILDER.dependsOn(RECORD_READER).build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            RECORD_READER,
             WEB_CLIENT_SERVICE_PROVIDER,
             ZENDESK_SUBDOMAIN,
             ZENDESK_USER,
             ZENDESK_AUTHENTICATION_TYPE,
             ZENDESK_AUTHENTICATION_CREDENTIAL,
+            RECORD_READER,
             ZENDESK_TICKET_COMMENT_BODY,
             ZENDESK_TICKET_SUBJECT,
             ZENDESK_TICKET_PRIORITY,
@@ -206,11 +173,7 @@ public class PutZendeskTicket extends AbstractZendesk {
                 throw new ProcessException("Could not read incoming FlowFile", e);
             }
         } else {
-            final String commentBody = context.getProperty(ZENDESK_TICKET_COMMENT_BODY).evaluateAttributeExpressions().getValue();
-            final String subject = context.getProperty(ZENDESK_TICKET_SUBJECT).evaluateAttributeExpressions().getValue();
-            final String priority = context.getProperty(ZENDESK_TICKET_PRIORITY).evaluateAttributeExpressions().getValue();
-            final String type = context.getProperty(ZENDESK_TICKET_TYPE).evaluateAttributeExpressions().getValue();
-            final Map<String, String> dynamicProperties = getDynamicProperties(context, context.getProperties());
+            final Map<String, PropertyValue> dynamicProperties = getDynamicProperties(context, context.getProperties());
             List<ObjectNode> zendeskTickets = new ArrayList<>();
 
             try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
@@ -218,18 +181,12 @@ public class PutZendeskTicket extends AbstractZendesk {
 
                 while ((record = reader.nextRecord()) != null) {
                     ObjectNode baseTicketNode = mapper.createObjectNode();
-                    resolveFieldValue("/comment/body", commentBody, baseTicketNode, record);
+                    addField("/comment/body", context.getProperty(ZENDESK_TICKET_COMMENT_BODY), baseTicketNode, record);
+                    addField("/subject", context.getProperty(ZENDESK_TICKET_SUBJECT), baseTicketNode, record);
+                    addField("/priority", context.getProperty(ZENDESK_TICKET_PRIORITY), baseTicketNode, record);
+                    addField("/type", context.getProperty(ZENDESK_TICKET_TYPE), baseTicketNode, record);
 
-                    if (subject != null) {
-                        resolveFieldValue("/subject", subject, baseTicketNode, record);
-                    }
-                    if (priority != null) {
-                        resolveFieldValue("/priority", priority, baseTicketNode, record);
-                    }
-                    if (type != null) {
-                        resolveFieldValue("/type", type, baseTicketNode, record);
-                    }
-                    for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
+                    for (Map.Entry<String, PropertyValue> dynamicProperty : dynamicProperties.entrySet()) {
                         addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
                     }
                     zendeskTickets.add(baseTicketNode);

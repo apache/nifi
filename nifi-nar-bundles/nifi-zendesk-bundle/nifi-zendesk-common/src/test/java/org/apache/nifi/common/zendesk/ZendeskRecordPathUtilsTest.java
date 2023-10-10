@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolveFieldValue;
+import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addField;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ZendeskRecordPathUtilsTest {
@@ -48,24 +49,24 @@ public class ZendeskRecordPathUtilsTest {
         Record record = initRecord();
 
         testNode = mapper.createObjectNode();
-        resolveFieldValue("/a/b", "%{/field1}", testNode, record);
+        addField("/a/b", new MockPropertyValue("@{/field1}"), testNode, record);
         Assertions.assertEquals("{\"a\":{\"b\":\"value1\"}}", testNode.toString());
 
         testNode = mapper.createObjectNode();
-        resolveFieldValue("/a/b/c", "constant", testNode, record);
+        addField("/a/b/c", new MockPropertyValue("constant"), testNode, record);
         Assertions.assertEquals("{\"a\":{\"b\":{\"c\":\"constant\"}}}", testNode.toString());
 
         testNode = mapper.createObjectNode();
-        resolveFieldValue("/a/0", "array_element", testNode, record);
+        addField("/a/0", new MockPropertyValue("array_element"), testNode, record);
         Assertions.assertEquals("{\"a\":[\"array_element\"]}", testNode.toString());
 
-        ProcessException e1 = assertThrows(ProcessException.class, () -> resolveFieldValue("/a", "%{/field2}", mapper.createObjectNode(), record));
+        ProcessException e1 = assertThrows(ProcessException.class, () -> addField("/a", new MockPropertyValue("@{/field2}"), mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field2] points to a [ARRAY] type value", e1.getMessage());
 
-        ProcessException e2 = assertThrows(ProcessException.class, () -> resolveFieldValue("/a", "%{/field3}", mapper.createObjectNode(), record));
+        ProcessException e2 = assertThrows(ProcessException.class, () -> addField("/a", new MockPropertyValue("@{/field3}"), mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field3] points to a [RECORD] type value", e2.getMessage());
 
-        ProcessException e3 = assertThrows(ProcessException.class, () -> resolveFieldValue("/a", "%{/field4}", mapper.createObjectNode(), record));
+        ProcessException e3 = assertThrows(ProcessException.class, () -> addField("/a", new MockPropertyValue("@{/field4}"), mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field4] points to a [CHOICE] type value with Record subtype", e3.getMessage());
     }
 

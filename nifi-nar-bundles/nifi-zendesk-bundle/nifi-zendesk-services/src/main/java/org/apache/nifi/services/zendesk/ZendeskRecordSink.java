@@ -29,6 +29,7 @@ import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.common.zendesk.ZendeskClient;
 import org.apache.nifi.common.zendesk.validation.JsonPointerPropertyNameValidator;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -65,13 +66,13 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTIC
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_BUILDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_BUILDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addDynamicField;
-import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolveFieldValue;
+import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addField;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.createRequestObject;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getDynamicProperties;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
@@ -82,48 +83,20 @@ import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
 public class ZendeskRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private Map<String, String> dynamicProperties;
+    private Map<String, PropertyValue> dynamicProperties;
     private volatile RecordSetWriterFactory writerFactory;
     private Cache<String, ObjectNode> recordCache;
     private ZendeskClient zendeskClient;
 
-    private String commentBody;
-    private String subject;
-    private String priority;
-    private String type;
+    private PropertyValue commentBody;
+    private PropertyValue subject;
+    private PropertyValue priority;
+    private PropertyValue type;
 
-    public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_COMMENT_BODY_NAME)
-            .displayName("Comment Body")
-            .description("The content or the path to the comment body in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_SUBJECT_NAME)
-            .displayName("Subject")
-            .description("The content or the path to the subject in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_PRIORITY_NAME)
-            .displayName("Priority")
-            .description("The content or the path to the priority in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_TYPE = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_TYPE_NAME)
-            .displayName("Type")
-            .description("The content or the path to the type in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+    public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = ZENDESK_TICKET_COMMENT_BODY_BUILDER.build();
+    public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = ZENDESK_TICKET_SUBJECT_BUILDER.build();
+    public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = ZENDESK_TICKET_PRIORITY_BUILDER.build();
+    public static final PropertyDescriptor ZENDESK_TICKET_TYPE = ZENDESK_TICKET_TYPE_BUILDER.build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("cache-size")
@@ -186,21 +159,12 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                 Record record;
                 while ((record = recordSet.next()) != null) {
                     ObjectNode baseTicketNode = mapper.createObjectNode();
+                    addField("/comment/body", commentBody, baseTicketNode, record);
+                    addField("/subject", subject, baseTicketNode, record);
+                    addField("/priority", priority, baseTicketNode, record);
+                    addField("/type", type, baseTicketNode, record);
 
-                    resolveFieldValue("/comment/body", commentBody, baseTicketNode, record);
-
-                    if (subject != null) {
-                        resolveFieldValue("/subject", subject, baseTicketNode, record);
-                    }
-
-                    if (priority != null) {
-                        resolveFieldValue("/priority", priority, baseTicketNode, record);
-                    }
-                    if (type != null) {
-                        resolveFieldValue("/type", type, baseTicketNode, record);
-                    }
-
-                    for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
+                    for (Map.Entry<String, PropertyValue> dynamicProperty : dynamicProperties.entrySet()) {
                         addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
                     }
 
@@ -243,10 +207,10 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
         writerFactory = context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         dynamicProperties = getDynamicProperties(context, context.getProperties());
 
-        commentBody = context.getProperty(ZENDESK_TICKET_COMMENT_BODY).evaluateAttributeExpressions().getValue();
-        subject = context.getProperty(ZENDESK_TICKET_SUBJECT).evaluateAttributeExpressions().getValue();
-        priority = context.getProperty(ZENDESK_TICKET_PRIORITY).evaluateAttributeExpressions().getValue();
-        type = context.getProperty(ZENDESK_TICKET_TYPE).evaluateAttributeExpressions().getValue();
+        commentBody = context.getProperty(ZENDESK_TICKET_COMMENT_BODY);
+        subject = context.getProperty(ZENDESK_TICKET_SUBJECT);
+        priority = context.getProperty(ZENDESK_TICKET_PRIORITY);
+        type = context.getProperty(ZENDESK_TICKET_TYPE);
 
         final String subDomain = context.getProperty(ZENDESK_SUBDOMAIN).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
