@@ -35,10 +35,6 @@ class ConsumeElasticsearch_IT extends AbstractJsonQueryElasticsearch_IT {
         runner.setProperty(ConsumeElasticsearch.RANGE_FIELD, RANGE_FIELD);
         runner.setProperty(ConsumeElasticsearch.RANGE_FIELD_SORT_ORDER, RANGE_SORT_ORDER);
         runner.removeProperty(ConsumeElasticsearch.RANGE_INITIAL_VALUE);
-
-        // need to set tracking variables directly in the processor as the OnScheduled method won't be triggered
-        ((TestConsumeElasticsearch) runner.getProcessor()).setTrackingRangeField(RANGE_FIELD);
-        ((TestConsumeElasticsearch) runner.getProcessor()).setTrackingSortOrder(RANGE_SORT_ORDER);
     }
 
     @Test

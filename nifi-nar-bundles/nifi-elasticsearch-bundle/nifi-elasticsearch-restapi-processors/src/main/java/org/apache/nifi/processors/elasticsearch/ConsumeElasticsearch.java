@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -183,8 +184,43 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
 
+        // set tracking field information, so it can be used to update the StateMap after query execution (where ProcessContext is not available)
         trackingRangeField = context.getProperty(RANGE_FIELD).getValue();
         trackingSortOrder = context.getProperty(RANGE_FIELD_SORT_ORDER).getValue();
+    }
+
+    @Override
+    @OnStopped
+    public void onStopped() {
+        super.onStopped();
+
+        // reset tracking fields, so that we don't retain incorrect values between processor restarts
+        trackingRangeField = null;
+        trackingSortOrder = null;
+    }
+
+    private String getTrackingRangeField(final ProcessContext context) {
+        final String field;
+        if (trackingRangeField != null) {
+            field = trackingRangeField;
+        } else if (context != null) {
+            field = context.getProperty(RANGE_FIELD).getValue();
+        } else {
+            field = null;
+        }
+        return field;
+    }
+
+    private String getTrackingSortOrder(final ProcessContext context) {
+        final String sortOrder;
+        if (trackingSortOrder != null) {
+            sortOrder = trackingSortOrder;
+        } else if (context != null) {
+            sortOrder = context.getProperty(RANGE_FIELD_SORT_ORDER).getValue();
+        } else {
+            sortOrder = null;
+        }
+        return sortOrder;
     }
 
     @Override
@@ -201,7 +237,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         // only retrieve documents with values greater than the last queried value (if present)
         final String trackingRangeValue = getTrackingRangeValueOrDefault(context);
         if (StringUtils.isNotBlank(trackingRangeValue)) {
-            filters.add(Collections.singletonMap("range", Collections.singletonMap(trackingRangeField,
+            filters.add(Collections.singletonMap("range", Collections.singletonMap(getTrackingRangeField(context),
                     new HashMap<String, String>(3, 1) {{
                         put("gt", trackingRangeValue);
                         if (context.getProperty(RANGE_DATE_FORMAT).isSet()) {
@@ -242,8 +278,8 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
             query.put("sort", sort);
         }
 
-        if (sort.stream().noneMatch(s -> s.containsKey(trackingRangeField))) {
-            sort.add(0, Collections.singletonMap(trackingRangeField, trackingSortOrder));
+        if (sort.stream().noneMatch(s -> s.containsKey(getTrackingRangeField(context)))) {
+            sort.add(0, Collections.singletonMap(getTrackingRangeField(context), getTrackingSortOrder(context)));
         }
     }
 
@@ -259,16 +295,17 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         // update the tracking range value with first/last hit (depending upon sort order)
         if (!response.getHits().isEmpty()) {
             final int trackingHitIndex;
-            if ("desc".equals(trackingSortOrder) && paginatedJsonQueryParameters.getPageCount() == 1) {
+            if ("desc".equals(getTrackingSortOrder(null)) && paginatedJsonQueryParameters.getPageCount() == 1) {
                 trackingHitIndex = 0;
-            } else if ("asc".equals(trackingSortOrder)) {
+            } else if ("asc".equals(getTrackingSortOrder(null))) {
                 trackingHitIndex = response.getHits().size() - 1;
             } else {
                 return;
             }
 
             @SuppressWarnings("unchecked")
-            final String nextValue = String.valueOf(((Map<String, Object>) response.getHits().get(trackingHitIndex).get("_source")).get(trackingRangeField));
+            final String nextValue = String.valueOf(((Map<String, Object>) response.getHits().get(trackingHitIndex).get("_source"))
+                    .get(getTrackingRangeField(null)));
             if (StringUtils.isNotBlank(nextValue)) {
                 paginatedJsonQueryParameters.setTrackingRangeValue(nextValue);
             }
