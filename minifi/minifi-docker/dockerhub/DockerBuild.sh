@@ -18,6 +18,12 @@ DOCKER_UID="${1:-1000}"
 DOCKER_GID="${2:-1000}"
 
 DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
-MINIFI_IMAGE_VERSION="$(echo "$DOCKER_IMAGE" | cut -d : -f 2)"
-echo "Building MiNiFi Image: '$DOCKER_IMAGE' Version: $MINIFI_IMAGE_VERSION"
-docker build --build-arg UID="$DOCKER_UID" --build-arg GID="$DOCKER_GID" --build-arg MINIFI_VERSION="$MINIFI_IMAGE_VERSION" -t "$DOCKER_IMAGE" .
+MINIFI_IMAGE_VERSION="$(echo "${DOCKER_IMAGE}" | cut -d : -f 2)"
+
+root_dir="../../.."
+mvn_cmd="${root_dir}/mvnw -f ${root_dir}/pom.xml help:evaluate -q -D forceStdout"
+IMAGE_NAME="$(${mvn_cmd} -D expression=docker.jre.image.name)"
+IMAGE_TAG="$(${mvn_cmd} -D expression=docker.image.tag)"
+
+echo "Building MiNiFi Image: '${DOCKER_IMAGE}' Version: '${MINIFI_IMAGE_VERSION}' Using: '${IMAGE_NAME}:${IMAGE_TAG}' User/Group: '${DOCKER_UID}/${DOCKER_GID}'"
+docker build --build-arg IMAGE_NAME="${IMAGE_NAME}" --build-arg IMAGE_TAG="${IMAGE_TAG}" --build-arg UID="${DOCKER_UID}" --build-arg GID="${DOCKER_GID}" --build-arg MINIFI_VERSION="${MINIFI_IMAGE_VERSION}" -t "${DOCKER_IMAGE}" .

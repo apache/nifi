@@ -96,6 +96,9 @@
         <maven.surefire.arguments />
         <!-- Disable maven-site-plugin from parent POM -->
         <maven.site.skip>true</maven.site.skip>
+        <docker.jdk.image.name>bellsoft/liberica-openjdk-debian</docker.jdk.image.name>
+        <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
+        <docker.image.tag>21</docker.image.tag>
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.14.0</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.5.1</nifi.nar.maven.plugin.version>
