@@ -27,7 +27,10 @@ public class RedisConfig {
     private final String connectionString;
 
     private String sentinelMaster;
+    private String sentinelUsername;
     private String sentinelPassword;
+
+    private String username;
     private String password;
 
     private int dbIndex = 0;
@@ -68,6 +71,14 @@ public class RedisConfig {
         this.sentinelMaster = sentinelMaster;
     }
 
+    public String getSentinelUsername() {
+        return sentinelUsername;
+    }
+
+    public void setSentinelUsername(String sentinelUsername) {
+        this.sentinelUsername = sentinelUsername;
+    }
+
     public String getSentinelPassword() {
         return sentinelPassword;
     }
@@ -82,6 +93,14 @@ public class RedisConfig {
 
     public void setDbIndex(int dbIndex) {
         this.dbIndex = dbIndex;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {
