@@ -63,8 +63,8 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy builds a client:
         assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(Regions.DEFAULT_REGION.getName());
-        }, Regions.DEFAULT_REGION.name(), randomKeyMaterial));
+            builder.withRegion(Regions.DEFAULT_REGION.name());
+        }, Regions.DEFAULT_REGION.getName(), randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
         assertNull(metadata.getSSEAlgorithm());
