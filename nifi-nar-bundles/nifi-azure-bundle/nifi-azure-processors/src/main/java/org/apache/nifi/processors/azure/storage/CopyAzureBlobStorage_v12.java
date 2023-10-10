@@ -239,7 +239,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 final BlobRequestConditions sourceRequestConditions = new BlobRequestConditions();
                 sourceRequestConditions.setIfMatch(sourceBlobProperties.getETag());
 
-                HttpAuthorization httpAuthorization;
+                final HttpAuthorization httpAuthorization;
                 final String sasToken = (credentialsDetails.getCredentialsType() == AzureStorageCredentialsType.ACCOUNT_KEY)
                         ? generateSas(sourceContainerClient)
                         : credentialsDetails.getSasToken();
