@@ -45,11 +45,17 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
     public int port = REDIS_PORT;
 
     @Nullable
+    protected String username = null;
+    @Nullable
     protected String password = null;
     @Nullable
     protected Path configurationMountDirectory = null;
 
     protected final List<String> configurationOptions = new ArrayList<>();
+
+    public void setUsername(@Nullable String username) {
+        this.username = username;
+    }
 
     public void setPassword(final @Nullable String password) {
         this.password = password;
@@ -69,6 +75,11 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
 
     protected void adjustConfiguration() {
         addConfigurationOption("port " + port);
+
+        if (username != null) {
+            final String userPassword = password == null ? "nopass" : ">" + password;
+            addConfigurationOption("user " + username + " on " + userPassword + " ~* allcommands allchannels");
+        }
 
         if (password != null) {
             addConfigurationOption("requirepass " + password);

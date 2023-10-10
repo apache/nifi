@@ -87,7 +87,7 @@ public class ITRedisDistributedMapCacheClientService {
 
     @Test
     public void testStandaloneRedis() throws InitializationException, IOException {
-        int redisPort = setupStandaloneRedis(null).port;
+        int redisPort = setupStandaloneRedis(null,null).port;
         setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
             // uncomment this to test using a different database index than the default 0
             //  testRunner.setProperty(pool, RedisUtils.DATABASE, "1");
@@ -98,9 +98,24 @@ public class ITRedisDistributedMapCacheClientService {
     }
 
     @Test
-    public void testStandaloneRedisWithAuthentication() throws InitializationException, IOException {
+    public void testStandaloneRedisWithUsernameAndPasswordAuthentication() throws InitializationException, IOException {
+        final String redisUsername = "foo";
         final String redisPassword = "foobared";
-        final int redisPort = setupStandaloneRedis(redisPassword).port;
+        final int redisPort = setupStandaloneRedis(redisUsername, redisPassword).port;
+        setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
+            testRunner.setProperty(redisConnectionPool, RedisUtils.USERNAME, redisUsername);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
+        });
+        setupRedisMapCacheClientService();
+
+        executeProcessor();
+    }
+
+
+    @Test
+    public void testStandaloneRedisWithDefaultUserAuthentication() throws InitializationException, IOException {
+        final String redisPassword = "foobared";
+        final int redisPort = setupStandaloneRedis(null, redisPassword).port;
         setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
         });
@@ -111,15 +126,15 @@ public class ITRedisDistributedMapCacheClientService {
 
     @Test
     public void testSentinelRedis() throws InitializationException, IOException {
-        RedisContainer redisMasterContainer = setupStandaloneRedis(null);
+        RedisContainer redisMasterContainer = setupStandaloneRedis(null,null);
         String masterHost = "127.0.0.1";
         int masterPort = redisMasterContainer.port;
-        setUpRedisReplica(masterHost, masterPort, null);
-        setUpRedisReplica(masterHost, masterPort, null);
+        setUpRedisReplica(masterHost, masterPort, null, null);
+        setUpRedisReplica(masterHost, masterPort, null, null);
 
-        int sentinelAPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
-        int sentinelBPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
-        int sentinelCPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, null, null, 2, null, null).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, null, null, 2, null, null).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, null, null, 2, null, null).port;
 
         setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
@@ -132,25 +147,56 @@ public class ITRedisDistributedMapCacheClientService {
     }
 
     @Test
-    public void testSentinelRedisWithAuthentication() throws InitializationException, IOException {
+    public void testSentinelRedisWithDefaultUserAuthentication() throws InitializationException, IOException {
         String redisPassword = "t0p_53cr35";
         String sentinelPassword = "otherPassword";
 
-        RedisContainer redisMasterContainer = setupStandaloneRedis(redisPassword);
+        RedisContainer redisMasterContainer = setupStandaloneRedis(null, redisPassword);
         String masterHost = "127.0.0.1";
         int masterPort = redisMasterContainer.port;
-        setUpRedisReplica(masterHost, masterPort, redisPassword);
-        setUpRedisReplica(masterHost, masterPort, redisPassword);
+        setUpRedisReplica(masterHost, masterPort, null, redisPassword);
+        setUpRedisReplica(masterHost, masterPort, null, redisPassword);
 
-        int sentinelAPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
-        int sentinelBPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
-        int sentinelCPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, null, redisPassword, 2, null, sentinelPassword).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, null, redisPassword, 2, null, sentinelPassword).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, null, redisPassword, 2, null, sentinelPassword).port;
 
         setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
             testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_MASTER, masterName);
 
             testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_PASSWORD, sentinelPassword);
+        });
+        setupRedisMapCacheClientService();
+
+        executeProcessor();
+    }
+
+    @Test
+    public void testSentinelRedisWithUsernameAndPasswordAuthentication() throws InitializationException, IOException {
+        final String redisUser = "redisUser";
+        final String redisPassword = "t0p_53cr35";
+        final String sentinelUsername = "sentinelUser";
+        final String sentinelPassword = "otherPassword";
+
+        final RedisContainer redisMasterContainer = setupStandaloneRedis(redisUser, redisPassword);
+        final String masterHost = "127.0.0.1";
+        final int masterPort = redisMasterContainer.port;
+        setUpRedisReplica(masterHost, masterPort, redisUser, redisPassword);
+        setUpRedisReplica(masterHost, masterPort, redisUser, redisPassword);
+
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, redisUser, redisPassword, 2, sentinelUsername, sentinelPassword).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, redisUser, redisPassword, 2, sentinelUsername, sentinelPassword).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, redisUser, redisPassword, 2, sentinelUsername, sentinelPassword).port;
+
+        setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
+            testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_MASTER, masterName);
+
+            testRunner.setProperty(redisConnectionPool, RedisUtils.USERNAME, redisUser);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_USERNAME, sentinelUsername);
             testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_PASSWORD, sentinelPassword);
         });
         setupRedisMapCacheClientService();
@@ -167,13 +213,14 @@ public class ITRedisDistributedMapCacheClientService {
         redisContainers.forEach(RedisContainer::stop);
     }
 
-    private RedisContainer setupStandaloneRedis(final @Nullable String redisPassword) throws IOException {
+    private RedisContainer setupStandaloneRedis(@Nullable final String redisUsername, final @Nullable String redisPassword) throws IOException {
         int redisPort = getAvailablePort();
 
         RedisContainer redisContainer = new RedisContainer(CONTAINER_IMAGE_TAG);
         redisContainer.mountConfigurationFrom(testDirectory);
         redisContainer.setPort(redisPort);
         redisContainer.addPortBinding(redisPort, redisPort);
+        redisContainer.setUsername(redisUsername);
         redisContainer.setPassword(redisPassword);
 
         redisContainers.add(redisContainer);
@@ -184,6 +231,7 @@ public class ITRedisDistributedMapCacheClientService {
 
     private RedisReplicaContainer setUpRedisReplica(final @NonNull String masterHost,
                                                     final int masterPort,
+                                                    final @Nullable String redisUsername,
                                                     final @Nullable String redisPassword) throws IOException {
         int replicaPort = getAvailablePort();
 
@@ -192,6 +240,7 @@ public class ITRedisDistributedMapCacheClientService {
         redisReplicaContainer.setPort(replicaPort);
         redisReplicaContainer.addPortBinding(replicaPort, replicaPort);
         redisReplicaContainer.setReplicaOf(masterHost, masterPort);
+        redisReplicaContainer.setUsername(redisUsername);
         redisReplicaContainer.setPassword(redisPassword);
 
         redisContainers.add(redisReplicaContainer);
@@ -202,8 +251,10 @@ public class ITRedisDistributedMapCacheClientService {
 
     private RedisSentinelContainer setUpSentinel(final @NonNull String masterHost,
                                                  final int masterPort,
+                                                 final @Nullable String redisUsername,
                                                  final @Nullable String redisPassword,
                                                  final int quorumSize,
+                                                 final @Nullable String sentinelUsername,
                                                  final @Nullable String sentinelPassword) throws IOException {
         int sentinelPort = getAvailablePort();
 
@@ -215,7 +266,9 @@ public class ITRedisDistributedMapCacheClientService {
         redisSentinelContainer.setMasterPort(masterPort);
         redisSentinelContainer.setMasterName(masterName);
         redisSentinelContainer.setQuorumSize(quorumSize);
+        redisSentinelContainer.setUsername(redisUsername);
         redisSentinelContainer.setPassword(redisPassword);
+        redisSentinelContainer.setSentinelUsername(sentinelUsername);
         redisSentinelContainer.setSentinelPassword(sentinelPassword);
 
         redisContainers.add(redisSentinelContainer);
