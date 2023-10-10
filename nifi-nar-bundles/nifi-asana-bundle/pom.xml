@@ -38,11 +38,6 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-asana-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>

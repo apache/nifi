@@ -73,6 +73,11 @@
             <artifactId>nifi-security-utils-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- mark these nifi artifacts as provided since it is included in the lib -->
         <dependency>
