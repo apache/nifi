@@ -62,6 +62,7 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -1733,6 +1734,30 @@ public class ControllerFacade implements Authorizable {
 
     public FlowFileEventRepository getFlowFileEventRepository() {
         return flowController.getFlowFileEventRepository();
+    }
+
+    /**
+     * Returns the storage usage of all provenance repositories
+     * @return the map of all the storage usage
+     */
+    public Map<String, StorageUsage> getProvenanceRepositoryStorageUsage() {
+        return flowController.getEventAccess().getProvenanceRepositoryStorageUsage();
+    }
+
+    /**
+     * Returns the storage usage of all content repositories
+     * @return the map of all the storage usage
+     */
+    public Map<String, StorageUsage> getContentRepositoryStorageUsage() {
+        return flowController.getEventAccess().getContentRepositoryStorageUsage();
+    }
+
+    /**
+     * Returns the storage usage of the flow file repository
+     * @return the storage usage
+     */
+    public StorageUsage getFlowFileRepositoryStorageUsage() {
+        return flowController.getEventAccess().getFlowFileRepositoryStorageUsage();
     }
 
     /*

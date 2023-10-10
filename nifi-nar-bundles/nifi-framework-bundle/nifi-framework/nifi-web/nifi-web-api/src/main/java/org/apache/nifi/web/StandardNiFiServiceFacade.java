@@ -101,6 +101,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.DiagnosticLevel;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -6126,6 +6127,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesSent(), "TOTAL_BYTES_SENT",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
+
+        //Add flow file repository, content repository and provenance repository usage to NiFi metrics
+        final StorageUsage flowFileRepositoryUsage = controllerFacade.getFlowFileRepositoryStorageUsage();
+        final Map<String, StorageUsage> contentRepositoryUsage = controllerFacade.getContentRepositoryStorageUsage();
+        final Map<String, StorageUsage> provenanceRepositoryUsage = controllerFacade.getProvenanceRepositoryStorageUsage();
+
+        PrometheusMetricsUtil.createStorageUsageMetrics(nifiMetricsRegistry, flowFileRepositoryUsage, contentRepositoryUsage, provenanceRepositoryUsage,
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
         //Add total task duration for root to the NiFi metrics registry

@@ -756,7 +756,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         }
 
-        eventAccess = new StandardEventAccess(flowManager, flowFileEventRepository, processScheduler, authorizer, provenanceRepository, auditService, analyticsEngine);
+        eventAccess = new StandardEventAccess(flowManager, flowFileEventRepository, processScheduler, authorizer, provenanceRepository,
+                auditService, analyticsEngine, flowFileRepository, contentRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
             @Override

@@ -22,12 +22,14 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.AbstractEventAccess;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class StatelessEventAccess extends AbstractEventAccess {
     private final ProvenanceRepository provenanceRepository;
@@ -46,5 +48,20 @@ public class StatelessEventAccess extends AbstractEventAccess {
     @Override
     public List<Action> getFlowChanges(final int firstActionId, final int maxActions) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public Map<String, StorageUsage> getProvenanceRepositoryStorageUsage() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, StorageUsage> getContentRepositoryStorageUsage() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public StorageUsage getFlowFileRepositoryStorageUsage() {
+        return null;
     }
 }

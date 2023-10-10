@@ -27,6 +27,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
@@ -522,5 +523,36 @@ public class PrometheusMetricsUtil {
         clusterMetricsRegistry.setDataPoint(totalNodeCount, "TOTAL_NODE_COUNT", instanceId);
 
         return clusterMetricsRegistry.getRegistry();
+    }
+
+    public static CollectorRegistry createStorageUsageMetrics(final NiFiMetricsRegistry nifiMetricsRegistry, final StorageUsage flowFileRepositoryUsage,
+                                                              final Map<String, StorageUsage> contentRepositoryUsage, final Map<String, StorageUsage> provenanceRepositoryUsage,
+                                                              final String instanceId, final String componentType, final String componentName, final String componentId, final String parentId) {
+
+        addStorageUsageMetric(nifiMetricsRegistry, flowFileRepositoryUsage, instanceId, componentType, componentName, componentId, parentId,
+                "FLOW_FILE_REPO_TOTAL_SPACE_BYTES", "FLOW_FILE_REPO_FREE_SPACE_BYTES", "FLOW_FILE_REPO_USED_SPACE_BYTES");
+
+        for (final StorageUsage usage : contentRepositoryUsage.values()) {
+            addStorageUsageMetric(nifiMetricsRegistry, usage, instanceId, componentType, componentName, componentId, parentId,
+                    "CONTENT_REPO_TOTAL_SPACE_BYTES", "CONTENT_REPO_FREE_SPACE_BYTES", "CONTENT_REPO_USED_SPACE_BYTES");
+        }
+
+        for (final StorageUsage usage : provenanceRepositoryUsage.values()) {
+            addStorageUsageMetric(nifiMetricsRegistry, usage, instanceId, componentType, componentName, componentId, parentId,
+                    "PROVENANCE_REPO_TOTAL_SPACE_BYTES", "PROVENANCE_REPO_FREE_SPACE_BYTES", "PROVENANCE_REPO_USED_SPACE_BYTES");
+        }
+
+        return nifiMetricsRegistry.getRegistry();
+    }
+
+    private static void addStorageUsageMetric(final NiFiMetricsRegistry nifiMetricsRegistry, final StorageUsage storageUsage, final String instanceId,
+                                                                       final String componentType, final String componentName, final String componentId, final String parentId,
+                                                                       final String totalSpaceLabel, final String freeSpaceLabel, final String usedSpaceLabel) {
+        nifiMetricsRegistry.setDataPoint(storageUsage.getTotalSpace(), totalSpaceLabel,
+                instanceId, componentType, componentName, componentId, parentId, storageUsage.getIdentifier());
+        nifiMetricsRegistry.setDataPoint(storageUsage.getFreeSpace(), freeSpaceLabel,
+                instanceId, componentType, componentName, componentId, parentId, storageUsage.getIdentifier());
+        nifiMetricsRegistry.setDataPoint(storageUsage.getUsedSpace(), usedSpaceLabel,
+                instanceId, componentType, componentName, componentId, parentId, storageUsage.getIdentifier());
     }
 }
