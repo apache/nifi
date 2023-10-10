@@ -16,6 +16,10 @@
  */
 
 import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../state';
+import { startUserPolling, stopUserPolling } from '../../state/user/user.actions';
+import { loadExtensionTypesForSettings } from '../../state/extension-types/extension-types.actions';
 
 @Component({
     selector: 'settings',
@@ -49,4 +53,15 @@ export class Settings {
             link: 'parameter-providers'
         }
     ];
+
+    constructor(private store: Store<NiFiState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(startUserPolling());
+        this.store.dispatch(loadExtensionTypesForSettings());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopUserPolling());
+    }
 }

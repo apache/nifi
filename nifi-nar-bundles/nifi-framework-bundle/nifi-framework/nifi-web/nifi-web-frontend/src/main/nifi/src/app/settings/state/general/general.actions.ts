@@ -36,6 +36,6 @@ export const updateControllerConfig = createAction(
 );
 
 export const updateControllerConfigSuccess = createAction(
-  '[General] Update Controller Config Success',
-  props<{ response: ControllerConfigResponse }>()
+    '[General] Update Controller Config Success',
+    props<{ response: ControllerConfigResponse }>()
 );

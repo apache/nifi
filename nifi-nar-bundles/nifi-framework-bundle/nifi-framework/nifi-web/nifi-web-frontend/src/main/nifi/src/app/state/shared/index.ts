@@ -15,9 +15,20 @@
  * limitations under the License.
  */
 
+import { DocumentedType } from '../extension-types';
+
 export interface OkDialogRequest {
     title: string;
     message: string;
+}
+
+export interface YesNoDialogRequest {
+    title: string;
+    message: string;
+}
+
+export interface CreateControllerServiceRequest {
+    controllerServiceTypes: DocumentedType[];
 }
 
 export interface Permissions {
@@ -31,8 +42,28 @@ export interface RequiredPermission {
 }
 
 export interface Revision {
-    version: number,
-    clientId: string
+    version: number;
+    clientId: string;
+}
+
+export interface BulletinEntity {
+    canRead: boolean;
+    id: number;
+    sourceId: string;
+    groupId: string;
+    timestamp: string;
+    nodeAddress?: string;
+    bulletin: {
+        id: number;
+        sourceId: string;
+        groupId: string;
+        category: string;
+        level: string;
+        message: string;
+        sourceName: string;
+        timestamp: string;
+        nodeAddress?: string;
+    };
 }
 
 export enum ComponentType {
@@ -44,4 +75,15 @@ export enum ComponentType {
     Label = 'Label',
     Funnel = 'Funnel',
     Connection = 'Connection'
+}
+
+export interface ControllerServiceEntity {
+    permissions: Permissions;
+    operatePermissions?: Permissions;
+    revision: Revision;
+    bulletins: BulletinEntity[];
+    id: string;
+    uri: string;
+    status: any;
+    component: any;
 }

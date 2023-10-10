@@ -18,11 +18,11 @@
 <div class="p-4 flex flex-col h-screen justify-between gap-y-5">
     <div class="flex justify-between">
         <h3 class="text-xl bold settings-header">NiFi Settings</h3>
-        <button class="close-settings" [routerLink]="['/']">
+        <button class="nifi-button" [routerLink]="['/']">
             <i class="fa fa-times"></i>
         </button>
     </div>
-    <div class="flex-1">
+    <div class="flex-1 flex flex-col">
         <div class="settings-tabs">
             <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
                 <a
@@ -36,7 +36,7 @@
                 </a>
             </nav>
         </div>
-        <div class="pt-4">
+        <div class="pt-4 flex-1">
             <mat-tab-nav-panel #tabPanel>
                 <router-outlet></router-outlet>
             </mat-tab-nav-panel>

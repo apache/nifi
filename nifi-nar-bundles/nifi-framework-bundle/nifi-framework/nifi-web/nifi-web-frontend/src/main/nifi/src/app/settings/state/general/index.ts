@@ -32,8 +32,8 @@ export interface Controller {
 }
 
 export interface ControllerEntity {
-    revision: Revision,
-    component: Controller
+    revision: Revision;
+    component: Controller;
 }
 
 export interface GeneralState {

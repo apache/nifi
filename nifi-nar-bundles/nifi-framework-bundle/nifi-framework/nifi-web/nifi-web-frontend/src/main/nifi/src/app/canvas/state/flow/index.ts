@@ -16,8 +16,8 @@
  */
 
 import { Position } from '../shared';
-import { ComponentType, Permissions } from '../../../state/shared';
-import { DocumentedType } from '../../../state/extension-types';
+import { BulletinEntity, ComponentType, Permissions } from '../../../state/shared';
+import { Bundle, DocumentedType } from '../../../state/extension-types';
 
 export const flowFeatureKey = 'flowState';
 
@@ -69,6 +69,7 @@ export interface CreateProcessorDialogRequest {
 
 export interface CreateProcessor extends CreateComponent {
     processorType: string;
+    processorBundle: Bundle;
 }
 
 export interface CreatePort extends CreateComponent {
@@ -185,26 +186,6 @@ export interface UnorderedListTipInput {
 export interface ValidationErrorsTipInput {
     isValidating: boolean;
     validationErrors: string[];
-}
-
-export interface BulletinEntity {
-    canRead: boolean;
-    id: number;
-    sourceId: string;
-    groupId: string;
-    timestamp: string;
-    nodeAddress?: string;
-    bulletin: {
-        id: number;
-        sourceId: string;
-        groupId: string;
-        category: string;
-        level: string;
-        message: string;
-        sourceName: string;
-        timestamp: string;
-        nodeAddress?: string;
-    };
 }
 
 export interface BulletinsTipInput {

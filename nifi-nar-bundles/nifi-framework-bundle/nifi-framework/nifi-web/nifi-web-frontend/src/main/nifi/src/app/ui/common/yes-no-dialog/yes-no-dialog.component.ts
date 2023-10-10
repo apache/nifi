@@ -15,6 +15,24 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
+import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { YesNoDialogRequest } from '../../../state/shared';
+import { MatButtonModule } from '@angular/material/button';
+
+@Component({
+    selector: 'yes-no-dialog',
+    standalone: true,
+    imports: [MatDialogModule, MatButtonModule],
+    templateUrl: './yes-no-dialog.component.html',
+    styleUrls: ['./yes-no-dialog.component.scss']
+})
+export class YesNoDialog {
+    @Output() yes: EventEmitter<void> = new EventEmitter<void>();
+
+    constructor(@Inject(MAT_DIALOG_DATA) public request: YesNoDialogRequest) {}
+
+    yesClicked(): void {
+        this.yes.next();
+    }
 }

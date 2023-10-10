@@ -41,12 +41,13 @@ export class CreateProcessor {
         this.processorTypes = dialogRequest.processorTypes;
     }
 
-    createProcessor(processorType: string): void {
+    createProcessor(processorType: DocumentedType): void {
         this.store.dispatch(
             createProcessor({
                 request: {
                     ...this.dialogRequest.request,
-                    processorType
+                    processorType: processorType.type,
+                    processorBundle: processorType.bundle
                 }
             })
         );

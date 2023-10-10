@@ -17,50 +17,36 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { Settings } from './settings.component';
 import { reducers, settingsFeatureKey } from '../state';
 import { SettingsRoutingModule } from './settings-routing.module';
-import { MatTabsModule } from '@angular/material/tabs';
-import { General } from '../ui/general/general.component';
-import { ManagementControllerServices } from '../ui/management-controller-services/management-controller-services.component';
-import { ReportingTasks } from '../ui/reporting-tasks/reporting-tasks.component';
-import { FlowAnalysisRules } from '../ui/flow-analysis-rules/flow-analysis-rules.component';
-import { RegistryClients } from '../ui/registry-clients/registry-clients.component';
-import { ParameterProviders } from '../ui/parameter-providers/parameter-providers.component';
 import { GeneralEffects } from '../state/general/general.effects';
-import { GeneralForm } from '../ui/general/general-form/general-form.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { ManagementControllerServicesEffects } from '../state/management-controller-services/management-controller-services.effects';
+import { GeneralModule } from '../ui/general/general.module';
+import { ManagementControllerServicesModule } from '../ui/management-controller-services/management-controller-services.module';
+import { FlowAnalysisRulesModule } from '../ui/flow-analysis-rules/flow-analysis-rules.module';
+import { ParameterProvidersModule } from '../ui/parameter-providers/parameter-providers.module';
+import { RegistryClientsModule } from '../ui/registry-clients/registry-clients.module';
+import { ReportingTasksModule } from '../ui/reporting-tasks/reporting-tasks.module';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @NgModule({
-    declarations: [
-        Settings,
-        General,
-        GeneralForm,
-        ManagementControllerServices,
-        ReportingTasks,
-        FlowAnalysisRules,
-        RegistryClients,
-        ParameterProviders
-    ],
+    declarations: [Settings],
     exports: [Settings],
     imports: [
         CommonModule,
+        GeneralModule,
+        ManagementControllerServicesModule,
+        FlowAnalysisRulesModule,
+        ParameterProvidersModule,
+        RegistryClientsModule,
+        ReportingTasksModule,
         SettingsRoutingModule,
         StoreModule.forFeature(settingsFeatureKey, reducers),
-        EffectsModule.forFeature(GeneralEffects),
-        FormsModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatTabsModule,
-        NgxSkeletonLoaderModule
+        EffectsModule.forFeature(GeneralEffects, ManagementControllerServicesEffects),
+        MatTabsModule
     ]
 })
 export class SettingsModule {}

@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReportingTasks } from './reporting-tasks.component';
+
+@NgModule({
+    declarations: [ReportingTasks],
+    exports: [ReportingTasks],
+    imports: [CommonModule]
+})
+export class ReportingTasksModule {}

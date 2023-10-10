@@ -21,7 +21,8 @@ import {
     clearExtensionTypesApiError,
     extensionTypesApiError,
     loadExtensionTypesForCanvas,
-    loadExtensionTypesForCanvasSuccess
+    loadExtensionTypesForCanvasSuccess,
+    loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
 
 export const initialState: ExtensionTypesState = {
@@ -44,6 +45,15 @@ export const extensionTypesReducer = createReducer(
         ...state,
         processorTypes: response.processorTypes,
         controllerServiceTypes: response.controllerServiceTypes,
+        error: null,
+        status: 'success' as const
+    })),
+    on(loadExtensionTypesForSettingsSuccess, (state, { response }) => ({
+        ...state,
+        controllerServiceTypes: response.controllerServiceTypes,
+        reportingTaskTypes: response.reportingTaskTypes,
+        parameterProviderTypes: response.parameterProviderTypes,
+        flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         error: null,
         status: 'success' as const
     })),

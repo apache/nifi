@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RegistryClients } from './registry-clients.component';
+
+@NgModule({
+    declarations: [RegistryClients],
+    exports: [RegistryClients],
+    imports: [CommonModule]
+})
+export class RegistryClientsModule {}

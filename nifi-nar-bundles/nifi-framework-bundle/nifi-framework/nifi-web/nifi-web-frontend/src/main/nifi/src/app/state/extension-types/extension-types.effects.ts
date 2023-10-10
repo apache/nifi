@@ -49,4 +49,30 @@ export class ExtensionTypesEffects {
             )
         )
     );
+
+    loadExtensionTypesForSettings$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ExtensionTypesActions.loadExtensionTypesForSettings),
+            switchMap(() =>
+                combineLatest([
+                    this.extensionTypesService.getControllerServiceTypes(),
+                    this.extensionTypesService.getReportingTaskTypes(),
+                    this.extensionTypesService.getParameterProviderTypes(),
+                    this.extensionTypesService.getFlowAnalysisRuleTypes()
+                ]).pipe(
+                    map(([controllerServiceTypes, reportingTaskTypes, parameterProviderTypes, flowAnalysisRuleTypes]) =>
+                        ExtensionTypesActions.loadExtensionTypesForSettingsSuccess({
+                            response: {
+                                controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
+                                reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
+                                parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
+                                flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
+                            }
+                        })
+                    ),
+                    catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
+                )
+            )
+        )
+    );
 }

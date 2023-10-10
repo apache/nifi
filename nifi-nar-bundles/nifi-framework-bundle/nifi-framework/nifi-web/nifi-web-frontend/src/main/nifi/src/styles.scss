@@ -248,7 +248,7 @@ a:hover {
     This style is needed due to an incompatibility between material and tailwind.
  */
 
-.mdc-notched-outline__notch  {
+.mdc-notched-outline__notch {
     border-right: none;
 }
 
@@ -384,4 +384,27 @@ a:hover {
 .sensitive {
     font-weight: normal !important;
     color: #a8a8a8 !important;
+}
+
+button.nifi-button {
+    height: 28px;
+    width: 28px;
+    line-height: 28px;
+    border: 1px solid #ccdadb;
+    background-color: rgba(249, 250, 251, 0.97);
+    color: #004849;
+}
+
+button.nifi-button:hover {
+    cursor: pointer;
+    border-color: #004849;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.refresh-timestamp {
+    font-weight: 500;
+    color: #775351;
 }

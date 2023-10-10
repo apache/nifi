@@ -15,4 +15,31 @@
   ~ limitations under the License.
   -->
 
-<p>management-controller-services works!</p>
+<ng-container *ngIf="serviceState$ | async; let serviceState">
+    <div *ngIf="serviceState.status === 'pending' || serviceState.status === 'loading'; else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+    <ng-template #loaded>
+        <div class="flex flex-col h-full gap-y-2">
+            <div class="flex justify-end">
+                <button class="nifi-button" (click)="openNewControllerServiceDialog()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            <div class="flex-1">
+                <controller-service-table
+                    [controllerServices]="serviceState.controllerServices"
+                    (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
+            </div>
+            <div class="flex justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshControllerServiceListing()">
+                        <i class="fa fa-refresh"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ serviceState.loadedTimestamp }}</div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</ng-container>

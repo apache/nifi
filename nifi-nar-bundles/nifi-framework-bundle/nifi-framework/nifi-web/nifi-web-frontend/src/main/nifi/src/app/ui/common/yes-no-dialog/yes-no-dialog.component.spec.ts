@@ -15,6 +15,24 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { YesNoDialog } from './yes-no-dialog.component';
+
+describe('YesNoDialog', () => {
+    let component: YesNoDialog;
+    let fixture: ComponentFixture<YesNoDialog>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [YesNoDialog]
+        });
+        fixture = TestBed.createComponent(YesNoDialog);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

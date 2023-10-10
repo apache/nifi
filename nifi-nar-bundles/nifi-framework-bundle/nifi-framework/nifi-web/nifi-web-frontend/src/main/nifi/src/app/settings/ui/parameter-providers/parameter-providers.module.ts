@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ParameterProviders } from './parameter-providers.component';
+
+@NgModule({
+    declarations: [ParameterProviders],
+    exports: [ParameterProviders],
+    imports: [CommonModule]
+})
+export class ParameterProvidersModule {}

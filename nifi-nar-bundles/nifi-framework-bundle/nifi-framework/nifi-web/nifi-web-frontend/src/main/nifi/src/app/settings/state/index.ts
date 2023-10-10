@@ -22,16 +22,23 @@
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { GeneralState, generalFeatureKey } from './general';
 import { generalReducer } from './general/general.reducer';
+import {
+    managementControllerServicesFeatureKey,
+    ManagementControllerServicesState
+} from './management-controller-services';
+import { managementControllerServicesReducer } from './management-controller-services/management-controller-services.reducer';
 
 export const settingsFeatureKey = 'settings';
 
 export interface SettingsState {
     [generalFeatureKey]: GeneralState;
+    [managementControllerServicesFeatureKey]: ManagementControllerServicesState;
 }
 
 export function reducers(state: SettingsState | undefined, action: Action) {
     return combineReducers({
-        [generalFeatureKey]: generalReducer
+        [generalFeatureKey]: generalReducer,
+        [managementControllerServicesFeatureKey]: managementControllerServicesReducer
     })(state, action);
 }
 

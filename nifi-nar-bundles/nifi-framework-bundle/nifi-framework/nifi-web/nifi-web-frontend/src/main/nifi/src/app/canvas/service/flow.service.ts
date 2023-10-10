@@ -97,7 +97,8 @@ export class FlowService {
             revision: createProcessor.revision,
             component: {
                 position: createProcessor.position,
-                type: createProcessor.processorType
+                type: createProcessor.processorType,
+                bundle: createProcessor.processorBundle
             }
         });
     }

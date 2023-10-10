@@ -15,6 +15,24 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { ControllerServiceTable } from './controller-service-table.component';
+
+describe('ControllerServiceTable', () => {
+    let component: ControllerServiceTable;
+    let fixture: ComponentFixture<ControllerServiceTable>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ControllerServiceTable]
+        });
+        fixture = TestBed.createComponent(ControllerServiceTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

@@ -24,6 +24,13 @@ export interface LoadExtensionTypesForCanvasResponse {
     controllerServiceTypes: DocumentedType[];
 }
 
+export interface LoadExtensionTypesForSettingsResponse {
+    controllerServiceTypes: DocumentedType[];
+    reportingTaskTypes: DocumentedType[];
+    flowAnalysisRuleTypes: DocumentedType[];
+    parameterProviderTypes: DocumentedType[];
+}
+
 export interface Bundle {
     artifact: string;
     group: string;

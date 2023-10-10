@@ -16,9 +16,10 @@
  */
 
 import { Component, ComponentRef, Input, ViewContainerRef } from '@angular/core';
-import { BulletinEntity, ClusterSummary, ControllerStatus } from '../../../state/flow';
+import { ClusterSummary, ControllerStatus } from '../../../state/flow';
 import { initialState } from '../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../common/tooltips/bulletins-tip/bulletins-tip.component';
+import { BulletinEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'flow-status',

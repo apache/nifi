@@ -28,7 +28,7 @@ import { Revision } from '../../../state/shared';
 export const INITIAL_REVISION: Revision = {
     version: 0,
     clientId: ''
-}
+};
 
 export const INITIAL_CONTROLLER: Controller = {
     maxTimerDrivenThreadCount: 0
@@ -61,9 +61,9 @@ export const generalReducer = createReducer(
         status: 'error' as const
     })),
     on(updateControllerConfigSuccess, (state, { response }) => ({
-      ...state,
-      controller: response.controller,
-      error: null,
-      status: 'success' as const
-    })),
+        ...state,
+        controller: response.controller,
+        error: null,
+        status: 'success' as const
+    }))
 );

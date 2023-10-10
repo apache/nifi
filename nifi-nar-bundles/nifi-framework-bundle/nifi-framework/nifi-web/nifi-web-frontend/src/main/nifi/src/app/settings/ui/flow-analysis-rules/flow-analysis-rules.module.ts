@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FlowAnalysisRules } from './flow-analysis-rules.component';
+
+@NgModule({
+    declarations: [FlowAnalysisRules],
+    exports: [FlowAnalysisRules],
+    imports: [CommonModule]
+})
+export class FlowAnalysisRulesModule {}

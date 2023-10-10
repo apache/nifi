@@ -15,11 +15,46 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { ManagementControllerServicesState } from '../../state/management-controller-services';
+import { selectManagementControllerServicesState } from '../../state/management-controller-services/management-controller-services.selectors';
+import {
+    loadManagementControllerServices,
+    openNewControllerServiceDialog,
+    promptControllerServiceDeletion
+} from '../../state/management-controller-services/management-controller-services.actions';
+import { ControllerServiceEntity } from '../../../state/shared';
 
 @Component({
     selector: 'management-controller-services',
     templateUrl: './management-controller-services.component.html',
     styleUrls: ['./management-controller-services.component.scss']
 })
-export class ManagementControllerServices {}
+export class ManagementControllerServices implements OnInit {
+    serviceState$ = this.store.select(selectManagementControllerServicesState);
+
+    constructor(private store: Store<ManagementControllerServicesState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(loadManagementControllerServices());
+    }
+
+    openNewControllerServiceDialog(): void {
+        this.store.dispatch(openNewControllerServiceDialog());
+    }
+
+    refreshControllerServiceListing(): void {
+        this.store.dispatch(loadManagementControllerServices());
+    }
+
+    deleteControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            promptControllerServiceDeletion({
+                request: {
+                    controllerService: entity
+                }
+            })
+        );
+    }
+}

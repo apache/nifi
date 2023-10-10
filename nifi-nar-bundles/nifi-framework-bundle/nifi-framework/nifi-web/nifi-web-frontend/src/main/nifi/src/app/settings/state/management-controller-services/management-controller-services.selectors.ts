@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { createSelector } from '@ngrx/store';
+import { selectSettingsState, SettingsState } from '../index';
+import { managementControllerServicesFeatureKey } from './index';
+
+export const selectManagementControllerServicesState = createSelector(
+    selectSettingsState,
+    (state: SettingsState) => state[managementControllerServicesFeatureKey]
+);

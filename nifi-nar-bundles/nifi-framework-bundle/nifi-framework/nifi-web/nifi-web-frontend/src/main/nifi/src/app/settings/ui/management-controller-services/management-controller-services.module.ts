@@ -15,6 +15,15 @@
  * limitations under the License.
  */
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ManagementControllerServices } from './management-controller-services.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { ControllerServiceTable } from '../../../ui/common/controller-service-table/controller-service-table.component';
+
+@NgModule({
+    declarations: [ManagementControllerServices],
+    exports: [ManagementControllerServices],
+    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable]
+})
+export class ManagementControllerServicesModule {}

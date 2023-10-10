@@ -52,7 +52,7 @@ export class ExtensionCreation implements AfterViewInit {
         };
     }
     @Input() componentType!: string;
-    @Output() extensionTypeSelected: EventEmitter<string> = new EventEmitter<string>();
+    @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     displayedColumns: string[] = ['type', 'version', 'tags'];
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
@@ -144,7 +144,7 @@ export class ExtensionCreation implements AfterViewInit {
 
     createExtension(documentedType: DocumentedType | null): void {
         if (documentedType) {
-            this.extensionTypeSelected.next(documentedType.type);
+            this.extensionTypeSelected.next(documentedType);
         }
     }
 }
