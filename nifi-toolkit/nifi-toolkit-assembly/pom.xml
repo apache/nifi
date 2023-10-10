@@ -169,6 +169,8 @@ language governing permissions and limitations under the License. -->
                                                 <dockerFile>Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}/target/docker-build</contextDir>
                                                 <args>
+                                                    <IMAGE_NAME>${docker.jre.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                                     <UID>1000</UID>
                                                     <GID>1000</GID>
                                                     <NIFI_TOOLKIT_VERSION>${project.version}</NIFI_TOOLKIT_VERSION>

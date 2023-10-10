@@ -16,7 +16,9 @@
 # under the License.
 #
 
-FROM eclipse-temurin:11-jre
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 

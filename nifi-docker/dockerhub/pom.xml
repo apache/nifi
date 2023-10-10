@@ -44,6 +44,7 @@
                         <executions>
                             <execution>
                                 <id>build-docker-image</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>build</goal>
                                 </goals>

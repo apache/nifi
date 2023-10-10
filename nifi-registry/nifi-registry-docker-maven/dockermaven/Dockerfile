@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-FROM bellsoft/liberica-openjdk-debian:21 AS artifactbase
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -33,7 +34,10 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-current
 ADD $NIFI_REGISTRY_SCRIPTS ${NIFI_REGISTRY_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh \
    && apt-get update \
-   && apt-get install -y unzip
+   && apt-get install -y unzip \
+   && apt-get -y autoremove \
+   && apt-get clean autoclean \
+   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY $NIFI_REGISTRY_BINARY $NIFI_REGISTRY_BASE_DIR
 RUN unzip ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY_NAME} -d ${NIFI_REGISTRY_BASE_DIR} \
@@ -47,7 +51,7 @@ RUN unzip ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}-bin.zi
     && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}
 
 
-FROM bellsoft/liberica-openjdk-debian:21
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi Registry <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 

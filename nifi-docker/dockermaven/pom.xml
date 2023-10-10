@@ -54,6 +54,8 @@
                                                 <contextDir>${project.basedir}</contextDir>
                                                 <optimise>true</optimise>
                                                 <args>
+                                                    <IMAGE_NAME>${docker.jdk.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                                     <NIFI_VERSION>${project.version}</NIFI_VERSION>
                                                     <NIFI_BINARY>target/nifi-${project.version}-bin.zip</NIFI_BINARY>
                                                     <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${project.version}-bin.zip</NIFI_TOOLKIT_BINARY>

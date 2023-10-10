@@ -18,6 +18,3 @@ test 255 -eq $? || exit 1
 
 docker run --rm $IMAGE tls-toolkit invalid 1>/dev/null 2>&1
 test 2 -eq $? || exit 1
-
-docker run --rm $IMAGE file-manager invalid 1>/dev/null 2>&1
-test 1 -eq $? || exit 1

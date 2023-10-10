@@ -16,9 +16,9 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=17-jre
-FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS builder
 LABEL stage=builder
 
 ARG UID=1000

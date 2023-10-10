@@ -65,7 +65,7 @@ limitations under the License.
                         <executions>
                             <execution>
                                 <id>build-docker-image</id>
-                                <phase>install</phase>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>build</goal>
                                 </goals>
@@ -80,6 +80,8 @@ limitations under the License.
                                                 <dockerFile>dockermaven/Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}</contextDir>
                                                 <args>
+                                                    <IMAGE_NAME>${docker.jre.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                                     <UID>1000</UID>
                                                     <GID>1000</GID>
                                                     <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
