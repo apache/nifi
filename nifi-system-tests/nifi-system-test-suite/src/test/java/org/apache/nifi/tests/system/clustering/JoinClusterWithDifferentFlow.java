@@ -59,9 +59,7 @@ import java.util.zip.GZIPInputStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-@Disabled("This test needs some love. It had an issue where it assumed that Node 1 would have its flow elected the 'winner' in the flow election. That caused intermittent failures. Updated the test" +
-    " to instead startup both nodes with flow 1, then shutdown node 2, replace its flow, and startup again. However, this has caused its own set of problems because now the backup file that gets" +
-    " written out is JSON, not XML. Rather than going down the rabbit hole, just marking the test as Disabled for now.")
+@Disabled("https://issues.apache.org/jira/browse/NIFI-12203")
 public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
@@ -172,9 +170,12 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         assertEquals("65b8f293-016e-1000-7b8f-6c6752fa921b", affectedComponent.getId());
         assertEquals(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR, affectedComponent.getReferenceType());
 
+        // The original Controller Service, whose UUID ended with 00 should be removed and a new one inherited.
         final ControllerServicesEntity controllerLevelServices = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getControllerServices();
-        final Set<ControllerServiceEntity> controllerServices = controllerLevelServices.getControllerServices();
-        assertEquals(2, controllerServices.size());
+        assertEquals(1, controllerLevelServices.getControllerServices().size());
+
+        final ControllerServiceEntity firstService = controllerLevelServices.getControllerServices().iterator().next();
+        assertFalse(firstService.getId().endsWith("00"));
     }
 
     private String readFlow(final File file) throws IOException {
