@@ -175,7 +175,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     @Test
     void testNoSorts() throws IOException {
         final TestRunner runner = createRunner(false);
-        runner.removeProperty(ElasticsearchRestProcessor.SORT);
+        runner.removeProperty(ConsumeElasticsearch.SORT);
 
         final Map<String, Object> query = new HashMap<>();
         ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
@@ -186,7 +186,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     @Test
     void testSingleAdditionalSort() throws IOException {
         final TestRunner runner = createRunner(false);
-        runner.setProperty(ElasticsearchRestProcessor.SORT, "{\"foo\":\"bar\"}");
+        runner.setProperty(ConsumeElasticsearch.SORT, "{\"foo\":\"bar\"}");
 
         final Map<String, Object> query = new HashMap<>();
         ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
@@ -200,7 +200,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     @Test
     void testMultipleAdditionalSorts() throws IOException {
         final TestRunner runner = createRunner(false);
-        runner.setProperty(ElasticsearchRestProcessor.SORT, "[{\"foo\":\"bar\"},{\"baz\":\"biz\"}]");
+        runner.setProperty(ConsumeElasticsearch.SORT, "[{\"foo\":\"bar\"},{\"baz\":\"biz\"}]");
 
         final Map<String, Object> query = new HashMap<>();
         ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
@@ -216,7 +216,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     void testTrackingFieldSortAlreadyPresent() throws IOException {
         final TestRunner runner = createRunner(false);
         final String existingRangeFieldSort = String.format("{\"%s\":\"bar\"}", RANGE_FIELD_NAME);
-        runner.setProperty(ElasticsearchRestProcessor.SORT, existingRangeFieldSort);
+        runner.setProperty(ConsumeElasticsearch.SORT, existingRangeFieldSort);
 
         final Map<String, Object> query = new HashMap<>();
         ((ConsumeElasticsearch) runner.getProcessor()).addSortClause(query, null, runner.getProcessContext());
