@@ -155,7 +155,6 @@ user with administrative privileges.
       apache/nifi-registry:latest
 
 - Make sure you've created realm, client and user in OpenID Server before with the same user name defined in `INITIAL_ADMIN_IDENTITY` environment variable
-- You can read more information about theses Nifi security OIDC configurations in this following link: [https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect)
 
 ### Additional Configuration Options
 
