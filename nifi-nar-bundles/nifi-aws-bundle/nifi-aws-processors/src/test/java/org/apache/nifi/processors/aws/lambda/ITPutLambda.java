@@ -113,7 +113,8 @@ public class ITPutLambda {
         assertEquals("InvalidRequestContentException",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_ERROR_CODE), "exception error code should be equal");
         assertEquals("400",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_STATUS_CODE), "exception exception error code should be equal");
         assertTrue(out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_MESSAGE)
-               .startsWith("Could not parse request body into json: Unrecognized token 'badbod': was expecting ('true', 'false' or 'null')"), "exception exception error message should be start with");
+               .startsWith("Could not parse request body into json: Could not parse payload into json: Unrecognized token 'badbod': " +
+                       "was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"), "exception exception error message should be start with");
     }
 
     /**
