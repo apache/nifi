@@ -27,18 +27,22 @@ import {
     ManagementControllerServicesState
 } from './management-controller-services';
 import { managementControllerServicesReducer } from './management-controller-services/management-controller-services.reducer';
+import { reportingTasksFeatureKey, ReportingTasksState } from './reporting-tasks';
+import { reportingTasksReducer } from './reporting-tasks/reporting-tasks.reducer';
 
 export const settingsFeatureKey = 'settings';
 
 export interface SettingsState {
     [generalFeatureKey]: GeneralState;
     [managementControllerServicesFeatureKey]: ManagementControllerServicesState;
+    [reportingTasksFeatureKey]: ReportingTasksState;
 }
 
 export function reducers(state: SettingsState | undefined, action: Action) {
     return combineReducers({
         [generalFeatureKey]: generalReducer,
-        [managementControllerServicesFeatureKey]: managementControllerServicesReducer
+        [managementControllerServicesFeatureKey]: managementControllerServicesReducer,
+        [reportingTasksFeatureKey]: reportingTasksReducer
     })(state, action);
 }
 

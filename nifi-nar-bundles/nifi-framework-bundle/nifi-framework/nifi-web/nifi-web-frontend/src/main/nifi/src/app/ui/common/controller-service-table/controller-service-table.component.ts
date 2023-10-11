@@ -162,10 +162,6 @@ export class ControllerServiceTable implements AfterViewInit {
         return '';
     }
 
-    formatName(entity: ControllerServiceEntity): string {
-        return '';
-    }
-
     formatType(entity: ControllerServiceEntity): string {
         return this.nifiCommon.formatType(entity.component);
     }

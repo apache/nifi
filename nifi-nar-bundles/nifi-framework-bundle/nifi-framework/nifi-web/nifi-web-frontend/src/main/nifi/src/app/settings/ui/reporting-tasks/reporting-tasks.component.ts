@@ -16,10 +16,72 @@
  */
 
 import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
+import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
+import { selectReportingTasksState } from '../../state/reporting-tasks/reporting-tasks.selectors';
+import {
+    loadReportingTasks,
+    openNewReportingTaskDialog,
+    promptReportingTaskDeletion,
+    startReportingTask,
+    stopReportingTask
+} from '../../state/reporting-tasks/reporting-tasks.actions';
 
 @Component({
     selector: 'reporting-tasks',
     templateUrl: './reporting-tasks.component.html',
     styleUrls: ['./reporting-tasks.component.scss']
 })
-export class ReportingTasks {}
+export class ReportingTasks {
+    reportingTaskState$ = this.store.select(selectReportingTasksState);
+
+    constructor(private store: Store<ReportingTasksState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(loadReportingTasks());
+    }
+
+    isInitialLoading(state: ReportingTasksState): boolean {
+        // using the current timestamp to detect the initial load event
+        return state.loadedTimestamp == initialState.loadedTimestamp;
+    }
+
+    openNewReportingTaskDialog(): void {
+        this.store.dispatch(openNewReportingTaskDialog());
+    }
+
+    refreshReportingTaskListing(): void {
+        this.store.dispatch(loadReportingTasks());
+    }
+
+    deleteReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            promptReportingTaskDeletion({
+                request: {
+                    reportingTask: entity
+                }
+            })
+        );
+    }
+
+    startReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            startReportingTask({
+                request: {
+                    reportingTask: entity
+                }
+            })
+        );
+    }
+
+    stopReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            stopReportingTask({
+                request: {
+                    reportingTask: entity
+                }
+            })
+        );
+    }
+}

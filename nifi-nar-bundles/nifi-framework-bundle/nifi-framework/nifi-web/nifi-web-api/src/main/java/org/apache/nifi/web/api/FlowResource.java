@@ -681,6 +681,7 @@ public class FlowResource extends ApplicationResource {
 
         // create the response entity
         final ReportingTasksEntity entity = new ReportingTasksEntity();
+        entity.setCurrentTime(new Date());
         entity.setReportingTasks(reportingTasks);
 
         // generate the response

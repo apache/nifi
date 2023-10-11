@@ -15,4 +15,33 @@
   ~ limitations under the License.
   -->
 
-<p>reporting-tasks works!</p>
+<ng-container *ngIf="reportingTaskState$ | async; let reportingTaskState">
+    <div *ngIf="isInitialLoading(reportingTaskState); else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+    <ng-template #loaded>
+        <div class="flex flex-col h-full gap-y-2">
+            <div class="flex justify-end">
+                <button class="nifi-button" (click)="openNewReportingTaskDialog()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            <div class="flex-1">
+                <reporting-task-table
+                    [reportingTasks]="reportingTaskState.reportingTasks"
+                    (deleteReportingTask)="deleteReportingTask($event)"
+                    (stopReportingTask)="stopReportingTask($event)"
+                    (startReportingTask)="startReportingTask($event)"></reporting-task-table>
+            </div>
+            <div class="flex justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshReportingTaskListing()">
+                        <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ reportingTaskState.loadedTimestamp }}</div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</ng-container>

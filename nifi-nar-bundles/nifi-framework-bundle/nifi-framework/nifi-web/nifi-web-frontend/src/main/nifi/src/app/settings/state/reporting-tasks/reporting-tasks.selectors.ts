@@ -15,22 +15,11 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { extensionTypesFeatureKey, ExtensionTypesState } from './index';
+import { createSelector } from '@ngrx/store';
+import { selectSettingsState, SettingsState } from '../index';
+import { reportingTasksFeatureKey } from './index';
 
-export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
-
-export const selectProcessorTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.processorTypes
-);
-
-export const selectControllerServiceTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.controllerServiceTypes
-);
-
-export const selectReportingTaskTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.reportingTaskTypes
+export const selectReportingTasksState = createSelector(
+    selectSettingsState,
+    (state: SettingsState) => state[reportingTasksFeatureKey]
 );

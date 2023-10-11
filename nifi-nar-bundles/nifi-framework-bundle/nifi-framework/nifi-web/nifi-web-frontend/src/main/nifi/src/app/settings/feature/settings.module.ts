@@ -31,6 +31,7 @@ import { ParameterProvidersModule } from '../ui/parameter-providers/parameter-pr
 import { RegistryClientsModule } from '../ui/registry-clients/registry-clients.module';
 import { ReportingTasksModule } from '../ui/reporting-tasks/reporting-tasks.module';
 import { MatTabsModule } from '@angular/material/tabs';
+import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.effects';
 
 @NgModule({
     declarations: [Settings],
@@ -45,7 +46,7 @@ import { MatTabsModule } from '@angular/material/tabs';
         ReportingTasksModule,
         SettingsRoutingModule,
         StoreModule.forFeature(settingsFeatureKey, reducers),
-        EffectsModule.forFeature(GeneralEffects, ManagementControllerServicesEffects),
+        EffectsModule.forFeature(GeneralEffects, ManagementControllerServicesEffects, ReportingTasksEffects),
         MatTabsModule
     ]
 })

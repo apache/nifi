@@ -18,10 +18,23 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReportingTasks } from './reporting-tasks.component';
+import { ControllerServiceTable } from '../../../ui/common/controller-service-table/controller-service-table.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
+import { NifiTooltipDirective } from '../../../ui/common/nifi-tooltip.directive';
+import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
 
 @NgModule({
-    declarations: [ReportingTasks],
+    declarations: [ReportingTasks, ReportingTaskTable],
     exports: [ReportingTasks],
-    imports: [CommonModule]
+    imports: [
+        CommonModule,
+        ControllerServiceTable,
+        NgxSkeletonLoaderModule,
+        MatSortModule,
+        MatTableModule,
+        NifiTooltipDirective
+    ]
 })
 export class ReportingTasksModule {}

@@ -15,22 +15,24 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { extensionTypesFeatureKey, ExtensionTypesState } from './index';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
+import { ReportingTaskTable } from './reporting-task-table.component';
 
-export const selectProcessorTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.processorTypes
-);
+describe('ReportingTaskTable', () => {
+    let component: ReportingTaskTable;
+    let fixture: ComponentFixture<ReportingTaskTable>;
 
-export const selectControllerServiceTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.controllerServiceTypes
-);
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ReportingTaskTable]
+        });
+        fixture = TestBed.createComponent(ReportingTaskTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-export const selectReportingTaskTypes = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => state.reportingTaskTypes
-);
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});
