@@ -46,7 +46,6 @@ import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 import software.amazon.awssdk.services.lambda.model.UnsupportedMediaTypeException;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -142,9 +141,6 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
         final LambdaClient client = getClient(context);
 
         try {
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            session.exportTo(flowFile, baos);
-
             final InvokeRequest.Builder invokeRequestBuilder = InvokeRequest.builder()
                     .functionName(functionName)
                     .logType(LogType.TAIL)
