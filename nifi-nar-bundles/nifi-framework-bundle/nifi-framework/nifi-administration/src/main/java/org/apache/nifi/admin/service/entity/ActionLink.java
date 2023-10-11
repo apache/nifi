@@ -14,12 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.admin.service.entity;
 
 /**
- *
+ * Enumeration of Action link properties for referencing other Entity objects
  */
-public interface DAOFactory {
+public enum ActionLink implements EntityProperty {
+    CONNECT_DETAILS("connectDetails"),
 
-    ActionDAO getActionDAO();
+    MOVE_DETAILS("moveDetails"),
+
+    CONFIGURE_DETAILS("configureDetails"),
+
+    PURGE_DETAILS("purgeDetails");
+
+    private final String property;
+
+    ActionLink(final String property) {
+        this.property = property;
+    }
+
+    @Override
+    public String getProperty() {
+        return property;
+    }
 }

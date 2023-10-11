@@ -14,27 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Gets the action with the specified id.
+ * Enumeration of Extension Details properties stored as Entity objects
  */
-public class GetActionAction implements AdministrationAction<Action> {
+public enum ExtensionDetailsEntity implements EntityProperty {
+    EXTENSION_TYPE("extensionType");
 
-    private final Integer id;
+    private final String property;
 
-    public GetActionAction(Integer id) {
-        this.id = id;
+    ExtensionDetailsEntity(final String property) {
+        this.property = property;
     }
 
     @Override
-    public Action execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-        return actionDao.getAction(id);
+    public String getProperty() {
+        return property;
     }
-
 }

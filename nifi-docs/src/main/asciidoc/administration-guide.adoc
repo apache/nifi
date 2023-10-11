@@ -3370,14 +3370,13 @@ for components to persist state. See the <<state_management>> section for more i
 |====
 
 
-=== H2 Settings
+=== Database Settings
 
-The H2 Settings section defines the settings for the H2 database, which keeps track of user access and flow controller history.
+The Database Settings section defines the settings for the internal database, which tracks flow configuration history.
 
 |====
 |*Property*|*Description*
 |`nifi.database.directory`*|The location of the H2 database directory. The default value is `./database_repository`.
-|`nifi.h2.url.append`|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
 [[repository-encryption-properties]]

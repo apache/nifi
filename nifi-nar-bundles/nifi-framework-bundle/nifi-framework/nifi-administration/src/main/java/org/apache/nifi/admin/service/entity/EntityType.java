@@ -14,22 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Represents any error that might occur while administering NiFi accounts.
+ * Enumeration of Persistent Entity Types
  */
-public class DataAccessException extends RuntimeException {
+public enum EntityType {
+    ACTION("Action"),
 
-    public DataAccessException(Throwable cause) {
-        super(cause);
+    CONFIGURE_DETAILS("ConfigureDetails"),
+
+    CONNECT_DETAILS("ConnectDetails"),
+
+    EXTENSION_DETAILS("ExtensionDetails"),
+
+    MOVE_DETAILS("MoveDetails"),
+
+    PURGE_DETAILS("PurgeDetails");
+
+    private final String entityType;
+
+    EntityType(final String entityType) {
+        this.entityType = entityType;
     }
 
-    public DataAccessException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DataAccessException(String message) {
-        super(message);
+    public String getEntityType() {
+        return entityType;
     }
 }

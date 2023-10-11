@@ -14,31 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Purges actions up to a specified end date.
+ * Abstraction for stored properties of persistent Entities
  */
-public class DeletePreviousValues implements AdministrationAction<Void> {
-
-    private final String propertyName;
-    private final String componentId;
-
-    public DeletePreviousValues(String propertyName, String componentId) {
-        this.propertyName = propertyName;
-        this.componentId = componentId;
-    }
-
-    @Override
-    public Void execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-
-        actionDao.deletePreviousValues(propertyName, componentId);
-
-        return null;
-    }
-
+public interface EntityProperty {
+    /**
+     * Get property name for an element of an Entity
+     *
+     * @return Property name
+     */
+    String getProperty();
 }

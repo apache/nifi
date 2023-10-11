@@ -14,27 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.transaction;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Exception to indicate that the user account is disabled.
+ * Enumeration of Action Configure Details properties stored as Entity objects
  */
-public class TransactionException extends RuntimeException {
+public enum ConfigureDetailsEntity implements EntityProperty {
+    ACTION("action"),
 
-    public TransactionException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
+    NAME("name"),
+
+    PREVIOUS_VALUE("previousValue"),
+
+    VALUE("value");
+
+    private final String property;
+
+    ConfigureDetailsEntity(final String property) {
+        this.property = property;
     }
 
-    public TransactionException(Throwable cause) {
-        super(cause);
+    @Override
+    public String getProperty() {
+        return property;
     }
-
-    public TransactionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public TransactionException(String message) {
-        super(message);
-    }
-
 }

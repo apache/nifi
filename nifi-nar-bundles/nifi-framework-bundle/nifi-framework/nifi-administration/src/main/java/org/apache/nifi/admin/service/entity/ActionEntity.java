@@ -14,35 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-
-import java.util.Collection;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Adds the specified actions.
+ * Enumeration of Action properties stored as Entity objects
  */
-public class AddActionsAction implements AdministrationAction<Void> {
+public enum ActionEntity implements EntityProperty {
+    TIMESTAMP("timestamp"),
 
-    private final Collection<Action> actions;
+    USER_IDENTITY("userIdentity"),
 
-    public AddActionsAction(Collection<Action> actions) {
-        this.actions = actions;
+    SOURCE_ID("sourceId"),
+
+    SOURCE_NAME("sourceName"),
+
+    SOURCE_TYPE("sourceType"),
+
+    OPERATION("operation"),
+
+    EXTENSION_TYPE("extensionType"),
+
+    REMOTE_PROCESS_GROUP_URI("remoteProcessGroupUri");
+
+    private final String property;
+
+    ActionEntity(final String property) {
+        this.property = property;
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-
-        // add each action
-        for (Action action : actions) {
-            actionDao.createAction(action);
-        }
-
-        return null;
+    public String getProperty() {
+        return property;
     }
-
 }
