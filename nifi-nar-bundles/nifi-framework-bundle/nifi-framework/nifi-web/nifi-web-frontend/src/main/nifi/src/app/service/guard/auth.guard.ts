@@ -24,6 +24,7 @@ import { UserService } from '../user.service';
 import { Store } from '@ngrx/store';
 import { UserState } from '../../state/user';
 import { loadUserSuccess } from '../../state/user/user.actions';
+import { selectUserState } from '../../state/user/user.selectors';
 
 export const authGuard: CanMatchFn = (route, state) => {
     const authStorage: AuthStorage = inject(AuthStorage);
@@ -75,49 +76,58 @@ export const authGuard: CanMatchFn = (route, state) => {
 
     return new Promise<boolean>((resolve) => {
         handleAuthentication.finally(() => {
-            userService
-                .getUser()
+            store
+                .select(selectUserState)
                 .pipe(take(1))
-                .subscribe({
-                    next: (response) => {
-                        // store the loaded user
-                        store.dispatch(
-                            loadUserSuccess({
-                                response: {
-                                    user: response
-                                }
-                            })
-                        );
+                .subscribe((userState) => {
+                    if (userState.status == 'pending') {
+                        userService
+                            .getUser()
+                            .pipe(take(1))
+                            .subscribe({
+                                next: (response) => {
+                                    // store the loaded user
+                                    store.dispatch(
+                                        loadUserSuccess({
+                                            response: {
+                                                user: response
+                                            }
+                                        })
+                                    );
 
-                        if (authStorage.hasToken()) {
-                            resolve(true);
-                        } else {
-                            authService
-                                .accessConfig()
-                                .pipe(take(1))
-                                .subscribe({
-                                    next: (response) => {
-                                        if (response.config.supportsLogin) {
-                                            // Set default expiration when authenticated to enable logout status
-                                            const expiration: string = authService.getDefaultExpiration();
-                                            authStorage.setToken(expiration);
-                                        }
+                                    if (authStorage.hasToken()) {
                                         resolve(true);
-                                    },
-                                    error: (error) => {
-                                        window.location.href = './login';
-                                        resolve(false);
+                                    } else {
+                                        authService
+                                            .accessConfig()
+                                            .pipe(take(1))
+                                            .subscribe({
+                                                next: (response) => {
+                                                    if (response.config.supportsLogin) {
+                                                        // Set default expiration when authenticated to enable logout status
+                                                        const expiration: string = authService.getDefaultExpiration();
+                                                        authStorage.setToken(expiration);
+                                                    }
+                                                    resolve(true);
+                                                },
+                                                error: (error) => {
+                                                    window.location.href = './login';
+                                                    resolve(false);
+                                                }
+                                            });
                                     }
-                                });
-                        }
-                    },
-                    error: (error) => {
-                        // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
-                        if (error.status === 401) {
-                            authStorage.removeToken();
-                            window.location.href = './login';
-                        }
-                        resolve(false);
+                                },
+                                error: (error) => {
+                                    // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
+                                    if (error.status === 401) {
+                                        authStorage.removeToken();
+                                        window.location.href = './login';
+                                    }
+                                    resolve(false);
+                                }
+                            });
+                    } else {
+                        resolve(true);
                     }
                 });
         });

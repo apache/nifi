@@ -19,14 +19,30 @@ import { CanActivateFn, Router } from '@angular/router';
 import { FlowService } from '../../../service/flow.service';
 import { inject } from '@angular/core';
 import { switchMap, take } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { UserState } from '../../../../state/user';
+import { FlowState } from '../../../state/flow';
+import { selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
+import { initialState } from '../../../state/flow/flow.reducer';
 
 export const rootGroupGuard: CanActivateFn = (route, state) => {
     const router: Router = inject(Router);
     const flowService: FlowService = inject(FlowService);
-    return flowService.getProcessGroupStatus().pipe(
+    const store: Store<UserState> = inject(Store<FlowState>);
+
+    return store.select(selectCurrentProcessGroupId).pipe(
         take(1),
-        switchMap((rootGroupStatus: any) => {
-            return router.navigate(['/process-groups', rootGroupStatus.processGroupStatus.id]);
+        switchMap((pgId) => {
+            if (pgId == initialState.id) {
+                return flowService.getProcessGroupStatus().pipe(
+                    take(1),
+                    switchMap((rootGroupStatus: any) => {
+                        return router.navigate(['process-groups', rootGroupStatus.processGroupStatus.id]);
+                    })
+                );
+            } else {
+                return router.navigate(['process-groups', pgId]);
+            }
         })
     );
 };
