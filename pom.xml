@@ -124,7 +124,7 @@
         <org.slf4j.version>2.0.9</org.slf4j.version>
         <derby.version>10.16.1.1</derby.version>
         <ranger.version>2.4.0</ranger.version>
-        <jetty.version>10.0.16</jetty.version>
+        <jetty.version>10.0.17</jetty.version>
         <jackson.bom.version>2.15.2</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>2.3.8</jaxb.runtime.version>
