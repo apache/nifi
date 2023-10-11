@@ -175,23 +175,6 @@ export interface Snippet {
     Tooltips
  */
 
-export interface TextTipInput {
-    text: string;
-}
-
-export interface UnorderedListTipInput {
-    items: string[];
-}
-
-export interface ValidationErrorsTipInput {
-    isValidating: boolean;
-    validationErrors: string[];
-}
-
-export interface BulletinsTipInput {
-    bulletins: BulletinEntity[];
-}
-
 export interface VersionControlInformation {
     groupId: string;
     registryId: string;

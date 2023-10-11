@@ -30,6 +30,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
+import { NifiTooltipDirective } from '../../../ui/common/nifi-tooltip.directive';
 
 @NgModule({
     declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus, Search],
@@ -47,7 +48,8 @@ import { RouterLink } from '@angular/router';
         MatAutocompleteModule,
         CdkConnectedOverlay,
         CdkOverlayOrigin,
-        RouterLink
+        RouterLink,
+        NifiTooltipDirective
     ]
 })
 export class HeaderModule {}

@@ -16,15 +16,18 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { TextTipInput } from '../../../../state/flow';
+import { UnorderedListTipInput } from '../../../../state/shared';
+import { NgForOf } from '@angular/common';
 
 @Component({
-    selector: 'text-tip',
-    templateUrl: './text-tip.component.html',
-    styleUrls: ['./text-tip.component.scss']
+    selector: 'unordered-list-tip',
+    standalone: true,
+    templateUrl: './unordered-list-tip.component.html',
+    imports: [NgForOf],
+    styleUrls: ['./unordered-list-tip.component.scss']
 })
-export class TextTip {
+export class UnorderedListTip {
     @Input() left: number = 0;
     @Input() top: number = 0;
-    @Input() data: TextTipInput | undefined;
+    @Input() data: UnorderedListTipInput | undefined;
 }

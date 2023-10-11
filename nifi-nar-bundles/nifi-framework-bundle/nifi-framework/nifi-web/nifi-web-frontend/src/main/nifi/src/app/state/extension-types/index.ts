@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { RequiredPermission } from '../shared';
+import { ExplicitRestriction } from '../shared';
 
 export const extensionTypesFeatureKey = 'extensionTypes';
 
@@ -35,11 +35,6 @@ export interface Bundle {
     artifact: string;
     group: string;
     version: string;
-}
-
-export interface ExplicitRestriction {
-    requiredPermission: RequiredPermission;
-    explanation: string;
 }
 
 export interface DocumentedType {

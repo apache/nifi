@@ -25,6 +25,7 @@ import {
     promptControllerServiceDeletion
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../state/shared';
+import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 
 @Component({
     selector: 'management-controller-services',
@@ -38,6 +39,11 @@ export class ManagementControllerServices implements OnInit {
 
     ngOnInit(): void {
         this.store.dispatch(loadManagementControllerServices());
+    }
+
+    isInitialLoading(state: ManagementControllerServicesState): boolean {
+        // using the current timestamp to detect the initial load event
+        return state.loadedTimestamp == initialState.loadedTimestamp;
     }
 
     openNewControllerServiceDialog(): void {

@@ -22,13 +22,22 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgClass, NgIf } from '@angular/common';
-import { ControllerServiceEntity } from '../../../state/shared';
+import {
+    BulletinsTipInput,
+    ControllerServiceEntity,
+    TextTipInput,
+    ValidationErrorsTipInput
+} from '../../../state/shared';
+import { NifiTooltipDirective } from '../nifi-tooltip.directive';
+import { TextTip } from '../tooltips/text-tip/text-tip.component';
+import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component';
+import { ValidationErrorsTip } from '../tooltips/validation-errors-tip/validation-errors-tip.component';
 
 @Component({
     selector: 'controller-service-table',
     standalone: true,
     templateUrl: './controller-service-table.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NgClass],
+    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NgClass, NifiTooltipDirective],
     styleUrls: ['./controller-service-table.component.scss']
 })
 export class ControllerServiceTable implements AfterViewInit {
@@ -52,6 +61,10 @@ export class ControllerServiceTable implements AfterViewInit {
     }
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+
+    protected readonly TextTip = TextTip;
+    protected readonly BulletinsTip = BulletinsTip;
+    protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'scope', 'actions'];
     dataSource: MatTableDataSource<ControllerServiceEntity> = new MatTableDataSource<ControllerServiceEntity>();
@@ -84,12 +97,31 @@ export class ControllerServiceTable implements AfterViewInit {
         return !this.nifiCommon.isBlank(entity.component.comments);
     }
 
+    getCommentsTipData(entity: ControllerServiceEntity): TextTipInput {
+        return {
+            text: entity.component.comments
+        };
+    }
+
     hasErrors(entity: ControllerServiceEntity): boolean {
         return !this.nifiCommon.isEmpty(entity.component.validationErrors);
     }
 
+    getValidationErrorsTipData(entity: ControllerServiceEntity): ValidationErrorsTipInput {
+        return {
+            isValidating: entity.status.validationStatus === 'VALIDATING',
+            validationErrors: entity.component.validationErrors
+        };
+    }
+
     hasBulletins(entity: ControllerServiceEntity): boolean {
         return !this.nifiCommon.isEmpty(entity.bulletins);
+    }
+
+    getBulletinsTipData(entity: ControllerServiceEntity): BulletinsTipInput {
+        return {
+            bulletins: entity.bulletins
+        };
     }
 
     getStateIcon(entity: ControllerServiceEntity): string {

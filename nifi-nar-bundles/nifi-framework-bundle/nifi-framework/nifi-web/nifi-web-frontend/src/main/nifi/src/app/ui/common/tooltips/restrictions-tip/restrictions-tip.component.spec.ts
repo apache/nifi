@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
-import { BulletinsTipInput } from '../../../../state/flow';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@Component({
-    selector: 'bulletins-tip',
-    templateUrl: './bulletins-tip.component.html',
-    styleUrls: ['./bulletins-tip.component.scss']
-})
-export class BulletinsTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
-    @Input() data: BulletinsTipInput | undefined;
-}
+import { RestrictionsTip } from './restrictions-tip.component';
+
+describe('Bulletins', () => {
+    let component: RestrictionsTip;
+    let fixture: ComponentFixture<RestrictionsTip>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [RestrictionsTip]
+        });
+        fixture = TestBed.createComponent(RestrictionsTip);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

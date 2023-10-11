@@ -31,9 +31,36 @@ export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
 }
 
+export interface TextTipInput {
+    text: string;
+}
+
+export interface UnorderedListTipInput {
+    items: string[];
+}
+
+export interface ValidationErrorsTipInput {
+    isValidating: boolean;
+    validationErrors: string[];
+}
+
+export interface BulletinsTipInput {
+    bulletins: BulletinEntity[];
+}
+
+export interface RestrictionsTipInput {
+    usageRestriction: string;
+    explicitRestrictions: ExplicitRestriction[];
+}
+
 export interface Permissions {
     canRead: boolean;
     canWrite: boolean;
+}
+
+export interface ExplicitRestriction {
+    requiredPermission: RequiredPermission;
+    explanation: string;
 }
 
 export interface RequiredPermission {

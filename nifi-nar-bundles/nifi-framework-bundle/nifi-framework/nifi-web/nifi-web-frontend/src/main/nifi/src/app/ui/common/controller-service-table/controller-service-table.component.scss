@@ -50,7 +50,15 @@
             color: #004849;
             width: 10px;
             height: 14px;
-            margin-right: 2px;
+            text-align: center;
+        }
+
+        .mat-column-moreDetails {
+            min-width: 90px;
+        }
+
+        .mat-column-actions {
+            min-width: 115px;
         }
     }
 

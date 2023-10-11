@@ -23,13 +23,15 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgIf } from '@angular/common';
-import { RequiredPermission } from '../../../state/shared';
+import { RestrictionsTipInput } from '../../../state/shared';
+import { NifiTooltipDirective } from '../nifi-tooltip.directive';
+import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 
 @Component({
     selector: 'extension-creation',
     standalone: true,
     templateUrl: './extension-creation.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf],
+    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NifiTooltipDirective],
     styleUrls: ['./extension-creation.component.scss']
 })
 export class ExtensionCreation implements AfterViewInit {
@@ -54,6 +56,8 @@ export class ExtensionCreation implements AfterViewInit {
     @Input() componentType!: string;
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
+    protected readonly RestrictionsTip = RestrictionsTip;
+
     displayedColumns: string[] = ['type', 'version', 'tags'];
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
     selectedType: DocumentedType | null = null;
@@ -73,28 +77,11 @@ export class ExtensionCreation implements AfterViewInit {
         return '';
     }
 
-    formatRestriction(documentedType: DocumentedType): string {
-        if (documentedType?.restricted) {
-            let usageRestriction: string;
-            if (!documentedType.usageRestriction || this.nifiCommon.isBlank(documentedType.usageRestriction)) {
-                usageRestriction = 'Requires the following permissions: ';
-            } else {
-                usageRestriction = `${documentedType.usageRestriction} Requires the following permissions: `;
-            }
-
-            const restrictions: string[] = [];
-            if (this.nifiCommon.isEmpty(documentedType.explicitRestrictions)) {
-                restrictions.push('Access to restricted components regardless of restrictions.');
-            } else {
-                documentedType.explicitRestrictions?.forEach((explicitRestriction) => {
-                    const requiredPermission: RequiredPermission = explicitRestriction.requiredPermission;
-                    restrictions.push(`'${requiredPermission.label}' - ${explicitRestriction.explanation}`);
-                });
-            }
-
-            return `${usageRestriction}[${restrictions.join(', ')}]`;
-        }
-        return '';
+    getRestrictionTipData(documentedType: DocumentedType): RestrictionsTipInput {
+        return {
+            usageRestriction: documentedType.usageRestriction!,
+            explicitRestrictions: documentedType.explicitRestrictions!
+        };
     }
 
     formatVersion(documentedType: DocumentedType): string {

@@ -16,15 +16,16 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ValidationErrorsTipInput } from '../../../../state/flow';
+import { TextTipInput } from '../../../../state/shared';
 
 @Component({
-    selector: 'validation-errors-tip',
-    templateUrl: './validation-errors-tip.component.html',
-    styleUrls: ['./validation-errors-tip.component.scss']
+    selector: 'text-tip',
+    standalone: true,
+    templateUrl: './text-tip.component.html',
+    styleUrls: ['./text-tip.component.scss']
 })
-export class ValidationErrorsTip {
+export class TextTip {
     @Input() left: number = 0;
     @Input() top: number = 0;
-    @Input() data: ValidationErrorsTipInput | undefined;
+    @Input() data: TextTipInput | undefined;
 }

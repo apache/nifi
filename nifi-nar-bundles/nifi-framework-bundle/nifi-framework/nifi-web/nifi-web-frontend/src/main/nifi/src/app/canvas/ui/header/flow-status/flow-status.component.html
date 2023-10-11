@@ -98,13 +98,21 @@
         </div>
         <div class="flex">
             <search [currentProcessGroupId]="currentProcessGroupId"></search>
-            <button
-                class="h-8 w-8 controller-bulletins"
-                [class.has-bulletins]="hasBulletins()"
-                (mouseenter)="mouseEnter($event)"
-                (mouseleave)="mouseLeave($event)">
-                <i class="fa fa-sticky-note-o"></i>
-            </button>
+            <ng-container *ngIf="hasBulletins(); else noBulletins">
+                <button
+                    nifiTooltip
+                    [tooltipComponentType]="BulletinsTip"
+                    [tooltipInputData]="getBulletins()"
+                    [xOffset]="getBulletinTooltipXOffset()"
+                    class="h-8 w-8 controller-bulletins has-bulletins">
+                    <i class="fa fa-sticky-note-o"></i>
+                </button>
+            </ng-container>
+            <ng-template #noBulletins>
+                <button class="h-8 w-8 controller-bulletins">
+                    <i class="fa fa-sticky-note-o"></i>
+                </button>
+            </ng-template>
         </div>
     </div>
 </div>

@@ -35,7 +35,7 @@ import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { UnorderedListTip } from '../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
+import { UnorderedListTip } from '../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { Dimension, Position } from '../../state/shared';
 import { ComponentType } from '../../../state/shared';
 import { UpdateComponent } from '../../state/flow';

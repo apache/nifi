@@ -26,23 +26,12 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { FlowEffects } from '../state/flow/flow.effects';
 import { TransformEffects } from '../state/transform/transform.effects';
-import { ValidationErrorsTip } from '../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { TextTip } from '../ui/common/tooltips/text-tip/text-tip.component';
-import { BulletinsTip } from '../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/version-control-tip.component';
-import { UnorderedListTip } from '../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { canvasFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
-    declarations: [
-        FlowDesignerComponent,
-        ValidationErrorsTip,
-        TextTip,
-        UnorderedListTip,
-        BulletinsTip,
-        VersionControlTip
-    ],
+    declarations: [FlowDesignerComponent, VersionControlTip],
     exports: [FlowDesignerComponent],
     imports: [
         CommonModule,

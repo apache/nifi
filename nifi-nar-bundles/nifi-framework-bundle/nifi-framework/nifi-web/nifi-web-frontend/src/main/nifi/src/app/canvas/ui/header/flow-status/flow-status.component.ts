@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, ComponentRef, Input, ViewContainerRef } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ClusterSummary, ControllerStatus } from '../../../state/flow';
 import { initialState } from '../../../state/flow/flow.reducer';
-import { BulletinsTip } from '../../common/tooltips/bulletins-tip/bulletins-tip.component';
-import { BulletinEntity } from '../../../../state/shared';
+import { BulletinsTip } from '../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+import { BulletinEntity, BulletinsTipInput } from '../../../../state/shared';
 
 @Component({
     selector: 'flow-status',
@@ -34,10 +34,9 @@ export class FlowStatus {
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus: boolean = false;
 
-    private closeTimer: number = -1;
-    private tooltipRef: ComponentRef<BulletinsTip> | undefined;
+    protected readonly BulletinsTip = BulletinsTip;
 
-    constructor(private viewContainerRef: ViewContainerRef) {}
+    constructor() {}
 
     hasTerminatedThreads(): boolean {
         return this.controllerStatus.terminatedThreadCount > 0;
@@ -112,40 +111,14 @@ export class FlowStatus {
         return this.bulletins.length > 0;
     }
 
-    mouseEnter(event: MouseEvent) {
-        if (this.hasBulletins()) {
-            // @ts-ignore
-            const { x, y, width, height } = event.currentTarget.getBoundingClientRect();
-
-            // clear any existing tooltips
-            this.viewContainerRef.clear();
-
-            // create and configure the tooltip
-            this.tooltipRef = this.viewContainerRef.createComponent(BulletinsTip);
-            this.tooltipRef.setInput('top', y + height + 8);
-            this.tooltipRef.setInput('left', x + width - 508);
-            this.tooltipRef.setInput('data', {
-                bulletins: this.bulletins
-            });
-
-            // register mouse events
-            this.tooltipRef.location.nativeElement.addEventListener('mouseenter', () => {
-                if (this.closeTimer > 0) {
-                    clearTimeout(this.closeTimer);
-                    this.closeTimer = -1;
-                }
-            });
-            this.tooltipRef.location.nativeElement.addEventListener('mouseleave', () => {
-                this.tooltipRef?.destroy();
-                this.closeTimer = -1;
-            });
-        }
+    getBulletins(): BulletinsTipInput {
+        return {
+            bulletins: this.bulletins
+        };
     }
 
-    mouseLeave(event: MouseEvent) {
-        this.closeTimer = setTimeout(() => {
-            this.tooltipRef?.destroy();
-            this.closeTimer = -1;
-        }, 400);
+    getBulletinTooltipXOffset(): number {
+        // 500 bulletin tooltip width and 2 * 8 normal tooltip offset
+        return -516;
     }
 }

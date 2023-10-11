@@ -16,7 +16,7 @@
   -->
 
 <ng-container *ngIf="serviceState$ | async; let serviceState">
-    <div *ngIf="serviceState.status === 'pending' || serviceState.status === 'loading'; else loaded">
+    <div *ngIf="isInitialLoading(serviceState); else loaded">
         <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
     </div>
     <ng-template #loaded>
@@ -34,7 +34,7 @@
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
                     <button class="nifi-button" (click)="refreshControllerServiceListing()">
-                        <i class="fa fa-refresh"></i>
+                        <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
                     <div class="refresh-timestamp">{{ serviceState.loadedTimestamp }}</div>
