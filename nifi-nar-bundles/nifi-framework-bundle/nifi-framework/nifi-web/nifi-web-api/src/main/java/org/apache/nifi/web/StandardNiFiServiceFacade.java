@@ -91,6 +91,8 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.serialization.VersionedReportingTaskImportResult;
+import org.apache.nifi.controller.serialization.VersionedReportingTaskImporter;
 import org.apache.nifi.controller.serialization.VersionedReportingTaskSnapshotMapper;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -109,6 +111,7 @@ import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -116,6 +119,8 @@ import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
@@ -332,6 +337,7 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
@@ -3984,6 +3990,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void discoverCompatibleBundles(final VersionedReportingTaskSnapshot reportingTaskSnapshot) {
+        BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), reportingTaskSnapshot);
+    }
+
+    @Override
     public void resolveParameterProviders(final RegisteredFlowSnapshot versionedFlowSnapshot, final NiFiUser user) {
         final Map<String, ParameterProviderReference> parameterProviderReferences = versionedFlowSnapshot.getParameterProviders();
         if (parameterProviderReferences == null || parameterProviderReferences.isEmpty()
@@ -4198,6 +4209,67 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
             }
         });
+    }
+
+    @Override
+    public void generateIdentifiersForImport(final VersionedReportingTaskSnapshot reportingTaskSnapshot, final Supplier<String> idGenerator) {
+        final List<VersionedReportingTask> reportingTasks = Optional.ofNullable(reportingTaskSnapshot.getReportingTasks()).orElse(Collections.emptyList());
+        final List<VersionedControllerService> controllerServices = Optional.ofNullable(reportingTaskSnapshot.getControllerServices()).orElse(Collections.emptyList());
+
+        // First generate all new ids and instance ids for each component, maintaining a mapping from old id to new instance id, the instance id
+        // will be used to create the component, so we want to update any CS references to use the instance id
+        final Map<String, String> oldIdToNewInstanceIdMap = new HashMap<>();
+        controllerServices.forEach(controllerService -> generateIdentifiersForImport(controllerService, idGenerator, oldIdToNewInstanceIdMap));
+        reportingTasks.forEach(reportingTask -> generateIdentifiersForImport(reportingTask, idGenerator, oldIdToNewInstanceIdMap));
+
+        // Now go back through all components and update any property values that referenced old CS ids
+        controllerServices.forEach(controllerService -> updateControllerServiceReferences(controllerService, oldIdToNewInstanceIdMap));
+        reportingTasks.forEach(reportingTask -> updateControllerServiceReferences(reportingTask, oldIdToNewInstanceIdMap));
+    }
+
+    private void generateIdentifiersForImport(final VersionedConfigurableExtension extension, final Supplier<String> idGenerator,
+                                              final Map<String, String> oldIdToNewIdMap) {
+        final String identifier = idGenerator.get();
+        final String instanceIdentifier = idGenerator.get();
+        oldIdToNewIdMap.put(extension.getIdentifier(), instanceIdentifier);
+        extension.setIdentifier(identifier);
+        extension.setInstanceIdentifier(instanceIdentifier);
+    }
+
+    private void updateControllerServiceReferences(final VersionedConfigurableExtension extension, final Map<String, String> oldIdToNewIdMap) {
+        final Map<String, String> propertyValues = Optional.ofNullable(extension.getProperties()).orElse(Collections.emptyMap());
+        final Map<String, VersionedPropertyDescriptor> propertyDescriptors = Optional.ofNullable(extension.getPropertyDescriptors()).orElse(Collections.emptyMap());
+
+        propertyDescriptors.forEach((propName, propDescriptor) -> {
+            if (propDescriptor.getIdentifiesControllerService()) {
+                final String oldServiceId = propertyValues.get(propName);
+                if (oldServiceId != null) {
+                    final String newServiceId = oldIdToNewIdMap.get(oldServiceId);
+                    propertyValues.put(propName, newServiceId);
+                }
+            }
+        });
+    }
+
+    @Override
+    public VersionedReportingTaskImportResponseEntity importReportingTasks(final VersionedReportingTaskSnapshot reportingTaskSnapshot) {
+        final VersionedReportingTaskImporter reportingTaskImporter = controllerFacade.createReportingTaskImporter();
+        final VersionedReportingTaskImportResult importResult = reportingTaskImporter.importSnapshot(reportingTaskSnapshot);
+
+        controllerFacade.save();
+
+        final Set<ReportingTaskEntity> reportingTaskEntities = importResult.getReportingTaskNodes().stream()
+                .map(this::createReportingTaskEntity)
+                .collect(Collectors.toSet());
+
+        final Set<ControllerServiceEntity> controllerServiceEntities = importResult.getControllerServiceNodes().stream()
+                .map(serviceNode -> createControllerServiceEntity(serviceNode, false))
+                .collect(Collectors.toSet());
+
+        final VersionedReportingTaskImportResponseEntity importResponseEntity = new VersionedReportingTaskImportResponseEntity();
+        importResponseEntity.setReportingTasks(reportingTaskEntities);
+        importResponseEntity.setControllerServices(controllerServiceEntities);
+        return importResponseEntity;
     }
 
     @Override

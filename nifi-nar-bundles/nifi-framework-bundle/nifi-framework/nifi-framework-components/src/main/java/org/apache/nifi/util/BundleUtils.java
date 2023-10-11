@@ -18,7 +18,9 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.PythonBundle;
@@ -216,28 +218,33 @@ public final class BundleUtils {
      */
     public static void discoverCompatibleBundles(final ExtensionManager extensionManager, final VersionedProcessGroup versionedGroup) {
         if (versionedGroup.getProcessors() != null) {
-            versionedGroup.getProcessors().forEach(processor -> {
-                final BundleDTO dto = createBundleDto(processor.getBundle());
-                final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, processor.getType(), dto).orElse(
-                    new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
-                processor.setBundle(createBundle(coordinate));
-            });
+            versionedGroup.getProcessors().forEach(processor -> discoverCompatibleBundle(extensionManager, processor));
         }
 
         if (versionedGroup.getControllerServices() != null) {
-            versionedGroup.getControllerServices().forEach(controllerService -> {
-                final BundleDTO dto = createBundleDto(controllerService.getBundle());
-
-                final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle())).orElse(
-                    new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
-
-                controllerService.setBundle(createBundle(coordinate));
-            });
+            versionedGroup.getControllerServices().forEach(controllerService -> discoverCompatibleBundle(extensionManager, controllerService));
         }
 
         if (versionedGroup.getProcessGroups() != null) {
             versionedGroup.getProcessGroups().forEach(processGroup -> discoverCompatibleBundles(extensionManager, processGroup));
         }
+    }
+
+    public static void discoverCompatibleBundles(final ExtensionManager extensionManager, final VersionedReportingTaskSnapshot reportingTaskSnapshot) {
+        if (reportingTaskSnapshot.getReportingTasks() != null) {
+            reportingTaskSnapshot.getReportingTasks().forEach(reportingTask -> discoverCompatibleBundle(extensionManager, reportingTask));
+        }
+
+        if (reportingTaskSnapshot.getControllerServices() != null) {
+            reportingTaskSnapshot.getControllerServices().forEach(controllerService -> discoverCompatibleBundle(extensionManager, controllerService));
+        }
+    }
+
+    public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final VersionedConfigurableExtension extension) {
+        final BundleDTO dto = createBundleDto(extension.getBundle());
+        final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, extension.getType(), dto).orElse(
+                new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
+        extension.setBundle(createBundle(coordinate));
     }
 
     public static BundleCoordinate discoverCompatibleBundle(final ExtensionManager extensionManager, final String type, final org.apache.nifi.flow.Bundle bundle) {
