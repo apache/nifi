@@ -18,7 +18,6 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
@@ -46,7 +45,6 @@ public interface ComponentScheduler {
 
     void stopStatelessGroup(ProcessGroup group);
 
-    boolean isScheduled(ComponentNode componentNode);
 
     ComponentScheduler NOP_SCHEDULER = new ComponentScheduler() {
         @Override
@@ -86,11 +84,6 @@ public interface ComponentScheduler {
 
         @Override
         public void stopStatelessGroup(final ProcessGroup group) {
-        }
-
-        @Override
-        public boolean isScheduled(final ComponentNode componentNode) {
-            return false;
         }
     };
 }

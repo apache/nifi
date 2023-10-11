@@ -72,6 +72,7 @@ import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ComponentIdGenerator;
+import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
@@ -252,7 +253,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         });
 
         for (final ComponentNode extension : createdExtensions) {
-            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(), extension);
+            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
+                context.getControllerServiceProvider(), extension);
 
             if (extension instanceof final ProcessorNode processor) {
                 processor.migrateConfiguration(serviceFactory);

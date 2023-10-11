@@ -598,7 +598,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask, controller);
 
-        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(), taskNode);
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+            controller.getControllerServiceProvider(), taskNode);
         taskNode.migrateConfiguration(serviceFactory);
     }
 
@@ -913,7 +914,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
 
         for (final ControllerServiceNode service : controllerServicesAdded) {
-            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(), service);
+            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+                controller.getControllerServiceProvider(), service);
             service.migrateConfiguration(serviceFactory);
         }
 
@@ -973,11 +975,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
     private void inheritAuthorizations(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController controller) {
         final Authorizer authorizer = controller.getAuthorizer();
-        if (!(authorizer instanceof ManagedAuthorizer)) {
+        if (!(authorizer instanceof final ManagedAuthorizer managedAuthorizer)) {
             return;
         }
 
-        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
         final String proposedAuthFingerprint = proposedFlow.getAuthorizerFingerprint() == null ? "" : new String(proposedFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
 
         final FlowInheritabilityCheck authorizerCheck = new AuthorizerCheck();

@@ -19,10 +19,13 @@ package org.apache.nifi.migration;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
@@ -44,11 +47,14 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
     private final ExtensionManager extensionManager;
     private final FlowManager flowManager;
+    private final ControllerServiceProvider serviceProvider;
     private final ComponentNode creator;
 
-    public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ComponentNode creator) {
+    public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ControllerServiceProvider serviceProvider,
+                                            final ComponentNode creator) {
         this.extensionManager = extensionManager;
         this.flowManager = flowManager;
+        this.serviceProvider = serviceProvider;
         this.creator = creator;
     }
 
@@ -91,10 +97,33 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
         serviceNode.setProperties(creationDetails.serviceProperties());
 
-        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceNode);
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode);
         serviceNode.migrateConfiguration(serviceFactory);
 
+        if (isEnable()) {
+            final ValidationStatus validationStatus = serviceNode.performValidation();
+            if (validationStatus == ValidationStatus.VALID) {
+                serviceProvider.enableControllerService(serviceNode);
+                logger.info("Enabled newly created Controller Service {}", serviceNode);
+            }
+        }
+
         return serviceNode;
+    }
+
+    private boolean isEnable() {
+        // Do not enable any Controller Services if it's added to a stateless group. Let the stateless group handle
+        // the lifecycle of Controller Services on its own.
+        final Optional<ProcessGroup> optionalGroup = creator.getParentProcessGroup();
+        if (optionalGroup.isPresent()) {
+            final ExecutionEngine executionEngine = optionalGroup.get().resolveExecutionEngine();
+            if (executionEngine == ExecutionEngine.STATELESS) {
+                logger.debug("Will not enable newly created Controller Services because parent group {} is stateless", optionalGroup.get());
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private ControllerServiceCreationDetails toBeCreated(final String serviceId, final String type, final BundleCoordinate bundleCoordinate, final Map<String, String> propertyValues) {

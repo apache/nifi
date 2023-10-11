@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,7 @@ public class TestStandardControllerServiceFactory {
     private StandardControllerServiceFactory factory;
     private List<Bundle> bundles;
     private ComponentNode creator;
+    private ControllerServiceProvider serviceProvider;
 
     @BeforeEach
     public void setup() {
@@ -59,8 +61,10 @@ public class TestStandardControllerServiceFactory {
         bundles.add(createBundle(LONE_BUNDLE, VERSION_2));
         when(extensionManager.getBundles(IMPL_CLASS)).thenAnswer(invocation -> bundles);
 
+        serviceProvider = mock(ControllerServiceProvider.class);
+
         final Bundle frameworkBundle = createBundle("framework-nar", FRAMEWORK_VERSION);
-        factory = new StandardControllerServiceFactory(extensionManager, flowManager, creator) {
+        factory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, creator) {
             @Override
             protected Bundle getFrameworkBundle() {
                 return frameworkBundle;

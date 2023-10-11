@@ -19,7 +19,6 @@ package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -54,21 +53,6 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     public AbstractComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
         this.serviceProvider = controllerServiceProvider;
         this.stateLookup = stateLookup;
-    }
-
-    @Override
-    public boolean isScheduled(final ComponentNode componentNode) {
-        if (componentNode instanceof final ControllerServiceNode serviceNode) {
-            return serviceNode.isActive() || toEnable.contains(serviceNode);
-        } else if (componentNode instanceof final ProcessorNode processorNode) {
-            return processorNode.isRunning() || connectablesToStart.contains(processorNode);
-        } else if (componentNode instanceof final ReportingTaskNode taskNode) {
-            return taskNode.isRunning() || reportingTasksToStart.contains(taskNode);
-        } else if (componentNode instanceof final StatelessGroupNode groupNode) {
-            return groupNode.isRunning() || statelessGroupsToStart.contains(groupNode.getProcessGroup());
-        } else {
-            return false;
-        }
     }
 
     @Override

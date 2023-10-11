@@ -18,10 +18,8 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
@@ -85,30 +83,6 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     @Override
     public void stopStatelessGroup(final ProcessGroup group) {
         delegate.stopStatelessGroup(group);
-    }
-
-    @Override
-    public boolean isScheduled(final ComponentNode componentNode) {
-        if (componentNode instanceof final StandardProcessorNode procNode) {
-            if (procNode.isRunning()) {
-                return true;
-            }
-        } else if (componentNode instanceof final ControllerServiceNode serviceNode) {
-            if (serviceNode.isActive()) {
-                return true;
-            }
-        } else if (componentNode instanceof final ReportingTaskNode taskNode) {
-            if (taskNode.isRunning()) {
-                return true;
-            }
-        } else if (componentNode instanceof final StatelessGroupNode groupNode) {
-            if (groupNode.isRunning()) {
-                return true;
-            }
-        }
-
-        final ScheduledState existingState = componentStates.get(componentNode.getIdentifier());
-        return existingState == ScheduledState.RUNNING || existingState == ScheduledState.STARTING;
     }
 
     @Override
