@@ -105,10 +105,6 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
             ENDPOINT_OVERRIDE);
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();

@@ -109,10 +109,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         DELAY,
         TIMEOUT,
         ENDPOINT_OVERRIDE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD,
+        PROXY_CONFIGURATION_SERVICE,
         MESSAGEGROUPID,
         MESSAGEDEDUPLICATIONID);
 

@@ -95,11 +95,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         BATCH_SIZE,
         TIMEOUT,
         SSL_CONTEXT_SERVICE,
-        PROXY_CONFIGURATION_SERVICE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not found")
             .description("FlowFiles are routed to not found relationship if key not found in the table").build();

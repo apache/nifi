@@ -78,11 +78,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             SIGNER_OVERRIDE,
             S3_CUSTOM_SIGNER_CLASS_NAME,
             S3_CUSTOM_SIGNER_MODULE_LOCATION,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

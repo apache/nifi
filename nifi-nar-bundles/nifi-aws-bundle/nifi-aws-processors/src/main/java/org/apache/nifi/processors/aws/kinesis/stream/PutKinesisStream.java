@@ -122,10 +122,6 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
         MAX_MESSAGE_BUFFER_SIZE_MB,
         TIMEOUT,
         PROXY_CONFIGURATION_SERVICE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD,
         ENDPOINT_OVERRIDE);
 
     /** A random number generator for cases where partition key is not available */

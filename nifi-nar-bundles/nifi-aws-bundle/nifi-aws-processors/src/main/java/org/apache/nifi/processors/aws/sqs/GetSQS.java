@@ -128,10 +128,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         CHARSET,
         VISIBILITY_TIMEOUT,
         RECEIVE_MSG_WAIT_TIME,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

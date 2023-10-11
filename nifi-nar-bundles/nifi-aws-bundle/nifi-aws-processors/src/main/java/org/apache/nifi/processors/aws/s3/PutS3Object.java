@@ -292,11 +292,7 @@ public class PutS3Object extends AbstractS3Processor {
             MULTIPART_TEMP_DIR,
             USE_CHUNKED_ENCODING,
             USE_PATH_STYLE_ACCESS,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";

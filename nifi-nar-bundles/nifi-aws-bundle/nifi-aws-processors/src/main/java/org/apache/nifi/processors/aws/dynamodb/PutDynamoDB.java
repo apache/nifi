@@ -93,15 +93,8 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         BATCH_SIZE,
         TIMEOUT,
         SSL_CONTEXT_SERVICE,
-        PROXY_CONFIGURATION_SERVICE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
-    /**
-     * Dyamodb max item size limit 400 kb
-     */
     public static final int DYNAMODB_MAX_ITEM_SIZE = 400 * 1024;
 
     @Override

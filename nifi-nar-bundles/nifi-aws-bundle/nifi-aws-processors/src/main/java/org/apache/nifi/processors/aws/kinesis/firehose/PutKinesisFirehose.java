@@ -95,10 +95,6 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
         MAX_MESSAGE_BUFFER_SIZE_MB,
         TIMEOUT,
         PROXY_CONFIGURATION_SERVICE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD,
         ENDPOINT_OVERRIDE);
 
     public static final int MAX_MESSAGE_SIZE = KinesisProcessorUtils.MAX_MESSAGE_SIZE;

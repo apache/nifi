@@ -88,10 +88,8 @@ import java.util.UUID;
 })
 public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
-    /**
-     * Due to DynamoDB's hardcoded limitation on the number of items in one batch, the processor writes them in chunks.
-     * Every chunk contains a number of items according to the limitations.
-     */
+    // Due to DynamoDB's hardcoded limitation on the number of items in one batch, the processor writes them in chunks.
+    // Every chunk contains a number of items according to the limitations.
     private static final int MAXIMUM_CHUNK_SIZE = 25;
 
     static final String DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";

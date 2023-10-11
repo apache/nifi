@@ -82,11 +82,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
         BATCH_SIZE,
         TIMEOUT,
         SSL_CONTEXT_SERVICE,
-        PROXY_CONFIGURATION_SERVICE,
-        PROXY_HOST,
-        PROXY_HOST_PORT,
-        PROXY_USERNAME,
-        PROXY_PASSWORD);
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
