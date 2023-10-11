@@ -37,6 +37,11 @@
             <artifactId>nifi-security-utils-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <name>nifi-kerberos-iaa-providers-nar</name>
 </project>
