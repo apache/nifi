@@ -140,7 +140,7 @@ user with administrative privileges.
       -e KEYSTORE_TYPE=JKS \
       -e KEYSTORE_PASSWORD=PLACEHOLDER \
       -e TRUSTSTORE_PATH=/opt/certs/truststore.p12 \
-      -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
+      -e TRUSTSTORE_PASSWORD=PLACEHOLDER \
       -e TRUSTSTORE_TYPE=JKS \
       -e INITIAL_ADMIN_IDENTITY='test' \
       -e NIFI_REGISTRY_SECURITY_USER_OIDC_DISCOVERY_URL=http://OPENID_SERVER_URL/auth/realms/OPENID_REALM/.well-known/openid-configuration \
