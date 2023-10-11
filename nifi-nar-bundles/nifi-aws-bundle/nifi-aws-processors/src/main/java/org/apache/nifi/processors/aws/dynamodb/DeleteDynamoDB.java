@@ -40,8 +40,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,11 +69,24 @@ import java.util.Map;
     })
 public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
-                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE,
-                PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        HASH_KEY_NAME,
+        RANGE_KEY_NAME,
+        HASH_KEY_VALUE,
+        RANGE_KEY_VALUE,
+        HASH_KEY_VALUE_TYPE,
+        RANGE_KEY_VALUE_TYPE,
+        BATCH_SIZE,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        PROXY_CONFIGURATION_SERVICE,
+        PROXY_HOST,
+        PROXY_HOST_PORT,
+        PROXY_USERNAME,
+        PROXY_PASSWORD);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

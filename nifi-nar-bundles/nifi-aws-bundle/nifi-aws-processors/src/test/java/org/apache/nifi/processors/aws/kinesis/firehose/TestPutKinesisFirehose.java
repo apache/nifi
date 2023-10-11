@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,6 +35,7 @@ public class TestPutKinesisFirehose {
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "deliveryName");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
         runner.assertValid();
     }
 

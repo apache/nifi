@@ -21,6 +21,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ public class TestDeleteS3Object {
             }
         };
         runner = TestRunners.newTestRunner(mockDeleteS3Object);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test

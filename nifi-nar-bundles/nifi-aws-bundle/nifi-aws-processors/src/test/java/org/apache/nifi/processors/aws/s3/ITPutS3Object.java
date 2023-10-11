@@ -381,7 +381,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         final TestRunner runner = initTestRunner();
 
-        setSecureProperties(runner, PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE);
+        setSecureProperties(runner);
         runner.setProperty(PutS3Object.S3_REGION, getRegion());
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, "${filename}");
@@ -698,7 +698,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         final TestRunner runner = initTestRunner();
 
-        setSecureProperties(runner, PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE);
+        setSecureProperties(runner);
         runner.setProperty(PutS3Object.S3_REGION, getRegion());
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, TEST_PARTSIZE_STRING);

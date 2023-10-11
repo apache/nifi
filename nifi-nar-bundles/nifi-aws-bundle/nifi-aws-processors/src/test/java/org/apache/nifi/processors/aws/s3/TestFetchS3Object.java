@@ -28,10 +28,10 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.StringInputStream;
 import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -62,7 +62,6 @@ public class TestFetchS3Object {
 
     private TestRunner runner = null;
     private FetchS3Object mockFetchS3Object = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
     @BeforeEach
@@ -76,6 +75,7 @@ public class TestFetchS3Object {
             }
         };
         runner = TestRunners.newTestRunner(mockFetchS3Object);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test
@@ -358,32 +358,4 @@ public class TestFetchS3Object {
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
     }
 
-    @Test
-    public void testGetPropertyDescriptors() {
-        FetchS3Object processor = new FetchS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(23, pd.size(), "size should be eq");
-        assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE));
-        assertTrue(pd.contains(FetchS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(FetchS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(FetchS3Object.KEY));
-        assertTrue(pd.contains(FetchS3Object.S3_REGION));
-        assertTrue(pd.contains(FetchS3Object.SECRET_KEY));
-        assertTrue(pd.contains(FetchS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(FetchS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
-        assertTrue(pd.contains(FetchS3Object.S3_CUSTOM_SIGNER_MODULE_LOCATION));
-        assertTrue(pd.contains(FetchS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.TIMEOUT));
-        assertTrue(pd.contains(FetchS3Object.VERSION_ID));
-        assertTrue(pd.contains(FetchS3Object.ENCRYPTION_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.PROXY_HOST));
-        assertTrue(pd.contains(FetchS3Object.PROXY_HOST_PORT));
-        assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
-        assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
-
-    }
 }

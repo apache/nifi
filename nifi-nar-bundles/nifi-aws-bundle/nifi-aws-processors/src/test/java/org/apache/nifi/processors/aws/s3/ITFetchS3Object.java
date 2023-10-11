@@ -90,7 +90,7 @@ public class ITFetchS3Object extends AbstractS3IT {
     public void testTryToFetchNotExistingFile() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
-        setSecureProperties(runner, PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE);
+        setSecureProperties(runner);
         runner.setProperty(FetchS3Object.S3_REGION, getRegion());
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
 

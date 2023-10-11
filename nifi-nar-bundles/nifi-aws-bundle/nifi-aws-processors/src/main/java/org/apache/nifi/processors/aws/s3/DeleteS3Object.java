@@ -35,8 +35,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -62,14 +60,11 @@ public class DeleteS3Object extends AbstractS3Processor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> properties = List.of(
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
             TIMEOUT,
             VERSION_ID,
             FULL_CONTROL_USER_LIST,
@@ -87,7 +82,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             PROXY_HOST,
             PROXY_HOST_PORT,
             PROXY_USERNAME,
-            PROXY_PASSWORD));
+        PROXY_PASSWORD);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

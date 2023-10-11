@@ -27,6 +27,8 @@ import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.PutRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class PutDynamoDBTest extends AbstractDynamoDBTest {
-
+    private static final byte[] HELLO_2_BYTES = "{\"hell\": 2}".getBytes(StandardCharsets.UTF_8);
     protected PutDynamoDB putDynamoDB;
     protected BatchWriteItemResult result = new BatchWriteItemResult();
     BatchWriteItemOutcome outcome;
@@ -69,8 +72,24 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         };
     }
 
+    private TestRunner createRunner() throws InitializationException {
+        return createRunner(putDynamoDB);
+    }
+
+    private TestRunner createRunner(final PutDynamoDB processor) {
+        final TestRunner putRunner = TestRunners.newTestRunner(processor);
+        AuthUtils.enableAccessKey(putRunner, "abcd", "cdef");
+
+        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
+        return putRunner;
+    }
+
     @Test
-    public void testStringHashStringRangePutOnlyHashFailure() {
+    public void testStringHashStringRangePutOnlyHashFailure() throws InitializationException {
         // Inject a mock DynamoDB to create the exception condition
         final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
         // When writing, mock thrown service exception from AWS
@@ -83,17 +102,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
             }
         };
 
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
-        String document = "{\"hello\": 2}";
-        putRunner.enqueue(document.getBytes());
+        final TestRunner putRunner = createRunner();
+        putRunner.enqueue(HELLO_2_BYTES);
 
         putRunner.run(1);
 
@@ -108,18 +118,11 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangePutNoHashValueFailure() {
-        final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        final TestRunner putRunner = createRunner(new PutDynamoDB());
+        putRunner.removeProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE);
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
-        String document = "{\"hello\": 2}";
-        putRunner.enqueue(document.getBytes());
+        putRunner.enqueue(HELLO_2_BYTES);
 
         putRunner.run(1);
 
@@ -129,21 +132,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
         }
-
     }
 
     @Test
-    public void testStringHashStringRangePutOnlyHashWithRangeValueNoRangeNameFailure() {
-        final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+    public void testStringHashStringRangePutOnlyHashWithRangeValueNoRangeNameFailure() throws InitializationException {
+        final TestRunner putRunner = createRunner(new PutDynamoDB());
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         putRunner.enqueue(new byte[] {});
 
         putRunner.run(1);
@@ -154,18 +148,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
-
     }
 
     @Test
-    public void testStringHashStringRangePutOnlyHashWithRangeNameNoRangeValueFailure() {
-        final TestRunner putRunner = TestRunners.newTestRunner(PutDynamoDB.class);
+    public void testStringHashStringRangePutOnlyHashWithRangeNameNoRangeValueFailure() throws InitializationException {
+        final TestRunner putRunner = createRunner(new PutDynamoDB());
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
@@ -182,18 +170,10 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutSuccessfulWithMock() {
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+    public void testStringHashStringRangePutSuccessfulWithMock() throws InitializationException {
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -206,22 +186,13 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
-
     }
 
     @Test
-    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize1() {
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize1() throws InitializationException {
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -247,18 +218,11 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize5() {
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize5() throws InitializationException {
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.BATCH_SIZE, "5");
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -284,18 +248,10 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutFailedWithItemSizeGreaterThan400Kb() {
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
-
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+    public void testStringHashStringRangePutFailedWithItemSizeGreaterThan400Kb() throws InitializationException {
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
         Arrays.fill(item, (byte) 'a');
         String document = new String(item);
@@ -315,7 +271,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsServiceException() {
+    public void testStringHashStringRangePutThrowsServiceException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -329,17 +285,10 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -355,7 +304,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsClientException() {
+    public void testStringHashStringRangePutThrowsClientException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -369,17 +318,10 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -394,7 +336,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsRuntimeException() {
+    public void testStringHashStringRangePutThrowsRuntimeException() throws InitializationException {
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -408,17 +350,10 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
+        final TestRunner putRunner = createRunner();
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -433,7 +368,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() {
+    public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() throws InitializationException {
         final Map<String, List<WriteRequest>> unprocessed = new HashMap<>();
         final PutRequest put = new PutRequest();
         put.addItemEntry("hashS", new AttributeValue("h1"));
@@ -443,14 +378,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         writes.add(write);
         unprocessed.put(stringHashStringRangeTableName, writes);
         result.setUnprocessedItems(unprocessed);
-        final TestRunner putRunner = TestRunners.newTestRunner(putDynamoDB);
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        putRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j2");

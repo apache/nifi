@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
+
+import java.util.Collection;
+import java.util.Collections;
 
 
 /**
@@ -33,7 +33,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsSt
  */
 public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredentialsStrategy {
 
-    private PropertyDescriptor strategyProperty;
+    private final PropertyDescriptor strategyProperty;
 
     public AbstractBooleanCredentialsStrategy(final String name, final PropertyDescriptor strategyProperty) {
         super("Default Credentials", new PropertyDescriptor[]{
@@ -52,7 +52,7 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
             strategyPropertyValue = strategyPropertyValue.evaluateAttributeExpressions();
         }
         final String useStrategyString = strategyPropertyValue.getValue();
-        final Boolean useStrategy = Boolean.parseBoolean(useStrategyString);
+        final boolean useStrategy = Boolean.parseBoolean(useStrategyString);
         return useStrategy;
     }
 
@@ -61,17 +61,15 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
                                                  final CredentialsStrategy primaryStrategy) {
         final boolean thisIsSelectedStrategy = this == primaryStrategy;
         final Boolean useStrategy = validationContext.getProperty(strategyProperty).asBoolean();
+
         if (!thisIsSelectedStrategy && useStrategy) {
-            final String failureFormat = "property %1$s cannot be used with %2$s";
-            final Collection<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
-            final String message = String.format(failureFormat, strategyProperty.getDisplayName(),
-                    primaryStrategy.getName());
-            validationFailureResults.add(new ValidationResult.Builder()
-                    .subject(strategyProperty.getDisplayName())
-                    .valid(false)
-                    .explanation(message).build());
-            return  validationFailureResults;
+            return Collections.singleton(new ValidationResult.Builder()
+                .subject(strategyProperty.getDisplayName())
+                .valid(false)
+                .explanation(String.format("property %1$s cannot be used with %2$s", strategyProperty.getDisplayName(), primaryStrategy.getName()))
+                .build());
         }
+
         return null;
     }
 

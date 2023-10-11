@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
@@ -35,8 +35,7 @@ import java.net.URI;
 
 public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStream {
 
-    private final static File CREDENTIALS_FILE =
-            new File(System.getProperty("user.home") + "/aws-credentials.properties");
+    private final static File CREDENTIALS_FILE = new File(System.getProperty("user.home") + "/aws-credentials.properties");
 
     private static final String ACCESS_KEY = "test";
     private static final String SECRET_KEY = "test";
@@ -45,21 +44,12 @@ public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStre
     private static final String LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE = "http://localhost:4566";
     private static final String LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE = "http://localhost:4566";
 
-    private final AwsCredentialsProvider awsCredentialsProvider =
-            StaticCredentialsProvider.create(new AwsCredentials() {
-                @Override
-                public String accessKeyId() {
-                    return ACCESS_KEY;
-                }
-
-                @Override
-                public String secretAccessKey() {
-                    return SECRET_KEY;
-                }
-            });
+    private final AwsCredentialsProvider awsCredentialsProvider = StaticCredentialsProvider.create(
+        AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY));
 
     @BeforeEach
     public void setUp() throws InterruptedException, InitializationException {
+        Assumptions.assumeTrue(CREDENTIALS_FILE.exists());
         System.setProperty("aws.cborEnabled", "false");
 
         kinesis = KinesisClient.builder()
@@ -81,12 +71,8 @@ public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStre
         waitForKinesisToInitialize();
 
         runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
-        final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("credentials-service", credentialsService);
-        runner.setProperty(credentialsService, CredentialPropertyDescriptors.CREDENTIALS_FILE, CREDENTIALS_FILE.getAbsolutePath());
-        runner.enableControllerService(credentialsService);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE.getAbsolutePath());
 
-        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-service");
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
         runner.setProperty(ConsumeKinesisStream.REGION, REGION);

@@ -182,8 +182,7 @@ public class PutS3Object extends AbstractS3Processor {
             .name("Multipart Threshold")
             .description("Specifies the file size threshold for switch from the PutS3Object API to the " +
                     "PutS3MultipartUpload API.  Flow files bigger than this limit will be sent using the stateful " +
-                    "multipart process.\n" +
-                    "The valid range is 50MB to 5GB.")
+                "multipart process. The valid range is 50MB to 5GB.")
             .required(true)
             .defaultValue("5 GB")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(MIN_S3_PART_SIZE, MAX_S3_PUTOBJECT_SIZE))
@@ -191,10 +190,9 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor MULTIPART_PART_SIZE = new PropertyDescriptor.Builder()
             .name("Multipart Part Size")
-            .description("Specifies the part size for use when the PutS3Multipart Upload API is used.\n" +
+        .description("Specifies the part size for use when the PutS3Multipart Upload API is used. " +
                     "Flow files will be broken into chunks of this size for the upload process, but the last part " +
-                    "sent can be smaller since it is not padded.\n" +
-                    "The valid range is 50MB to 5GB.")
+            "sent can be smaller since it is not padded. The valid range is 50MB to 5GB.")
             .required(true)
             .defaultValue("5 GB")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(MIN_S3_PART_SIZE, MAX_S3_PUTOBJECT_SIZE))
@@ -260,7 +258,7 @@ public class PutS3Object extends AbstractS3Processor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> properties = List.of(
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             S3_REGION,
@@ -271,9 +269,6 @@ public class PutS3Object extends AbstractS3Processor {
             CONTENT_TYPE,
             CONTENT_DISPOSITION,
             CACHE_CONTROL,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
             OBJECT_TAGS_PREFIX,
             REMOVE_TAG_PREFIX,
             TIMEOUT,
@@ -301,7 +296,7 @@ public class PutS3Object extends AbstractS3Processor {
             PROXY_HOST,
             PROXY_HOST_PORT,
             PROXY_USERNAME,
-            PROXY_PASSWORD));
+        PROXY_PASSWORD);
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -313,7 +308,6 @@ public class PutS3Object extends AbstractS3Processor {
     final static String S3_CACHE_CONTROL = "s3.cachecontrol";
     final static String S3_EXPIRATION_ATTR_KEY = "s3.expiration";
     final static String S3_STORAGECLASS_ATTR_KEY = "s3.storeClass";
-    final static String S3_STORAGECLASS_META_KEY = "x-amz-storage-class";
     final static String S3_USERMETA_ATTR_KEY = "s3.usermetadata";
     final static String S3_API_METHOD_ATTR_KEY = "s3.apimethod";
     final static String S3_API_METHOD_PUTOBJECT = "putobject";
@@ -983,106 +977,106 @@ public class PutS3Object extends AbstractS3Processor {
 
         private static final String SEPARATOR = "#";
 
-        private String _uploadId;
-        private Long _filePosition;
-        private List<PartETag> _partETags;
-        private Long _partSize;
-        private StorageClass _storageClass;
-        private Long _contentLength;
-        private Long _timestamp;
+        private String uploadId;
+        private Long filePosition;
+        private List<PartETag> partETags;
+        private Long partSize;
+        private StorageClass storageClass;
+        private Long contentLength;
+        private Long timestamp;
 
         public MultipartState() {
-            _uploadId = "";
-            _filePosition = 0L;
-            _partETags = new ArrayList<>();
-            _partSize = 0L;
-            _storageClass = StorageClass.Standard;
-            _contentLength = 0L;
-            _timestamp = System.currentTimeMillis();
+            uploadId = "";
+            filePosition = 0L;
+            partETags = new ArrayList<>();
+            partSize = 0L;
+            storageClass = StorageClass.Standard;
+            contentLength = 0L;
+            timestamp = System.currentTimeMillis();
         }
 
         // create from a previous toString() result
-        public MultipartState(String buf) {
+        public MultipartState(final String buf) {
             String[] fields = buf.split(SEPARATOR);
-            _uploadId = fields[0];
-            _filePosition = Long.parseLong(fields[1]);
-            _partETags = new ArrayList<>();
+            uploadId = fields[0];
+            filePosition = Long.parseLong(fields[1]);
+            partETags = new ArrayList<>();
             for (String part : fields[2].split(",")) {
                 if (part != null && !part.isEmpty()) {
                     String[] partFields = part.split("/");
-                    _partETags.add(new PartETag(Integer.parseInt(partFields[0]), partFields[1]));
+                    partETags.add(new PartETag(Integer.parseInt(partFields[0]), partFields[1]));
                 }
             }
-            _partSize = Long.parseLong(fields[3]);
-            _storageClass = StorageClass.fromValue(fields[4]);
-            _contentLength = Long.parseLong(fields[5]);
-            _timestamp = Long.parseLong(fields[6]);
+            partSize = Long.parseLong(fields[3]);
+            storageClass = StorageClass.fromValue(fields[4]);
+            contentLength = Long.parseLong(fields[5]);
+            timestamp = Long.parseLong(fields[6]);
         }
 
         public String getUploadId() {
-            return _uploadId;
+            return uploadId;
         }
 
         public void setUploadId(String id) {
-            _uploadId = id;
+            uploadId = id;
         }
 
         public Long getFilePosition() {
-            return _filePosition;
+            return filePosition;
         }
 
         public void setFilePosition(Long pos) {
-            _filePosition = pos;
+            filePosition = pos;
         }
 
         public List<PartETag> getPartETags() {
-            return _partETags;
+            return partETags;
         }
 
         public void addPartETag(PartETag tag) {
-            _partETags.add(tag);
+            partETags.add(tag);
         }
 
         public Long getPartSize() {
-            return _partSize;
+            return partSize;
         }
 
         public void setPartSize(Long size) {
-            _partSize = size;
+            partSize = size;
         }
 
         public StorageClass getStorageClass() {
-            return _storageClass;
+            return storageClass;
         }
 
         public void setStorageClass(StorageClass aClass) {
-            _storageClass = aClass;
+            storageClass = aClass;
         }
 
         public Long getContentLength() {
-            return _contentLength;
+            return contentLength;
         }
 
         public void setContentLength(Long length) {
-            _contentLength = length;
+            contentLength = length;
         }
 
         public Long getTimestamp() {
-            return _timestamp;
+            return timestamp;
         }
 
         public void setTimestamp(Long timestamp) {
-            _timestamp = timestamp;
+            this.timestamp = timestamp;
         }
 
         @Override
         public String toString() {
             StringBuilder buf = new StringBuilder();
-            buf.append(_uploadId).append(SEPARATOR)
-            .append(_filePosition.toString()).append(SEPARATOR);
-            if (_partETags.size() > 0) {
+            buf.append(uploadId).append(SEPARATOR)
+                .append(filePosition.toString()).append(SEPARATOR);
+            if (partETags.size() > 0) {
                 boolean first = true;
-                for (PartETag tag : _partETags) {
+                for (PartETag tag : partETags) {
                     if (!first) {
                         buf.append(",");
                     } else {
@@ -1092,10 +1086,10 @@ public class PutS3Object extends AbstractS3Processor {
                 }
             }
             buf.append(SEPARATOR)
-            .append(_partSize.toString()).append(SEPARATOR)
-            .append(_storageClass.toString()).append(SEPARATOR)
-            .append(_contentLength.toString()).append(SEPARATOR)
-            .append(_timestamp.toString());
+                .append(partSize.toString()).append(SEPARATOR)
+                .append(storageClass.toString()).append(SEPARATOR)
+                .append(contentLength.toString()).append(SEPARATOR)
+                .append(timestamp.toString());
             return buf.toString();
         }
     }

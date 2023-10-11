@@ -29,6 +29,7 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -87,18 +88,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeGetUnprocessed() {
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
-        getRunner.enqueue(new byte[] {});
+        final TestRunner getRunner = createRunner();
+        getRunner.enqueue(new byte[]{});
 
         getRunner.run(1);
 
@@ -107,11 +98,28 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
         for (MockFlowFile flowFile : flowFiles) {
-            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED));
+            flowFile.assertAttributeExists(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED);
         }
+    }
 
+    private TestRunner createRunner() {
+        return createRunner(getDynamoDB);
+    }
+
+    private TestRunner createRunner(final GetDynamoDB dynamoDB) {
+        final TestRunner getRunner = TestRunners.newTestRunner(dynamoDB);
+        AuthUtils.enableAccessKey(getRunner, "abcd", "defg");
+
+        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
+        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        return getRunner;
     }
 
     @Test
@@ -145,17 +153,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         };
 
         getDynamoDB = mockDynamoDB(mockDynamoDB);
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -203,17 +201,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         };
 
         getDynamoDB = mockDynamoDB(mockDynamoDB);
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -234,17 +222,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         final GetDynamoDB getDynamoDB = mockDynamoDB(mockDynamoDB);
 
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -272,17 +250,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         final GetDynamoDB getDynamoDB = mockDynamoDB(mockDynamoDB);
 
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -294,7 +262,6 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFiles) {
             assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
-
     }
 
     @Test
@@ -310,17 +277,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         final GetDynamoDB getDynamoDB = mockDynamoDB(mockDynamoDB);
 
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -354,17 +311,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         };
 
         final GetDynamoDB getDynamoDB = mockDynamoDB(notFoundMockDynamoDB);
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -389,15 +336,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getDynamoDB = mockDynamoDB(mockDynamoDb);
 
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner(getDynamoDB);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -415,16 +354,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeGetNoHashValueFailure() {
-        final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
-
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
+        final TestRunner getRunner = createRunner();
+        getRunner.removeProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE);
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -440,16 +371,9 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeGetOnlyHashWithRangeValueNoRangeNameFailure() {
-        final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
+        final TestRunner getRunner = createRunner();
+        getRunner.removeProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -460,21 +384,13 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
-
     }
 
     @Test
     public void testStringHashStringRangeGetOnlyHashWithRangeNameNoRangeValueFailure() {
-        final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
+        final TestRunner getRunner = createRunner();
+        getRunner.removeProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);
@@ -487,7 +403,6 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         }
     }
 
-    // Incorporated test from James W
     @Test
     public void testStringHashStringNoRangeGetUnprocessed() {
         unprocessed.clear();
@@ -497,15 +412,10 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         kaa.withKeys(map);
         unprocessed.put(stringHashStringRangeTableName, kaa);
 
-        final TestRunner getRunner = TestRunners.newTestRunner(getDynamoDB);
+        final TestRunner getRunner = createRunner();
+        getRunner.removeProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME);
+        getRunner.removeProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE);
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.ACCESS_KEY,"abcd");
-        getRunner.setProperty(AbstractDynamoDBProcessor.SECRET_KEY, "cdef");
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
-        getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
-        getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
-        getRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "j1");
         getRunner.enqueue(new byte[] {});
 
         getRunner.run(1);

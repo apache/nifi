@@ -56,9 +56,7 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -213,14 +211,11 @@ public class FetchS3Object extends AbstractS3Processor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> properties = List.of(
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             S3_REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
             TIMEOUT,
             VERSION_ID,
             SSL_CONTEXT_SERVICE,
@@ -236,7 +231,7 @@ public class FetchS3Object extends AbstractS3Processor {
             PROXY_PASSWORD,
             REQUESTER_PAYS,
             RANGE_START,
-            RANGE_LENGTH));
+        RANGE_LENGTH);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

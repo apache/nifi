@@ -50,7 +50,6 @@ import org.apache.nifi.serialization.SplitRecordSetHandlerException;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -171,19 +170,19 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .description("Defines the name of the sort key field in the DynamoDB table. Sort key is also known as range key.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(
-            RECORD_READER,
-            new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE).required(true).build(),
-            REGION,
-            TABLE,
-            PARTITION_KEY_STRATEGY,
-            PARTITION_KEY_FIELD,
-            PARTITION_KEY_ATTRIBUTE,
-            SORT_KEY_STRATEGY,
-            SORT_KEY_FIELD,
-            TIMEOUT,
-            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
-            SSL_CONTEXT_SERVICE
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        RECORD_READER,
+        PARTITION_KEY_STRATEGY,
+        PARTITION_KEY_FIELD,
+        PARTITION_KEY_ATTRIBUTE,
+        SORT_KEY_STRATEGY,
+        SORT_KEY_FIELD,
+        TIMEOUT,
+        ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
+        SSL_CONTEXT_SERVICE
     );
 
     @Override

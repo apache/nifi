@@ -17,42 +17,44 @@
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
-// This integration test can be run against a mock Kenesis Firehose such as
+// This integration test can be run against a mock Kinesis Firehose such as
 // https://github.com/localstack/localstack
+@Disabled("Required external service be running. Needs to be updated to make use of Localstack TestContainer")
 public class ITPutKinesisFirehoseWithEndpointOverride {
 
     private TestRunner runner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
-        runner.setProperty(PutKinesisFirehose.ACCESS_KEY, "access key");
-        runner.setProperty(PutKinesisFirehose.SECRET_KEY, "secret key");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "test");
         runner.setProperty(PutKinesisFirehose.ENDPOINT_OVERRIDE, "http://localhost:4573");
         runner.assertValid();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         runner = null;
-
         System.clearProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY);
     }
 
     @Test
-    public void testIntegrationSuccess() throws Exception {
+    public void testIntegrationSuccess() throws IOException {
         runner.assertValid();
 
         runner.enqueue("test".getBytes());
@@ -67,7 +69,7 @@ public class ITPutKinesisFirehoseWithEndpointOverride {
     }
 
     @Test
-    public void testIntegrationFailedBadStreamName() throws Exception {
+    public void testIntegrationFailedBadStreamName() {
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "notfound");
         runner.assertValid();
 
@@ -75,7 +77,6 @@ public class ITPutKinesisFirehoseWithEndpointOverride {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_FAILURE, 1);
-
     }
 
 }

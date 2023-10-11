@@ -40,6 +40,7 @@ public class TestInvokeAmazonGatewayApi extends TestInvokeAWSGatewayApiCommon {
     @Test
     public void testStaticCredentials() throws Exception {
         runner.clearProperties();
+
         setupAuth();
         test200();
     }

@@ -188,12 +188,26 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .addValidator(DOUBLE_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties =
-            Collections.unmodifiableList(
-                    Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, MAXIMUM, MINIMUM, SAMPLECOUNT, SUM, TIMESTAMP,
-                            UNIT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD)
-            );
+    public static final List<PropertyDescriptor> properties = List.of(
+        NAMESPACE,
+        METRIC_NAME,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        VALUE,
+        MAXIMUM,
+        MINIMUM,
+        SAMPLECOUNT,
+        SUM,
+        TIMESTAMP,
+        UNIT,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        ENDPOINT_OVERRIDE,
+        PROXY_HOST,
+        PROXY_HOST_PORT,
+        PROXY_USERNAME,
+        PROXY_PASSWORD
+    );
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 

@@ -17,13 +17,15 @@
 package org.apache.nifi.processors.aws.kinesis.stream;
 
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,26 +45,18 @@ public class ITPutKinesisStream {
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
+        Assumptions.assumeTrue(new File(CREDENTIALS_FILE).exists());
+
         runner = TestRunners.newTestRunner(PutKinesisStream.class);
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "kstream");
-        runner.setProperty(PutKinesisStream.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
         runner.assertValid();
     }
 
-    @AfterEach
-    public void tearDown() throws Exception {
-        runner = null;
-    }
 
-    /**
-     * Comment out ignore for integration tests (requires creds files)
-     */
     @Test
     public void testIntegrationSuccess() throws Exception {
-        runner.setProperty(PutKinesisStream.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.assertValid();
-
         runner.enqueue("test".getBytes());
         runner.run(1);
 
@@ -107,9 +101,6 @@ public class ITPutKinesisStream {
         out.assertContentEquals("test".getBytes());
     }
 
-    /**
-     * Comment out ignore for integration tests (requires creds files)
-     */
     @Test
     public void testIntegrationFailedBadStreamName() throws Exception {
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "bad-kstream");

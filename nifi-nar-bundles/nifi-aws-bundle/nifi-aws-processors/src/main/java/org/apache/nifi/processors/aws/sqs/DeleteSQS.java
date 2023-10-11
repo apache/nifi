@@ -64,19 +64,16 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
             .build();
 
     public static final List<PropertyDescriptor> properties = List.of(
-            QUEUE_URL,
-            RECEIPT_HANDLE,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            REGION,
-            TIMEOUT,
-            ENDPOINT_OVERRIDE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD);
+        QUEUE_URL,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        RECEIPT_HANDLE,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        PROXY_HOST,
+        PROXY_HOST_PORT,
+        PROXY_USERNAME,
+        PROXY_PASSWORD);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

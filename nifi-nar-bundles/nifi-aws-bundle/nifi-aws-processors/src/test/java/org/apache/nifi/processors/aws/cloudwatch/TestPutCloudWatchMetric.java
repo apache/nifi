@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.aws.cloudwatch;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,7 +30,6 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -37,18 +38,23 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Unit tests for {@link PutCloudWatchMetric}.
- */
 public class TestPutCloudWatchMetric {
 
-    @Test
-    public void testPutSimpleMetric() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+    private TestRunner runner;
+    private MockPutCloudWatchMetric mockPutCloudWatchMetric;
+
+    @BeforeEach
+    public void setup() {
+        mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
+    }
+
+    @Test
+    public void testPutSimpleMetric() {
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -67,32 +73,17 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testValueLiteralDoubleInvalid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "nan");
         runner.assertNotValid();
     }
 
     @Test
     public void testMissingBothValueAndStatisticSetInvalid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.assertNotValid();
     }
 
     @Test
     public void testContainsBothValueAndStatisticSetInvalid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -105,11 +96,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testContainsIncompleteStatisticSetInvalid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
         runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
@@ -121,11 +107,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testContainsBothValueAndIncompleteStatisticSetInvalid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -135,11 +116,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testMetricExpressionValid() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "${metric.value}");
         runner.assertValid();
 
@@ -158,11 +134,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testStatisticSet() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.MINIMUM, "${metric.min}");
         runner.setProperty(PutCloudWatchMetric.MAXIMUM, "${metric.max}");
         runner.setProperty(PutCloudWatchMetric.SUM, "${metric.sum}");
@@ -190,11 +161,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testDimensions() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -215,7 +181,7 @@ public class TestPutCloudWatchMetric {
         assertEquals(1d, datum.value(), 0.0001d);
 
         List<Dimension> dimensions = new ArrayList<>(datum.dimensions());
-        Collections.sort(dimensions, Comparator.comparing(Dimension::name));
+        dimensions.sort(Comparator.comparing(Dimension::name));
         assertEquals(2, dimensions.size());
         assertEquals("dim1", dimensions.get(0).name());
         assertEquals("1", dimensions.get(0).value());
@@ -225,11 +191,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testMaximumDimensions() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -241,11 +202,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testTooManyDimensions() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
@@ -257,11 +213,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testMetricExpressionInvalidRoutesToFailure() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.VALUE, "${metric.value}");
         runner.assertValid();
 
@@ -277,11 +228,6 @@ public class TestPutCloudWatchMetric {
     @ParameterizedTest
     @CsvSource({"nan","percent","count"})
     public void testInvalidUnit(String unit) {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.assertNotValid();
@@ -294,11 +240,6 @@ public class TestPutCloudWatchMetric {
     @ParameterizedTest
     @MethodSource("data")
     public void testValidUnit(String unit) {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1");
         runner.assertValid();
@@ -306,11 +247,6 @@ public class TestPutCloudWatchMetric {
 
     @Test
     public void testTimestampExpressionInvalidRoutesToFailure() {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
         runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1");
         runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "${timestamp.value}");
@@ -329,11 +265,6 @@ public class TestPutCloudWatchMetric {
     @ParameterizedTest
     @CsvSource({"null","us-west-100","us-east-a"})
     public void testInvalidRegion(String region) {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(PutCloudWatchMetric.REGION, region);
         runner.assertNotValid();
@@ -342,11 +273,6 @@ public class TestPutCloudWatchMetric {
     @ParameterizedTest
     @CsvSource({"us-east-1","us-west-1","us-east-2"})
     public void testValidRegionRoutesToSuccess(String region) {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(PutCloudWatchMetric.REGION, region);
         runner.assertValid();

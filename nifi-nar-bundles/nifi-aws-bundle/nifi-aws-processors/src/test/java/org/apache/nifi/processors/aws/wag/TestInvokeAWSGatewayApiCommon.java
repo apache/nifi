@@ -21,8 +21,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -53,23 +52,15 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     protected MockWebServer mockWebServer;
 
     protected void setupControllerService() throws InitializationException {
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.ACCESS_KEY, "awsAccessKey");
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.SECRET_KEY, "awsSecretKey");
-        runner.enableControllerService(serviceImpl);
-        runner.setProperty(InvokeAWSGatewayApi.AWS_CREDENTIALS_PROVIDER_SERVICE,
-                "awsCredentialsProvider");
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
-    protected void setupAuth() {
-        runner.setProperty(InvokeAWSGatewayApi.ACCESS_KEY, "testAccessKey");
-        runner.setProperty(InvokeAWSGatewayApi.SECRET_KEY, "testSecretKey");
+    protected void setupAuth() throws InitializationException {
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
-    protected void setupCredFile() {
-        runner.setProperty(AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE,
-                "src/test/resources/mock-aws-credentials.properties");
+    protected void setupCredFile() throws InitializationException {
+        AuthUtils.enableCredentialsFile(runner, "src/test/resources/mock-aws-credentials.properties");
     }
 
     public void setupEndpointAndRegion() {

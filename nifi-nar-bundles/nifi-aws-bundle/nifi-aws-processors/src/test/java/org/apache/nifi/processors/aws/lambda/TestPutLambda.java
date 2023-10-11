@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.lambda;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.util.Base64;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -60,17 +61,13 @@ public class TestPutLambda {
             }
         };
         runner = TestRunners.newTestRunner(mockPutLambda);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test
     public void testSizeGreaterThan6MB() {
-        runner = TestRunners.newTestRunner(PutLambda.class);
-        runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
-        runner.assertValid();
+        runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         byte [] largeInput = new byte[6000001];
-        for (int i = 0; i < 6000001; i++) {
-            largeInput[i] = 'a';
-        }
         runner.enqueue(largeInput);
         runner.run(1);
 

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.credentials.provider.service;
 
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,7 @@ public class AWSProcessorProxyTest {
     public void testSetup() {
         runner = TestRunners.newTestRunner(FetchS3Object.class);
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "bucket");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
         runner.assertValid();
     }
 

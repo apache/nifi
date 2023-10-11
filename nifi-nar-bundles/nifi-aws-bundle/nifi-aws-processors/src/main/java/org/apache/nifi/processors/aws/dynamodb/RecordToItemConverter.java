@@ -109,7 +109,7 @@ final class RecordToItemConverter {
         } else if (value instanceof Map) {
             return getMapFieldAsMap(value);
         } else if (value instanceof Character || value instanceof Timestamp || value instanceof Date || value instanceof Time) {
-            return ((Character) value).toString();
+            return value.toString();
         } else if (value instanceof Enum) {
             return ((Enum) value).name();
         } else {

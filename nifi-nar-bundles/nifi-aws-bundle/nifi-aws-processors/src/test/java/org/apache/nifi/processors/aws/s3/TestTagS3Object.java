@@ -25,9 +25,8 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -64,6 +63,7 @@ public class TestTagS3Object {
             }
         };
         runner = TestRunners.newTestRunner(mockTagS3Object);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test
@@ -259,36 +259,6 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-    }
-
-    @Test
-    public void testGetPropertyDescriptors() {
-        TagS3Object processor = new TagS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(22, pd.size(), "size should be eq");
-        assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE));
-        assertTrue(pd.contains(TagS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(TagS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(TagS3Object.KEY));
-        assertTrue(pd.contains(TagS3Object.S3_REGION));
-        assertTrue(pd.contains(TagS3Object.SECRET_KEY));
-        assertTrue(pd.contains(TagS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(TagS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
-        assertTrue(pd.contains(TagS3Object.S3_CUSTOM_SIGNER_MODULE_LOCATION));
-        assertTrue(pd.contains(TagS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(TagS3Object.TIMEOUT));
-        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(TagS3Object.PROXY_HOST));
-        assertTrue(pd.contains(TagS3Object.PROXY_HOST_PORT));
-        assertTrue(pd.contains(TagS3Object.PROXY_USERNAME));
-        assertTrue(pd.contains(TagS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(TagS3Object.TAG_KEY));
-        assertTrue(pd.contains(TagS3Object.TAG_VALUE));
-        assertTrue(pd.contains(TagS3Object.APPEND_TAG));
-        assertTrue(pd.contains(TagS3Object.VERSION_ID));
     }
 
     @Test

@@ -19,12 +19,7 @@ package org.apache.nifi.processors.aws;
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
@@ -44,13 +39,12 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -58,8 +52,6 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,10 +70,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor
         implements VerifiableProcessor {
 
-    // Property Descriptors
-    public static final PropertyDescriptor CREDENTIALS_FILE = CredentialPropertyDescriptors.CREDENTIALS_FILE;
-    public static final PropertyDescriptor ACCESS_KEY = CredentialPropertyDescriptors.ACCESS_KEY_ID;
-    public static final PropertyDescriptor SECRET_KEY = CredentialPropertyDescriptors.SECRET_KEY;
+    private static final String CREDENTIALS_SERVICE_CLASSNAME = "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService";
 
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
@@ -155,7 +144,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             .name("AWS Credentials Provider service")
             .displayName("AWS Credentials Provider Service")
             .description("The Controller Service that is used to obtain AWS credentials provider")
-            .required(false)
+        .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
 
@@ -213,20 +202,32 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         return values.toArray(new AllowableValue[0]);
     }
 
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        if (config.isPropertySet("Access Key") && config.isPropertySet("Secret Key")) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                "Access Key", config.getRawPropertyValue("Access Key").get(),
+                "Secret Key", config.getRawPropertyValue("Secret Key").get()));
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE.getName(), serviceId);
+        } else if (config.isPropertySet("Credentials File")) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                "Credentials File", config.getRawPropertyValue("CredentialsFile").get()));
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+        } else if (!config.isPropertySet(AWS_CREDENTIALS_PROVIDER_SERVICE)) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                "default-credentials", "true"));
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+        }
+
+        config.removeProperty("Access Key");
+        config.removeProperty("Secret Key");
+        config.removeProperty("Credentials File");
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
-
-        final boolean accessKeySet = validationContext.getProperty(ACCESS_KEY).isSet();
-        final boolean secretKeySet = validationContext.getProperty(SECRET_KEY).isSet();
-        if ((accessKeySet && !secretKeySet) || (secretKeySet && !accessKeySet)) {
-            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
-        }
-
-        final boolean credentialsFileSet = validationContext.getProperty(CREDENTIALS_FILE).isSet();
-        if ((secretKeySet || accessKeySet) && credentialsFileSet) {
-            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
-        }
 
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
         final boolean proxyPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
@@ -255,28 +256,6 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         }
 
         return validationResults;
-    }
-
-
-    protected AWSCredentials getCredentials(final PropertyContext context) {
-        final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
-        final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
-
-        final String credentialsFile = context.getProperty(CREDENTIALS_FILE).getValue();
-
-        if (credentialsFile != null) {
-            try {
-                return new PropertiesCredentials(new File(credentialsFile));
-            } catch (final IOException ioe) {
-                throw new ProcessException("Could not read Credentials File", ioe);
-            }
-        }
-
-        if (accessKey != null && secretKey != null) {
-            return new BasicAWSCredentials(accessKey, secretKey);
-        }
-
-        return new AnonymousAWSCredentials();
     }
 
 
@@ -392,21 +371,8 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         return results;
     }
 
-    /**
-     * Get credentials provider using the {@link AWSCredentialsProviderService}
-     * @param context the process context
-     * @return AWSCredentialsProvider the credential provider
-     * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
-     */
     protected AWSCredentialsProvider getCredentialsProvider(final ProcessContext context) {
-        final AWSCredentialsProviderService awsCredentialsProviderService =
-              context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
-
-        if (awsCredentialsProviderService == null) {
-            final AWSCredentials credentials = getCredentials(context);
-            return new AWSStaticCredentialsProvider(credentials);
-        }
-
+        final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
         return awsCredentialsProviderService.getCredentialsProvider();
     }
 
