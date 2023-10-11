@@ -16,6 +16,37 @@
  */
 package org.apache.nifi.web.server;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
+import javax.servlet.DispatcherType;
+import javax.servlet.ServletContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
@@ -88,37 +119,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletContext;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.UncheckedIOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Predicate;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
 
 /**
  * Encapsulates the Jetty instance.
@@ -420,11 +420,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                                 final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
 
                                 // create if this is the first extension for this component type
-                                List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentTypeCoordinates);
-                                if (componentUiExtensionsForType == null) {
-                                    componentUiExtensionsForType = new ArrayList<>();
-                                    componentUiExtensionsByType.put(componentTypeCoordinates, componentUiExtensionsForType);
-                                }
+                                final List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.computeIfAbsent(componentTypeCoordinates, k -> new ArrayList<>());
 
                                 // see if there is already a ui extension of this same time
                                 if (containsUiExtensionType(componentUiExtensionsForType, extensionType)) {
@@ -525,15 +521,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 // extract the component type
                 final String componentType = extractComponentType(rawComponentType);
                 if (componentType != null) {
-                    List<String> extensions = uiExtensions.get(uiExtensionType);
-
-                    // if there are currently no extensions for this type create it
-                    if (extensions == null) {
-                        extensions = new ArrayList<>();
-                        uiExtensions.put(uiExtensionType, extensions);
-                    }
-
-                    // add the specified type
+                    final List<String> extensions = uiExtensions.computeIfAbsent(uiExtensionType, k -> new ArrayList<>());
                     extensions.add(componentType);
                 }
             }
@@ -780,7 +768,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
                     .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
                     .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
-                    .restrainingStartup(Boolean.valueOf(props.getProperty(NAR_PROVIDER_RESTRAIN_PROPERTY, "true")))
+                .restrainingStartup(Boolean.parseBoolean(props.getProperty(NAR_PROVIDER_RESTRAIN_PROPERTY, "true")))
                     .build();
             narProviderService.start();
 
@@ -805,9 +793,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
                 // see if the handler is a web app
-                if (handler instanceof WebAppContext) {
-                    WebAppContext context = (WebAppContext) handler;
-
+                if (handler instanceof final WebAppContext context) {
                     // see if this webapp had any exceptions that would
                     // cause it to be unavailable
                     if (context.getUnavailableException() != null) {
@@ -899,11 +885,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    public Map<String, ExternalResourceProvider> buildExternalResourceProviders(
-            final ExtensionManager extensionManager,
-            final String providerPropertyPrefix,
-            final Predicate<ExternalResourceDescriptor> filter
-    ) throws ClassNotFoundException, InstantiationException, IllegalAccessException, TlsException {
+    public Map<String, ExternalResourceProvider> buildExternalResourceProviders(final ExtensionManager extensionManager, final String providerPropertyPrefix,
+                                                                                final Predicate<ExternalResourceDescriptor> filter)
+        throws ClassNotFoundException, InstantiationException, IllegalAccessException, TlsException, InvocationTargetException, NoSuchMethodException {
+
         final Map<String, ExternalResourceProvider> result = new HashMap<>();
         final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
 
@@ -925,14 +910,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      * In case the provider class is not an implementation of {@code ExternalResourceProvider} the method tries to instantiate it as a {@code NarProvider}. {@code NarProvider} instances
      * are wrapped into an adapter in order to envelope the support.
      */
-    private ExternalResourceProvider createProviderInstance(
-            final ExtensionManager extensionManager,
-            final String providerClass,
-            final String providerId,
-            final ExternalResourceProviderInitializationContext context
-    ) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-        ExternalResourceProvider provider;
+    private ExternalResourceProvider createProviderInstance(final ExtensionManager extensionManager, final String providerClass, final String providerId,
+                                                            final ExternalResourceProviderInitializationContext context)
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException {
 
+        ExternalResourceProvider provider;
         try {
             provider = NarThreadContextClassLoader.createInstance(extensionManager, providerClass, ExternalResourceProvider.class, props, providerId);
         } catch (final ClassCastException e) {
@@ -998,18 +980,16 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private void dumpUrls() throws SocketException {
         final List<String> urls = new ArrayList<>();
 
-        for (Connector connector : server.getConnectors()) {
-            if (connector instanceof ServerConnector) {
-                final ServerConnector serverConnector = (ServerConnector) connector;
-
-                Set<String> hosts = new HashSet<>();
+        for (final Connector connector : server.getConnectors()) {
+            if (connector instanceof final ServerConnector serverConnector) {
+                final Set<String> hosts = new HashSet<>();
 
                 // determine the hosts
                 if (StringUtils.isNotBlank(serverConnector.getHost())) {
                     hosts.add(serverConnector.getHost());
                 } else {
-                    Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-                    for (NetworkInterface networkInterface : Collections.list(networkInterfaces)) {
+                    final Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+                    for (final NetworkInterface networkInterface : Collections.list(networkInterfaces)) {
                         for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
                             hosts.add(inetAddress.getHostAddress());
                         }
@@ -1024,7 +1004,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     }
 
                     // dump each url
-                    for (String host : hosts) {
+                    for (final String host : hosts) {
                         urls.add(String.format("%s://%s:%s", scheme, host, serverConnector.getPort()));
                     }
                 }

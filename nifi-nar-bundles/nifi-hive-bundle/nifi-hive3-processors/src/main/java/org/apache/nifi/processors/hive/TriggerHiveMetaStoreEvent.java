@@ -110,7 +110,7 @@ public class TriggerHiveMetaStoreEvent extends AbstractProcessor {
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor EVENT_TYPE = new PropertyDescriptor.Builder()

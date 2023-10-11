@@ -90,7 +90,7 @@ RedisConnectionPoolService extends AbstractControllerService implements RedisCon
         if (connectionFactory == null) {
             synchronized (this) {
                 if (connectionFactory == null) {
-                    connectionFactory = RedisUtils.createConnectionFactory(context, getLogger(), sslContext);
+                    connectionFactory = RedisUtils.createConnectionFactory(context, sslContext);
                 }
             }
         }

@@ -85,7 +85,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             " Avro Writer is configured with a Schema Write Strategy of 'Embed Avro Schema'.")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("32")
         .build();
 

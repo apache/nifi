@@ -17,14 +17,17 @@
 package org.apache.nifi.processors.standard;
 
 import com.bazaarvoice.jolt.JoltTransform;
+import com.bazaarvoice.jolt.JsonUtil;
 import com.bazaarvoice.jolt.JsonUtils;
+import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -41,6 +44,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -127,7 +131,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .dependsOn(JOLT_SPEC, CUSTOMR)
             .build();
@@ -151,6 +155,15 @@ public class JoltTransformJSON extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
+            .name("Max String Length")
+            .displayName("Max String Length")
+            .description("The maximum allowed length of a string value when parsing the JSON document")
+            .required(true)
+            .defaultValue("20 MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The FlowFile with transformed content will be routed to this relationship")
@@ -163,6 +176,7 @@ public class JoltTransformJSON extends AbstractProcessor {
     private final static List<PropertyDescriptor> properties;
     private final static Set<Relationship> relationships;
     private volatile ClassLoader customClassLoader;
+    private volatile JsonUtil jsonUtil;
     private final static String DEFAULT_CHARSET = "UTF-8";
 
     /**
@@ -180,6 +194,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         _properties.add(JOLT_SPEC);
         _properties.add(TRANSFORM_CACHE_SIZE);
         _properties.add(PRETTY_PRINT);
+        _properties.add(MAX_STRING_LENGTH);
         properties = Collections.unmodifiableList(_properties);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -285,7 +300,7 @@ public class JoltTransformJSON extends AbstractProcessor {
 
         final Object inputJson;
         try (final InputStream in = session.read(original)) {
-            inputJson = JsonUtils.jsonToObject(in);
+            inputJson = jsonUtil.jsonToObject(in);
         } catch (final Exception e) {
             logger.error("JSON parsing failed for {}", original, e);
             session.transfer(original, REL_FAILURE);
@@ -301,7 +316,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             }
 
             final Object transformedJson = TransformUtils.transform(transform, inputJson);
-            jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? JsonUtils.toPrettyJsonString(transformedJson) : JsonUtils.toJsonString(transformedJson);
+            jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? jsonUtil.toPrettyJsonString(transformedJson) : jsonUtil.toJsonString(transformedJson);
         } catch (final Exception e) {
             logger.error("Transform failed for {}", original, e);
             session.transfer(original, REL_FAILURE);
@@ -347,6 +362,13 @@ public class JoltTransformJSON extends AbstractProcessor {
         transformCache = Caffeine.newBuilder()
                 .maximumSize(maxTransformsToCache)
                 .build();
+
+        final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
+        jsonUtil = JsonUtils.customJsonUtil(objectMapper);
 
         try {
             if (context.getProperty(MODULES).isSet()) {
@@ -394,7 +416,7 @@ public class JoltTransformJSON extends AbstractProcessor {
     private String readTransform(final PropertyValue propertyValue) {
         final ResourceReference resourceReference = propertyValue.asResource();
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
-            return reader.lines().collect(Collectors.joining());
+            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
             throw new UncheckedIOException("Read JOLT Transform failed", e);
         }

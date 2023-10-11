@@ -19,10 +19,7 @@ package org.apache.nifi.processors.standard;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -35,6 +32,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -43,6 +41,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -51,31 +50,29 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.calcite.RecordPathFunctions;
 import org.apache.nifi.processors.standard.calcite.RecordResultSetOutputStreamCallback;
-import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.queryrecord.RecordDataSource;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.sql.CalciteDatabase;
+import org.apache.nifi.sql.NiFiTable;
+import org.apache.nifi.sql.NiFiTableSchema;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -113,6 +110,65 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
     @WritesAttribute(attribute = "record.count", description = "The number of records selected by the query"),
     @WritesAttribute(attribute = QueryRecord.ROUTE_ATTRIBUTE_KEY, description = "The relation to which the FlowFile was routed")
 })
+@UseCase(
+    description = "Filter out records based on the values of the records' fields",
+    keywords = {"filter out", "remove", "drop", "strip out", "record field", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep.
+        Its value is a SQL statement that selects all columns from a table named `FLOW_FILE` for relevant rows.
+        The WHERE clause selects the data to keep. I.e., it is the exact opposite of what we want to remove.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to remove records where either the name is George OR the age is less than 18, we would add a \
+          property named "adults not george" with a value that selects records where the name is not George AND the age is greater than or equal to 18. \
+          So the value would be `SELECT * FROM FLOWFILE WHERE "name" <> 'George' AND "age" >= 18`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the "adults not george" Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
+@UseCase(
+    description = "Keep only specific records",
+    keywords = {"keep", "filter", "retain", "select", "include", "record", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep.
+        Its value is a SQL statement that selects all columns from a table named `FLOW_FILE` for relevant rows.
+        The WHERE clause selects the data to keep.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to keep only records where the person is an adult (aged 18 or older), add a property named "adults" \
+          with a value that is a SQL statement that selects records where the age is at least 18. \
+          So the value would be `SELECT * FROM FLOWFILE WHERE "age" >= 18`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the "adults" Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
+@UseCase(
+    description = "Keep only specific fields in a a Record, where the names of the fields to keep are known",
+    keywords = {"keep", "filter", "retain", "select", "include", "record", "fields", "sql"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        One additional property should be added.
+        The name of the property should be a short description of the data to keep, such as `relevant fields`.
+        Its value is a SQL statement that selects the desired columns from a table named `FLOW_FILE` for relevant rows.
+        There is no WHERE clause.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+        For example, to keep only the `name`, `age`, and `address` fields, add a property named `relevant fields` \
+          with a value of `SELECT "name", "age", "address" FROM FLOWFILE`
+
+        Adding this property now gives us a new Relationship whose name is the same as the property name. So, the `relevant fields` Relationship \
+        should be connected to the next Processor in our flow.
+        """
+)
 public class QueryRecord extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "QueryRecord.Route";
@@ -174,20 +230,13 @@ public class QueryRecord extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        try {
-            DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
-        } catch (final SQLException e) {
-            throw new ProcessException("Failed to load Calcite JDBC Driver", e);
-        }
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER_FACTORY);
-        properties.add(RECORD_WRITER_FACTORY);
-        properties.add(INCLUDE_ZERO_RECORD_FLOWFILES);
-        properties.add(CACHE_SCHEMA);
-        properties.add(DEFAULT_PRECISION);
-        properties.add(DEFAULT_SCALE);
-        this.properties = Collections.unmodifiableList(properties);
+        this.properties = List.of(
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY,
+            INCLUDE_ZERO_RECORD_FLOWFILES,
+            CACHE_SCHEMA,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE);
 
         relationships.add(REL_FAILURE);
         relationships.add(REL_ORIGINAL);
@@ -250,7 +299,7 @@ public class QueryRecord extends AbstractProcessor {
     private void clearQueue(final BlockingQueue<CachedStatement> statementQueue) {
         CachedStatement stmt;
         while ((stmt = statementQueue.poll()) != null) {
-            closeQuietly(stmt.getStatement(), stmt.getConnection());
+            stmt.close();
         }
     }
 
@@ -281,7 +330,7 @@ public class QueryRecord extends AbstractProcessor {
 
             writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);
         } catch (final Exception e) {
-            getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
+            getLogger().error("Failed to determine Record Schema from {}; routing to failure", original, e);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.transfer(original, REL_FAILURE);
             return;
@@ -315,7 +364,7 @@ public class QueryRecord extends AbstractProcessor {
                     try {
                         transformed = session.write(transformed, writer);
                     } finally {
-                        closeQuietly(rs, queryResult);
+                        closeQuietly(getLogger(), rs, queryResult);
                     }
 
                     recordsRead = Math.max(recordsRead, queryResult.getRecordsRead());
@@ -325,7 +374,7 @@ public class QueryRecord extends AbstractProcessor {
                         session.remove(transformed);
                         flowFileRemoved = true;
                         transformedFlowFiles.remove(transformed);
-                        getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", new Object[] {original});
+                        getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", original);
                     } else {
                         final Map<String, String> attributesToAdd = new HashMap<>();
                         if (result.getAttributes() != null) {
@@ -362,16 +411,16 @@ public class QueryRecord extends AbstractProcessor {
                 }
             }
 
-            getLogger().info("Successfully queried {} in {} millis", new Object[] {original, elapsedMillis});
+            getLogger().info("Successfully queried {} in {} millis", original, elapsedMillis);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
             session.transfer(original, REL_ORIGINAL);
         } catch (final SQLException e) {
-            getLogger().error("Unable to query {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
+            getLogger().error("Unable to query {} due to {}", original, e.getCause() == null ? e : e.getCause());
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         } catch (final Exception e) {
-            getLogger().error("Unable to query {} due to {}", new Object[] {original, e});
+            getLogger().error("Unable to query {} due to {}", original, e);
             original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
@@ -393,69 +442,48 @@ public class QueryRecord extends AbstractProcessor {
         return statementBuilder.get();
     }
 
-    private CachedStatement buildCachedStatement(final String sql, final ProcessSession session,  final FlowFile flowFile, final RecordSchema schema,
-                                                 final RecordReaderFactory recordReaderFactory) {
-
-        final CalciteConnection connection = createConnection();
-        final SchemaPlus rootSchema = RecordPathFunctions.createRootSchema(connection);
-
-        final FlowFileTable flowFileTable = new FlowFileTable(session, flowFile, schema, recordReaderFactory, getLogger());
-        rootSchema.add("FLOWFILE", flowFileTable);
-        rootSchema.setCacheEnabled(false);
-
+    private CachedStatement buildCachedStatement(final String sql, final RecordSchema recordSchema) {
         try {
-            final PreparedStatement stmt = connection.prepareStatement(sql);
-            return new CachedStatement(stmt, flowFileTable, connection);
+            final CalciteDatabase database = new CalciteDatabase();
+            final NiFiTableSchema tableSchema = RecordDataSource.createTableSchema(recordSchema);
+            final NiFiTable flowFileTable = new NiFiTable("FLOWFILE", tableSchema, getLogger());
+            database.addTable(flowFileTable);
+            RecordPathFunctions.addToDatabase(database);
+
+            final PreparedStatement stmt = database.getConnection().prepareStatement(sql);
+            return new CachedStatement(stmt, flowFileTable, database);
         } catch (final SQLException e) {
             throw new ProcessException(e);
         }
     }
 
 
-    private CalciteConnection createConnection() {
-        final Properties properties = new Properties();
-        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
-
-        try {
-            final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
-            final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
-            return calciteConnection;
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
-    }
-
-
-    protected QueryResult query(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final String sql, final RecordReaderFactory recordReaderFactory)
+    private QueryResult query(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final String sql, final RecordReaderFactory recordReaderFactory)
                 throws SQLException {
 
-        final Supplier<CachedStatement> statementBuilder = () -> buildCachedStatement(sql, session, flowFile, schema, recordReaderFactory);
+        final Supplier<CachedStatement> statementBuilder = () -> buildCachedStatement(sql, schema);
 
         final CachedStatement cachedStatement = getStatement(sql, schema, statementBuilder);
-        final PreparedStatement stmt = cachedStatement.getStatement();
-        final FlowFileTable table = cachedStatement.getTable();
-        table.setFlowFile(session, flowFile);
+        final PreparedStatement stmt = cachedStatement.statement();
+        final NiFiTable table = cachedStatement.table();
+        table.setDataSource(new RecordDataSource(schema, session, flowFile, recordReaderFactory, getLogger()));
 
         final ResultSet rs;
         try {
             rs = stmt.executeQuery();
         } catch (final Throwable t) {
-            table.close();
+            cachedStatement.close();
             throw t;
         }
 
         return new QueryResult() {
             @Override
-            public void close() throws IOException {
+            public void close() {
                 table.close();
 
                 final BlockingQueue<CachedStatement> statementQueue = statementQueues.getIfPresent(new Tuple<>(sql, schema));
                 if (statementQueue == null || !statementQueue.offer(cachedStatement)) {
-                    try {
-                        cachedStatement.getConnection().close();
-                    } catch (SQLException e) {
-                        throw new IOException("Failed to close statement", e);
-                    }
+                    cachedStatement.close();
                 }
             }
 
@@ -472,9 +500,11 @@ public class QueryRecord extends AbstractProcessor {
         };
     }
 
+    private static void closeQuietly(final AutoCloseable... closeables) {
+        closeQuietly(null, closeables);
+    }
 
-
-    private void closeQuietly(final AutoCloseable... closeables) {
+    private static void closeQuietly(final ComponentLog logger, final AutoCloseable... closeables) {
         if (closeables == null) {
             return;
         }
@@ -487,7 +517,9 @@ public class QueryRecord extends AbstractProcessor {
             try {
                 closeable.close();
             } catch (final Exception e) {
-                getLogger().warn("Failed to close SQL resource", e);
+                if (logger != null) {
+                    logger.warn("Failed to close {}", closeable, e);
+                }
             }
         }
     }
@@ -506,9 +538,7 @@ public class QueryRecord extends AbstractProcessor {
 
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
 
-            final Config config = SqlParser.configBuilder()
-                .setLex(Lex.MYSQL_ANSI)
-                .build();
+            final Config config = SqlParser.config().withLex(Lex.MYSQL_ANSI);
 
             final SqlParser parser = SqlParser.create(substituted, config);
             try {
@@ -535,27 +565,10 @@ public class QueryRecord extends AbstractProcessor {
         int getRecordsRead();
     }
 
-    private static class CachedStatement {
-        private final FlowFileTable table;
-        private final PreparedStatement statement;
-        private final Connection connection;
-
-        public CachedStatement(final PreparedStatement statement, final FlowFileTable table, final Connection connection) {
-            this.statement = statement;
-            this.table = table;
-            this.connection = connection;
-        }
-
-        public FlowFileTable getTable() {
-            return table;
-        }
-
-        public PreparedStatement getStatement() {
-            return statement;
-        }
-
-        public Connection getConnection() {
-            return connection;
+    private record CachedStatement(PreparedStatement statement, NiFiTable table, CalciteDatabase database) implements Closeable {
+        @Override
+        public void close() {
+            closeQuietly(statement, table, database);
         }
     }
 

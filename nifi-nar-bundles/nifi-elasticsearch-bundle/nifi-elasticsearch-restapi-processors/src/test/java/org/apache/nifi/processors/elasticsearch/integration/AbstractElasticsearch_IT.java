@@ -20,7 +20,6 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.integration.AbstractElasticsearchITBase;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
 import org.apache.nifi.util.TestRunners;
@@ -37,18 +36,18 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
+abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> extends AbstractElasticsearchITBase {
     static final List<String> TEST_INDICES = Collections.singletonList("messages");
 
     static final String ID = "1";
 
     ElasticSearchClientServiceImpl service;
 
-    abstract Class<? extends Processor> getTestProcessorClass();
+    abstract P getProcessor();
 
     @BeforeEach
     void before() throws Exception {
-        runner = TestRunners.newTestRunner(getTestProcessorClass());
+        runner = TestRunners.newTestRunner(getProcessor());
 
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService(CLIENT_SERVICE_NAME, service);
@@ -110,9 +109,8 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
         assertEquals(1, indexResults.size(), results.toString());
         final ConfigVerificationResult result = indexResults.get(0);
 
-        final ElasticsearchRestProcessor processor = (ElasticsearchRestProcessor) getTestProcessorClass().getConstructor().newInstance();
         final ConfigVerificationResult.Outcome expectedOutcome;
-        if (processor.isIndexNotExistSuccessful()) {
+        if (getProcessor().isIndexNotExistSuccessful()) {
             expectedOutcome = ConfigVerificationResult.Outcome.SUCCESSFUL;
         } else {
             if (expectedExists) {

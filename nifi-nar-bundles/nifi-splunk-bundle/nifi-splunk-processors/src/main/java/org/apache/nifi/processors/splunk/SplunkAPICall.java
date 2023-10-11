@@ -68,7 +68,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor PORT = new PropertyDescriptor
@@ -78,7 +78,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .defaultValue("8088")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
@@ -96,7 +96,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .description("The owner to pass to Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TOKEN = new PropertyDescriptor.Builder()
@@ -105,7 +105,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .description("HTTP Event Collector token starting with the string Splunk. For example \'Splunk 1234578-abcd-1234-abcd-1234abcd\'")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -114,7 +114,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .description("The username to authenticate to Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -132,7 +132,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .description("Identifier of the used request channel.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(

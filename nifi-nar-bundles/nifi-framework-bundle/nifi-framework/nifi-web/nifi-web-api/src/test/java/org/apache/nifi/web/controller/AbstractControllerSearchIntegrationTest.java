@@ -35,7 +35,6 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultGroupDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
@@ -380,11 +379,6 @@ public abstract class AbstractControllerSearchIntegrationTest {
         @Bean
         public Authorizer authorizer() {
             return Mockito.mock(Authorizer.class);
-        }
-
-        @Bean
-        public VariableRegistry variableRegistry() {
-            return Mockito.mock(VariableRegistry.class);
         }
     }
 }

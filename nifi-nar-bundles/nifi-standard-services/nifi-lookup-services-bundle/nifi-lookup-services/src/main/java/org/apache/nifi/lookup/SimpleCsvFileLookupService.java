@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.lookup;
 
-import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +29,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
 
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable CSV file-based lookup service. The first line of the csv file is considered as " +
@@ -58,7 +57,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
             .description("Lookup value column.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private volatile ConcurrentMap<String, String> cache;
@@ -77,7 +76,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
                 final Map<String, String> properties = new HashMap<>();
                 try (final InputStream is = new FileInputStream(csvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
-                        final Iterable<CSVRecord> records = csvFormat.withFirstRecordAsHeader().parse(reader);
+                        final Iterable<CSVRecord> records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).build().parse(reader);
                         for (final CSVRecord record : records) {
                             final String key = record.get(lookupKeyColumn);
                             final String value = record.get(lookupValueColumn);

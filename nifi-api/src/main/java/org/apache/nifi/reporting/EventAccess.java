@@ -18,8 +18,11 @@ package org.apache.nifi.reporting;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.action.Action;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
@@ -90,5 +93,23 @@ public interface EventAccess {
      * @return the total number of bytes received by this instance
      */
     long getTotalBytesReceived();
+
+    /**
+     * Returns the storage usage of all provenance repositories
+     * @return the map of all the storage usage
+     */
+    Map<String, StorageUsage> getProvenanceRepositoryStorageUsage();
+
+    /**
+     * Returns the storage usage of all content repositories
+     * @return the map of all the storage usage
+     */
+    Map<String, StorageUsage> getContentRepositoryStorageUsage();
+
+    /**
+     * Returns the storage usage of the flow file repository
+     * @return the storage usage
+     */
+    StorageUsage getFlowFileRepositoryStorageUsage();
 
 }

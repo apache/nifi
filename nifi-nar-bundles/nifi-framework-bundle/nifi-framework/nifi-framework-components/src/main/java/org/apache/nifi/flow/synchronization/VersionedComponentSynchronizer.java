@@ -20,15 +20,18 @@ package org.apache.nifi.flow.synchronization;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -174,6 +177,20 @@ public interface VersionedComponentSynchronizer {
     void synchronize(ReportingTaskNode reportingTask, VersionedReportingTask proposed, FlowSynchronizationOptions synchronizationOptions)
             throws FlowSynchronizationException, TimeoutException, InterruptedException, ReportingTaskInstantiationException;
 
+    /**
+     * Synchronizes the given Flow Analysis Rule to match the proposed one, or deletes the Flow Analysis Rule if the proposed is <code>null</code>.
+     * If the given Flow Analysis Rule is <code>null</code>, creates it.
+     *
+     * @param flowAnalysisRule the flow analysis rule to synchronize
+     * @param proposed the proposed/desired state
+     * @param synchronizationOptions options for how to synchronize the flow
+     *
+     * @throws IllegalStateException if the flow analysis rule cannot be updated due to the state of the flow
+     * @throws FlowSynchronizationException if unable to synchronize the flow analysis rule with the proposed version
+     * @throws TimeoutException if the flow analysis rule is being removed and takes longer to stop than the timeout allowed by the {@link FlowSynchronizationOptions synchronization options}.
+     */
+    void synchronize(FlowAnalysisRuleNode flowAnalysisRule, VersionedFlowAnalysisRule proposed, FlowSynchronizationOptions synchronizationOptions)
+            throws FlowSynchronizationException, TimeoutException, InterruptedException, FlowAnalysisRuleInstantiationException;
 
     /**
      * Synchronizes the given Remote Process Group to match the proposed one, or deletes the rpg if the proposed is <code>null</code>. If the given rpg is <code>null</code>, creates it and adds

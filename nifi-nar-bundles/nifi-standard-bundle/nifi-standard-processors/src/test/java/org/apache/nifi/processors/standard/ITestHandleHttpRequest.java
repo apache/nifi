@@ -56,7 +56,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -125,8 +125,8 @@ public class ITestHandleHttpRequest {
                 try {
                     serverReady.await();
                     final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-                    final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:"
-                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
+                    final HttpURLConnection connection = (HttpURLConnection) URI.create("http://localhost:"
+                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").toURL().openConnection();
 
                     connection.setDoOutput(false);
                     connection.setRequestMethod("GET");
@@ -470,8 +470,8 @@ public class ITestHandleHttpRequest {
                     serverReady.await();
 
                     final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-                    connection = (HttpURLConnection) new URL("http://localhost:"
-                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
+                    connection = (HttpURLConnection) URI.create("http://localhost:"
+                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").toURL().openConnection();
                     connection.setDoOutput(false);
                     connection.setRequestMethod("GET");
                     connection.setRequestProperty("header1", "value1");
@@ -598,8 +598,8 @@ public class ITestHandleHttpRequest {
                     serverReady.await();
 
                     final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-                    final HttpsURLConnection connection = (HttpsURLConnection) new URL("https://localhost:"
-                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
+                    final HttpsURLConnection connection = (HttpsURLConnection) URI.create("https://localhost:"
+                            + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").toURL().openConnection();
 
                     SSLContext clientSslContext;
                     if (twoWaySsl) {

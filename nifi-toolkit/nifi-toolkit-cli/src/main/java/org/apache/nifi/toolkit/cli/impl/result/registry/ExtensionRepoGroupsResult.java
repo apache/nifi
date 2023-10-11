@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -28,6 +27,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Result for list of bundle groups.
@@ -38,8 +38,7 @@ public class ExtensionRepoGroupsResult extends AbstractWritableResult<List<Exten
 
     public ExtensionRepoGroupsResult(final ResultType resultType, final List<ExtensionRepoGroup> bundleGroups) {
         super(resultType);
-        this.bundleGroups = bundleGroups;
-        Validate.notNull(this.bundleGroups);
+        this.bundleGroups = Objects.requireNonNull(bundleGroups);
 
         this.bundleGroups.sort(
                 Comparator.comparing(ExtensionRepoGroup::getBucketName)

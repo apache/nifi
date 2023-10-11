@@ -408,60 +408,6 @@ div.verification-result-explanation {
 }
 
 /*
-    Variable Registry
- */
-
-#variable-registry-dialog {
-    width: 850px;
-    height: 575px;
-}
-
-#variable-registry-dialog div.settings-left {
-    float: left;
-    width: 65%;
-}
-
-#variable-registry-dialog div.settings-right {
-    float: left;
-    width: 33%;
-}
-
-#variable-registry-table {
-    position: relative;
-    height: 400px;
-}
-
-#add-variable {
-    float: right;
-    margin-bottom: 4px;
-    font-size: 16px;
-    text-transform: uppercase;
-}
-
-li.affected-component-container {
-    margin-bottom: 3px;
-    height: 16px;
-}
-
-span.affected-component-setting-width {
-    max-width: 90%;
-}
-
-div.slick-cell div.overridden {
-    text-decoration: line-through;
-}
-
-#variable-message {
-    position: absolute;
-    top: 550px;
-    left: 20px;
-    font-size: 13px;
-    color: #775351;
-    max-width: calc(100% - 230px);
-    z-index: 999;
-}
-
-/*
     Registry configuration dialog
  */
 
@@ -500,18 +446,6 @@ ul.result li {
 .dialog-content div.spacer {
     float: left;
     width: 2%;
-}
-
-div.variable-step {
-    width: 16px;
-    height: 16px;
-    background-color: transparent;
-    float: right;
-}
-
-#variable-update-steps li {
-    width: 300px;
-    margin-bottom: 2px;
 }
 
 div.parameter-context-step,

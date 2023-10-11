@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,79 +29,68 @@ public class AWSProcessorProxyTest {
     private TestRunner runner;
 
     @BeforeEach
-    public void testSetup() throws Throwable {
+    public void testSetup() {
         runner = TestRunners.newTestRunner(FetchS3Object.class);
-        runner.setProperty(FetchS3Object.BUCKET, "bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "bucket");
         runner.assertValid();
     }
 
     @AfterEach
-    public void testTearDown() throws Throwable {
+    public void testTearDown() {
         runner = null;
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyHostOnlyInvalid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST, "proxyHost");
-        runner.assertNotValid();
-    }
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testProxyHostPortOnlyInvalid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST_PORT, "1");
+    public void testProxyHostOnlyInvalid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST, "proxyHost");
         runner.assertNotValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyHostPortNonNumberInvalid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST_PORT, "a");
+    public void testProxyHostPortOnlyInvalid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST_PORT, "1");
         runner.assertNotValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyHostAndPortValid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST_PORT, "1");
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST, "proxyHost");
+    public void testProxyHostPortNonNumberInvalid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST_PORT, "a");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testProxyHostAndPortValid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST_PORT, "1");
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST, "proxyHost");
         runner.assertValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyUserNoPasswordInValid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
+    public void testProxyUserNoPasswordInValid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_USERNAME, "foo");
         runner.assertNotValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyNoUserPasswordInValid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+    public void testProxyNoUserPasswordInValid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_PASSWORD, "foo");
         runner.assertNotValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyUserPasswordNoHostInValid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
-        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+    public void testProxyUserPasswordNoHostInValid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_USERNAME, "foo");
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_PASSWORD, "foo");
         runner.assertNotValid();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testProxyUserPasswordHostValid() throws Throwable {
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST_PORT, "1");
-        runner.setProperty(AbstractAWSProcessor.PROXY_HOST, "proxyHost");
-        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
-        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+    public void testProxyUserPasswordHostValid() {
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST_PORT, "1");
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_HOST, "proxyHost");
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_USERNAME, "foo");
+        runner.setProperty(AbstractAWSCredentialsProviderProcessor.PROXY_PASSWORD, "foo");
         runner.assertValid();
     }
-
-
-
-
 
 }

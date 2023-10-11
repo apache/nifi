@@ -143,7 +143,7 @@
     <logger name="com.hierynomus.smbj" level="WARN" />
 
     <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
-    <logger name="com.amazonaws.services.kinesis" level="WARN" />
+    <logger name="software.amazon.awssdk.kinesis" level="WARN" />
 
     <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
     <logger name="org.apache.atlas" level="WARN"/>

@@ -27,6 +27,7 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.AuthorizableHolder;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -72,6 +73,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ParametersApplication;
@@ -81,15 +83,17 @@ import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.serialization.VersionedReportingTaskSnapshotMapper;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -97,6 +101,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.DiagnosticLevel;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -111,6 +116,7 @@ import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -135,7 +141,6 @@ import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -173,6 +178,8 @@ import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.validation.RuleViolation;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -202,6 +209,8 @@ import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleViolationDTO;
 import org.apache.nifi.web.api.dto.FlowConfigurationDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryBucketDTO;
@@ -220,6 +229,7 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
@@ -233,11 +243,9 @@ import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
@@ -282,6 +290,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -298,9 +308,9 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
@@ -314,13 +324,10 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.api.entity.VariableEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
@@ -330,6 +337,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
@@ -341,7 +349,6 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
-import org.apache.nifi.web.dao.TemplateDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
 import org.apache.nifi.web.revision.DeleteRevisionTask;
@@ -359,7 +366,6 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -414,8 +420,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ConnectionDAO connectionDAO;
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
+    private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private ParameterProviderDAO parameterProviderDAO;
-    private TemplateDAO templateDAO;
     private UserDAO userDAO;
     private UserGroupDAO userGroupDAO;
     private AccessPolicyDAO accessPolicyDAO;
@@ -441,6 +447,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
+
+    private RuleViolationsManager ruleViolationsManager;
 
     // -----------------------------------------
     // Synchronization methods
@@ -584,6 +592,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanVerifyFlowAnalysisRuleConfig(String flowAnalysisRuleId) {
+        flowAnalysisRuleDAO.verifyConfigVerification(flowAnalysisRuleId);
+    }
+
+    @Override
     public void verifyCanVerifyParameterProviderConfig(final String parameterProviderId) {
         parameterProviderDAO.verifyConfigVerification(parameterProviderId);
     }
@@ -699,6 +712,144 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCreateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+        flowAnalysisRuleDAO.verifyCreate(flowAnalysisRuleDTO);
+    }
+
+    @Override
+    public void verifyUpdateFlowAnalysisRule(final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+        // if the rule does not exist, then the update request is likely creating it
+        // so we don't verify since it will fail
+        if (flowAnalysisRuleDAO.hasFlowAnalysisRule(flowAnalysisRuleDTO.getId())) {
+            flowAnalysisRuleDAO.verifyUpdate(flowAnalysisRuleDTO);
+        } else {
+            verifyCreateFlowAnalysisRule(flowAnalysisRuleDTO);
+        }
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> performFlowAnalysisRuleConfigVerification(final String flowAnalysisRuleId, final Map<String, String> properties) {
+        return flowAnalysisRuleDAO.verifyConfiguration(flowAnalysisRuleId, properties);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeFlowAnalysisRuleConfiguration(final String flowAnalysisRuleId, final Map<String, String> properties) {
+        final FlowAnalysisRuleNode taskNode = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(taskNode, properties, null);
+        return configurationAnalysisEntity;
+    }
+
+    @Override
+    public void verifyDeleteFlowAnalysisRule(final String flowAnalysisRuleId) {
+        flowAnalysisRuleDAO.verifyDelete(flowAnalysisRuleId);
+    }
+
+    @Override
+    public void verifyCanClearFlowAnalysisRuleState(String flowAnalysisRuleId) {
+        flowAnalysisRuleDAO.verifyClearState(flowAnalysisRuleId);
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request claim for component to be created... revision already verified (version == 0)
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        // update revision through revision manager
+        final RevisionUpdate<FlowAnalysisRuleDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            // create the flow analysis rule
+            final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.createFlowAnalysisRule(flowAnalysisRuleDTO);
+
+            // save the update
+            controllerFacade.save();
+            awaitValidationCompletion(flowAnalysisRule);
+
+            final FlowAnalysisRuleDTO dto = dtoFactory.createFlowAnalysisRuleDto(flowAnalysisRule);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleDTO.getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowAnalysisRule);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowAnalysisRule));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(flowAnalysisRule.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createFlowAnalysisRuleEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity getFlowAnalysisRule(String flowAnalysisRuleId) {
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        return createFlowAnalysisRuleEntity(flowAnalysisRule);
+    }
+
+    private FlowAnalysisRuleEntity createFlowAnalysisRuleEntity(final FlowAnalysisRuleNode flowAnalysisRule) {
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(flowAnalysisRule.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowAnalysisRule);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowAnalysisRule));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(flowAnalysisRule.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createFlowAnalysisRuleEntity(dtoFactory.createFlowAnalysisRuleDto(flowAnalysisRule), revision, permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
+    public PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(String flowAnalysisRuleId, String propertyName, boolean sensitive) {
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        final PropertyDescriptor descriptor = getPropertyDescriptor(flowAnalysisRuleNode, propertyName, sensitive);
+        return dtoFactory.createPropertyDescriptorDto(descriptor, null);
+    }
+
+    @Override
+    public ComponentStateDTO getFlowAnalysisRuleState(String flowAnalysisRuleId) {
+        final StateMap clusterState = isClustered() ? flowAnalysisRuleDAO.getState(flowAnalysisRuleId, Scope.CLUSTER) : null;
+        final StateMap localState = flowAnalysisRuleDAO.getState(flowAnalysisRuleId, Scope.LOCAL);
+
+        // flow analysis rule will be non null as it was already found when getting the state
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        return dtoFactory.createComponentStateDTO(flowAnalysisRuleId, flowAnalysisRule.getFlowAnalysisRule().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public void clearFlowAnalysisRuleState(String flowAnalysisRuleId) {
+        flowAnalysisRuleDAO.clearState(flowAnalysisRuleId);
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity updateFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+        // get the component, ensure we have access to it, and perform the update request
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleDTO.getId());
+        final RevisionUpdate<FlowAnalysisRuleDTO> snapshot = updateComponent(revision,
+                flowAnalysisRule,
+                () -> flowAnalysisRuleDAO.updateFlowAnalysisRule(flowAnalysisRuleDTO),
+                rt -> {
+                    awaitValidationCompletion(rt);
+                    return dtoFactory.createFlowAnalysisRuleDto(rt);
+                });
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowAnalysisRule);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowAnalysisRule));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(flowAnalysisRule.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createFlowAnalysisRuleEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
+    public FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String flowAnalysisRuleId) {
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowAnalysisRule);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowAnalysisRule));
+        final FlowAnalysisRuleDTO snapshot = deleteComponent(
+                revision,
+                flowAnalysisRule.getResource(),
+                () -> flowAnalysisRuleDAO.deleteFlowAnalysisRule(flowAnalysisRuleId),
+                true,
+                dtoFactory.createFlowAnalysisRuleDto(flowAnalysisRule));
+
+        return entityFactory.createFlowAnalysisRuleEntity(snapshot, null, permissions, operatePermissions, null);
+    }
+
+    @Override
     public void verifyCreateParameterProvider(ParameterProviderDTO parameterProviderDTO) {
         parameterProviderDAO.verifyCreate(parameterProviderDTO);
     }
@@ -728,7 +879,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public void verifyCanApplyParameters(final String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
         parameterProviderDAO.verifyCanApplyParameters(parameterProviderId, parameterGroupConfigurations);
     }
-// -----------------------------------------
+
+    // -----------------------------------------
     // Write Operations
     // -----------------------------------------
 
@@ -1082,98 +1234,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(remoteProcessGroupNode));
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         return entityFactory.createRemoteProcessGroupPortEntity(snapshot.getComponent(), updatedRevision, permissions, operatePermissions);
-    }
-
-    @Override
-    public Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup group = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        if (group == null) {
-            throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistryDto.getProcessGroupId());
-        }
-
-        final Map<String, String> variableMap = new HashMap<>();
-        variableRegistryDto.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
-            .map(VariableEntity::getVariable)
-            .forEach(var -> variableMap.put(var.getName(), var.getValue()));
-
-        final Set<AffectedComponentDTO> affectedComponentDtos = new HashSet<>();
-
-        final Set<String> updatedVariableNames = getUpdatedVariables(group, variableMap);
-        for (final String variableName : updatedVariableNames) {
-            final Set<ComponentNode> affectedComponents = group.getComponentsAffectedByVariable(variableName);
-
-            for (final ComponentNode component : affectedComponents) {
-                if (component instanceof ProcessorNode) {
-                    final ProcessorNode procNode = (ProcessorNode) component;
-                    if (procNode.isRunning()) {
-                        affectedComponentDtos.add(dtoFactory.createAffectedComponentDto(procNode));
-                    }
-                } else if (component instanceof ControllerServiceNode) {
-                    final ControllerServiceNode serviceNode = (ControllerServiceNode) component;
-                    if (serviceNode.isActive()) {
-                        affectedComponentDtos.add(dtoFactory.createAffectedComponentDto(serviceNode));
-                    }
-                } else {
-                    throw new RuntimeException("Found unexpected type of Component [" + component.getCanonicalClassName() + "] dependending on variable");
-                }
-            }
-        }
-
-        return affectedComponentDtos;
-    }
-
-    @Override
-    public Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup group = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        if (group == null) {
-            throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistryDto.getProcessGroupId());
-        }
-
-        final Map<String, String> variableMap = new HashMap<>();
-        variableRegistryDto.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
-                .map(VariableEntity::getVariable)
-                .forEach(var -> variableMap.put(var.getName(), var.getValue()));
-
-        final Set<AffectedComponentEntity> affectedComponentEntities = new HashSet<>();
-
-        final Set<String> updatedVariableNames = getUpdatedVariables(group, variableMap);
-        for (final String variableName : updatedVariableNames) {
-            final Set<ComponentNode> affectedComponents = group.getComponentsAffectedByVariable(variableName);
-            affectedComponentEntities.addAll(dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager));
-        }
-
-        return affectedComponentEntities;
-    }
-
-    private Set<String> getUpdatedVariables(final ProcessGroup group, final Map<String, String> newVariableValues) {
-        final Set<String> updatedVariableNames = new HashSet<>();
-
-        final ComponentVariableRegistry registry = group.getVariableRegistry();
-        for (final Map.Entry<String, String> entry : newVariableValues.entrySet()) {
-            final String varName = entry.getKey();
-            final String newValue = entry.getValue();
-
-            final String curValue = registry.getVariableValue(varName);
-            if (!Objects.equals(newValue, curValue)) {
-                updatedVariableNames.add(varName);
-            }
-        }
-
-        return updatedVariableNames;
-    }
-
-
-    @Override
-    public VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto) {
-        final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
-        final RevisionUpdate<VariableRegistryDTO> snapshot = updateComponent(revision,
-            processGroupNode,
-            () -> processGroupDAO.updateVariableRegistry(variableRegistryDto),
-            processGroup -> dtoFactory.createVariableRegistryDto(processGroup, revisionManager));
-
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
-        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
-        return entityFactory.createVariableRegistryEntity(snapshot.getComponent(), updatedRevision, permissions);
     }
 
     public void verifyCreateParameterContext(final ParameterContextDTO parameterContextDto) {
@@ -2162,7 +2222,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             processGroup.findAllLabels().forEach(label -> snippetResources.add(label.getResource()));
             processGroup.findAllProcessGroups().forEach(childGroup -> snippetResources.add(childGroup.getResource()));
             processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> snippetResources.add(remoteProcessGroup.getResource()));
-            processGroup.findAllTemplates().forEach(template -> snippetResources.add(template.getResource()));
             processGroup.findAllControllerServices().forEach(controllerService -> snippetResources.add(controllerService.getResource()));
         });
 
@@ -2250,7 +2309,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         processGroup.findAllLabels().forEach(label -> groupResources.add(label.getResource()));
         processGroup.findAllProcessGroups().forEach(childGroup -> groupResources.add(childGroup.getResource()));
         processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> groupResources.add(remoteProcessGroup.getResource()));
-        processGroup.findAllTemplates().forEach(template -> groupResources.add(template.getResource()));
         processGroup.findAllControllerServices().forEach(controllerService -> groupResources.add(controllerService.getResource()));
 
         final ProcessGroupDTO snapshot = deleteComponent(
@@ -2279,13 +2337,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         return entityFactory.createRemoteProcessGroupEntity(snapshot, null, permissions, operatePermissions, null, null);
-    }
-
-    @Override
-    public void deleteTemplate(final String id) {
-        // delete the template and save the flow
-        templateDAO.deleteTemplate(id);
-        controllerFacade.save();
     }
 
     @Override
@@ -2662,16 +2713,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanAddTemplate(String groupId, String name) {
-        templateDAO.verifyCanAddTemplate(name, groupId);
-    }
-
-    @Override
-    public void verifyCanInstantiate(final String groupId, final FlowSnippetDTO snippetDTO) {
-        templateDAO.verifyCanInstantiate(groupId, snippetDTO);
-    }
-
-    @Override
     public void verifyComponentTypes(final VersionedProcessGroup versionedGroup) {
     }
 
@@ -2714,38 +2755,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         verifyImportProcessGroup(vciDto, contents, group.getParent());
     }
 
-    @Override
-    public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
-        // get the specified snippet
-        final Snippet snippet = snippetDAO.getSnippet(snippetId);
-
-        // create the template
-        final TemplateDTO templateDTO = new TemplateDTO();
-        templateDTO.setName(name);
-        templateDTO.setDescription(description);
-        templateDTO.setTimestamp(new Date());
-        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true, true));
-        templateDTO.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
-
-        // set the id based on the specified seed
-        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
-        templateDTO.setId(uuid);
-
-        // create the template
-        final Template template = templateDAO.createTemplate(templateDTO, groupId);
-
-        // drop the snippet
-        snippetDAO.dropSnippet(snippetId);
-
-        // save the flow
-        controllerFacade.save();
-
-        return dtoFactory.createTemplateDTO(template);
-    }
-
     /**
-     * Ensures default values are populated for all components in this snippet. This is necessary to handle old templates without default values
-     * and when existing properties have default values introduced.
+     * Ensures default values are populated for all components in this snippet. This is necessary to handle when existing properties have default values introduced.
      *
      * @param snippet snippet
      */
@@ -2802,28 +2813,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
     }
 
-    @Override
-    public TemplateDTO importTemplate(final TemplateDTO templateDTO, final String groupId, final Optional<String> idGenerationSeed) {
-        // ensure id is set
-        final String uuid = idGenerationSeed.isPresent() ? (UUID.nameUUIDFromBytes(idGenerationSeed.get().getBytes(StandardCharsets.UTF_8))).toString() : UUID.randomUUID().toString();
-        templateDTO.setId(uuid);
-
-        // mark the timestamp
-        templateDTO.setTimestamp(new Date());
-
-        // ensure default values are populated
-        ensureDefaultPropertyValuesArePopulated(templateDTO.getSnippet());
-
-        // import the template
-        final Template template = templateDAO.importTemplate(templateDTO, groupId);
-
-
-        controllerFacade.save();
-
-        // return the template dto
-        return dtoFactory.createTemplateDTO(template);
-    }
-
     /**
      * Post processes a new flow snippet including validation, removing the snippet, and DTO conversion.
      *
@@ -2872,25 +2861,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
         return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager, this::getProcessGroupBulletins);
-    }
-
-    @Override
-    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateEncodingVersion,
-                                             final FlowSnippetDTO requestSnippet, final String idGenerationSeed) {
-
-        // instantiate the template - there is no need to make another copy of the flow snippet since the actual template
-        // was copied and this dto is only used to instantiate it's components (which as already completed)
-        final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateEncodingVersion, requestSnippet, idGenerationSeed);
-
-        // save the flow
-        controllerFacade.save();
-
-        // post process the new flow snippet
-        final FlowDTO flowDto = postProcessNewFlowSnippet(groupId, snippet);
-
-        final FlowEntity flowEntity = new FlowEntity();
-        flowEntity.setFlow(flowDto);
-        return flowEntity;
     }
 
     @Override
@@ -3840,38 +3810,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entity;
     }
 
-
-
-    @Override
-    public TemplateDTO exportTemplate(final String id) {
-        final Template template = templateDAO.getTemplate(id);
-        final TemplateDTO templateDetails = template.getDetails();
-
-        final TemplateDTO templateDTO = dtoFactory.createTemplateDTO(template);
-        templateDTO.setSnippet(dtoFactory.copySnippetContents(templateDetails.getSnippet()));
-        return templateDTO;
-    }
-
-    @Override
-    public TemplateDTO getTemplate(final String id) {
-        return dtoFactory.createTemplateDTO(templateDAO.getTemplate(id));
-    }
-
-    @Override
-    public Set<TemplateEntity> getTemplates() {
-        return templateDAO.getTemplates().stream()
-                .map(template -> {
-                    final TemplateDTO dto = dtoFactory.createTemplateDTO(template);
-                    final PermissionsDTO permissions = dtoFactory.createPermissionsDto(template);
-
-                    final TemplateEntity entity = new TemplateEntity();
-                    entity.setId(dto.getId());
-                    entity.setPermissions(permissions);
-                    entity.setTemplate(dto);
-                    return entity;
-                }).collect(Collectors.toSet());
-    }
-
     @Override
     public Set<DocumentedTypeDTO> getWorkQueuePrioritizerTypes() {
         return controllerFacade.getFlowFileComparatorTypes();
@@ -3956,6 +3894,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case REPORTING_TASK:
                     authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                    break;
+                case FLOW_ANALYSIS_RULE:
+                    authorizable = authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
                     break;
                 case PARAMETER_PROVIDER:
                     authorizable = authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
@@ -4214,6 +4155,52 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(final String reportingTaskId) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return getVersionedReportingTaskSnapshot(Collections.singleton(reportingTaskNode), user);
+    }
+
+    @Override
+    public VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Set<ReportingTaskNode> reportingTaskNodes = reportingTaskDAO.getReportingTasks();
+        return getVersionedReportingTaskSnapshot(reportingTaskNodes, user);
+    }
+
+    private VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(final Set<ReportingTaskNode> reportingTaskNodes, final NiFiUser user) {
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+        reportingTaskNodes.forEach(reportingTaskNode -> {
+            reportingTaskNode.authorize(authorizer, RequestAction.READ, user);
+            findReferencedControllerServices(reportingTaskNode, serviceNodes, user);
+        });
+
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
+        final ControllerServiceProvider serviceProvider = controllerFacade.getControllerServiceProvider();
+        final VersionedReportingTaskSnapshotMapper snapshotMapper = new VersionedReportingTaskSnapshotMapper(extensionManager, serviceProvider);
+        return snapshotMapper.createMapping(reportingTaskNodes, serviceNodes);
+    }
+
+    private void findReferencedControllerServices(final ComponentNode componentNode, final Set<ControllerServiceNode> serviceNodes, final NiFiUser user) {
+        componentNode.getPropertyDescriptors().forEach(descriptor -> {
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String serviceId = componentNode.getEffectivePropertyValue(descriptor);
+                if (serviceId != null) {
+                    try {
+                        final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
+                        serviceNode.authorize(authorizer, RequestAction.READ, user);
+                        if (serviceNodes.add(serviceNode)) {
+                            findReferencedControllerServices(serviceNode, serviceNodes, user);
+                        }
+                    } catch (ResourceNotFoundException e) {
+                        // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
     public ControllerBulletinsEntity getControllerBulletins() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ControllerBulletinsEntity controllerBulletinsEntity = new ControllerBulletinsEntity();
@@ -4260,6 +4247,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
         controllerBulletinsEntity.setReportingTaskBulletins(reportingTaskBulletinEntities);
+
+        // get the flow analysis rule bulletins
+        final BulletinQuery flowAnalysisRuleQuery = new BulletinQuery.Builder().sourceType(ComponentType.FLOW_ANALYSIS_RULE).build();
+        final List<Bulletin> allFlowAnalysisRuleBulletins = bulletinRepository.findBulletins(flowAnalysisRuleQuery);
+        final List<BulletinEntity> flowAnalysisRuleBulletinEntities = new ArrayList<>();
+        for (final Bulletin bulletin : allFlowAnalysisRuleBulletins) {
+            try {
+                final Authorizable flowAnalysisRuleAuthorizable = authorizableLookup.getFlowAnalysisRule(bulletin.getSourceId()).getAuthorizable();
+                final boolean flowAnalysisRuleAuthorizableAuthorized = flowAnalysisRuleAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
+
+                final BulletinEntity flowAnalysisRuleBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowAnalysisRuleAuthorizableAuthorized);
+                flowAnalysisRuleBulletinEntities.add(flowAnalysisRuleBulletin);
+                controllerBulletinEntities.add(flowAnalysisRuleBulletin);
+            } catch (final ResourceNotFoundException e) {
+                // flow analysis rule missing.. skip
+            }
+        }
+        controllerBulletinsEntity.setFlowAnalysisRuleBulletins(flowAnalysisRuleBulletinEntities);
 
         // get the parameter provider bulletins
         final BulletinQuery parameterProviderQuery = new BulletinQuery.Builder().sourceType(ComponentType.PARAMETER_PROVIDER).build();
@@ -4581,10 +4586,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final ProcessGroupUpdateStrategy processGroupUpdateStrategy) {
-        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, processGroupUpdateStrategy);
+    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
+        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, processGroupRecursivity);
         return groups.stream()
-            .map(group -> createProcessGroupEntity(group))
+            .map(this::createProcessGroupEntity)
             .collect(Collectors.toSet());
     }
 
@@ -4730,56 +4735,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VariableRegistryEntity getVariableRegistry(final String groupId, final boolean includeAncestorGroups) {
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        if (processGroup == null) {
-            throw new ResourceNotFoundException("Could not find group with ID " + groupId);
-        }
-
-        return createVariableRegistryEntity(processGroup, includeAncestorGroups);
-    }
-
-    private VariableRegistryEntity createVariableRegistryEntity(final ProcessGroup processGroup, final boolean includeAncestorGroups) {
-        final Set<String> variablesToIgnore = new HashSet<>();
-
-        final VariableRegistryDTO registryDto = dtoFactory.createVariableRegistryDto(processGroup, revisionManager);
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
-
-        if (includeAncestorGroups) {
-            ProcessGroup parent = processGroup.getParent();
-            while (parent != null) {
-                final PermissionsDTO parentPerms = dtoFactory.createPermissionsDto(parent);
-                if (Boolean.TRUE.equals(parentPerms.getCanRead())) {
-                    final VariableRegistryDTO parentRegistryDto = dtoFactory.createVariableRegistryDto(parent, revisionManager, variablesToIgnore);
-                    final Set<VariableEntity> parentVariables = parentRegistryDto.getVariables();
-                    registryDto.getVariables().addAll(parentVariables);
-                    registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
-                }
-
-                parent = parent.getParent();
-            }
-        }
-
-        return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);
-    }
-
-    @Override
-    public VariableRegistryEntity populateAffectedComponents(final VariableRegistryDTO variableRegistryDto) {
-        final String groupId = variableRegistryDto.getProcessGroupId();
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        if (processGroup == null) {
-            throw new ResourceNotFoundException("Could not find group with ID " + groupId);
-        }
-
-        final VariableRegistryDTO registryDto = dtoFactory.populateAffectedComponents(variableRegistryDto, processGroup, revisionManager);
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);
-    }
-
-    @Override
     public Set<ControllerServiceEntity> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups,
                                                               final boolean includeReferencingComponents) {
         final Set<ControllerServiceNode> serviceNodes = controllerServiceDAO.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
@@ -4884,6 +4839,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return createParameterProviderReferencingComponentsEntity(references, referencingRevisions);
     }
+
     /**
      * Creates entities for components referencing a ParameterProvider using the specified revisions.
      *
@@ -5413,7 +5369,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowManager flowManager = controllerFacade.getFlowManager();
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
-            .filter(difference -> !FlowDifferenceFilters.isVariableValueChange(difference))
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
@@ -5645,11 +5600,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
 
+    private ProcessGroupNameDTO createProcessGroupNameDto(final ProcessGroup group) {
+        if (group == null) {
+            return null;
+        }
+
+        final ProcessGroupNameDTO dto = new ProcessGroupNameDTO();
+        dto.setId(group.getIdentifier());
+        dto.setName(group.getName());
+        return dto;
+    }
+
     private AffectedComponentEntity createAffectedComponentEntity(final Connectable connectable) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(connectable.getIdentifier())));
         entity.setId(connectable.getIdentifier());
         entity.setReferenceType(connectable.getConnectableType().name());
+        entity.setProcessGroup(createProcessGroupNameDto(connectable.getProcessGroup()));
 
         final Authorizable authorizable = getAuthorizable(connectable);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5673,6 +5640,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier())));
         entity.setId(serviceNode.getIdentifier());
         entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        entity.setProcessGroup(createProcessGroupNameDto(serviceNode.getProcessGroup()));
 
         final Authorizable authorizable = authorizableLookup.getControllerService(serviceNode.getIdentifier()).getAuthorizable();
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5693,6 +5661,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier())));
         entity.setId(group.getIdentifier());
         entity.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
+        entity.setProcessGroup(createProcessGroupNameDto(group.getParent()));
 
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(group);
         entity.setPermissions(permissionsDto);
@@ -5713,6 +5682,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(instance.getInstanceIdentifier())));
         entity.setId(instance.getInstanceIdentifier());
         entity.setReferenceType(componentTypeName);
+
+        final String groupId = instance.getInstanceGroupId();
+        if (groupId != null) {
+            final ProcessGroupNameDTO groupNameDto = new ProcessGroupNameDTO();
+            groupNameDto.setId(groupId);
+            entity.setProcessGroup(groupNameDto);
+        }
 
         final Authorizable authorizable = getAuthorizable(componentTypeName, instance);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
@@ -5897,6 +5873,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case ReportingTask:
                     authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                    break;
+                case FlowAnalysisRule:
+                    authorizable = authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
                     break;
                 case FlowRegistryClient:
                     authorizable = authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
@@ -6150,6 +6129,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
+        //Add flow file repository, content repository and provenance repository usage to NiFi metrics
+        final StorageUsage flowFileRepositoryUsage = controllerFacade.getFlowFileRepositoryStorageUsage();
+        final Map<String, StorageUsage> contentRepositoryUsage = controllerFacade.getContentRepositoryStorageUsage();
+        final Map<String, StorageUsage> provenanceRepositoryUsage = controllerFacade.getProvenanceRepositoryStorageUsage();
+
+        PrometheusMetricsUtil.createStorageUsageMetrics(nifiMetricsRegistry, flowFileRepositoryUsage, contentRepositoryUsage, provenanceRepositoryUsage,
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
+
         //Add total task duration for root to the NiFi metrics registry
         // The latest aggregated status history is the last element in the list so we need the last element only
         final StatusHistoryEntity rootGPStatusHistory = getProcessGroupStatusHistory(rootPGId);
@@ -6353,6 +6340,152 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         heartbeatMonitor.removeHeartbeat(nodeIdentifier);
     }
 
+    @Override
+    public Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getFlowAnalysisRuleTypes(bundleGroup, bundleArtifact, type);
+    }
+
+    @Override
+    public Set<FlowAnalysisRuleEntity> getFlowAnalysisRules() {
+        Set<FlowAnalysisRuleEntity> flowAnalysisRules = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
+            .map(flowAnalysisRule -> createFlowAnalysisRuleEntity(flowAnalysisRule))
+            .collect(Collectors.toSet());
+
+        return flowAnalysisRules;
+    }
+
+    @Override
+    public void analyzeProcessGroup(String processGroupId) {
+        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+
+        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(controllerFacade.getExtensionManager());
+
+        InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mapper.mapNonVersionedProcessGroup(
+            processGroup,
+            controllerFacade.getControllerServiceProvider()
+        );
+
+        controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
+            flowAnalyzer -> flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup)
+        );
+    }
+
+    @Override
+    public FlowAnalysisResultEntity getFlowAnalysisResult() {
+        Collection<RuleViolation> ruleViolations = ruleViolationsManager.getAllRuleViolations();
+
+        FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
+
+        return flowAnalysisResultEntity;
+    }
+
+    @Override
+    public FlowAnalysisResultEntity getFlowAnalysisResult(String processGroupId) {
+        Set<RuleViolation> ruleViolations = getRuleViolationStream(processGroupId).collect(Collectors.toSet());
+
+        FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
+
+        return flowAnalysisResultEntity;
+    }
+
+    public Stream<RuleViolation> getRuleViolationStream(String processGroupId) {
+        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+
+        Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(processGroupId);
+
+        Stream<RuleViolation> ruleViolationStreamForGroupAndAllChildren = Stream.concat(
+            ruleViolations.stream(),
+            processGroup.getProcessGroups().stream()
+                .map(ProcessGroup::getIdentifier)
+                .flatMap(this::getRuleViolationStream)
+        );
+
+        return ruleViolationStreamForGroupAndAllChildren;
+    }
+
+    public FlowAnalysisResultEntity createFlowAnalysisResultEntity(Collection<RuleViolation> ruleViolations) {
+        FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
+
+        List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
+            .filter(FlowAnalysisRuleNode::isEnabled)
+            .sorted(Comparator.comparing(FlowAnalysisRuleNode::getName))
+            .map(flowAnalysisRule -> dtoFactory.createFlowAnalysisRuleDto(flowAnalysisRule))
+            .collect(Collectors.toList());
+
+        List<FlowAnalysisRuleViolationDTO> ruleViolationDtos = ruleViolations.stream()
+            .sorted(Comparator.comparing(RuleViolation::getSubjectId)
+                    .thenComparing(RuleViolation::getScope)
+                    .thenComparing(RuleViolation::getRuleId)
+                    .thenComparing(RuleViolation::getIssueId)
+            )
+            .map(ruleViolation -> {
+                FlowAnalysisRuleViolationDTO ruleViolationDto = new FlowAnalysisRuleViolationDTO();
+
+                ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
+                ruleViolationDto.setScope(ruleViolation.getScope());
+                ruleViolationDto.setRuleId(ruleViolation.getRuleId());
+                ruleViolationDto.setIssueId(ruleViolation.getIssueId());
+                ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
+
+                String subjectId = ruleViolation.getSubjectId();
+                ruleViolationDto.setSubjectId(subjectId);
+                ruleViolationDto.setGroupId(ruleViolation.getGroupId());
+                ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
+                ruleViolationDto.setSubjectPermissionDto(createPermissionDto(subjectId));
+
+                return ruleViolationDto;
+            })
+            .collect(Collectors.toList());
+
+        entity.setRules(flowAnalysisRuleDtos);
+        entity.setRuleViolations(ruleViolationDtos);
+
+        return entity;
+    }
+
+    private PermissionsDTO createPermissionDto(String id) {
+
+        Optional<AuthorizableHolder> authorizableHolder = findAuthorizableHolder(
+            id,
+            authorizableLookup::getProcessor,
+            authorizableLookup::getControllerService,
+            authorizableLookup::getConnection,
+            authorizableLookup::getProcessGroup,
+            authorizableLookup::getPublicInputPort,
+            authorizableLookup::getPublicOutputPort
+        );
+
+        final PermissionsDTO permissionDto;
+        if (authorizableHolder.isPresent()) {
+            permissionDto = dtoFactory.createPermissionsDto(authorizableHolder.get().getAuthorizable(), NiFiUserUtils.getNiFiUser());
+        } else {
+            permissionDto = new PermissionsDTO();
+            permissionDto.setCanRead(false);
+            permissionDto.setCanWrite(false);
+        }
+
+        return permissionDto;
+    }
+
+    private Optional<AuthorizableHolder> findAuthorizableHolder(
+        final String id,
+        final Function<String, AuthorizableHolder>... lookupMethods
+    ) {
+        AuthorizableHolder authorizableHolder = null;
+        for (Function<String, AuthorizableHolder> lookupMethod : lookupMethods) {
+            try {
+                authorizableHolder = lookupMethod.apply(id);
+            } catch (ResourceNotFoundException e) {
+                // We don't know beforehand what kind of component we are looking for. Ignore if one lookup fails.
+            }
+            if (authorizableHolder != null) {
+                break;
+            }
+        }
+
+        return Optional.ofNullable(authorizableHolder);
+    }
+
     /* reusable function declarations for converting ids to tenant entities */
     private Function<String, TenantEntity> mapUserGroupIdToTenantEntity(final boolean enforceGroupExistence) {
         return userGroupId -> {
@@ -6498,16 +6631,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.reportingTaskDAO = reportingTaskDAO;
     }
 
+    public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
+        this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
+    }
+
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
     }
 
     public void setParameterContextDAO(final ParameterContextDAO parameterContextDAO) {
         this.parameterContextDAO = parameterContextDAO;
-    }
-
-    public void setTemplateDAO(final TemplateDAO templateDAO) {
-        this.templateDAO = templateDAO;
     }
 
     public void setSnippetUtils(final SnippetUtils snippetUtils) {
@@ -6552,5 +6685,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDao) {
         this.flowRegistryDAO = flowRegistryDao;
+    }
+
+    public void setRuleViolationsManager(RuleViolationsManager ruleViolationsManager) {
+        this.ruleViolationsManager = ruleViolationsManager;
     }
 }

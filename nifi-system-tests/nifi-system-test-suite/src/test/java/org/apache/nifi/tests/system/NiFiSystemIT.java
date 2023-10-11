@@ -99,7 +99,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private static final NiFiInstanceCache instanceCache = new NiFiInstanceCache();
 
     static {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> instanceCache.shutdown()));
+        Runtime.getRuntime().addShutdownHook(new Thread(instanceCache::shutdown));
     }
 
     private TestInfo testInfo;
@@ -107,6 +107,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     @BeforeEach
     public void setup(final TestInfo testInfo) throws IOException {
         this.testInfo = testInfo;
+
         final String testClassName = testInfo.getTestClass().map(Class::getSimpleName).orElse("<Unknown Test Class>");
         final String friendlyTestName = testClassName + ":" + testInfo.getDisplayName();
         logger.info("Beginning Test {}", friendlyTestName);
@@ -133,21 +134,24 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return true;
     }
 
-    protected TestInfo getTestInfo() {
-        return testInfo;
-    }
 
     @AfterAll
     public static void cleanup() {
+        logger.info("Beginning cleanup");
+
         final NiFiInstance nifi = nifiRef.get();
         nifiRef.set(null);
         if (nifi != null) {
             instanceCache.stopOrRecycle(nifi);
         }
+
+        logger.info("Finished cleanup");
     }
 
     @AfterEach
     public void teardown() throws Exception {
+        logger.info("Beginning teardown");
+
         try {
             Exception destroyFlowFailure = null;
 
@@ -182,6 +186,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             if (nifiClient != null) {
                 nifiClient.close();
             }
+
+            logger.info("Finished teardown");
         }
     }
 
@@ -201,7 +207,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
                 .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
                 .instanceDirectory("target/standalone-instance")
                 .overrideNifiProperties(getNifiPropertiesOverrides())
-                .unpackPythonExtensions(isUnpackPythonExtensions())
+                .unpackPythonExtensions(false)
                 .build());
     }
 
@@ -209,6 +215,16 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return new SpawnedClusterNiFiInstanceFactory(
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");
+    }
+
+    public NiFiInstanceFactory createPythonicInstanceFactory() {
+        return new SpawnedStandaloneNiFiInstanceFactory(
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/pythonic/bootstrap.conf")
+                        .instanceDirectory("target/pythonic-instance")
+                        .overrideNifiProperties(getNifiPropertiesOverrides())
+                        .unpackPythonExtensions(true)
+                        .build());
     }
 
     protected String getTestName() {
@@ -220,6 +236,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected void destroyFlow() throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Starting destroyFlow");
+
         getClientUtil().stopProcessGroupComponents("root");
         getClientUtil().disableControllerServices("root", true);
         getClientUtil().stopReportingTasks();
@@ -228,6 +246,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
         getClientUtil().deleteReportingTasks();
+
+        logger.info("Finished destroyFlow");
     }
 
     protected void waitForAllNodesConnected() {
@@ -263,7 +283,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
 
             if (System.currentTimeMillis() > maxTime) {
-                throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
+                throw new RuntimeException("Waited up to 60 seconds for all nodes to connect but only " + connectedNodeCount + " nodes connected");
             }
 
             try {
@@ -545,10 +565,6 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return node2Dto;
     }
 
-    protected boolean isUnpackPythonExtensions() {
-        return false;
-    }
-
     /**
      * Disconnects a node from the cluster
      * @param nodeIndex the 1-based index of the node
@@ -563,7 +579,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected void waitForCoordinatorElected() throws InterruptedException {
-        waitFor(() -> isCoordinatorElected());
+        waitFor(this::isCoordinatorElected);
     }
 
     protected boolean isCoordinatorElected() throws NiFiClientException, IOException {

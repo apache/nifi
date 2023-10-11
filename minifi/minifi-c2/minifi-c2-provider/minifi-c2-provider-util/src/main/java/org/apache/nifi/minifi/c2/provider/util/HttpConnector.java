@@ -33,6 +33,7 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -150,8 +151,8 @@ public class HttpConnector {
         }
         URL url;
         try {
-            url = new URL(endpointUrl);
-        } catch (MalformedURLException e) {
+            url = URI.create(endpointUrl).toURL();
+        } catch (IllegalArgumentException | MalformedURLException e) {
             throw new ConfigurationProviderException("Malformed url " + endpointUrl, e);
         }
 

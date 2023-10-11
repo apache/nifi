@@ -111,7 +111,7 @@ The following table lists the default ports used by NiFi and the corresponding p
 |Listener Bootstrap Port          | `nifi.listener.bootstrap.port`        | _random ephemeral_
 |==================================================================================================================================================
 
-NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `9443`.
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.
 
 === Embedded ZooKeeper
 The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
@@ -278,11 +278,11 @@ NiFi provides several different configuration options for security purposes. The
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
-|`nifi.security.keystoreType` | The type of Keystore. Must be `PKCS12` or `JKS` or `BCFKS`.  JKS is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
+|`nifi.security.keystoreType` | The type of Keystore. Must be `PKCS12` or `JKS` or `BCFKS`.  PKCS12 is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.keystorePasswd` | The password for the Keystore.
 |`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi.  A secured instance with no Truststore will refuse all incoming connections.
-|`nifi.security.truststoreType` | The type of the Truststore. Must be `PKCS12` or `JKS` or `BCFKS`.  JKS is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
+|`nifi.security.truststoreType` | The type of the Truststore. Must be `PKCS12` or `JKS` or `BCFKS`.  PKCS12 is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
 |==================================================================================================================================================
 
@@ -315,16 +315,6 @@ Automatic refreshing of NiFi's web SSL context factory can be enabled using the 
 Once the `nifi.security.autoreload.enabled` property is set to `true`, any valid changes to the configured keystore and truststore will cause NiFi's SSL context factory to be reloaded, allowing clients to pick up the changes.  This is intended to allow expired certificates to be updated in the keystore and new trusted certificates to be added in the truststore, all without having to restart the NiFi server.
 
 NOTE: Changes to any of the `nifi.security.keystore*` or `nifi.security.truststore*` properties will not be picked up by the auto-refreshing logic, which assumes the passwords and store paths will remain the same.
-
-[[tls_generation_toolkit]]
-=== TLS Generation Toolkit
-
-In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process. For more information, see the <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> section in the link:toolkit-guide.html[NiFi Toolkit Guide]. Related topics include:
-
-* <<toolkit-guide.adoc#wildcard_certificates,Wildcard Certificates>>
-* <<toolkit-guide.adoc#tls_operation_modes,Operation Modes: Standalone and Client/Server>>
-* <<toolkit-guide.adoc#tls_intermediate_ca,Using An Existing Intermediate Certificate Authority>>
-* <<toolkit-guide.adoc#additional_certificate_commands,Additional Certificate Commands>>
 
 [[tls_cipher_suites]]
 === TLS Cipher Suites
@@ -838,7 +828,9 @@ The AzureGraphUserGroupProvider has the following properties:
 |==================================================================================================================================================
 | Property Name | Description
 |`Refresh Delay` | Duration of delay between each user and group refresh. Default is `5 mins`.
-|`Authority Endpoint` | The endpoint of the Azure AD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global authority endpoint is https://login.microsoftonline.com.
+|`Authority Endpoint` | The endpoint of the Azure AD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global authority endpoint is `https://login.microsoftonline.com`.
+|`Graph Endpoint` | The endpoint of the Azure Graph API, with the version identifier attached. The base url can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global graph endpoint is `https://graph.microsoft.com/v1.0`, which is also the default setting.
+|`Graph Scope` | The url for the Graph api scope.  See https://learn.microsoft.com/en-us/azure/active-directory/develop/scopes-oidc for an explanation of scopes.  This usually only needs to be changed if you are connecting to a different `Graph Endpoint`.  The Azure global default scope is `https://graph.microsoft.com/.default`, which is also the default setting.
 |`Directory ID` | Tenant ID or Directory ID of the Azure AD tenant. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
 |`Application ID` | Client ID or Application ID of the Azure app registration. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
 |`Client Secret` | A client secret from the Azure app registration. Secrets can be created in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret.
@@ -1887,9 +1879,6 @@ The EncryptContent processor allows for the encryption and decryption of data, b
 === Key Derivation Functions
 
 Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read the link:https://en.wikipedia.org/wiki/Key_derivation_function[Wikipedia entry on Key Derivation Functions^].
-Currently, KDFs are ingested by `CipherProvider` implementations and return a fully-initialized `Cipher` object to be used for encryption or decryption. Due to the use of a `CipherProviderFactory`, the KDFs are not customizable at this time. Future enhancements will include the ability to provide custom cost parameters to the KDF at initialization time. As a work-around, `CipherProvider` instances can be initialized with custom cost parameters in the constructor but this is not currently supported by the `CipherProviderFactory`.
-If you do not have a need for a specific KDF, *Argon2 is recommended* as it is a robust, secure, performant, and user-friendly default and is widely supported on multiple platforms.
-Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent` processor for password-based encryption (PBE)) and relevant notes:
 
 [[nifi-legacy-kdf]]
 ==== NiFi Legacy KDF
@@ -1996,95 +1985,11 @@ image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
 
 image:argon2-salt.png["Argon2 Salt & IV Encoding"]
 
-=== Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
-
-Because of US export regulations, default JVMs have link:https://docs.oracle.com/en/java/javase/17/security/oracle-providers.html[limits imposed on the strength of cryptographic operations^] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
-
-PBE is the process of deriving a cryptographic key for encryption or decryption from _user-provided secret material_, usually a password. Rather than a human remembering a (random-appearing) 32 or 64 character hexadecimal string, a password or passphrase is used.
-
-A number of PBE algorithms provided by NiFi impose strict limits on the length of the password due to the underlying key length checks. Below is a table listing the maximum password length on a JVM with limited cryptographic strength.
-
-.Maximum Password Length on Limited Cryptographic Strength JVM
-|===
-|Algorithm |Max Password Length
-
-|`PBEWITHMD5AND128BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5AND192BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5AND256BITAES-CBC-OPENSSL`
-|16
-
-|`PBEWITHMD5ANDDES`
-|16
-
-|`PBEWITHMD5ANDRC2`
-|16
-
-|`PBEWITHSHA1ANDRC2`
-|16
-
-|`PBEWITHSHA1ANDDES`
-|16
-
-|`PBEWITHSHAAND128BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND192BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND256BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND40BITRC2-CBC`
-|7
-
-|`PBEWITHSHAAND128BITRC2-CBC`
-|7
-
-|`PBEWITHSHAAND40BITRC4`
-|7
-
-|`PBEWITHSHAAND128BITRC4`
-|7
-
-|`PBEWITHSHA256AND128BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHA256AND192BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHA256AND256BITAES-CBC-BC`
-|7
-
-|`PBEWITHSHAAND2-KEYTRIPLEDES-CBC`
-|7
-
-|`PBEWITHSHAAND3-KEYTRIPLEDES-CBC`
-|7
-
-|`PBEWITHSHAANDTWOFISH-CBC`
-|7
-|===
-
-=== Allow Insecure Cryptographic Modes
-
-By default, the `Allow Insecure Cryptographic Modes` property in `EncryptContent` processor settings is set to `not-allowed`. This means that if a password of fewer than `10` characters is provided, a validation error will occur. 10 characters is a conservative estimate and does not take into consideration full entropy calculations, patterns, etc.
-
-image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
-
-It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" <<key-derivation-functions, Key Derivation Function (KDF) supported by NiFi>>.
-
 [[nifi_sensitive_props_key]]
 == Encrypted Passwords in Flows
 
 NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk.
 The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information).
-Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version.
-Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation.
-In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values.
 
 NiFi supports several configuration options to provide authenticated encryption with associated data (AEAD) using AES Galois/Counter Mode (AES-GCM).
 These algorithms use a strong Key Derivation Function to derive a secret key of specified length based on the sensitive properties key configured.
@@ -2346,7 +2251,7 @@ nifi.bootstrap.protection.context.mapping.ldap=ldap-.*
 This would cause both of the above to be assigned a context of `"ldap/Manager Password"` instead of `"default/Manager Password"`.
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
-In addition to `tls-toolkit` and `encrypt-config`, the NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments. These utilities include:
+In addition to `encrypt-config`, the NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments. These utilities include:
 
 * CLI -- The `cli` tool enables administrators to interact with NiFi and NiFi Registry instances to automate tasks such as deploying versioned flows and managing process groups and cluster nodes.
 * File Manager -- The `file-manager` tool enables administrators to backup, install or restore a NiFi installation from backup.
@@ -2981,7 +2886,6 @@ in the _$NIFI_HOME/conf/nifi.properties_ file:
 |===
 
 Whether using the default security properties or the ZooKeeper specific properties, the keystore and truststores must contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
-NiFi's TLS Toolkit can be used to help generate the keystore and truststore used for ZooKeeper client/server access.
 
 After updating the above properties and starting NiFi, network communication with ZooKeeper will be secure and ZooKeeper will now use the NiFi node's certificate principal
 when authenticating access. This will be reflected in log messages like the following on the ZooKeeper server:
@@ -3433,7 +3337,6 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.authorizer.configuration.file`*|This is the location of the file that specifies how authorizers are defined.  The default value is `./conf/authorizers.xml`.
 |`nifi.login.identity.provider.configuration.file`*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only considered if `nifi.security.user.login.identity.provider` is configured with a provider identifier. The default value is `./conf/login-identity-providers.xml`.
-|`nifi.templates.directory`*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the _flow.json.gz_ starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the _flow.json.gz_ automatically on NiFi startup.  The default value is `./conf/templates`.
 |`nifi.ui.banner.text`|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |`nifi.ui.autorefresh.interval`|The interval at which the User Interface auto-refreshes. The default value is `30 secs`.
 |`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is.
@@ -4361,25 +4264,6 @@ then, that the Processor has used approximately 3.5 seconds (or 3500 millisecond
 As a result, if we set the value of this property higher, up to a value of `100`, we will get more accurate results. However, it may be more expensive to monitor.
 
 In order to view these metrics, we can gather diagnostics by running the command `nifi.sh diagnostics <filename>` and inspecting the generated file. See <<nifi_diagnostics>> for more information.
-
-[[custom_properties]]
-=== Custom Properties
-
-To configure custom properties for use with NiFi’s Expression Language:
-
-* Create the custom property. Ensure that:
-** Each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
-** Each node in a clustered environment is configured with the same custom properties.
-* Update `nifi.variable.registry.properties` with the location of the custom property file(s):
-
-|====
-|*Property*|*Description*
-|`nifi.variable.registry.properties`|This is a comma-separated list of file location paths for one or more custom property files.
-|====
-
-* Restart your NiFi instance(s) for the updates to be picked up.
-
-Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
 [[nar_provider_properties]]
 === NAR Provider Properties

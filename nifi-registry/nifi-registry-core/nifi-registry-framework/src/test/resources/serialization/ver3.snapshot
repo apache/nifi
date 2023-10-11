@@ -20,8 +20,7 @@
                     "identifier" : "processor1",
                     "name" : "My Processor 1"
                 } ],
-                "remoteProcessGroups" : [ ],
-                "variables" : { }
+                "remoteProcessGroups" : [ ]
             }
         }
     }

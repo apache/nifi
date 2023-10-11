@@ -16,18 +16,27 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.CreateStreamRequest;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
+import java.io.File;
+import java.net.URI;
 
 public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStream {
+
+    private final static File CREDENTIALS_FILE =
+            new File(System.getProperty("user.home") + "/aws-credentials.properties");
 
     private static final String ACCESS_KEY = "test";
     private static final String SECRET_KEY = "test";
@@ -36,38 +45,50 @@ public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStre
     private static final String LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE = "http://localhost:4566";
     private static final String LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE = "http://localhost:4566";
 
-    private final AWSCredentialsProvider awsCredentialsProvider =
-            new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
+    private final AwsCredentialsProvider awsCredentialsProvider =
+            StaticCredentialsProvider.create(new AwsCredentials() {
+                @Override
+                public String accessKeyId() {
+                    return ACCESS_KEY;
+                }
 
-    private final AwsClientBuilder.EndpointConfiguration kinesisEndpointConfig =
-            new AwsClientBuilder.EndpointConfiguration(LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE, REGION);
-
-    private final AwsClientBuilder.EndpointConfiguration dynamoDBEndpointConfig =
-            new AwsClientBuilder.EndpointConfiguration(LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE, REGION);
+                @Override
+                public String secretAccessKey() {
+                    return SECRET_KEY;
+                }
+            });
 
     @BeforeEach
-    public void setUp() throws InterruptedException {
-        System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
+    public void setUp() throws InterruptedException, InitializationException {
+        System.setProperty("aws.cborEnabled", "false");
 
-        kinesis = AmazonKinesisClient.builder()
-                .withEndpointConfiguration(kinesisEndpointConfig)
-                .withCredentials(awsCredentialsProvider)
+        kinesis = KinesisClient.builder()
+                .credentialsProvider(awsCredentialsProvider)
+                .endpointOverride(URI.create(LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE))
+                .httpClient(ApacheHttpClient.create())
+                .region(Region.of(REGION))
                 .build();
 
-        kinesis.createStream(KINESIS_STREAM_NAME, 1);
+        kinesis.createStream(CreateStreamRequest.builder().streamName(KINESIS_STREAM_NAME).shardCount(1).build());
 
-        dynamoDB = AmazonDynamoDBClient.builder()
-                .withEndpointConfiguration(dynamoDBEndpointConfig)
-                .withCredentials(awsCredentialsProvider)
+        dynamoDB = DynamoDbClient.builder()
+                .credentialsProvider(awsCredentialsProvider)
+                .endpointOverride(URI.create(LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE))
+                .region(Region.of(REGION))
+                .httpClient(ApacheHttpClient.create())
                 .build();
 
         waitForKinesisToInitialize();
 
         runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
+        final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("credentials-service", credentialsService);
+        runner.setProperty(credentialsService, CredentialPropertyDescriptors.CREDENTIALS_FILE, CREDENTIALS_FILE.getAbsolutePath());
+        runner.enableControllerService(credentialsService);
+
+        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-service");
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
-        runner.setProperty(ConsumeKinesisStream.ACCESS_KEY, ACCESS_KEY);
-        runner.setProperty(ConsumeKinesisStream.SECRET_KEY, SECRET_KEY);
         runner.setProperty(ConsumeKinesisStream.REGION, REGION);
         runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
         runner.setProperty(ConsumeKinesisStream.ENDPOINT_OVERRIDE, LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE + "/kinesis");

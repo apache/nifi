@@ -19,6 +19,8 @@ package org.apache.nifi.processors.aws.ml.translate;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.translate.AmazonTranslateClient;
 import com.amazonaws.services.translate.model.StartTextTranslationJobRequest;
 import com.amazonaws.services.translate.model.StartTextTranslationJobResult;
@@ -33,11 +35,15 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 @CapabilityDescription("Trigger a AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTranslateJobStatus.class})
 public class StartAwsTranslateJob extends AwsMachineLearningJobStarter<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
+
     @Override
-    protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
+    protected AmazonTranslateClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                 final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         return (AmazonTranslateClient) AmazonTranslateClient.builder()
                 .withRegion(context.getProperty(REGION).getValue())
                 .withCredentials(credentialsProvider)
+                .withClientConfiguration(config)
+                .withEndpointConfiguration(endpointConfiguration)
                 .build();
     }
 

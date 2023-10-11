@@ -19,6 +19,8 @@ package org.apache.nifi.processors.aws.s3;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -68,7 +70,8 @@ public class TestFetchS3Object {
         mockS3Client = mock(AmazonS3Client.class);
         mockFetchS3Object = new FetchS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
         };
@@ -78,7 +81,7 @@ public class TestFetchS3Object {
     @Test
     public void testGetObject() throws IOException {
         runner.setProperty(FetchS3Object.S3_REGION, "attribute-defined-region");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         attrs.put("s3.region", "us-west-2");
@@ -145,7 +148,7 @@ public class TestFetchS3Object {
     @Test
     public void testGetObjectWithRequesterPays() throws IOException {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         runner.setProperty(FetchS3Object.REQUESTER_PAYS, "true");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -203,7 +206,7 @@ public class TestFetchS3Object {
     @Test
     public void testGetObjectVersion() throws IOException {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         runner.setProperty(FetchS3Object.VERSION_ID, "${s3.version}");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -243,7 +246,7 @@ public class TestFetchS3Object {
     @Test
     public void testGetObjectExceptionGoesToFailure() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -257,7 +260,7 @@ public class TestFetchS3Object {
     @Test
     public void testFetchObject_FailAdditionalAttributesBucketName() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -286,7 +289,7 @@ public class TestFetchS3Object {
     @Test
     public void testFetchObject_FailAdditionalAttributesAuthentication() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -310,7 +313,7 @@ public class TestFetchS3Object {
     @Test
     public void testFetchObject_FailAdditionalAttributesNetworkFailure() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -328,7 +331,7 @@ public class TestFetchS3Object {
     @Test
     public void testGetObjectReturnsNull() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -342,7 +345,7 @@ public class TestFetchS3Object {
     @Test
     public void testFlowFileAccessExceptionGoesToFailure() {
         runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
-        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
@@ -362,7 +365,7 @@ public class TestFetchS3Object {
         assertEquals(23, pd.size(), "size should be eq");
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.BUCKET));
+        assertTrue(pd.contains(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE));
         assertTrue(pd.contains(FetchS3Object.CREDENTIALS_FILE));
         assertTrue(pd.contains(FetchS3Object.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(FetchS3Object.KEY));

@@ -22,6 +22,14 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.commons.io.output.CountingOutputStream;
@@ -30,6 +38,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -44,15 +54,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.channels.Channels;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
@@ -129,6 +130,33 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = OWNER_TYPE_ATTR, description = OWNER_TYPE_DESC),
         @WritesAttribute(attribute = URI_ATTR, description = URI_DESC)
 })
+@MultiProcessorUseCase(
+    description = "Retrieve all files in a Google Compute Storage (GCS) bucket",
+    keywords = {"gcp", "gcs", "google cloud", "google compute storage", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListGCSBucket.class,
+            configuration = """
+                The "Bucket" property should be set to the name of the GCS bucket that files reside in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{GCS_SOURCE_BUCKET}`.
+                Configure the "Project ID" property to reflect the ID of your Google Compute Cloud Project.
+
+                The "GCP Credentials Provider Service" property should specify an instance of the GCPCredentialsService in order to provide credentials for accessing the bucket.
+
+                The 'success' Relationship of this Processor is then connected to FetchGCSObject.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchGCSObject.class,
+            configuration = """
+                "Bucket" = "${gcs.bucket}"
+                "Name" = "${filename}"
+
+                The "GCP Credentials Provider Service" property should specify an instance of the GCPCredentialsService in order to provide credentials for accessing the bucket.
+                """
+        )
+    }
+)
 public class FetchGCSObject extends AbstractGCSProcessor {
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor
             .Builder().name("gcs-bucket")
@@ -219,7 +247,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         try {
             final FetchedBlob blob = fetchBlob(context, storage, attributes);
 
-            final CountingOutputStream out = new CountingOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
+            final CountingOutputStream out = new CountingOutputStream(NullOutputStream.INSTANCE);
             IOUtils.copy(blob.contents, out);
             final long byteCount = out.getByteCount();
             results.add(new ConfigVerificationResult.Builder()
@@ -253,9 +281,6 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
         final Storage storage = getCloudService();
 
-        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
-        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
-
         try {
             final FetchedBlob blob = fetchBlob(context, storage, flowFile.getAttributes());
             flowFile = session.importFrom(blob.contents, flowFile);
@@ -263,7 +288,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             final Map<String, String> attributes = StorageAttributes.createAttributes(blob.blob);
             flowFile = session.putAllAttributes(flowFile, attributes);
         } catch (final StorageException | IOException e) {
-            getLogger().error("Failed to fetch GCS Object due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to fetch GCS Object due to {}", e, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -328,7 +353,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         return blobSourceOptions;
     }
 
-    private class FetchedBlob {
+    private static class FetchedBlob {
         private final InputStream contents;
         private final Blob blob;
 

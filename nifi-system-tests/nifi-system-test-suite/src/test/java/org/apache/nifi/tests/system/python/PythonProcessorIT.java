@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.python;
 
+import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -41,8 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PythonProcessorIT extends NiFiSystemIT {
 
     @Override
-    protected boolean isUnpackPythonExtensions() {
-        return true;
+    public NiFiInstanceFactory getInstanceFactory() {
+        return createPythonicInstanceFactory();
     }
 
     @Test

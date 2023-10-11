@@ -17,7 +17,15 @@
 
 package org.apache.nifi.csv;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.DuplicateHeaderMode;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -30,14 +38,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -46,8 +46,32 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestJacksonCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
-    private final CSVFormat formatWithNullRecordSeparator = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withRecordSeparator(null);
+    private final CSVFormat format = CSVFormat.DEFAULT.builder()
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .setTrim(true)
+        .setQuote('"')
+        .build();
+    private final CSVFormat formatWithNullRecordSeparator = CSVFormat.DEFAULT.builder()
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .setTrim(true)
+        .setQuote('"')
+        .setRecordSeparator(null)
+        .build();
+    private final CSVFormat trimmed4180 = CSVFormat.RFC4180.builder()
+        .setTrim(true)
+        .build();
+    private final CSVFormat customFormat = CSVFormat.DEFAULT.builder()
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .setTrim(true)
+        .setQuote('"')
+        .setDelimiter(',')
+        .setEscape('\\')
+        .setDuplicateHeaderMode(DuplicateHeaderMode.DISALLOW)
+        .build();
+
 
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
@@ -57,9 +81,8 @@ public class TestJacksonCSVRecordReader {
         return fields;
     }
 
-    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
-        return new JacksonCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format) throws IOException {
+        return createReader(in, schema, format, true);
     }
 
     private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
@@ -258,7 +281,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -339,7 +362,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -359,7 +382,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -451,7 +474,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -476,7 +499,7 @@ public class TestJacksonCSVRecordReader {
         // Create another Record Reader that indicates that the header line is present but should be ignored. This should cause
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, CSVFormat.RFC4180.withTrim(), true, true,
+             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, trimmed4180, true, true,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
 
             final Record record = reader.nextRecord();
@@ -544,7 +567,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -593,9 +616,8 @@ public class TestJacksonCSVRecordReader {
         }
 
         // confirm duplicate headers cause an exception when requested
-        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, customFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
             assertEquals(
                     "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
@@ -617,7 +639,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord has ignored the first "id" and "name" columns
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -635,9 +657,8 @@ public class TestJacksonCSVRecordReader {
         }
 
         // confirm duplicate headers cause an exception when requested
-        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, customFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
             assertEquals(
                     "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
@@ -649,10 +670,9 @@ public class TestJacksonCSVRecordReader {
 
     @Test
     public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
+        final char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
+        final CSVFormat format = customFormat.builder().setDelimiter(delimiter).build();
 
-        char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
-
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(delimiter);
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -675,8 +695,7 @@ public class TestJacksonCSVRecordReader {
 
     @Test
     public void testMultipleRecordsEscapedWithChar() throws IOException {
-
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape("\\".charAt(0));
+        final CSVFormat format = customFormat.builder().setEscape('\\').build();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -685,14 +704,12 @@ public class TestJacksonCSVRecordReader {
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
              final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
-            assertThrows(NumberFormatException.class, () -> reader.nextRecord());
+            assertThrows(NumberFormatException.class, reader::nextRecord);
         }
     }
 
     @Test
     public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
-
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape(null);
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 

@@ -41,7 +41,6 @@ import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.StringUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
@@ -88,7 +87,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testVerifySuccess() {
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -113,7 +112,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
 
     private void assertVerifySniffer() {
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -134,7 +133,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         runner.enableControllerService(service);
 
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -146,10 +145,10 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testVerifyFailedURL() {
         runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "invalid");
+        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "blah://invalid");
 
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -178,7 +177,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         }
 
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -199,7 +198,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, "not-real");
 
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -225,7 +224,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         runner.enableControllerService(service);
 
         final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );

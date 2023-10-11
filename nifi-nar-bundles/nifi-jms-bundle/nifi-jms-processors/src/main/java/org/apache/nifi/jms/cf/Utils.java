@@ -20,7 +20,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,7 @@ public final class Utils {
     static <T> T newDefaultInstance(String className) {
         try {
             Class<T> clazz = (Class<T>) Class.forName(className, false, Thread.currentThread().getContextClassLoader());
-            return clazz.newInstance();
+            return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to load and/or instantiate class '" + className + "'", e);
         }

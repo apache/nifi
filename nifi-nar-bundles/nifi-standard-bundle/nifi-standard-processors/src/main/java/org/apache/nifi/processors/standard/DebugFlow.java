@@ -198,7 +198,7 @@ public class DebugFlow extends AbstractProcessor {
         .required(true)
         .defaultValue("0 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor ON_STOPPED_FAIL = new PropertyDescriptor.Builder()
         .name("Fail When @OnStopped called")

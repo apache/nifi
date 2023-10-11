@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.token;
 
-import org.apache.nifi.security.util.CertificateUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -69,7 +68,7 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
         super(authorities);
         setAuthenticated(true);
         this.identity = identity;
-        this.username = username;
+        this.username = username == null ? identity : username;
         this.issuer = issuer;
         this.expiration = Instant.now().plusMillis(expiration).toEpochMilli();
     }
@@ -101,12 +100,7 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public String getName() {
-        if (username == null) {
-            // if the username is a DN this will extract the username or CN... if not will return what was passed
-            return CertificateUtils.extractUsername(identity);
-        } else {
-            return username;
-        }
+        return username;
     }
 
     @Override

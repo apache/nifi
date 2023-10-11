@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.azure.core.amqp.AmqpClientOptions;
 import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
@@ -43,7 +27,6 @@ import com.azure.messaging.eventhubs.EventHubConsumerClient;
 import com.azure.messaging.eventhubs.models.EventPosition;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -68,10 +51,25 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs without reliable checkpoint tracking. "
@@ -120,14 +118,6 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
     static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
-    @Deprecated
-    static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
-            .name("Number of Event Hub Partitions")
-            .description("This property is deprecated and no longer used.")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(false)
-            .build();
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("Event Hub Consumer Group")
             .displayName("Consumer Group")
@@ -173,7 +163,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     private final static Set<Relationship> relationships;
 
     static {
-        propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
+        propertyDescriptors = List.of(
                 NAMESPACE,
                 EVENT_HUB_NAME,
                 SERVICE_BUS_ENDPOINT,
@@ -181,12 +171,12 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
                 ACCESS_POLICY,
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
-                NUM_PARTITIONS,
                 CONSUMER_GROUP,
                 ENQUEUE_TIME,
                 RECEIVER_FETCH_SIZE,
-                RECEIVER_FETCH_TIMEOUT
-        ));
+                RECEIVER_FETCH_TIMEOUT,
+                PROXY_CONFIGURATION_SERVICE
+        );
         relationships = Collections.singleton(REL_SUCCESS);
     }
 
@@ -400,6 +390,8 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         clientOptions.setIdentifier(clientIdentifier);
         eventHubClientBuilder.clientOptions(clientOptions);
 
+        AzureEventHubUtils.getProxyOptions(context).ifPresent(eventHubClientBuilder::proxyOptions);
+
         return eventHubClientBuilder;
     }
 
@@ -446,7 +438,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         attributes.put("eventhub.name", partitionContext.getEventHubName());
         attributes.put("eventhub.partition", partitionContext.getPartitionId());
 
-        final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
+        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
         attributes.putAll(applicationProperties);
 
         return attributes;

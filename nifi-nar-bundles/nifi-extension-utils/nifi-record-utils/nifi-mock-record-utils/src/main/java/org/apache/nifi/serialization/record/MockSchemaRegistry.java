@@ -40,7 +40,7 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
         schemaNameMap.put(name, schema);
     }
 
-    private RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+    RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
         if (!schemaName.isPresent()) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");

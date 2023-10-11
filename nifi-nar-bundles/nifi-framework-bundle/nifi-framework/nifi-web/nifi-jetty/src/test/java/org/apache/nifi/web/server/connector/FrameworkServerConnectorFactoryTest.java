@@ -36,7 +36,6 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -110,7 +109,7 @@ class FrameworkServerConnectorFactoryTest {
         assertHttpConnectionFactoryFound(serverConnector);
         final SslConnectionFactory sslConnectionFactory = assertSslConnectionFactoryFound(serverConnector);
 
-        final SslContextFactory.Server sslContextFactory = (SslContextFactory.Server) sslConnectionFactory.getSslContextFactory();
+        final SslContextFactory.Server sslContextFactory = sslConnectionFactory.getSslContextFactory();
         assertTrue(sslContextFactory.getNeedClientAuth());
         assertFalse(sslContextFactory.getWantClientAuth());
 
@@ -118,7 +117,7 @@ class FrameworkServerConnectorFactoryTest {
         assertAutoReloadEnabled(serverConnector);
 
         final HTTP2ServerConnectionFactory http2ServerConnectionFactory = serverConnector.getConnectionFactory(HTTP2ServerConnectionFactory.class);
-        assertNull(http2ServerConnectionFactory);
+        assertNotNull(http2ServerConnectionFactory);
     }
 
     @Test

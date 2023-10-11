@@ -177,13 +177,13 @@ public class QueryCassandraTest {
         testRunner.setIncomingConnection(false);
         testRunner.assertValid();
 
-        testRunner.setVariable("hosts", "localhost:9042");
-        testRunner.setVariable("user", "username");
-        testRunner.setVariable("pass", "password");
-        testRunner.setVariable("charset", "UTF-8");
-        testRunner.setVariable("timeout", "30 sec");
-        testRunner.setVariable("fetch", "0");
-        testRunner.setVariable("max-rows-per-flow", "0");
+        testRunner.setEnvironmentVariableValue("hosts", "localhost:9042");
+        testRunner.setEnvironmentVariableValue("user", "username");
+        testRunner.setEnvironmentVariableValue("pass", "password");
+        testRunner.setEnvironmentVariableValue("charset", "UTF-8");
+        testRunner.setEnvironmentVariableValue("timeout", "30 sec");
+        testRunner.setEnvironmentVariableValue("fetch", "0");
+        testRunner.setEnvironmentVariableValue("max-rows-per-flow", "0");
 
         // Test JSON output
         testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);

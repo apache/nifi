@@ -22,6 +22,33 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -54,32 +81,6 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
 import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_DURATION;
@@ -96,9 +97,12 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERT
  */
 @Path("/data-transfer")
 @Api(
-        value = "/data-transfer",
-        description = "Supports data transfers with this NiFi using HTTP based site to site"
+    value = "/data-transfer",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Supports data transfers with this NiFi using HTTP based site to site.")
+})
 public class DataTransferResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(DataTransferResource.class);

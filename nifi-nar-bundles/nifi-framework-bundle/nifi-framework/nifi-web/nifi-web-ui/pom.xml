@@ -516,7 +516,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-variable-registry.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-version.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
@@ -542,6 +541,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-services.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-flow-analysis-rule.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-parameter-provider.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
@@ -757,6 +757,7 @@
                                                 <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
+                                                <include>${staging.dir}/css/new-flow-analysis-rule-dialog.css</include>
                                                 <include>${staging.dir}/css/new-parameter-provider-dialog.css</include>
                                                 <include>${staging.dir}/css/new-parameter-context-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>
@@ -893,7 +894,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-war-plugin</artifactId>
-                        <version>3.3.2</version>
+                        <version>3.4.0</version>
                         <configuration>
                             <packagingIncludes>
                                 assets/**/*,

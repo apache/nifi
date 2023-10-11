@@ -18,6 +18,18 @@ package org.apache.nifi.processors.groovyx;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -53,18 +65,6 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})
 @CapabilityDescription(
@@ -98,7 +98,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
@@ -131,7 +131,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Classpath list separated by semicolon or comma. You can use masks like `*`, `*.jar` in file name.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that were successfully processed").build();
@@ -337,7 +337,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             compiled = (Class<Script>) script.getClass();
         }
         if (script == null) {
-            script = compiled.newInstance();
+            script = compiled.getDeclaredConstructor().newInstance();
         }
         Thread.currentThread().setContextClassLoader(shell.getClassLoader());
         return script;
@@ -353,7 +353,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {
-                    sql.getConnection().setAutoCommit(false);
+                    try {
+                        sql.getConnection().setAutoCommit(false);
+                    } catch (SQLFeatureNotSupportedException sfnse) {
+                        getLogger().debug("setAutoCommit(false) not supported by this driver");
+                    }
                 }
             } catch (Throwable ei) {
                 getLogger().warn("Failed to set autocommit=false for `" + e.getKey() + "`", ei);
@@ -382,7 +386,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
-                    sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+                    try {
+                        sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+                    } catch (SQLFeatureNotSupportedException sfnse) {
+                        getLogger().debug("setAutoCommit(true) not supported by this driver");
+                    }
                 }
             } catch (Throwable ei) {
                 getLogger().warn("Failed to set autocommit=true for `" + e.getKey() + "`", ei);
@@ -539,7 +547,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

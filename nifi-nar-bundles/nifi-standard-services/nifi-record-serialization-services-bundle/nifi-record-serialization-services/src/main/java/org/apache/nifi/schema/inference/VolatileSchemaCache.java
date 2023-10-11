@@ -54,7 +54,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         .description("The maximum number of Schemas to cache.")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("100")
         .build();
 

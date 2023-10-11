@@ -75,7 +75,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .name("Metrics prefix")
             .description("Prefix to be added before every metric")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -85,7 +85,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .description("Environment, dataflow is running in. " +
                     "This property will be included as metrics tag.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("dev")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

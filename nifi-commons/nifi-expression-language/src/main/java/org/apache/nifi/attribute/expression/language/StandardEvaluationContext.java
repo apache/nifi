@@ -19,7 +19,6 @@ package org.apache.nifi.attribute.expression.language;
 import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +34,7 @@ public class StandardEvaluationContext implements EvaluationContext {
     }
 
     public StandardEvaluationContext(final Map<String, String> variables, final Map<String, String> stateMap, final ParameterLookup parameterLookup) {
-        this(new ValueLookup(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, null, variables), stateMap, parameterLookup);
+        this(new ValueLookup(null, variables), stateMap, parameterLookup);
     }
 
     public StandardEvaluationContext(final ValueLookup valueLookup, final Map<String, String> stateMap, final ParameterLookup parameterLookup) {

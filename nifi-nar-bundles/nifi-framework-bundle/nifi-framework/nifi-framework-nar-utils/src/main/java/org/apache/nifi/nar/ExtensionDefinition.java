@@ -64,7 +64,7 @@ public class ExtensionDefinition {
 
     /**
      * @return the type of Extension (e.g., {@link org.apache.nifi.processor.Processor}, {@link org.apache.nifi.controller.ControllerService},
-     * {@link org.apache.nifi.parameter.ParameterProvider}, or {@link org.apache.nifi.reporting.ReportingTask}.
+     * {@link org.apache.nifi.parameter.ParameterProvider}, {@link org.apache.nifi.reporting.ReportingTask} or {@link org.apache.nifi.flowanalysis.FlowAnalysisRule}.
      */
     public Class<?> getExtensionType() {
         return extensionType;

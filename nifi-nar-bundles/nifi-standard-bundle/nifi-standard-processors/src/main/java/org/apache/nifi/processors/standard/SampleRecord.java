@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.Range;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -46,20 +59,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @SideEffectFree
 @SupportsBatching
@@ -285,7 +284,7 @@ public class SampleRecord extends AbstractProcessor {
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
             attributes.putAll(writeResult.getAttributes());
         } catch (Exception e) {
-            getLogger().error("Error during transmission of records due to {}, routing to failure", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error during transmission of records due to {}, routing to failure", e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
             session.remove(sampledFlowFile);
             return;
@@ -358,7 +357,7 @@ public class SampleRecord extends AbstractProcessor {
             if (StringUtils.isEmpty(rangeExpression)) {
                 startRange = 0;
                 endRange = Integer.MAX_VALUE;
-                ranges.add(Range.between(startRange, endRange));
+                ranges.add(Range.of(startRange, endRange));
             } else {
                 Matcher m = INTERVAL_PATTERN.matcher(rangeExpression);
                 while (m.find()) {
@@ -386,9 +385,9 @@ public class SampleRecord extends AbstractProcessor {
 
                     if (startRange != null && endRange == null) {
                         // Single value
-                        range = Range.between(startRange, startRange);
+                        range = Range.of(startRange, startRange);
                     } else {
-                        range = Range.between(startRange, endRange);
+                        range = Range.of(startRange, endRange);
                     }
                     ranges.add(range);
                 }

@@ -18,9 +18,15 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -30,25 +36,16 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
-
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
@@ -81,19 +78,9 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
         this.solrClient = createSolrClient(context, solrLocation);
 
-        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
-
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();
-        } else {
-            final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            if (kerberosCredentialsService != null) {
-                this.kerberosUser = createKerberosKeytabUser(kerberosCredentialsService);
-            } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
-                this.kerberosUser = createKerberosPasswordUser(kerberosPrincipal, kerberosPassword);
-            }
         }
     }
 
@@ -200,20 +187,9 @@ public abstract class SolrProcessor extends AbstractProcessor {
     final protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>();
 
-        if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            final String collection = context.getProperty(COLLECTION).getValue();
-            if (collection == null || collection.trim().isEmpty()) {
-                problems.add(new ValidationResult.Builder()
-                        .subject(COLLECTION.getName())
-                        .input(collection).valid(false)
-                        .explanation("A collection must specified for Solr Type of Cloud")
-                        .build());
-            }
-        }
-
         // For solr cloud the location will be the ZooKeeper host:port so we can't validate the SSLContext, but for standard solr
         // we can validate if the url starts with https we need an SSLContextService, if it starts with http we can't have an SSLContextService
-        if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
+        if (SOLR_TYPE_STANDARD.getValue().equals(context.getProperty(SOLR_TYPE).getValue())) {
             final String solrLocation = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
             if (solrLocation != null) {
                 final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -233,111 +209,43 @@ public abstract class SolrProcessor extends AbstractProcessor {
             }
         }
 
-        // Validate that username and password are provided together, or that neither are provided
-        final String username = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
-
-        final boolean basicUsernameProvided = !StringUtils.isBlank(username);
-        final boolean basicPasswordProvided = !StringUtils.isBlank(password);
-
-        if (basicUsernameProvided && !basicPasswordProvided) {
+        if (context.getProperty(BASIC_USERNAME).isSet() && context.getProperty(KERBEROS_USER_SERVICE).isSet()) {
             problems.add(new ValidationResult.Builder()
-                    .subject(BASIC_PASSWORD.getDisplayName())
-                    .valid(false)
-                    .explanation("a password must be provided for the given username")
-                    .build());
+                .subject("Basic Auth and Kerberos")
+                .explanation("Cannot set both Basic Auth Username and Kerberos User Service")
+                .valid(false)
+                .build());
         }
 
-        if (basicPasswordProvided && !basicUsernameProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(BASIC_USERNAME.getDisplayName())
-                    .valid(false)
-                    .explanation("a username must be provided for the given password")
-                    .build());
-        }
+        invalidIfEmpty(context, BASIC_USERNAME, problems);
+        invalidIfEmpty(context, BASIC_PASSWORD, problems);
 
-        // Validate that kerberos principal and password are provided together, or that neither are provided
-        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).evaluateAttributeExpressions().getValue();
-
-        final boolean kerberosPrincipalProvided = !StringUtils.isBlank(kerberosPrincipal);
-        final boolean kerberosPasswordProvided = !StringUtils.isBlank(kerberosPassword);
-
-        if (kerberosPrincipalProvided && !kerberosPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PASSWORD.getDisplayName())
-                    .valid(false)
-                    .explanation("a password must be provided for the given principal")
-                    .build());
-        }
-
-        if (kerberosPasswordProvided && !kerberosPrincipalProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
-                    .valid(false)
-                    .explanation("a principal must be provided for the given password")
-                    .build());
-        }
-
-
-        // Validate that only one of kerberos princpal/password, kerberos creds service, or basic auth can be set
-        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-
-        if (kerberosCredentialsService != null && basicUsernameProvided && basicPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("basic auth and kerberos credential service cannot be configured at the same time")
-                    .build());
-        }
-
-        if (kerberosCredentialsService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
-                    .build());
-        }
-
-        if (kerberosPrincipalProvided && kerberosPasswordProvided && basicUsernameProvided && basicPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
-                    .valid(false)
-                    .explanation("basic auth and kerberos principal/password cannot be configured at the same time")
-                    .build());
-        }
-
-        if (kerberosUserService != null && basicUsernameProvided && basicPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_USER_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("basic auth and kerberos user service cannot be configured at the same time")
-                    .build());
-        }
-
-        if (kerberosUserService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_USER_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos principal/password and kerberos user service cannot be configured at the same time")
-                    .build());
-        }
-
-        if (kerberosUserService != null && kerberosCredentialsService != null) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_USER_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos user service and kerberos credential service cannot be configured at the same time")
-                    .build());
-        }
-
-        Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
+        final Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
         if (otherProblems != null) {
             problems.addAll(otherProblems);
         }
 
+        if (SOLR_TYPE_CLOUD.getValue().equals(context.getProperty(SOLR_TYPE).getValue()) && !context.getProperty(COLLECTION).isSet()) {
+            problems.add(new ValidationResult.Builder()
+                .subject(COLLECTION.getName())
+                .input(context.getProperty(COLLECTION).getValue())
+                .valid(false)
+                .explanation("A collection must specified for Solr Type of Cloud")
+                .build());
+
+        }
+
         return problems;
+    }
+
+    private void invalidIfEmpty(final ValidationContext context, final PropertyDescriptor descriptor, final List<ValidationResult> problems) {
+        if (context.getProperty(descriptor).isSet() && context.getProperty(descriptor).evaluateAttributeExpressions().getValue().isBlank()) {
+            problems.add(new ValidationResult.Builder()
+                .subject(descriptor.getDisplayName())
+                .explanation("Property cannot be an empty string and cannot reference environment variables that do not exist")
+                .valid(false)
+                .build());
+        }
     }
 
     /**

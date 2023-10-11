@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.dto.NodeDTO;
@@ -24,6 +23,7 @@ import org.apache.nifi.web.api.entity.NodeEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 public class NodeResult extends AbstractWritableResult<NodeEntity> {
 
@@ -31,8 +31,7 @@ public class NodeResult extends AbstractWritableResult<NodeEntity> {
 
     public NodeResult(ResultType resultType, NodeEntity nodeEntity) {
         super(resultType);
-        this.nodeEntity = nodeEntity;
-        Validate.notNull(nodeEntity);
+        this.nodeEntity = Objects.requireNonNull(nodeEntity);
     }
 
     @Override

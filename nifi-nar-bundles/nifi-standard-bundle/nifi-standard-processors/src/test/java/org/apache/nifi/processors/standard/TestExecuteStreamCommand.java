@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
@@ -85,6 +86,7 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setProperty(ExecuteStreamCommand.MIME_TYPE.getName(), "text/plain");
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -103,6 +105,7 @@ public class TestExecuteStreamCommand {
         String attribute = outputFlowFile.getAttribute("execution.command.args");
         String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "TestSuccess.jar";
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
+        outputFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
         MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).get(0);
         assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
@@ -172,7 +175,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
     }
 
@@ -205,7 +208,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
     }
 
@@ -506,6 +509,7 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/hello.txt");
         assertTrue(dummy.exists());
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setProperty(ExecuteStreamCommand.MIME_TYPE, "application/json");
         controller.enqueue("".getBytes());
 
         if(isWindows()) {
@@ -526,6 +530,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         MockFlowFile outputFlowFile = flowFiles.get(0);
         outputFlowFile.assertContentEquals("");
+        outputFlowFile.assertAttributeNotExists(CoreAttributes.MIME_TYPE.key());
         String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
         assertTrue(ouput.startsWith("Hello"));
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));

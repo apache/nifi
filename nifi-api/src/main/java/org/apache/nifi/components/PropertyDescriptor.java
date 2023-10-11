@@ -85,12 +85,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      */
     private final boolean dynamic;
     /**
-     * indicates whether or not this property supports the Attribute Expression
-     * Language
-     */
-    @Deprecated
-    private final boolean expressionLanguageSupported;
-    /**
      * indicates whether or nor this property will evaluate expression language
      * against the flow file attributes
      */
@@ -134,7 +128,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.sensitive = builder.sensitive;
         this.dynamic = builder.dynamic;
         this.dynamicallyModifiesClasspath = builder.dynamicallyModifiesClasspath;
-        this.expressionLanguageSupported = builder.expressionLanguageSupported;
         this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
         this.validators = Collections.unmodifiableList(new ArrayList<>(builder.validators));
@@ -220,10 +213,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         private Set<PropertyDependency> dependencies = null;
         private boolean required = false;
         private boolean sensitive = false;
-
-        @Deprecated
-        private boolean expressionLanguageSupported = false;
-
         private ExpressionLanguageScope expressionLanguageScope = ExpressionLanguageScope.NONE;
         private boolean dynamic = false;
         private boolean dynamicallyModifiesClasspath = false;
@@ -241,7 +230,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.sensitive = specDescriptor.sensitive;
             this.dynamic = specDescriptor.dynamic;
             this.dynamicallyModifiesClasspath = specDescriptor.dynamicallyModifiesClasspath;
-            this.expressionLanguageSupported = specDescriptor.expressionLanguageSupported;
             this.expressionLanguageScope = specDescriptor.expressionLanguageScope;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
@@ -279,19 +267,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             if (null != name) {
                 this.name = name;
             }
-            return this;
-        }
-
-        /**
-         * Sets the value indicating whether or not this Property will support
-         * the Attribute Expression Language.
-         *
-         * @param supported true if yes; false otherwise
-         * @return the builder
-         */
-        @Deprecated
-        public Builder expressionLanguageSupported(final boolean supported) {
-            this.expressionLanguageSupported = supported;
             return this;
         }
 
@@ -684,7 +659,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     }
 
     public boolean isExpressionLanguageSupported() {
-        return expressionLanguageSupported || !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
+        return !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
     }
 
     public ExpressionLanguageScope getExpressionLanguageScope() {
@@ -811,11 +786,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
 
             // If Expression Language is supported and is used in the property value, we cannot perform validation against the configured
-            // input unless the Expression Language is expressly limited to only variable registry. In that case, we can evaluate it and then
-            // validate the value after evaluating the Expression Language.
+            // input unless the Expression Language is expressly limited to only env/syst properties variables. In that case, we can evaluate
+            // it and then validate the value after evaluating the Expression Language.
             String input = configuredInput;
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(configuredInput)) {
-                if (expressionLanguageScope != null && expressionLanguageScope == ExpressionLanguageScope.VARIABLE_REGISTRY) {
+                if (expressionLanguageScope != null && expressionLanguageScope == ExpressionLanguageScope.ENVIRONMENT) {
                     input = context.newPropertyValue(configuredInput).evaluateAttributeExpressions().getValue();
                     resultBuilder.input(input);
                 } else {

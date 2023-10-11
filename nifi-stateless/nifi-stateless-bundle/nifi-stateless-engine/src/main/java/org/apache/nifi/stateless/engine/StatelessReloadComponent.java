@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -30,6 +31,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -141,9 +143,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // call OnRemoved for the existing service using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                null, statelessEngine.getRootVariableRegistry());
-
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, statelessEngine.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
@@ -298,5 +298,10 @@ public class StatelessReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Successfully reloaded {}", existingNode);
+    }
+
+    @Override
+    public void reload(FlowAnalysisRuleNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowAnalysisRuleInstantiationException {
+        // Flow Analysis is not supported in stateless NiFi
     }
 }

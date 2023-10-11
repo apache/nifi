@@ -18,13 +18,13 @@ package org.apache.nifi.expression;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 
 /**
  * Defines a type of expression language statement that can be applied
  * parametrized by various attributes and properties as specified in each of
  * the method calls. AttributeExpression evaluations may be also backed by a
- * {@link VariableRegistry} used to substitute attributes and variables found in
+ * {@link EnvironmentVariables} used to substitute attributes and variables found in
  * the expression for which the registry has a value.
  */
 public interface AttributeExpression {

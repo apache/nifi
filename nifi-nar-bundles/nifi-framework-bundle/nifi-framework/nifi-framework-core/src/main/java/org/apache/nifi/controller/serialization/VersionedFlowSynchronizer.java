@@ -17,6 +17,26 @@
 
 package org.apache.nifi.controller.serialization;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -29,18 +49,18 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
 import org.apache.nifi.controller.StandardSnippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
-import org.apache.nifi.controller.flow.VersionedTemplate;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
@@ -57,6 +77,7 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -102,27 +123,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
@@ -247,6 +247,20 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final Bundle compatibleBundle = getCompatibleBundle(reportingTask.getBundle(), extensionManager, reportingTask.getType());
             if (compatibleBundle != null) {
                 reportingTask.setBundle(compatibleBundle);
+            }
+        }
+
+        if (dataflow.getFlowAnalysisRules() == null) {
+            dataflow.setFlowAnalysisRules(new ArrayList<>());
+        }
+        for (final VersionedFlowAnalysisRule flowAnalysisRule : dataflow.getFlowAnalysisRules()) {
+            if (missingComponentIds.contains(flowAnalysisRule.getInstanceIdentifier())) {
+                continue;
+            }
+
+            final Bundle compatibleBundle = getCompatibleBundle(flowAnalysisRule.getBundle(), extensionManager, flowAnalysisRule.getType());
+            if (compatibleBundle != null) {
+                flowAnalysisRule.setBundle(compatibleBundle);
             }
         }
 
@@ -385,6 +399,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
+                inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
                 inheritRegistries(controller, versionedFlow, affectedComponentSet);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
@@ -404,11 +419,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     controller.setRootGroup(rootGroup);
                 }
 
-                // We must remove templates before attempting to synchronize the Process Group, as synchronizing may result in removal of a Process Group,
-                // which cannot be done while Templates exist. After synchronizing root Process Group, we will inherit any templates in the proposed flow
-                final Set<Template> allTemplates = controller.getFlowManager().getRootGroup().findAllTemplates();
-                allTemplates.forEach(template -> template.getProcessGroup().removeTemplate(template));
-
                 // Synchronize the root group
                 final FlowSynchronizationOptions syncOptions = new FlowSynchronizationOptions.Builder()
                     .componentIdGenerator(componentIdGenerator)
@@ -417,9 +427,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .ignoreLocalModifications(true)
                     .updateGroupSettings(true)
                     .updateDescendantVersionedFlows(true)
-                    .updateExistingVariables(true)
                     .updateGroupVersionControlSnapshot(false)
-                    .updateExistingVariables(true)
                     .updateRpgUrls(true)
                     .propertyDecryptor(encryptor::decrypt)
                     .build();
@@ -436,9 +444,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .build();
 
                 rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);
-
-                // Inherit templates, now that all necessary Process Groups have been created
-                inheritTemplates(controller, versionedFlow);
             }
 
             inheritSnippets(controller, proposedFlow);
@@ -453,16 +458,30 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
         final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
-            "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
-            toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
+            "Cluster Flow",
+            clusterVersionedFlow.getRootGroup(),
+            toSet(clusterVersionedFlow.getControllerServices()),
+            toSet(clusterVersionedFlow.getReportingTasks()),
+            toSet(clusterVersionedFlow.getFlowAnalysisRules()),
+            toSet(clusterVersionedFlow.getParameterContexts()),
+            toSet(clusterVersionedFlow.getParameterProviders()),
+            toSet(clusterVersionedFlow.getRegistries())
+        );
 
         final VersionedProcessGroup proposedRootGroup = clusterVersionedFlow.getRootGroup();
         final String proposedRootGroupId = proposedRootGroup == null ? null : proposedRootGroup.getInstanceIdentifier();
 
         final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow(proposedRootGroupId) : existingFlow.getVersionedDataflow();
         final ComparableDataFlow localDataFlow = new StandardComparableDataFlow(
-                "Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()), toSet(existingVersionedFlow.getReportingTasks()),
-                toSet(existingVersionedFlow.getParameterContexts()),toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
+            "Local Flow",
+            existingVersionedFlow.getRootGroup(),
+            toSet(existingVersionedFlow.getControllerServices()),
+            toSet(existingVersionedFlow.getReportingTasks()),
+            toSet(existingVersionedFlow.getFlowAnalysisRules()),
+            toSet(existingVersionedFlow.getParameterContexts()),
+            toSet(existingVersionedFlow.getParameterProviders()),
+            toSet(existingVersionedFlow.getRegistries())
+        );
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
@@ -485,6 +504,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         dataflow.setParameterProviders(Collections.emptyList());
         dataflow.setRegistries(Collections.emptyList());
         dataflow.setReportingTasks(Collections.emptyList());
+        dataflow.setFlowAnalysisRules(Collections.emptyList());
 
         final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
         rootGroup.setInstanceIdentifier(rootGroupId);
@@ -507,25 +527,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         logger.debug("Components affected by inheriting the flow are: {}", affectedComponentSet);
         return affectedComponentSet;
-    }
-
-
-    private void inheritTemplates(final FlowController controller, final VersionedDataflow dataflow) {
-        if (dataflow.getTemplates() == null) {
-            return;
-        }
-
-        logger.debug("Synchronizing templates in dataflow");
-        final FlowManager flowManager = controller.getFlowManager();
-        for (final VersionedTemplate versionedTemplate : dataflow.getTemplates()) {
-            final ProcessGroup group = flowManager.getGroup(versionedTemplate.getGroupIdentifier());
-            if (group == null) {
-                logger.warn("Found Template for Process Group with ID {} but no Process Group exists with that ID", versionedTemplate.getGroupIdentifier());
-                continue;
-            }
-
-            group.addTemplate(new Template(versionedTemplate.getTemplateDto()));
-        }
     }
 
     private void inheritRegistries(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
@@ -562,7 +563,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
      * @return <code>true</code> if the client is from an older configuration, <code>false</code> otherwise.
      */
     private boolean isOldStyleRegistryClient(final VersionedFlowRegistryClient client) {
-        return client.getId() != null && client.getIdentifier() == null && client.getBundle() == null;
+        return client.getIdentifier() != null && client.getIdentifier() == null && client.getBundle() == null;
     }
 
     /**
@@ -577,7 +578,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             chosenCoordinate = DEPRECATED_FLOW_REGISTRY_BUNDLE;
         }
 
-        final FlowRegistryClientNode flowRegistryClient = flowManager.createFlowRegistryClient(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE, client.getId(),
+        final FlowRegistryClientNode flowRegistryClient = flowManager.createFlowRegistryClient(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE, client.getIdentifier(),
             chosenCoordinate, Collections.emptySet(), false,true, null);
 
         flowRegistryClient.setName(client.getName());
@@ -650,6 +651,51 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 }
                 if (!taskNode.isRunning()) {
                     controller.startReportingTask(taskNode);
+                }
+                break;
+        }
+    }
+
+    private void inheritFlowAnalysisRules(
+        final FlowController controller,
+        final VersionedDataflow dataflow,
+        final AffectedComponentSet affectedComponentSet
+    ) throws FlowAnalysisRuleInstantiationException {
+        for (final VersionedFlowAnalysisRule versionedFlowAnalysisRule : dataflow.getFlowAnalysisRules()) {
+            final FlowAnalysisRuleNode existing = controller.getFlowAnalysisRuleNode(versionedFlowAnalysisRule.getInstanceIdentifier());
+            if (existing == null) {
+                addFlowAnalysisRule(controller, versionedFlowAnalysisRule);
+            } else if (affectedComponentSet.isFlowAnalysisRuleAffected(existing.getIdentifier())) {
+                updateFlowAnalysisRule(existing, versionedFlowAnalysisRule, controller);
+            }
+        }
+    }
+
+    private void addFlowAnalysisRule(final FlowController controller, final VersionedFlowAnalysisRule flowAnalysisRule) throws FlowAnalysisRuleInstantiationException {
+        final BundleCoordinate coordinate = createBundleCoordinate(flowAnalysisRule.getBundle(), flowAnalysisRule.getType());
+
+        final FlowAnalysisRuleNode ruleNode = controller.createFlowAnalysisRule(flowAnalysisRule.getType(), flowAnalysisRule.getInstanceIdentifier(), coordinate, false);
+        updateFlowAnalysisRule(ruleNode, flowAnalysisRule, controller);
+    }
+
+    private void updateFlowAnalysisRule(final FlowAnalysisRuleNode ruleNode, final VersionedFlowAnalysisRule flowAnalysisRule, final FlowController controller) {
+        ruleNode.setName(flowAnalysisRule.getName());
+        ruleNode.setComments(flowAnalysisRule.getComments());
+        ruleNode.setEnforcementPolicy(flowAnalysisRule.getEnforcementPolicy());
+
+        final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(ruleNode, flowAnalysisRule);
+        final Map<String, String> decryptedProperties = decryptProperties(flowAnalysisRule.getProperties(), controller.getEncryptor());
+        ruleNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
+
+        switch (flowAnalysisRule.getScheduledState()) {
+            case DISABLED:
+                if (ruleNode.isEnabled()) {
+                    controller.disableFlowAnalysisRule(ruleNode);
+                }
+                break;
+            case ENABLED:
+                if (!ruleNode.isEnabled()) {
+                    controller.enableFlowAnalysisRule(ruleNode);
                 }
                 break;
         }

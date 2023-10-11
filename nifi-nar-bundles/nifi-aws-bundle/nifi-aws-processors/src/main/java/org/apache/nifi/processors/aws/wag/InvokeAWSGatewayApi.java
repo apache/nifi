@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -67,10 +68,8 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "aws.gateway.api.tx.id", description = "The transaction ID that is returned after reading the response"),
     @WritesAttribute(attribute = "aws.gateway.api.java.exception.class", description = "The Java exception class raised when the processor fails"),
     @WritesAttribute(attribute = "aws.gateway.api.java.exception.message", description = "The Java exception message raised when the processor fails"),})
-@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description =
-    "Send request header "
-        + "with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value "
-        + "of the Dynamic Property.")
+@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value of the Dynamic Property.")
 public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
     private static final Set<String> IDEMPOTENT_METHODS = new HashSet<>(Arrays.asList("GET", "HEAD", "OPTIONS"));
@@ -78,7 +77,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays
             .asList(
                     PROP_METHOD,
-                    PROP_AWS_GATEWAY_API_REGION,
+                    REGION,
                     ACCESS_KEY,
                     SECRET_KEY,
                     CREDENTIALS_FILE,
@@ -251,17 +250,12 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 // transfer the message body to the payload
                 // can potentially be null in edge cases
                 if (bodyExists) {
-                    final String contentType = response.getHttpResponse().getHeaders()
-                                                       .get("Content-Type");
-                    if (!(contentType == null) && !contentType.trim().isEmpty()) {
-                        responseFlowFile = session
-                            .putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(),
-                                          contentType.trim());
+                    final List<String> contentTypes = response.getHttpResponse().getHeaderValues("Content-Type");
+                    if (contentTypes != null && !contentTypes.isEmpty()) {
+                        responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), contentTypes.get(0).trim());
                     }
 
-                    responseFlowFile = session
-                        .importFrom(new ByteArrayInputStream(response.getBody().getBytes()),
-                                    responseFlowFile);
+                    responseFlowFile = session.importFrom(new ByteArrayInputStream(response.getBody().getBytes()), responseFlowFile);
 
                     // emit provenance event
                     final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -330,8 +324,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
-                logger.error("Routing to {} due to exception: {}",
-                             new Object[]{REL_FAILURE.getName(), e}, e);
+                logger.error("Routing to {} due to exception: {}", REL_FAILURE.getName(), e, e);
                 requestFlowFile = session.penalize(requestFlowFile);
                 requestFlowFile = session
                     .putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
@@ -351,8 +344,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     session.remove(responseFlowFile);
                 }
             } catch (final Exception e1) {
-                logger.error("Could not cleanup response flowfile due to exception: {}",
-                             new Object[]{e1}, e1);
+                logger.error("Could not cleanup response flowfile due to exception: {}", e1, e1);
             }
         }
     }

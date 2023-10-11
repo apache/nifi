@@ -18,6 +18,22 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -56,40 +72,17 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.CursorMarkParams;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
 
 @Tags({"Apache", "Solr", "Get", "Pull", "Records"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -185,19 +178,13 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(DATE_FILTER);
         descriptors.add(RETURN_FIELDS);
         descriptors.add(BATCH_SIZE);
-        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_PRINCIPAL);
-        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
-        descriptors.add(SOLR_MAX_CONNECTIONS);
         descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
-        descriptors.add(ZK_CLIENT_TIMEOUT);
-        descriptors.add(ZK_CONNECTION_TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -237,8 +224,7 @@ public class GetSolr extends SolrProcessor {
         if (clearState.getAndSet(false))
             context.getStateManager().clear(Scope.CLUSTER);
 
-        final Map<String,String> stateMap = new HashMap<String,String>();
-        stateMap.putAll(context.getStateManager().getState(Scope.CLUSTER).toMap());
+        final Map<String, String> stateMap = new HashMap<>(context.getStateManager().getState(Scope.CLUSTER).toMap());
         final AtomicBoolean stateMapHasChanged = new AtomicBoolean(false);
 
         if (stateMap.get(STATE_MANAGER_CURSOR_MARK) == null) {
@@ -288,7 +274,7 @@ public class GetSolr extends SolrProcessor {
 
             return(req.process(getSolrClient()).getResponse().get("uniqueKey").toString());
         } catch (SolrServerException | IOException e) {
-            getLogger().error("Solr query to retrieve uniqueKey-field failed due to {}", new Object[]{solrQuery.toString(), e}, e);
+            getLogger().error("Solr query to retrieve uniqueKey-field failed due to {}", solrQuery.toString(), e, e);
             throw new ProcessException(e);
         }
     }
@@ -307,25 +293,20 @@ public class GetSolr extends SolrProcessor {
 
             final String dateField = context.getProperty(DATE_FIELD).getValue();
 
-            final Map<String,String> stateMap = new HashMap<String,String>();
-            stateMap.putAll(session.getState(Scope.CLUSTER).toMap());
+            final Map<String, String> stateMap = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
 
             solrQuery.setQuery("*:*");
             final String query = context.getProperty(SOLR_QUERY).getValue();
             if (!StringUtils.isBlank(query) && !query.equals("*:*")) {
                 solrQuery.addFilterQuery(query);
             }
-            final StringBuilder automatedFilterQuery = (new StringBuilder())
-                    .append(dateField)
-                    .append(":[")
-                    .append(stateMap.get(STATE_MANAGER_FILTER))
-                    .append(" TO *]");
-            solrQuery.addFilterQuery(automatedFilterQuery.toString());
+            final String automatedFilterQuery = "%s:[%s TO *]".formatted(dateField, stateMap.get(STATE_MANAGER_FILTER));
+            solrQuery.addFilterQuery(automatedFilterQuery);
 
-            final List<String> fieldList = new ArrayList<String>();
+            final List<String> fieldList = new ArrayList<>();
             final String returnFields = context.getProperty(RETURN_FIELDS).getValue();
             if (!StringUtils.isBlank(returnFields)) {
-                fieldList.addAll(Arrays.asList(returnFields.trim().split("[,]")));
+                fieldList.addAll(Arrays.asList(returnFields.trim().split(",")));
                 if (!fieldList.contains(dateField)) {
                     fieldList.add(dateField);
                     dateFieldNotInSpecifiedFieldsList.set(true);
@@ -338,12 +319,8 @@ public class GetSolr extends SolrProcessor {
             solrQuery.setParam(CursorMarkParams.CURSOR_MARK_PARAM, stateMap.get(STATE_MANAGER_CURSOR_MARK));
             solrQuery.setRows(context.getProperty(BATCH_SIZE).asInteger());
 
-            final StringBuilder sortClause = (new StringBuilder())
-                    .append(dateField)
-                    .append(" asc,")
-                    .append(id_field)
-                    .append(" asc");
-            solrQuery.setParam("sort", sortClause.toString());
+            final String sortClause = "%s asc, %s asc".formatted(dateField, id_field);
+            solrQuery.setParam("sort", sortClause);
 
             while (continuePaging.get()) {
                 StopWatch timer = new StopWatch(true);
@@ -420,12 +397,12 @@ public class GetSolr extends SolrProcessor {
         } catch (final SolrServerException | SchemaNotFoundException | IOException e) {
             context.yield();
             session.rollback();
-            logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), e}, e);
+            logger.error("Failed to execute query {} due to {}", solrQuery.toString(), e, e);
             throw new ProcessException(e);
         } catch (final Throwable t) {
             context.yield();
             session.rollback();
-            logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), t}, t);
+            logger.error("Failed to execute query {} due to {}", solrQuery.toString(), t, t);
             throw t;
         }
     }

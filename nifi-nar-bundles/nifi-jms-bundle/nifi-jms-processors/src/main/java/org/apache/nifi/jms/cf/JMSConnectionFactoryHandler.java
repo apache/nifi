@@ -38,46 +38,28 @@ import org.apache.nifi.ssl.SSLContextService;
  * implementation class and configuring the Connection Factory object directly.
  * The handler can be used from controller services and processors as well.
  */
-public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvider {
+public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandler {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;
     private final ComponentLog logger;
 
     public JMSConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
+        super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
     public JMSConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
+        super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
-    private volatile ConnectionFactory connectionFactory;
-
     @Override
-    public synchronized ConnectionFactory getConnectionFactory() {
-        if (connectionFactory == null) {
-            initConnectionFactory();
-        } else {
-            logger.debug("Connection Factory has already been initialized. Will return cached instance.");
-        }
-
-        return connectionFactory;
-    }
-
-    @Override
-    public synchronized void resetConnectionFactory(ConnectionFactory cachedFactory) {
-        if (cachedFactory == connectionFactory) {
-            logger.debug("Resetting connection factory");
-            connectionFactory = null;
-        }
-    }
-
-    private void initConnectionFactory() {
+    public ConnectionFactory createConnectionFactory() {
         try {
             if (logger.isInfoEnabled()) {
                 logger.info("Configuring " + getClass().getSimpleName() + " for '"
@@ -85,10 +67,11 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
                         + context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
             }
 
-            createConnectionFactoryInstance();
-            setConnectionFactoryProperties();
+            final ConnectionFactory connectionFactory = createConnectionFactoryInstance();
+            setConnectionFactoryProperties(connectionFactory);
+
+            return connectionFactory;
         } catch (Exception e) {
-            connectionFactory = null;
             logger.error("Failed to configure " + getClass().getSimpleName(), e);
             throw new IllegalStateException(e);
         }
@@ -98,9 +81,9 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
      * Creates an instance of the {@link ConnectionFactory} from the provided
      * 'CONNECTION_FACTORY_IMPL'.
      */
-    private void createConnectionFactoryInstance() {
-        String connectionFactoryImplName = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
-        connectionFactory = Utils.newDefaultInstance(connectionFactoryImplName);
+    private ConnectionFactory createConnectionFactoryInstance() {
+        final String connectionFactoryImplName = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
+        return Utils.newDefaultInstance(connectionFactoryImplName);
     }
 
     /**
@@ -135,18 +118,18 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setHostName_java.lang.String_">setHostName(String hostname)</a>
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setPort_int_">setPort(int port)</a>
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
-     * @see #setProperty(String propertyName, Object propertyValue)
+     * @see #setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue)
      */
-    void setConnectionFactoryProperties() {
+    void setConnectionFactoryProperties(ConnectionFactory connectionFactory) {
         String connectionFactoryValue = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
         if (context.getProperty(JMS_BROKER_URI).isSet()) {
             String brokerValue = context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue();
             if (connectionFactoryValue.startsWith("org.apache.activemq")) {
-                setProperty("brokerURL", brokerValue);
+                setProperty(connectionFactory, "brokerURL", brokerValue);
             } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
-                setProperty("serverUrl", brokerValue);
+                setProperty(connectionFactory, "serverUrl", brokerValue);
             } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
-                setProperty("remoteURI", brokerValue);
+                setProperty(connectionFactory, "remoteURI", brokerValue);
             } else {
                 String[] brokerList = brokerValue.split(",");
                 if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
@@ -159,14 +142,14 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
                             ibmConList.add(broker);
                         }
                     }
-                    setProperty("connectionNameList", String.join(",", ibmConList));
+                    setProperty(connectionFactory, "connectionNameList", String.join(",", ibmConList));
                 } else {
                     // Try to parse broker URI as colon separated host/port pair. Use first pair if multiple given.
                     String[] hostPort = brokerList[0].split(":");
                     if (hostPort.length == 2) {
                         // If broker URI indeed was colon separated host/port pair
-                        setProperty("hostName", hostPort[0]);
-                        setProperty("port", hostPort[1]);
+                        setProperty(connectionFactory, "hostName", hostPort[0]);
+                        setProperty(connectionFactory, "port", hostPort[1]);
                     }
                 }
             }
@@ -177,21 +160,21 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
             SSLContext sslContext = sslContextService.createContext();
             if (connectionFactoryValue.startsWith("org.apache.activemq")) {
                 if (sslContextService.isTrustStoreConfigured()) {
-                    setProperty("trustStore", sslContextService.getTrustStoreFile());
-                    setProperty("trustStorePassword", sslContextService.getTrustStorePassword());
-                    setProperty("trustStoreType", sslContextService.getTrustStoreType());
+                    setProperty(connectionFactory, "trustStore", sslContextService.getTrustStoreFile());
+                    setProperty(connectionFactory, "trustStorePassword", sslContextService.getTrustStorePassword());
+                    setProperty(connectionFactory, "trustStoreType", sslContextService.getTrustStoreType());
                 }
                 if (sslContextService.isKeyStoreConfigured()) {
-                    setProperty("keyStore", sslContextService.getKeyStoreFile());
-                    setProperty("keyStorePassword", sslContextService.getKeyStorePassword());
-                    setProperty("keyStoreKeyPassword", sslContextService.getKeyPassword());
-                    setProperty("keyStoreType", sslContextService.getKeyStoreType());
+                    setProperty(connectionFactory, "keyStore", sslContextService.getKeyStoreFile());
+                    setProperty(connectionFactory, "keyStorePassword", sslContextService.getKeyStorePassword());
+                    setProperty(connectionFactory, "keyStoreKeyPassword", sslContextService.getKeyPassword());
+                    setProperty(connectionFactory, "keyStoreType", sslContextService.getKeyStoreType());
                 }
             } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
-                setProperty("sslContext", sslContext);
+                setProperty(connectionFactory, "sslContext", sslContext);
             } else {
                 // IBM MQ (and others)
-                setProperty("sSLSocketFactory", sslContext.getSocketFactory());
+                setProperty(connectionFactory, "sSLSocketFactory", sslContext.getSocketFactory());
             }
         }
 
@@ -200,7 +183,7 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
                 .forEach(descriptor -> {
                     String propertyName = descriptor.getName();
                     String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
-                    setProperty(propertyName, propertyValue);
+                    setProperty(connectionFactory, propertyName, propertyValue);
                 });
     }
 
@@ -222,7 +205,7 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
      * follow bean convention and all their properties using Java primitives as
      * arguments.
      */
-    void setProperty(String propertyName, Object propertyValue) {
+    void setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue) {
         String methodName = toMethodName(propertyName);
         Method[] methods = Utils.findMethods(methodName, connectionFactory.getClass());
         if (methods != null && methods.length > 0) {
@@ -248,7 +231,7 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
                 throw new IllegalStateException("Failed to set property " + propertyName, e);
             }
         } else if (propertyName.equals("hostName")) {
-            setProperty("host", propertyValue); // try 'host' as another common convention.
+            setProperty(connectionFactory, "host", propertyValue); // try 'host' as another common convention.
         }
     }
 
@@ -262,4 +245,5 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
         c[0] = Character.toUpperCase(c[0]);
         return "set" + new String(c);
     }
+
 }

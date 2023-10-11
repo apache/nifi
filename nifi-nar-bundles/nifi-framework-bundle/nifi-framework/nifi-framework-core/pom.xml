@@ -104,6 +104,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-cert</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-repository-encryption</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -123,11 +128,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-cluster-protocol</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-logging-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -264,21 +264,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.spockframework</groupId>
-            <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib-nodep</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jgit</groupId>
-            <artifactId>org.eclipse.jgit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-authorizer</artifactId>
         </dependency>
@@ -292,12 +277,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-persistent-provenance-repository</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-dateutil</artifactId>
-            <version>${nifi.groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

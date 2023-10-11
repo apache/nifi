@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * Result for CurrentUserEntity from NiFi.
@@ -32,8 +32,7 @@ public class CurrentUserEntityResult extends AbstractWritableResult<CurrentUserE
 
     public CurrentUserEntityResult(final ResultType resultType, final CurrentUserEntity currentUserEntity) {
         super(resultType);
-        this.currentUserEntity = currentUserEntity;
-        Validate.notNull(this.currentUserEntity);
+        this.currentUserEntity = Objects.requireNonNull(currentUserEntity);
     }
 
     @Override

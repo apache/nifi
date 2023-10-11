@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import java.io.IOException;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -30,13 +31,14 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
-import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
-import java.io.IOException;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.io.InputFile;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -60,9 +62,9 @@ import java.io.IOException;
 public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override
-    public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path)
-            throws IOException {
-        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(path).withConf(conf);
+    public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path) throws IOException {
+        final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
+        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(inputFile).withConf(conf);
         return new AvroParquetHDFSRecordReader(readerBuilder.build());
     }
 

@@ -26,11 +26,12 @@
     <packaging>pom</packaging>
 
     <properties>
-        <spring.data.redis.version>2.7.14</spring.data.redis.version>
+        <spring.data.redis.version>2.7.15</spring.data.redis.version>
         <jedis.version>3.10.0</jedis.version>
     </properties>
 
     <modules>
+        <module>nifi-redis-utils</module>
         <module>nifi-redis-service-api</module>
         <module>nifi-redis-service-api-nar</module>
         <module>nifi-redis-extensions</module>

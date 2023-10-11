@@ -116,7 +116,7 @@ public class AttributesToJSON extends AbstractProcessor {
                     + "the matching attributes. This property can be used in combination with the attributes "
                     + "list property.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

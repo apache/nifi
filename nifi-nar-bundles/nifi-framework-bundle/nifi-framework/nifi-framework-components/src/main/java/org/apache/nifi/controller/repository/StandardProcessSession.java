@@ -16,6 +16,40 @@
  */
 package org.apache.nifi.controller.repository;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -69,41 +103,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -2657,12 +2656,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void read(final FlowFile source, final InputStreamCallback reader) {
-        read(source, true, reader);
-    }
-
-    @Override
-    public void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) {
+    public void read(FlowFile source, final InputStreamCallback reader) {
         verifyTaskActive();
 
         source = validateRecordState(source, true);
@@ -2691,12 +2685,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 incrementReadCount(source);
                 reader.process(createTaskTerminationStream(ffais));
-
-                // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
-                if (rawIn == currentReadClaimStream && !allowSessionStreamManagement) {
-                    currentReadClaimStream.close();
-                    currentReadClaimStream = null;
-                }
             } catch (final ContentNotFoundException cnfe) {
                 cnfeThrown = true;
                 throw cnfe;

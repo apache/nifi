@@ -42,7 +42,7 @@ public class JMSConnectionFactoryProperties {
                     + "class (eg. org.apache.activemq.ActiveMQConnectionFactory).")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JMS_CLIENT_LIBRARIES = new PropertyDescriptor.Builder()
@@ -53,7 +53,7 @@ public class JMSConnectionFactoryProperties {
                     + "for the ConnectionFactory implementation.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -64,7 +64,7 @@ public class JMSConnectionFactoryProperties {
                     + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost(1414)' and 'myhost01(1414),myhost02(1414)'.")
             .required(false)
             .addValidator(new NonEmptyBrokerURIValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor JMS_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -94,7 +94,7 @@ public class JMSConnectionFactoryProperties {
                 .required(false)
                 .dynamic(true)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 

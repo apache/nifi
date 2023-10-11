@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoVersionSummary;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -27,6 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public class ExtensionRepoVersionSummariesResult extends AbstractWritableResult<List<ExtensionRepoVersionSummary>> {
 
@@ -34,8 +34,7 @@ public class ExtensionRepoVersionSummariesResult extends AbstractWritableResult<
 
     public ExtensionRepoVersionSummariesResult(final ResultType resultType, final List<ExtensionRepoVersionSummary> bundleVersions) {
         super(resultType);
-        this.bundleVersions = bundleVersions;
-        Validate.notNull(this.bundleVersions);
+        this.bundleVersions = Objects.requireNonNull(bundleVersions);
 
         this.bundleVersions.sort(
                 Comparator.comparing(ExtensionRepoVersionSummary::getBucketName)

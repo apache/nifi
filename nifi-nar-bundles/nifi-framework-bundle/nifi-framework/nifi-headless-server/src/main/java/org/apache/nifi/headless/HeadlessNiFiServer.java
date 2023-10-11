@@ -53,8 +53,6 @@ import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
@@ -130,7 +128,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
             final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
             final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
-            VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
             final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
@@ -145,9 +142,9 @@ public class HeadlessNiFiServer implements NiFiServer {
                     auditService,
                     encryptor,
                     bulletinRepository,
-                    variableRegistry,
                     extensionManager,
-                    statusHistoryRepository);
+                    statusHistoryRepository,
+                    null);
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,

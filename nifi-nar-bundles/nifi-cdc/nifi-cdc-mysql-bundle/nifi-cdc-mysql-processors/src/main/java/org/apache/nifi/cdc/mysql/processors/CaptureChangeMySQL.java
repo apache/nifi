@@ -27,6 +27,33 @@ import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
 import com.github.shyiko.mysql.binlog.network.SSLMode;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -47,20 +74,20 @@ import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.event.RowEventException;
 import org.apache.nifi.cdc.event.TableInfo;
 import org.apache.nifi.cdc.event.TableInfoCacheKey;
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
+import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.event.BinlogEventListener;
 import org.apache.nifi.cdc.mysql.event.BinlogLifecycleListener;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.event.handler.BeginEventHandler;
 import org.apache.nifi.cdc.mysql.event.handler.CommitEventHandler;
 import org.apache.nifi.cdc.mysql.event.handler.DDLEventHandler;
 import org.apache.nifi.cdc.mysql.event.handler.DeleteEventHandler;
 import org.apache.nifi.cdc.mysql.event.handler.InsertEventHandler;
 import org.apache.nifi.cdc.mysql.event.handler.UpdateEventHandler;
+import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
 import org.apache.nifi.cdc.mysql.processors.ssl.ConnectionPropertiesProvider;
 import org.apache.nifi.cdc.mysql.processors.ssl.StandardConnectionPropertiesProvider;
@@ -89,34 +116,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
@@ -226,7 +225,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .defaultValue("30 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor HOSTS = new PropertyDescriptor.Builder()
@@ -239,7 +238,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "to the active node (assuming its node entry is specified in this property).")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder()
@@ -249,7 +248,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .defaultValue("com.mysql.jdbc.Driver")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder()
@@ -260,7 +259,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .defaultValue(null)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -270,7 +269,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .description("Username to access the MySQL cluster")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -280,7 +279,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor EVENTS_PER_FLOWFILE_STRATEGY = new PropertyDescriptor.Builder()
@@ -304,7 +303,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .sensitive(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, MAX_EVENTS_PER_FLOWFILE.getValue())
             .build();
 
@@ -316,7 +315,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "the replication group. If the Server ID is not specified, it defaults to 65535.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
@@ -375,7 +374,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor INIT_SEQUENCE_ID = new PropertyDescriptor.Builder()
@@ -387,7 +386,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "processor to guarantee ordered delivery of CDC events.")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor INIT_BINLOG_FILENAME = new PropertyDescriptor.Builder()
@@ -397,10 +396,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "in the processor's State or \"Use GTID\" property is set to false, this property is ignored. "
                     + "This can be used along with Initial Binlog Position to \"skip ahead\" if previous events are not desired. "
                     + "Note that NiFi Expression Language is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. Expression "
-                    + "Language is supported to enable the use of the Variable Registry and/or environment properties.")
+                    + "Language is supported to enable the use of the environment properties.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor INIT_BINLOG_POSITION = new PropertyDescriptor.Builder()
@@ -410,10 +409,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "binlog filename. If a filename is present in the processor's State or \"Use GTID\" property is false, this property is ignored. "
                     + "This can be used along with Initial Binlog Filename to \"skip ahead\" if previous events are not desired. Note that NiFi Expression Language "
                     + "is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. Expression Language is "
-                    + "supported to enable the use of the Variable Registry and/or environment properties.")
+                    + "supported to enable the use of the environment properties.")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor USE_BINLOG_GTID = new PropertyDescriptor.Builder()
@@ -434,10 +433,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     + "If a GTID is present in the processor's State or \"Use GTID\" property is set to false, this property is ignored. "
                     + "This can be used to \"skip ahead\" if previous events are not desired. "
                     + "Note that NiFi Expression Language is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. "
-                    + "Expression Language is supported to enable the use of the Variable Registry and/or environment properties.")
+                    + "Expression Language is supported to enable the use of the environment properties.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SSL_MODE = new PropertyDescriptor.Builder()
@@ -1345,7 +1344,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 if (clazz == null) {
                     throw new InitializationException("Can't load Database Driver " + drvName);
                 }
-                final Driver driver = (Driver) clazz.newInstance();
+                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(new DriverShim(driver));
 
             } catch (final InitializationException e) {

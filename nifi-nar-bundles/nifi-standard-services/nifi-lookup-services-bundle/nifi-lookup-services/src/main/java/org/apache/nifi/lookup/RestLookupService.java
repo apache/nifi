@@ -109,7 +109,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("Record Path")
         .description("An optional record path that can be used to define where in a record to get the real data to merge " +
                 "into the record set to be enriched. See documentation for examples of when this might be useful.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(new RecordPathValidator())
         .required(false)
         .build();
@@ -128,7 +128,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("Basic Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .build();
 
@@ -138,7 +138,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .description("The password to be used by the client to authenticate against the Remote URL.")
         .required(false)
         .sensitive(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
         .build();
 

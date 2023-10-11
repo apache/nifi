@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.cli.impl.client;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
@@ -42,7 +41,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
@@ -52,6 +50,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRe
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -196,7 +195,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         public NiFiClientWithRequestConfig(final NiFiClient wrappedClient, final RequestConfig requestConfig) {
             this.wrappedClient = wrappedClient;
-            this.requestConfig = Validate.notNull(requestConfig);
+            this.requestConfig = Objects.requireNonNull(requestConfig);
         }
 
         @Override
@@ -277,16 +276,6 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
             return wrappedClient.getPoliciesClient(requestConfig);
-        }
-
-        @Override
-        public TemplatesClient getTemplatesClient() {
-            return wrappedClient.getTemplatesClient(requestConfig);
-        }
-
-        @Override
-        public TemplatesClient getTemplatesClient(RequestConfig requestConfig) {
-            return wrappedClient.getTemplatesClient(requestConfig);
         }
 
         @Override

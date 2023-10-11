@@ -17,6 +17,24 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -70,25 +88,6 @@ import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.ValidationResources;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
 
 @Tags({"hive", "streaming", "put", "database", "store"})
@@ -139,7 +138,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     + "Please see the Hive documentation for more details.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
@@ -203,7 +202,7 @@ public class PutHive3Streaming extends AbstractProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DISABLE_STREAMING_OPTIMIZATIONS = new PropertyDescriptor.Builder()
@@ -238,7 +237,7 @@ public class PutHive3Streaming extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
@@ -517,7 +516,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     } else {
                         log.error(
                                 "Failed to create {} for {} - routing to failure",
-                                new Object[]{RecordReader.class.getSimpleName(), flowFile},
+                                RecordReader.class.getSimpleName(), flowFile,
                                 rrfe
                         );
                         session.transfer(flowFile, REL_FAILURE);
@@ -539,14 +538,14 @@ public class PutHive3Streaming extends AbstractProcessor {
                     flowFile = session.putAllAttributes(flowFile, updateAttributes);
                     log.error(
                             "Exception while processing {} - routing to failure",
-                            new Object[]{flowFile},
+                            flowFile,
                             e
                     );
                     session.transfer(flowFile, REL_FAILURE);
                 }
             } catch (DiscontinuedException e) {
                 // The input FlowFile processing is discontinued. Keep it in the input queue.
-                getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
+                getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
                 session.transfer(flowFile, Relationship.SELF);
             } catch (ConnectionError ce) {
                 // If we can't connect to the metastore, yield the processor
@@ -579,7 +578,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     flowFile = session.putAllAttributes(flowFile, updateAttributes);
                     log.error(
                             "Exception while trying to stream {} to hive - routing to failure",
-                            new Object[]{flowFile},
+                            flowFile,
                             se
                     );
                     session.transfer(flowFile, REL_FAILURE);
@@ -608,7 +607,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                 .withRecordWriter(new HiveRecordWriter(reader, getLogger(), recordsPerTransaction))
                 .withTransactionBatchSize(options.getTransactionBatchSize())
                 .withAgentInfo("NiFi " + this.getClass().getSimpleName() + " [" + this.getIdentifier()
-                        + "] thread " + Thread.currentThread().getId() + "[" + Thread.currentThread().getName() + "]")
+                    + "] thread " + Thread.currentThread().threadId() + "[" + Thread.currentThread().getName() + "]")
                 .connect();
     }
 

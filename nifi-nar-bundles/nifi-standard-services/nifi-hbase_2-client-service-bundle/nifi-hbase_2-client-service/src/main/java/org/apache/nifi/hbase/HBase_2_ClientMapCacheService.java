@@ -66,7 +66,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         .name("HBase Cache Table Name")
         .description("Name of the table on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -74,7 +74,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         .name("HBase Column Family")
         .description("Name of the column family on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("f")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -84,7 +84,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         .description("Name of the column qualifier on HBase to use for the cache")
         .defaultValue("q")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -94,7 +94,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         .description("The default visibility expression to apply to cells when visibility expression support is enabled.")
         .defaultValue("")
         .addValidator(Validator.VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .build();
 

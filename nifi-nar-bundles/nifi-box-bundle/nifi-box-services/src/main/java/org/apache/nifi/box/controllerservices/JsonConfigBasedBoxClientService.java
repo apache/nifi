@@ -56,7 +56,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .description("The ID of the Box account who owns the accessed resource. Same as 'User Id' under 'App Info' in the App 'General Settings'.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor APP_CONFIG_FILE = new PropertyDescriptor.Builder()
@@ -65,7 +65,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .description("Full path of an App config JSON file. See Additional Details for more information.")
         .required(false)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     public static final PropertyDescriptor APP_CONFIG_JSON = new PropertyDescriptor.Builder()
@@ -75,7 +75,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .required(false)
         .sensitive(true)
         .addValidator(JsonValidator.INSTANCE)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};

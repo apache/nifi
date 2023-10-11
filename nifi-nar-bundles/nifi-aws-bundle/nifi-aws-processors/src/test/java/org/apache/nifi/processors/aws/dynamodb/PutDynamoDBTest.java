@@ -36,12 +36,11 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -54,7 +53,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     @BeforeEach
     public void setUp() {
         outcome = new BatchWriteItemOutcome(result);
-        result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());
+        result.setUnprocessedItems(new HashMap<>());
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
             @Override
             public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
@@ -68,7 +67,6 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
                 return mockDynamoDB;
             }
         };
-
     }
 
     @Test
@@ -103,7 +101,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            ITAbstractDynamoDBTest.validateServiceExceptionAttribute(flowFile);
+            validateServiceExceptionAttributes(flowFile);
         }
 
     }
@@ -195,15 +193,15 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
 
-        putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_SUCCESS, 1);
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
@@ -223,27 +221,25 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
-        for (int i = 0; i < item.length; i++) {
-            item[i] = 'a';
-        }
+        Arrays.fill(item, (byte) 'a');
         String document2 = new String(item);
         putRunner.enqueue(document2.getBytes());
 
         putRunner.run(2,true,true);
 
-        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
         }
 
-        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
@@ -262,27 +258,25 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
-        for (int i = 0; i < item.length; i++) {
-            item[i] = 'a';
-        }
+        Arrays.fill(item, (byte) 'a');
         String document2 = new String(item);
         putRunner.enqueue(document2.getBytes());
 
         putRunner.run(1);
 
-        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
         }
 
-        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
+        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
@@ -301,26 +295,23 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         byte [] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
-        for (int i = 0; i < item.length; i++) {
-            item[i] = 'a';
-        }
+        Arrays.fill(item, (byte) 'a');
         String document = new String(item);
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
 
-        putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_FAILURE, 1);
+        putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
+        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         assertEquals(1,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
         }
-
     }
 
     @Test
@@ -348,7 +339,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -388,7 +379,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -427,7 +418,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        putRunner.setProperty(AbstractWriteDynamoDBProcessor.JSON_DOCUMENT, "document");
+        putRunner.setProperty(AbstractDynamoDBProcessor.JSON_DOCUMENT, "document");
         String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
@@ -443,9 +434,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() {
-        Map<String, List<WriteRequest>> unprocessed =
-                new HashMap<String, List<WriteRequest>>();
-        PutRequest put = new PutRequest();
+        final Map<String, List<WriteRequest>> unprocessed = new HashMap<>();
+        final PutRequest put = new PutRequest();
         put.addItemEntry("hashS", new AttributeValue("h1"));
         put.addItemEntry("rangeS", new AttributeValue("r1"));
         WriteRequest write = new WriteRequest(put);

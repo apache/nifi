@@ -37,6 +37,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -57,6 +58,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
@@ -68,7 +70,6 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
-import org.apache.nifi.web.dao.TemplateDAO;
 
 import java.util.HashSet;
 import java.util.List;
@@ -181,9 +182,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private ConnectionDAO connectionDAO;
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
+    private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private ParameterProviderDAO parameterProviderDAO;
     private FlowRegistryDAO flowRegistryDAO;
-    private TemplateDAO templateDAO;
     private AccessPolicyDAO accessPolicyDAO;
     private ParameterContextDAO parameterContextDAO;
 
@@ -379,6 +380,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public ComponentAuthorizable getReportingTask(final String id) {
         final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(id);
         return new ReportingTaskComponentAuthorizable(reportingTaskNode, controllerFacade.getExtensionManager());
+    }
+
+    @Override
+    public ComponentAuthorizable getFlowAnalysisRule(final String id) {
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = flowAnalysisRuleDAO.getFlowAnalysisRule(id);
+        return new FlowAnalysisRuleComponentAuthorizable(flowAnalysisRuleNode, controllerFacade.getExtensionManager());
     }
 
     @Override
@@ -592,8 +599,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case ReportingTask:
                 authorizable = getReportingTask(componentId).getAuthorizable();
                 break;
-            case Template:
-                authorizable = getTemplate(componentId);
+            case FlowAnalysisRule:
+                authorizable = getFlowAnalysisRule(componentId).getAuthorizable();
                 break;
             case ParameterContext:
                 authorizable = getParameterContext(componentId);
@@ -736,34 +743,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         if (snippet.getProcessGroups() != null) {
             snippet.getProcessGroups().forEach(group -> createTemporaryProcessorsAndControllerServices(group.getContents(), processors, controllerServices, extensionManager));
         }
-    }
-
-    @Override
-    public Authorizable getTemplate(String id) {
-        return templateDAO.getTemplate(id);
-    }
-
-    @Override
-    public TemplateContentsAuthorizable getTemplateContents(final FlowSnippetDTO snippet) {
-        // templates are immutable so we can pre-compute all encapsulated processors and controller services
-        final Set<ComponentAuthorizable> processors = new HashSet<>();
-        final Set<ComponentAuthorizable> controllerServices = new HashSet<>();
-
-        // find all processors and controller services
-        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
-        createTemporaryProcessorsAndControllerServices(snippet, processors, controllerServices, extensionManager);
-
-        return new TemplateContentsAuthorizable() {
-            @Override
-            public Set<ComponentAuthorizable> getEncapsulatedProcessors() {
-                return processors;
-            }
-
-            @Override
-            public Set<ComponentAuthorizable> getEncapsulatedControllerServices() {
-                return controllerServices;
-            }
-        };
     }
 
     @Override
@@ -1041,6 +1020,64 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     /**
+     * ComponentAuthorizable for a FlowAnalysisRuleNode
+     */
+    private static class FlowAnalysisRuleComponentAuthorizable implements ComponentAuthorizable {
+        private final FlowAnalysisRuleNode flowAnalysisRuleNode;
+        private final ExtensionManager extensionManager;
+
+        public FlowAnalysisRuleComponentAuthorizable(final FlowAnalysisRuleNode flowAnalysisRuleNode, final ExtensionManager extensionManager) {
+            this.flowAnalysisRuleNode = flowAnalysisRuleNode;
+            this.extensionManager = extensionManager;
+        }
+
+        @Override
+        public Authorizable getAuthorizable() {
+            return flowAnalysisRuleNode;
+        }
+
+        @Override
+        public boolean isRestricted() {
+            return flowAnalysisRuleNode.isRestricted();
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(flowAnalysisRuleNode.getComponentClass());
+        }
+
+        @Override
+        public ParameterContext getParameterContext() {
+            return null;
+        }
+
+        @Override
+        public String getValue(PropertyDescriptor propertyDescriptor) {
+            return flowAnalysisRuleNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return flowAnalysisRuleNode.getRawPropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptor(propertyName);
+        }
+
+        @Override
+        public List<PropertyDescriptor> getPropertyDescriptors() {
+            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptors();
+        }
+
+        @Override
+        public void cleanUpResources() {
+            extensionManager.removeInstanceClassLoader(flowAnalysisRuleNode.getIdentifier());
+        }
+    }
+
+    /**
      * ComponentAuthorizable for a ParameterProvider.
      */
     private static class ParameterProviderComponentAuthorizable implements ComponentAuthorizable {
@@ -1219,11 +1256,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Set<Authorizable> getEncapsulatedTemplates() {
-            return new HashSet<>(processGroup.findAllTemplates());
-        }
-
-        @Override
         public Set<ComponentAuthorizable> getEncapsulatedControllerServices() {
             return processGroup.findAllControllerServices().stream().map(
                     controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, extensionManager)).collect(Collectors.toSet());
@@ -1312,16 +1344,16 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         this.reportingTaskDAO = reportingTaskDAO;
     }
 
+    public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
+        this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
+    }
+
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
     }
 
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDAO) {
         this.flowRegistryDAO = flowRegistryDAO;
-    }
-
-    public void setTemplateDAO(TemplateDAO templateDAO) {
-        this.templateDAO = templateDAO;
     }
 
     public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {

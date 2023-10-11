@@ -26,6 +26,7 @@
     <modules>
         <module>nifi-standard-processors</module>
         <module>nifi-standard-reporting-tasks</module>
+        <module>nifi-standard-rules</module>
         <module>nifi-standard-parameter-providers</module>
         <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
@@ -36,7 +37,7 @@
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.8</jolt.version>
         <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
-        <tika.version>2.8.0</tika.version>
+        <tika.version>2.9.0</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -53,6 +54,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-rules</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -85,7 +91,7 @@
             <dependency>
                 <groupId>javax.servlet.jsp</groupId>
                 <artifactId>javax.servlet.jsp-api</artifactId>
-                <version>2.3.1</version>
+                <version>2.3.3</version>
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -101,15 +107,6 @@
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-ganglia</artifactId>
                 <version>${yammer.metrics.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
             </dependency>
             <dependency>
                 <groupId>com.hierynomus</groupId>
@@ -144,7 +141,7 @@
             <dependency>
                 <groupId>com.github.luben</groupId>
                 <artifactId>zstd-jni</artifactId>
-                <version>1.5.5-5</version>
+                <version>1.5.5-6</version>
             </dependency>
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
@@ -289,7 +286,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>

@@ -18,12 +18,11 @@ package org.apache.nifi.registry.extension.repo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.link.LinkAdapter;
-
 import javax.ws.rs.core.Link;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.registry.link.LinkAdapter;
 
 @ApiModel
 @XmlRootElement
@@ -37,7 +36,7 @@ public class ExtensionRepoVersion {
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
     @ApiModelProperty(value = "The WebLink to view the metadata about the extensions contained in the extension bundle.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Link getExtensionsLink() {
         return extensionsLink;
     }
@@ -49,7 +48,7 @@ public class ExtensionRepoVersion {
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
     @ApiModelProperty(value = "The WebLink to download this version of the extension bundle.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Link getDownloadLink() {
         return downloadLink;
     }
@@ -61,7 +60,7 @@ public class ExtensionRepoVersion {
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
     @ApiModelProperty(value = "The WebLink to retrieve the SHA-256 digest for this version of the extension bundle.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Link getSha256Link() {
         return sha256Link;
     }
@@ -71,7 +70,7 @@ public class ExtensionRepoVersion {
     }
 
     @ApiModelProperty(value = "Indicates if the client supplied a SHA-256 when uploading this version of the extension bundle.",
-            dataType = "org.apache.nifi.registry.link.JaxbLink", readOnly = true)
+        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Boolean getSha256Supplied() {
         return sha256Supplied;
     }

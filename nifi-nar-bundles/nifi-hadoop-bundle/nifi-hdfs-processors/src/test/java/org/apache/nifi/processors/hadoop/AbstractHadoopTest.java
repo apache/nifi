@@ -162,13 +162,13 @@ public class AbstractHadoopTest {
         runner.setProperty(kerberosProperties.getKerberosKeytab(), "${variableKeytab}");
 
         // add variables for all the kerberos properties except for the keytab
-        runner.setVariable("variableHadoopConfigResources", "src/test/resources/core-site-security.xml");
-        runner.setVariable("variablePrincipal", "principal");
+        runner.setEnvironmentVariableValue("variableHadoopConfigResources", "src/test/resources/core-site-security.xml");
+        runner.setEnvironmentVariableValue("variablePrincipal", "principal");
         // test that the config is not valid, since the EL for keytab will return nothing, no keytab
         runner.assertNotValid();
 
         // add variable for the keytab
-        runner.setVariable("variableKeytab", temporaryFile.getAbsolutePath());
+        runner.setEnvironmentVariableValue("variableKeytab", temporaryFile.getAbsolutePath());
         // test that the config is valid
         runner.assertValid();
     }

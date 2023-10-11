@@ -92,6 +92,10 @@ div.selected-disabled-option {
     width: calc(100% - 15px);
 }
 
+.combo-option-special {
+    font-style: italic;
+}
+
 .combo-glass-pane {
     position: absolute;
     background: #E3E8EB;

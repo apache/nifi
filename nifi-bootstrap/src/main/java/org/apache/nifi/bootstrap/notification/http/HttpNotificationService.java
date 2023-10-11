@@ -57,21 +57,21 @@ public class HttpNotificationService extends AbstractNotificationService {
             .name("URL")
             .description("The URL to send the notification to.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection timeout")
             .description("Max wait time for connection to remote service.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10s")
             .build();
     public static final PropertyDescriptor PROP_WRITE_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Write timeout")
             .description("Max wait time for remote service to read the request sent.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10s")
             .build();
@@ -167,7 +167,7 @@ public class HttpNotificationService extends AbstractNotificationService {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 

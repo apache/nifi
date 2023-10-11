@@ -46,7 +46,6 @@ import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
@@ -63,7 +62,9 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -560,6 +561,18 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets the FlowAnalysisRule types that this controller supports.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return the FlowAnalysisRule types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(FlowAnalysisRule.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
      * Gets the FlowRegistryClient types that this controller supports.
      *
      * @return the FlowRegistryClient types that this controller supports
@@ -1015,13 +1028,6 @@ public class ControllerFacade implements Authorizable {
             resources.add(flowRegistryResource);
             resources.add(ResourceFactory.getPolicyResource(flowRegistryResource));
             resources.add(ResourceFactory.getOperationResource(flowRegistryResource));
-        }
-
-        // add each template
-        for (final Template template : root.findAllTemplates()) {
-            final Resource templateResource = template.getResource();
-            resources.add(templateResource);
-            resources.add(ResourceFactory.getPolicyResource(templateResource));
         }
 
         return resources;
@@ -1728,6 +1734,30 @@ public class ControllerFacade implements Authorizable {
 
     public FlowFileEventRepository getFlowFileEventRepository() {
         return flowController.getFlowFileEventRepository();
+    }
+
+    /**
+     * Returns the storage usage of all provenance repositories
+     * @return the map of all the storage usage
+     */
+    public Map<String, StorageUsage> getProvenanceRepositoryStorageUsage() {
+        return flowController.getEventAccess().getProvenanceRepositoryStorageUsage();
+    }
+
+    /**
+     * Returns the storage usage of all content repositories
+     * @return the map of all the storage usage
+     */
+    public Map<String, StorageUsage> getContentRepositoryStorageUsage() {
+        return flowController.getEventAccess().getContentRepositoryStorageUsage();
+    }
+
+    /**
+     * Returns the storage usage of the flow file repository
+     * @return the storage usage
+     */
+    public StorageUsage getFlowFileRepositoryStorageUsage() {
+        return flowController.getEventAccess().getFlowFileRepositoryStorageUsage();
     }
 
     /*

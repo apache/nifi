@@ -17,8 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_COMPONENTS;
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -32,6 +31,8 @@ import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_COMPONENTS;
 
 public class PeriodicStatusReporterManager implements QueryableStatusAggregator {
     private static final Logger LOGGER = LoggerFactory.getLogger(PeriodicStatusReporterManager.class);
@@ -103,11 +104,11 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
             for (String reporterClassname : reportersCsv.split(",")) {
                 try {
                     Class<?> reporterClass = Class.forName(reporterClassname);
-                    PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
+                    PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.getDeclaredConstructor().newInstance();
                     reporter.initialize(bootstrapProperties, this);
                     statusReporters.add(reporter);
                     LOGGER.debug("Initialized {} notifier", reporterClass.getCanonicalName());
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
                     throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
                 }
             }

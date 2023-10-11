@@ -588,49 +588,6 @@ cause a tooltip to show, which explains what the function does, the arguments th
 
 
 
-== Custom Properties Within Expression Language
-
-In addition to using FlowFile attributes, you can also define custom properties for Expression Language use. Defining custom properties gives you additional flexibility in processing and configuring dataflows. For example, you can refer to custom properties for connection, server, and service properties. Once you have created custom properties, you can identify their location in the `nifi.variable.registry.properties` field in the 'nifi.properties' file. After you have updated the 'nifi.properties' file and restarted NiFi, you are able to use custom properties as needed.
-
-
-== Working With Templates
-
-As we use Processors to build more and more complex dataflows in NiFi, we often will find that we string together the same sequence
-of Processors to perform some task. This can become tedious and inefficient. To address this, NiFi provides a concept of Templates.
-A template can be thought of as a reusable sub-flow. To create a template, follow these steps:
-
-- Select the components to include in the template. We can select multiple components by clicking on the first component and then holding
-  the Shift key while selecting additional components (to include the Connections between those components), or by holding the Shift key
-	while dragging a box around the desired components on the canvas.
-- Select the Create Template Icon (
-	image:iconNewTemplate.png[New Template Icon]
-	) from the Operate palette.
-- Provide a name and optionally a description for the template.
-- Click the `Create` button.
-
-Once we have created a template, we can now use it as a building block in our flow, just as we would a Processor. To do this, we will
-click and drag the Template icon (
-	image:iconTemplate.png[Template]
-	) from the Component toolbar onto our canvas. We can then choose the template that we would like to add
-to our canvas and click the `Add` button.
-
-Finally, we have the ability to manage our templates by using the Template Management dialog. To access this dialog, select Templates
-from the Global Menu. From here, we can see which templates exist and filter the templates to find the templates of interest.
-On the right-hand side of the table is an icon to Export, or Download, the template as an XML file. This can then be provided to others so
-that they can use your template.
-
-To import a template into your NiFi instance, select the Upload Template icon (
-	image:iconUploadTemplate.png[Upload Template]
-	) from the Operator palette, click the Search Icon and navigate to the file on
-your computer. Then click the `Upload` button. The template will now show up in your table, and you can drag it onto your canvas as you would
-any other template that you have created.
-
-There are a few important notes to remember when working with templates:
-
-- Any properties that are identified as being Sensitive Properties (such as a password that is configured in a Processor) will not be added to the template. These sensitive properties will have to be populated each time that the template is added to the canvas.
-- If a component that is included in the template references a Controller Service, the Controller Service will also be added to the template. This means that each time that the template is added to the graph, it will create a copy of the Controller Service.
-
-
 == Monitoring NiFi
 
 As data flows through your dataflow in NiFi, it is important to understand how well your system is performing in order to assess if you

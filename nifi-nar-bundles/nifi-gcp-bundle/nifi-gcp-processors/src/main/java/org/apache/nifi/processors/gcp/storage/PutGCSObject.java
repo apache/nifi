@@ -22,6 +22,15 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -41,16 +50,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static com.google.cloud.storage.Storage.PredefinedAcl.ALL_AUTHENTICATED_USERS;
 import static com.google.cloud.storage.Storage.PredefinedAcl.AUTHENTICATED_READ;
@@ -143,64 +142,56 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = URI_ATTR, description = URI_DESC)
 })
 public class PutGCSObject extends AbstractGCSProcessor {
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
-            .Builder().name("gcs-bucket")
-            .displayName("Bucket")
-            .description(BUCKET_DESC)
-            .required(true)
-            .defaultValue("${" + BUCKET_ATTR + "}")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
+        .name("gcs-bucket")
+        .displayName("Bucket")
+        .description(BUCKET_DESC)
+        .required(true)
+        .defaultValue("${" + BUCKET_ATTR + "}")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
-    public static final PropertyDescriptor KEY = new PropertyDescriptor
-            .Builder().name("gcs-key")
-            .displayName("Key")
-            .description(KEY_DESC)
-            .required(true)
-            .defaultValue("${filename}")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
+        .name("gcs-key")
+        .displayName("Key")
+        .description(KEY_DESC)
+        .required(true)
+        .defaultValue("${filename}")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
-    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor
-            .Builder().name("gcs-content-type")
-                      .displayName("Content Type")
-                      .description("Content Type for the file, i.e. text/plain")
-                      .defaultValue("${mime.type}")
-                      .required(false)
-                      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                      .build();
-
-    public static final PropertyDescriptor MD5 = new PropertyDescriptor
-            .Builder().name("gcs-object-md5")
-            .displayName("MD5 Hash")
-            .description("MD5 Hash (encoded in Base64) of the file for server-side validation.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+        .name("gcs-content-type")
+        .displayName("Content Type")
+        .description("Content Type for the file, i.e. text/plain")
+        .defaultValue("${mime.type}")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
 
-    public static final PropertyDescriptor CRC32C = new PropertyDescriptor
-            .Builder().name("gcs-object-crc32c")
-            .displayName("CRC32C Checksum")
-            .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor CRC32C = new PropertyDescriptor.Builder()
+        .name("gcs-object-crc32c")
+        .displayName("CRC32C Checksum")
+        .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
-    public static final PropertyDescriptor GZIPCONTENT = new PropertyDescriptor
-            .Builder().name("gzip.content.enabled")
-            .displayName("GZIP Compression Enabled")
-            .description("Signals to the GCS Blob Writer whether GZIP compression during transfer is desired. " +
-                    "False means do not gzip and can boost performance in many cases.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
-            .defaultValue(Boolean.TRUE.toString())
-            .build();
+    public static final PropertyDescriptor GZIPCONTENT = new PropertyDescriptor.Builder()
+        .name("gzip.content.enabled")
+        .displayName("GZIP Compression Enabled")
+        .description("Signals to the GCS Blob Writer whether GZIP compression during transfer is desired. " +
+            "False means do not gzip and can boost performance in many cases.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+        .defaultValue(Boolean.TRUE.toString())
+        .build();
+
     public static final AllowableValue ACL_ALL_AUTHENTICATED_USERS = new AllowableValue(
             ALL_AUTHENTICATED_USERS.name(), "All Authenticated Users", "Gives the bucket or object owner OWNER " +
             "permission, and gives all authenticated Google account holders READER and WRITER permissions. " +
@@ -300,7 +291,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
         descriptors.add(BUCKET);
         descriptors.add(KEY);
         descriptors.add(CONTENT_TYPE);
-        descriptors.add(MD5);
         descriptors.add(CRC32C);
         descriptors.add(ACL);
         descriptors.add(ENCRYPTION_KEY);
@@ -365,21 +355,12 @@ public class PutGCSObject extends AbstractGCSProcessor {
                             blobInfoBuilder.setContentDisposition(contentDispositionType + "; filename=" + ffFilename);
                         }
 
-                        final String contentType = context.getProperty(CONTENT_TYPE)
-                                .evaluateAttributeExpressions(ff).getValue();
+                        final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(ff).getValue();
                         if (contentType != null) {
                             blobInfoBuilder.setContentType(contentType);
                         }
 
-                        final String md5 = context.getProperty(MD5)
-                                .evaluateAttributeExpressions(ff).getValue();
-                        if (md5 != null) {
-                            blobInfoBuilder.setMd5(md5);
-                            blobWriteOptions.add(Storage.BlobWriteOption.md5Match());
-                        }
-
-                        final String crc32c = context.getProperty(CRC32C)
-                                .evaluateAttributeExpressions(ff).getValue();
+                        final String crc32c = context.getProperty(CRC32C).evaluateAttributeExpressions(ff).getValue();
                         if (crc32c != null) {
                             blobInfoBuilder.setCrc32c(crc32c);
                             blobWriteOptions.add(Storage.BlobWriteOption.crc32cMatch());
@@ -517,16 +498,16 @@ public class PutGCSObject extends AbstractGCSProcessor {
                                 attributes.put(URI_ATTR, blob.getSelfLink());
                             }
 
-                            if (blob.getCreateTime() != null) {
-                                attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTime()));
+                            if (blob.getCreateTimeOffsetDateTime() != null) {
+                                attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli()));
                             }
 
-                            if (blob.getUpdateTime() != null) {
-                                attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTime()));
+                            if (blob.getUpdateTimeOffsetDateTime() != null) {
+                                attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli()));
                             }
                         } catch (StorageException e) {
                             getLogger().error("Failure completing upload flowfile={} bucket={} key={} reason={}",
-                                    new Object[]{ffFilename, bucket, key, e.getMessage()}, e);
+                                    ffFilename, bucket, key, e.getMessage(), e);
                             throw (e);
                         }
 
@@ -547,7 +528,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     new Object[]{ff, millis});
 
         } catch (final ProcessException | StorageException e) {
-            getLogger().error("Failed to put {} to Google Cloud Storage due to {}", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to put {} to Google Cloud Storage due to {}", flowFile, e.getMessage(), e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

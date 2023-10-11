@@ -36,7 +36,7 @@ public class MockPropertyContext implements PropertyContext {
         if (value == null) {
             value = property.getDefaultValue();
         }
-        return new MockPropertyValue(value);
+        return new MockPropertyValue(value, null);
     }
 
     @Override

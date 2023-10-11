@@ -20,6 +20,18 @@
 package org.apache.nifi.processors.solr;
 
 import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -62,37 +74,18 @@ import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.StatsParams;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
-import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 
 @Tags({"Apache", "Solr", "Get", "Query", "Records"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -268,19 +261,13 @@ public class QuerySolr extends SolrProcessor {
         descriptors.add(SOLR_PARAM_START);
         descriptors.add(SOLR_PARAM_ROWS);
         descriptors.add(AMOUNT_DOCUMENTS_TO_RETURN);
-        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_PRINCIPAL);
-        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
-        descriptors.add(SOLR_MAX_CONNECTIONS);
         descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
-        descriptors.add(ZK_CLIENT_TIMEOUT);
-        descriptors.add(ZK_CONNECTION_TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -511,7 +498,7 @@ public class QuerySolr extends SolrProcessor {
             flowFileResponse = session.putAttribute(flowFileResponse, EXCEPTION, e.getClass().getName());
             flowFileResponse = session.putAttribute(flowFileResponse, EXCEPTION_MESSAGE, e.getMessage());
             session.transfer(flowFileResponse, FAILURE);
-            logger.error("Failed to execute query {} due to {}. FlowFile will be routed to relationship failure", new Object[]{solrQuery.toString(), e}, e);
+            logger.error("Failed to execute query {} due to {}. FlowFile will be routed to relationship failure", solrQuery.toString(), e, e);
             if (flowFileOriginal != null) {
                 flowFileOriginal = session.penalize(flowFileOriginal);
             }

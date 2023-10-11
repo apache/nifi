@@ -95,7 +95,7 @@ import java.util.stream.Stream;
 @DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
         description = "Additional configuration property for the Connection Factory. It can be used when the Connection Factory is being configured via the 'JNDI *' or the 'JMS *'" +
                 "properties of the processor. For more information, see the Additional Details page.",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 @Restricted(
         restrictions = {
@@ -134,7 +134,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .displayName("Message Selector")
             .description("The JMS Message Selector to filter the messages that the processor will receive")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -153,7 +153,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("If destination is Topic if present then make it the consumer durable. " +
                          "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createDurableConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("false")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -164,7 +164,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("If destination is Topic if present then make it the consumer shared. " +
                          "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createSharedConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("false")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -174,7 +174,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("The name of the subscription to use if destination is Topic and is shared or durable.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Timeout")
@@ -182,7 +182,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("1 sec")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     static final PropertyDescriptor ERROR_QUEUE = new PropertyDescriptor.Builder()
             .name("Error Queue Name")

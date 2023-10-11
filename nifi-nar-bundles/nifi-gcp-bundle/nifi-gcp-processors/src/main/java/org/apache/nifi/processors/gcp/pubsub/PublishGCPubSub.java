@@ -165,7 +165,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("Name of the Google Cloud PubSub Topic")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder()

@@ -660,9 +660,9 @@ public class QueryDatabaseTableRecordTest {
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
-        runner.setVariable(MAX_ROWS_KEY, "7");
+        runner.setEnvironmentVariableValue(MAX_ROWS_KEY, "7");
         runner.setProperty(QueryDatabaseTableRecord.OUTPUT_BATCH_SIZE, "${outputBatchSize}");
-        runner.setVariable("outputBatchSize", "4");
+        runner.setEnvironmentVariableValue("outputBatchSize", "4");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 15);
@@ -713,7 +713,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
-        runner.setVariable(MAX_ROWS_KEY, "9");
+        runner.setEnvironmentVariableValue(MAX_ROWS_KEY, "9");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 12);
@@ -862,7 +862,7 @@ public class QueryDatabaseTableRecordTest {
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
-        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setEnvironmentVariableValue(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
 
@@ -916,14 +916,14 @@ public class QueryDatabaseTableRecordTest {
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
-        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setEnvironmentVariableValue(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
 
         cal.setTimeInMillis(0);
         cal.add(Calendar.MINUTE, 5);
         runner.setProperty("initial.maxvalue.CREATED_ON", "${created.on}");
-        runner.setVariable("created.on", dateFormat.format(cal.getTime().getTime()));
+        runner.setEnvironmentVariableValue("created.on", dateFormat.format(cal.getTime().getTime()));
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
@@ -983,7 +983,7 @@ public class QueryDatabaseTableRecordTest {
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
-        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setEnvironmentVariableValue(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
         runner.setProperty(QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY, QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY_ALL_ROWS.getValue());
@@ -1035,7 +1035,7 @@ public class QueryDatabaseTableRecordTest {
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
-        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setEnvironmentVariableValue(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
         runner.setProperty(QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY, QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY_NEW_ROWS.getValue());

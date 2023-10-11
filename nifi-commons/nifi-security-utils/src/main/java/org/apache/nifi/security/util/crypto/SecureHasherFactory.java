@@ -51,7 +51,7 @@ public class SecureHasherFactory {
             LOGGER.debug("Creating SecureHasher [{}] for algorithm [{}]", secureHasherClass.getName(), algorithm);
             return secureHasherClass.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new SecureHasherException(String.format("Failed to create SecureHasher for algorithm [%s]", algorithm), e);
+            throw new IllegalStateException(String.format("Failed to create SecureHasher for algorithm [%s]", algorithm), e);
         }
     }
 }

@@ -31,7 +31,6 @@ public class FlowSynchronizationOptions {
     private final boolean updateSettings;
     private final boolean updateDescendantVersionedFlows;
     private final boolean updateGroupVersionControlSnapshot;
-    private final boolean updateExistingVariables;
     private final boolean updateRpgUrls;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
@@ -47,7 +46,6 @@ public class FlowSynchronizationOptions {
         this.updateSettings = builder.updateSettings;
         this.updateDescendantVersionedFlows = builder.updateDescendantVersionedFlows;
         this.updateGroupVersionControlSnapshot = builder.updateGroupVersionControlSnapshot;
-        this.updateExistingVariables = builder.updateExistingVariables;
         this.updateRpgUrls = builder.updateRpgUrls;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
@@ -83,10 +81,6 @@ public class FlowSynchronizationOptions {
         return updateGroupVersionControlSnapshot;
     }
 
-    public boolean isUpdateExistingVariables() {
-        return updateExistingVariables;
-    }
-
     public boolean isUpdateRpgUrls() {
         return updateRpgUrls;
     }
@@ -119,7 +113,6 @@ public class FlowSynchronizationOptions {
         private boolean updateSettings = true;
         private boolean updateDescendantVersionedFlows = true;
         private boolean updateGroupVersionControlSnapshot = true;
-        private boolean updateExistingVariables = false;
         private boolean updateRpgUrls = false;
         private ScheduledStateChangeListener scheduledStateChangeListener;
         private PropertyDecryptor propertyDecryptor = value -> value;
@@ -201,19 +194,6 @@ public class FlowSynchronizationOptions {
          */
         public Builder updateGroupVersionControlSnapshot(final boolean updateGroupVersionControlSnapshot) {
             this.updateGroupVersionControlSnapshot = updateGroupVersionControlSnapshot;
-            return this;
-        }
-
-        /**
-         * Specifies whether or not existing variables in the Process Group's Variable Registry should be updated. If <code>false</code>, any Variable
-         * that exists in a Versioned Process Group will be added to the group's variable registry but existing variables will not be modified. If <code>true</code>,
-         * existing variables will also be updated
-         *
-         * @param updateExistingVariables whether or not to update existing variables
-         * @return the builder
-         */
-        public Builder updateExistingVariables(final boolean updateExistingVariables) {
-            this.updateExistingVariables = updateExistingVariables;
             return this;
         }
 
@@ -306,7 +286,6 @@ public class FlowSynchronizationOptions {
             builder.updateSettings = options.isUpdateSettings();
             builder.updateDescendantVersionedFlows = options.isUpdateDescendantVersionedFlows();
             builder.updateGroupVersionControlSnapshot = options.isUpdateGroupVersionControlSnapshot();
-            builder.updateExistingVariables = options.isUpdateExistingVariables();
             builder.updateRpgUrls = options.isUpdateRpgUrls();
             builder.propertyDecryptor = options.getPropertyDecryptor();
             builder.componentStopTimeout = options.getComponentStopTimeout();

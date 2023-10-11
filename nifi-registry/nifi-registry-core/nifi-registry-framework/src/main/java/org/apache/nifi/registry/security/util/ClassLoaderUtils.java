@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -92,8 +93,8 @@ public class ClassLoaderUtils {
                 // If the path is already a URL, just add it (but don't check if it exists, too expensive and subject to network availability)
                 boolean isUrl = true;
                 try {
-                    additionalClasspath.add(new URL(modulePathString));
-                } catch (MalformedURLException mue) {
+                    additionalClasspath.add(URI.create(modulePathString).toURL());
+                } catch (IllegalArgumentException | MalformedURLException mue) {
                     isUrl = false;
                 }
                 if (!isUrl) {

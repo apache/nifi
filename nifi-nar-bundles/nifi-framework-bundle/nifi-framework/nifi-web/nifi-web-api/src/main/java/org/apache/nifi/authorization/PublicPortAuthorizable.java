@@ -16,20 +16,12 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 
 /**
  * Authorizable for a PublicPort.
  */
-public interface PublicPortAuthorizable {
-    /**
-     * Returns the authorizable for this PublicGroupPort. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
+public interface PublicPortAuthorizable extends AuthorizableHolder {
     /**
      * Checks the authorization for the specified user.
      *

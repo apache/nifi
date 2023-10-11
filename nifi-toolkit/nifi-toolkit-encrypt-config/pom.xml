@@ -139,26 +139,27 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-test</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-all</artifactId>
+            <version>${nifi.groovy.version}</version>
             <type>pom</type>
             <exclusions>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-groovysh</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-ant</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-cli-commons</artifactId>
             <version>${nifi.groovy.version}</version>
         </dependency>
@@ -169,6 +170,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>17</release>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -179,11 +183,23 @@
                         </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-compiler</artifactId>
+                        <version>3.9.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-batch</artifactId>
+                        <version>4.0.15-03</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.5</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <id>add-source</id>

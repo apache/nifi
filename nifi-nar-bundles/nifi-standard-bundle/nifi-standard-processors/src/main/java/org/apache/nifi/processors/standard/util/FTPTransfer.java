@@ -97,26 +97,26 @@ public class FTPTransfer implements FileTransfer {
         .name("Proxy Host")
         .description("The fully qualified hostname or IP address of the proxy server")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
         .name("Proxy Port")
         .description("The port of the proxy server")
         .addValidator(StandardValidators.PORT_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
         .name("Http Proxy Username")
         .description("Http Proxy Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .build();
     public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
         .name("Http Proxy Password")
         .description("Http Proxy Password")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .sensitive(true)
         .build();
@@ -183,7 +183,7 @@ public class FTPTransfer implements FileTransfer {
                 client.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close FTPClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close FTPClient due to {}", ex.toString(), ex);
         }
         client = null;
     }

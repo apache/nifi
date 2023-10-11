@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
@@ -36,6 +27,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -50,6 +42,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <p>
@@ -72,6 +74,65 @@ import org.apache.nifi.processor.util.StandardValidators;
 @WritesAttributes({
     @WritesAttribute(attribute = RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, description = "The relation to which the FlowFile was routed")
 })
+@UseCase(
+    description = "Route data to one or more relationships based on its attributes.",
+    keywords = {"attributes", "routing", "expression language"},
+    configuration = """
+        Set the "Routing Strategy" property to "Route to Property name".
+        For each route that a FlowFile might be routed to, add a new property. The name of the property should describe the route.
+        The value of the property is an Attribute Expression Language expression that will be used to determine whether or not a given FlowFile will be routed to the \
+        associated relationship.
+
+        For example, we might route data based on its file extension using the following properties:
+            - "Routing Strategy" = "Route to Property Name"
+            - "jpg" = "${filename:endsWith('.jpg')}"
+            - "png" = "${filename:endsWith('.png')}"
+            - "pdf" = "${filename:endsWith('.pdf')}"
+
+        The Processor will now have 3 relationships: `jpg`, `png`, and `pdf`. Each of these should be connected to the appropriate downstream processor.
+        """
+)
+@UseCase(
+    description = "Keep data only if its attributes meet some criteria, such as its filename ends with .txt.",
+    keywords = {"keep", "filter", "remove", "delete", "expression language"},
+    configuration = """
+        Add a new property for each condition that must be satisfied in order to keep the data.
+        If the data should be kept in the case that any of the provided conditions is met, set the "Routing Strategy" property to "Route to 'matched' if any matches".
+        If all conditions must be met in order to keep the data, set the "Routing Strategy" property  to "Route to 'matched' if all match".
+
+        For example, to keep files whose filename ends with .txt and have a file size of at least 1000 bytes, we will use the following properties:
+            - "ends_with_txt" = "${filename:endsWith('.txt')}"
+            - "large_enough" = "${fileSize:ge(1000)}
+            - "Routing Strategy" = "Route to 'matched' if all match"
+
+        Auto-terminate the 'unmatched' relationship.
+        Connect the 'matched' relationship to the next processor in the flow.
+        """
+)
+@UseCase(
+    description = "Discard or drop a file based on attributes, such as filename.",
+    keywords = {"discard", "drop", "filter", "remove", "delete", "expression language"},
+    configuration = """
+        Add a new property for each condition that must be satisfied in order to drop the data.
+        If the data should be dropped in the case that any of the provided conditions is met, set the "Routing Strategy" property to "Route to 'matched' if any matches".
+        If all conditions must be met in order to drop the data, set the "Routing Strategy" property  to "Route to 'matched' if all match".
+
+        Here are a couple of examples for configuring the properties:
+            Example 1 Use Case: Data should be dropped if its "uuid" attribute has an 'a' in it or ends with '0'.
+              Here, we will use the following properties:
+                - "has_a" = "${uuid:contains('a')}"
+                - "ends_with_0" = "${uuid:endsWith('0')}
+                - "Routing Strategy" = "Route to 'matched' if any matches"
+            Example 2 Use Case: Data should be dropped if its 'uuid' attribute has an 'a' AND it ends with a '1'.
+              Here, we will use the following properties:
+                - "has_a" = "${uuid:contains('a')}"
+                - "ends_with_1" = "${uuid:endsWith('1')}
+                - "Routing Strategy" = "Route to 'matched' if all match"
+
+        Auto-terminate the 'matched' relationship.
+        Connect the 'unmatched' relationship to the next processor in the flow.
+        """
+)
 public class RouteOnAttribute extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnAttribute.Route";

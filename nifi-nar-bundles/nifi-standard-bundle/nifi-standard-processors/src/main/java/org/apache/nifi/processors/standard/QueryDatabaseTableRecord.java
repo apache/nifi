@@ -58,7 +58,7 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 @CapabilityDescription("Generates a SQL select query, or uses a provided statement, and executes it to fetch all rows whose values in the specified "
         + "Maximum Value column(s) are larger than the "
         + "previously-seen maxima. Query result will be converted to the format specified by the record writer. Expression Language is supported for several properties, but no incoming "
-        + "connections are permitted. The Variable Registry may be used to provide values for any property containing Expression Language. If it is desired to "
+        + "connections are permitted. The Environment/System properties may be used to provide values for any property containing Expression Language. If it is desired to "
         + "leverage flow file attributes to perform these queries, the GenerateTableFetch and/or ExecuteSQL processors can be used for this purpose. "
         + "Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
         + "a timer or cron expression, using the standard scheduling methods. This processor is intended to be run on the Primary Node only. FlowFile attribute "
@@ -87,7 +87,7 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
 })
 @DynamicProperty(name = "initial.maxvalue.<max_value_column>", value = "Initial maximum value for the specified column",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY, description = "Specifies an initial max value for max value column(s). Properties should "
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT, description = "Specifies an initial max value for max value column(s). Properties should "
         + "be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time the table is accessed (when a Maximum Value Column is specified).")
 @PrimaryNodeOnly
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")

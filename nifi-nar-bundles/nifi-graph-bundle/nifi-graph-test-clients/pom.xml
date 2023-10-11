@@ -27,7 +27,7 @@
     <properties>
         <gremlin.version>3.7.0</gremlin.version>
         <janusgraph.version>0.6.3</janusgraph.version>
-        <guava.version>32.0.1-jre</guava.version>
+        <guava.version>32.1.2-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -48,11 +48,6 @@
                 <artifactId>gremlin-driver</artifactId>
                 <version>${gremlin.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.tinkerpop</groupId>
-                <artifactId>gremlin-groovy</artifactId>
-                <version>${gremlin.version}</version>
-            </dependency>
             <!-- Override Guava 29.0 from JanusGraph 0.6.3 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -65,12 +60,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -65,7 +65,7 @@ public class TestParquetReader {
     @BeforeEach
     public void setup() {
         Map<PropertyDescriptor, String> readerFactoryProperties = new HashMap<>();
-        ConfigurationContext readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null);
+        ConfigurationContext readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null, null);
 
         parquetReaderFactory = new ParquetReader();
         parquetReaderFactory.abstractStoreConfigContext(readerFactoryConfigContext);

@@ -17,12 +17,12 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -65,6 +65,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "elasticsearch.type", description = "The Elasticsearch document type"),
         @WritesAttribute(attribute = "elasticsearch.get.error", description = "The error message provided by Elasticsearch if there is an error fetching the document.")
 })
+@SeeAlso(JsonQueryElasticsearch.class)
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
         value = "The value of the URL query parameter",
@@ -128,8 +129,6 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND
     )));
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 

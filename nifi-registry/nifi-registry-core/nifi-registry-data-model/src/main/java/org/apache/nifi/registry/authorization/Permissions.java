@@ -43,8 +43,8 @@ public class Permissions {
      * @return Indicates whether the user can read a given resource.
      */
     @ApiModelProperty(
-            value = "Indicates whether the user can read a given resource.",
-            readOnly = true
+        value = "Indicates whether the user can read a given resource.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public boolean getCanRead() {
         return canRead;
@@ -63,8 +63,8 @@ public class Permissions {
      * @return Indicates whether the user can write a given resource.
      */
     @ApiModelProperty(
-            value = "Indicates whether the user can write a given resource.",
-            readOnly = true
+        value = "Indicates whether the user can write a given resource.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public boolean getCanWrite() {
         return canWrite;
@@ -83,8 +83,8 @@ public class Permissions {
      * @return Indicates whether the user can delete a given resource.
      */
     @ApiModelProperty(
-            value = "Indicates whether the user can delete a given resource.",
-            readOnly = true
+        value = "Indicates whether the user can delete a given resource.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public boolean getCanDelete() {
         return canDelete;

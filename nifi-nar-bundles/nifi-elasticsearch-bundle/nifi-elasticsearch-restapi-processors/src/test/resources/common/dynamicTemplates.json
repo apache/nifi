@@ -1,0 +1,9 @@
+{
+  "my_field" : "keyword",
+  "your_field" : {
+    "type" : "text",
+    "keyword" : {
+      "type" : "text"
+    }
+  }
+}

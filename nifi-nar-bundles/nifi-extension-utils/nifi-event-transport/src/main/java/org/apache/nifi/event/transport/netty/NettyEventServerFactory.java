@@ -41,6 +41,7 @@ import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannel
 import org.apache.nifi.security.util.ClientAuth;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.Collections;
@@ -58,13 +59,15 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private final TransportProtocol protocol;
 
-    private Supplier<List<ChannelHandler>> handlerSupplier = () -> Collections.emptyList();
+    private Supplier<List<ChannelHandler>> handlerSupplier = Collections::emptyList;
 
     private Integer socketReceiveBuffer;
 
     private Boolean socketKeepAlive;
 
     private SSLContext sslContext;
+
+    private SSLParameters sslParameters;
 
     private ClientAuth clientAuth = ClientAuth.NONE;
 
@@ -116,6 +119,15 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
      */
     public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
+    }
+
+    /**
+     * Set SSL Parameters for optional additional configuration of TLS negotiation
+     *
+     * @param sslParameters SSL Parameters
+     */
+    public void setSslParameters(final SSLParameters sslParameters) {
+        this.sslParameters = sslParameters;
     }
 
     /**
@@ -203,10 +215,21 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         }
     }
 
-    private ChannelInitializer getChannelInitializer() {
-        final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
-                ? new StandardChannelInitializer<>(handlerSupplier)
-                : new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth);
+    private ChannelInitializer<?> getChannelInitializer() {
+        final StandardChannelInitializer<Channel> channelInitializer;
+
+        if (sslContext == null) {
+            channelInitializer = new StandardChannelInitializer<>(handlerSupplier);
+        } else {
+            final SSLParameters parameters;
+            if (sslParameters == null) {
+                parameters = sslContext.getDefaultSSLParameters();
+            } else {
+                parameters = sslParameters;
+            }
+            channelInitializer = new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth, parameters);
+        }
+
         if (idleTimeout != null) {
             channelInitializer.setIdleTimeout(idleTimeout);
         }

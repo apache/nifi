@@ -18,6 +18,8 @@ package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,7 +58,8 @@ public class TestTagS3Object {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         TagS3Object mockTagS3Object = new TagS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
         };
@@ -67,7 +71,7 @@ public class TestTagS3Object {
         final String tagKey = "k";
         final String tagVal = "v";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
@@ -95,7 +99,7 @@ public class TestTagS3Object {
     @Test
     public void testTagObjectSimpleRegionFromFlowFileAttribute() {
         runner.setProperty(TagS3Object.S3_REGION, "attribute-defined-region");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "k");
         runner.setProperty(TagS3Object.TAG_VALUE, "v");
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
@@ -115,7 +119,7 @@ public class TestTagS3Object {
         final String tagKey = "k";
         final String tagVal = "v";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.VERSION_ID, "test-version");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -145,7 +149,7 @@ public class TestTagS3Object {
         final String tagKey = "nk";
         final String tagVal = "nv";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
@@ -180,7 +184,7 @@ public class TestTagS3Object {
         final String tagKey = "nk";
         final String tagVal = "nv";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
@@ -209,7 +213,7 @@ public class TestTagS3Object {
         final String tagKey = "nk";
         final String tagVal = "nv";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
@@ -244,7 +248,7 @@ public class TestTagS3Object {
         final String tagKey = "nk";
         final String tagVal = "nv";
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
@@ -265,7 +269,7 @@ public class TestTagS3Object {
         assertEquals(22, pd.size(), "size should be eq");
         assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
         assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(TagS3Object.BUCKET));
+        assertTrue(pd.contains(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE));
         assertTrue(pd.contains(TagS3Object.CREDENTIALS_FILE));
         assertTrue(pd.contains(TagS3Object.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(TagS3Object.KEY));
@@ -290,7 +294,7 @@ public class TestTagS3Object {
     @Test
     public void testBucketEvaluatedAsBlank() {
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "${not.existant.attribute}");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_KEY, "key");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
         final Map<String, String> attrs = new HashMap<>();
@@ -305,7 +309,7 @@ public class TestTagS3Object {
     @Test
     public void testTagKeyEvaluatedAsBlank() {
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
         final Map<String, String> attrs = new HashMap<>();
@@ -320,7 +324,7 @@ public class TestTagS3Object {
     @Test
     public void testTagValEvaluatedAsBlank() {
         runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
-        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "tagKey");
         runner.setProperty(TagS3Object.TAG_VALUE, "${not.existant.attribute}");
         final Map<String, String> attrs = new HashMap<>();

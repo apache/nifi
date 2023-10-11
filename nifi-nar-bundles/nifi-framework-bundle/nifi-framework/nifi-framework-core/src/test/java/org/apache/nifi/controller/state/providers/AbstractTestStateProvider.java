@@ -17,21 +17,21 @@
 
 package org.apache.nifi.controller.state.providers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
+import java.util.Optional;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -160,15 +160,21 @@ public abstract class AbstractTestStateProvider {
 
     @Test
     public void testReplaceWithNonExistingValue() throws Exception {
+        final String key = "testReplaceWithNonExistingValue";
+        final String value = "value";
         final StateProvider provider = getProvider();
         StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
 
         final Map<String, String> newValue = new HashMap<>();
-        newValue.put("value", "value");
+        newValue.put(key, value);
 
         final boolean replaced = provider.replace(stateMap, newValue, componentId);
-        assertFalse(replaced);
+        assertTrue(replaced);
+
+        StateMap map = provider.getState(componentId);
+        assertEquals(value, map.get(key));
+        assertTrue(map.getStateVersion().isPresent());
     }
 
     @Test
@@ -176,8 +182,8 @@ public abstract class AbstractTestStateProvider {
         final StateProvider provider = getProvider();
         final StateMap stateMap = new StateMap() {
             @Override
-            public long getVersion() {
-                return 4;
+            public Optional<String> getStateVersion() {
+                return Optional.of("4");
             }
 
             @Override
@@ -196,6 +202,50 @@ public abstract class AbstractTestStateProvider {
 
         final boolean replaced = provider.replace(stateMap, newValue, componentId);
         assertFalse(replaced);
+    }
+
+    @Test
+    void testReplaceConcurrentCreate() throws IOException {
+        final StateProvider provider = getProvider();
+
+        final StateMap stateMap1 = provider.getState(componentId);
+        final StateMap stateMap2 = provider.getState(componentId);
+
+        final boolean replaced1 = provider.replace(stateMap1, Collections.emptyMap(), componentId);
+
+        assertTrue(replaced1);
+
+        final StateMap replacedStateMap = provider.getState(componentId);
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals("0", replacedVersion.get());
+
+        final boolean replaced2 = provider.replace(stateMap2, Collections.emptyMap(), componentId);
+
+        assertFalse(replaced2);
+    }
+
+    @Test
+    void testReplaceConcurrentUpdate() throws IOException {
+        final StateProvider provider = getProvider();
+
+        provider.setState(Collections.singletonMap("key", "0"), componentId);
+
+        final StateMap stateMap1 = provider.getState(componentId);
+        final StateMap stateMap2 = provider.getState(componentId);
+
+        final boolean replaced1 = provider.replace(stateMap1, Collections.singletonMap("key", "1"), componentId);
+
+        assertTrue(replaced1);
+
+        final StateMap replacedStateMap = provider.getState(componentId);
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals("1", replacedVersion.get());
+
+        final boolean replaced2 = provider.replace(stateMap2, Collections.singletonMap("key", "2"), componentId);
+
+        assertFalse(replaced2);
     }
 
     @Test

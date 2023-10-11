@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
@@ -28,6 +27,7 @@ import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Result for a list of RegisteredFlowSnapshotMetadata.
@@ -38,8 +38,7 @@ public class RegisteredFlowSnapshotMetadataResult extends AbstractWritableResult
 
     public RegisteredFlowSnapshotMetadataResult(final ResultType resultType, final List<VersionedFlowSnapshotMetadata> versions) {
         super(resultType);
-        this.versions = versions;
-        Validate.notNull(this.versions);
+        this.versions = Objects.requireNonNull(versions);
         this.versions.sort(Comparator.comparing(VersionedFlowSnapshotMetadata::getVersion));
     }
 

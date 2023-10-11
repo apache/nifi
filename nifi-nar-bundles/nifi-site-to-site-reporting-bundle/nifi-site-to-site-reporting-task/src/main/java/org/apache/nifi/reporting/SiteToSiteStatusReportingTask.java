@@ -20,6 +20,7 @@ package org.apache.nifi.reporting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -68,7 +69,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .name("Platform")
         .description("The value to use for the platform field in each status record.")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -78,7 +79,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .description("A regex specifying which component types to report.  Any component type matching this regex will be included.  "
                 + "Component types are: Processor, RootProcessGroup, ProcessGroup, RemoteProcessGroup, Connection, InputPort, OutputPort")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("(Processor|ProcessGroup|RemoteProcessGroup|RootProcessGroup|Connection|InputPort|OutputPort)")
         .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
@@ -87,7 +88,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .name("Component Name Filter Regex")
         .description("A regex specifying which component names to report.  Any component name matching this regex will be included.")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue(".*")
         .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
@@ -132,8 +133,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
-            url = new URL(nifiUrl);
-        } catch (final MalformedURLException e1) {
+            url = URI.create(nifiUrl).toURL();
+        } catch (IllegalArgumentException | MalformedURLException e) {
             // already validated
             throw new AssertionError();
         }

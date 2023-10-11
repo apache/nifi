@@ -18,50 +18,6 @@
  */
 package org.apache.nifi.processors.solr;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.expression.AttributeExpression;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.kerberos.KerberosUserService;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.ListRecordSet;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.CloudLegacySolrClient;
-import org.apache.solr.client.solrj.impl.HttpClientUtil;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.SolrHttpClientBuilder;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.util.ClientUtils;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.params.ModifiableSolrParams;
-import org.apache.solr.common.params.MultiMapSolrParams;
-
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +36,39 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.ListRecordSet;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.embedded.SSLConfig;
+import org.apache.solr.client.solrj.impl.CloudHttp2SolrClient;
+import org.apache.solr.client.solrj.impl.Http2SolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.util.ClientUtils;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.MultiMapSolrParams;
 
 public class SolrUtils {
 
@@ -89,216 +78,142 @@ public class SolrUtils {
     public static final AllowableValue SOLR_TYPE_STANDARD = new AllowableValue(
             "Standard", "Standard", "A stand-alone Solr instance.");
 
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor
-            .Builder().name("Record Writer")
-            .displayName("Record Writer")
-            .description("The Record Writer to use in order to write Solr documents to FlowFiles. Must be set if \"Records\" is used as return type.")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .build();
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("Record Writer")
+        .displayName("Record Writer")
+        .description("The Record Writer to use in order to write Solr documents to FlowFiles. Must be set if \"Records\" is used as return type.")
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .required(false)
+        .build();
 
-    public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor
-            .Builder().name("Solr Type")
-            .description("The type of Solr instance, Cloud or Standard.")
-            .required(true)
-            .allowableValues(SOLR_TYPE_CLOUD, SOLR_TYPE_STANDARD)
-            .defaultValue(SOLR_TYPE_STANDARD.getValue())
-            .build();
+    public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor.Builder()
+        .name("Solr Type")
+        .description("The type of Solr instance, Cloud or Standard.")
+        .required(true)
+        .allowableValues(SOLR_TYPE_CLOUD, SOLR_TYPE_STANDARD)
+        .defaultValue(SOLR_TYPE_STANDARD.getValue())
+        .build();
 
-    public static final PropertyDescriptor COLLECTION = new PropertyDescriptor
-            .Builder().name("Collection")
-            .description("The Solr collection name, only used with a Solr Type of Cloud")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+    public static final PropertyDescriptor COLLECTION = new PropertyDescriptor.Builder()
+        .name("Collection")
+        .description("The Solr collection name, only used with a Solr Type of Cloud")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
 
-    public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor
-            .Builder().name("Solr Location")
-            .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
-                    "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
+    public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor.Builder()
+        .name("Solr Location")
+        .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
+            "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .build();
 
     public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor.Builder()
-            .name("Username")
-            .displayName("Basic Auth Username")
-            .description("The username to use when Solr is configured with basic authentication.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
+        .name("Username")
+        .displayName("Basic Auth Username")
+        .description("The username to use when Solr is configured with basic authentication.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .build();
 
     public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Password")
-            .displayName("Basic Auth Password")
-            .description("The password to use when Solr is configured with basic authentication.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .sensitive(true)
-            .build();
-
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosCredentialsService.class)
-            .required(false)
-            .build();
+        .name("Password")
+        .displayName("Basic Auth Password")
+        .description("The password to use when Solr is configured with basic authentication.")
+        .required(true)
+        .dependsOn(BASIC_USERNAME)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .sensitive(true)
+        .build();
 
     static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
-            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosUserService.class)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("kerberos-principal")
-            .displayName("Kerberos Principal")
-            .description("The principal to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
-            .name("kerberos-password")
-            .displayName("Kerberos Password")
-            .description("The password to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .sensitive(true)
-            .build();
+        .name("kerberos-user-service")
+        .displayName("Kerberos User Service")
+        .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosUserService.class)
+        .required(false)
+        .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context. This property must be set when communicating with a Solr over https.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
+        .name("SSL Context Service")
+        .description("The Controller Service to use in order to obtain an SSL Context. This property must be set when communicating with a Solr over https.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
 
-    public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor
-            .Builder().name("Solr Socket Timeout")
-            .description("The amount of time to wait for data on a socket connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 seconds")
-            .build();
+    public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Solr Socket Timeout")
+        .description("The amount of time to wait for data on a socket connection to Solr. A value of 0 indicates an infinite timeout.")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("10 seconds")
+        .build();
 
-    public static final PropertyDescriptor SOLR_CONNECTION_TIMEOUT = new PropertyDescriptor
-            .Builder().name("Solr Connection Timeout")
-            .description("The amount of time to wait when establishing a connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 seconds")
-            .build();
+    public static final PropertyDescriptor SOLR_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Solr Connection Timeout")
+        .description("The amount of time to wait when establishing a connection to Solr. A value of 0 indicates an infinite timeout.")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("10 seconds")
+        .build();
 
-    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS = new PropertyDescriptor
-            .Builder().name("Solr Maximum Connections")
-            .description("The maximum number of total connections allowed from the Solr client to Solr.")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("10")
-            .build();
+    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = new PropertyDescriptor.Builder()
+        .name("Solr Maximum Connections Per Host")
+        .description("The maximum number of connections allowed from the Solr client to a single Solr host.")
+        .required(true)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("5")
+        .build();
 
-    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = new PropertyDescriptor
-            .Builder().name("Solr Maximum Connections Per Host")
-            .description("The maximum number of connections allowed from the Solr client to a single Solr host.")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("5")
-            .build();
-
-    public static final PropertyDescriptor ZK_CLIENT_TIMEOUT = new PropertyDescriptor
-            .Builder().name("ZooKeeper Client Timeout")
-            .description("The amount of time to wait for data on a connection to ZooKeeper, only used with a Solr Type of Cloud.")
-            .required(false)
-            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-            .defaultValue("10 seconds")
-            .build();
-
-    public static final PropertyDescriptor ZK_CONNECTION_TIMEOUT = new PropertyDescriptor
-            .Builder().name("ZooKeeper Connection Timeout")
-            .description("The amount of time to wait when establishing a connection to ZooKeeper, only used with a Solr Type of Cloud.")
-            .required(false)
-            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-            .defaultValue("10 seconds")
-            .build();
-
-    public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
+    public static final String REPEATING_PARAM_PATTERN = "[\\w.]+\\.\\d+$";
     private static final String ROOT_PATH = "/";
 
-    @SuppressWarnings("deprecation")
     public static synchronized SolrClient createSolrClient(final PropertyContext context, final String solrLocation) {
         final int socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
         final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
-        // Reset HttpClientBuilder static values
-        HttpClientUtil.resetHttpClientBuilder();
-
-        // has to happen before the client is created below so that correct configurer would be set if needed
-        if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
-            HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(SolrHttpClientBuilder.create()));
+        final SSLConfig sslConfig;
+        if (sslContextService == null) {
+            sslConfig = new SSLConfig(false, false, null, null, null, null);
+        } else {
+            sslConfig = new SSLConfig(true, true, sslContextService.getKeyStoreFile(), sslContextService.getKeyStorePassword(), sslContextService.getTrustStoreFile(),
+                sslContextService.getTrustStorePassword());
         }
 
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createContext();
-            final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
-            HttpClientUtil.setSocketFactoryRegistryProvider(new HttpClientUtil.SocketFactoryRegistryProvider() {
-                @Override
-                public Registry<ConnectionSocketFactory> getSocketFactoryRegistry() {
-                    RegistryBuilder<ConnectionSocketFactory> builder = RegistryBuilder.create();
-                    builder.register("http", PlainConnectionSocketFactory.getSocketFactory());
-                    builder.register("https", sslSocketFactory);
-                    return builder.build();
-                }
-            });
-        }
+        final Http2SolrClient httpClient = new Http2SolrClient.Builder(solrLocation)
+            .withConnectionTimeout(connectionTimeout, TimeUnit.MILLISECONDS)
+            .withRequestTimeout(socketTimeout, TimeUnit.MILLISECONDS)
+            .withMaxConnectionsPerHost(maxConnectionsPerHost)
+            .withSSLConfig(sslConfig)
+            .build();
 
-        final ModifiableSolrParams params = new ModifiableSolrParams();
-        params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
-        params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connectionTimeout);
-        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
-        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
-
-        final HttpClient httpClient = HttpClientUtil.createClient(params);
 
         if (SOLR_TYPE_STANDARD.getValue().equals(context.getProperty(SOLR_TYPE).getValue())) {
-            return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
+            return httpClient;
         } else {
             // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
             final String[] zk = solrLocation.split(ROOT_PATH);
-            final List zkList = Arrays.asList(zk[0].split(","));
+            final List<String> zkList = Arrays.asList(zk[0].split(","));
             String zkChrootPath = getZooKeeperChrootPathSuffix(solrLocation);
 
             final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
-            final int zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-            final int zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-            final CloudLegacySolrClient cloudSolrClient = new CloudLegacySolrClient.Builder(zkList, Optional.of(zkChrootPath))
-                    .withConnectionTimeout(zkConnectionTimeout, TimeUnit.MILLISECONDS)
-                    .withSocketTimeout(zkClientTimeout, TimeUnit.MILLISECONDS)
-                    .withHttpClient(httpClient)
-                    .build();
-            cloudSolrClient.setDefaultCollection(collection);
-            return cloudSolrClient;
+            final CloudHttp2SolrClient cloudClient = new CloudHttp2SolrClient.Builder(zkList, Optional.of(zkChrootPath))
+                .withHttpClient(httpClient)
+                .withDefaultCollection(collection)
+                .build();
+            return cloudClient;
         }
     }
 
@@ -324,7 +239,7 @@ public class SolrUtils {
                 final Object fieldValue = doc.getFieldValue(field.getFieldName());
                 if (fieldValue != null) {
                     if (field.getDataType().getFieldType().equals(RecordFieldType.ARRAY)){
-                        recordValues.put(field.getFieldName(), ((List<Object>) fieldValue).toArray());
+                        recordValues.put(field.getFieldName(), ((List<?>) fieldValue).toArray());
                     } else {
                         recordValues.put(field.getFieldName(), fieldValue);
                     }
@@ -409,18 +324,18 @@ public class SolrUtils {
 
         for (int i = 0; i < schema.getFieldCount(); i++) {
             final RecordField field = schema.getField(i);
+
             String fieldName;
-            if(!StringUtils.isBlank(parentFieldName)) {
-                // Prefixing parent field name
-                fieldName = parentFieldName+"_"+field.getFieldName();
-            }else{
+            if (StringUtils.isBlank(parentFieldName)) {
                 fieldName = field.getFieldName();
+            } else {
+                // Prefixing parent field name
+                fieldName = parentFieldName + "_" + field.getFieldName();
             }
+
             final Object value = record.getValue(field);
-            if (value == null) {
-                continue;
-            }else {
-                final DataType dataType = schema.getDataType(field.getFieldName()).get();
+            if (value != null) {
+                final DataType dataType = schema.getDataType(field.getFieldName()).orElse(null);
                 writeValue(inputDocument, value, fieldName, dataType, fieldsToIndex);
             }
         }

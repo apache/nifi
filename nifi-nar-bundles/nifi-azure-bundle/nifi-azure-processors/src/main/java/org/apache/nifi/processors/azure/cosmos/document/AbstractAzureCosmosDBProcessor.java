@@ -202,7 +202,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
                 this.container = null;
                 this.cosmosClient.close();
             }catch(CosmosException e) {
-                logger.error("Error closing Cosmos DB client due to {}", new Object[] { e.getMessage() }, e);
+                logger.error("Error closing Cosmos DB client due to {}", e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
             }

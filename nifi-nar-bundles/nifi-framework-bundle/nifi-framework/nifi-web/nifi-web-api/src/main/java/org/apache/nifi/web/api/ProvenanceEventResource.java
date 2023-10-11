@@ -22,6 +22,27 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.Collections;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -44,34 +65,17 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.Collections;
-
 /**
  * RESTful endpoint for querying data provenance.
  */
 @Path("/provenance-events")
 @Api(
-        value = "/provenance-events",
-        description = "Endpoint for accessing data flow provenance."
+    value = "/provenance-events",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for accessing data flow provenance.")
+})
 public class ProvenanceEventResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ProvenanceEventResource.class);
 

@@ -59,7 +59,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
             .description("The hostnames or ip addresses of the bootstraping nodes and optional parameters."
                     + " Syntax) couchbase://node1,node2,nodeN?param1=value1&param2=value2&paramN=valueN")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -71,7 +71,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
                     " This configuration can be used against Couchbase Server 5.0 or later" +
                     " supporting Roll-Based Access Control.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -84,7 +84,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
                     " supporting Roll-Based Access Control.")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -119,7 +119,7 @@ public class CouchbaseClusterService extends AbstractControllerService implement
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .dynamic(true)
                     .sensitive(true)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .build();
         }
         return null;

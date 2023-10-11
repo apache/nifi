@@ -186,7 +186,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                     try {
                         wrapper.getFileTransfer().close();
                     } catch (final IOException ioe) {
-                        getLogger().warn("Failed to close Idle Connection due to {}", new Object[] {ioe}, ioe);
+                        getLogger().warn("Failed to close Idle Connection due to {}", ioe, ioe);
                     }
                 }
             }
@@ -275,7 +275,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 return;
             } catch (final ProcessException | IOException e) {
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
-                        new Object[]{flowFile, filename, host, port, e.toString()}, e);
+                        flowFile, filename, host, port, e.toString(), e);
                 session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
                 cleanupTransfer(transfer, true, transferQueue, host, port);
                 return;
@@ -325,7 +325,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             try {
                 transfer.close();
             } catch (final IOException e) {
-                getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[]{host, port, e.getMessage()}, e);
+                getLogger().warn("Failed to close connection to {}:{} due to {}", host, port, e.getMessage(), e);
             }
         } else {
             getLogger().debug("Returning FileTransfer to pool...");
@@ -342,7 +342,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 // file doesn't exist -- effectively the same as removing it. Move on.
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
-                    new Object[]{flowFile, host, port, filename, ioe}, ioe);
+                        flowFile, host, port, filename, ioe, ioe);
             }
         } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
             final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
@@ -360,7 +360,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
-                    new Object[]{flowFile, host, port, filename, ioe}, ioe);
+                        flowFile, host, port, filename, ioe, ioe);
             }
         }
     }

@@ -230,5 +230,50 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
                         "source_id", "source_name", "destination_id", "destination_name")
                 .register(registry));
+
+        nameToGaugeMap.put("FLOW_FILE_REPO_TOTAL_SPACE_BYTES", Gauge.build().name("nifi_flow_file_repo_total_space_bytes")
+                .help("Flowfile repository total space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("FLOW_FILE_REPO_USED_SPACE_BYTES", Gauge.build().name("nifi_flow_file_repo_used_space_bytes")
+                .help("Flowfile repository used space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("FLOW_FILE_REPO_FREE_SPACE_BYTES", Gauge.build().name("nifi_flow_file_repo_free_space_bytes")
+                .help("Flowfile repository free space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("CONTENT_REPO_TOTAL_SPACE_BYTES", Gauge.build().name("nifi_content_repo_total_space_bytes")
+                .help("Content repository total space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("CONTENT_REPO_USED_SPACE_BYTES", Gauge.build().name("nifi_content_repo_used_space_bytes")
+                .help("Content repository used space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("CONTENT_REPO_FREE_SPACE_BYTES", Gauge.build().name("nifi_content_repo_free_space_bytes")
+                .help("Content repository free space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("PROVENANCE_REPO_TOTAL_SPACE_BYTES", Gauge.build().name("nifi_provenance_repo_total_space_bytes")
+                .help("Provenance repository total space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("PROVENANCE_REPO_USED_SPACE_BYTES", Gauge.build().name("nifi_provenance_repo_used_space_bytes")
+                .help("Provenance repository used space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
+
+        nameToGaugeMap.put("PROVENANCE_REPO_FREE_SPACE_BYTES", Gauge.build().name("nifi_provenance_repo_free_space_bytes")
+                .help("Provenance repository free space in bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
+                .register(registry));
     }
 }

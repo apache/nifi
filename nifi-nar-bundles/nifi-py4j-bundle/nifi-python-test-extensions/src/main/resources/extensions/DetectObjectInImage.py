@@ -147,7 +147,6 @@ class DetectObjectInImage(FlowFileTransform):
         output = {'results': detection_results}
         output_json = json.dumps(output)
 
-        attributes = self.jvm.java.util.HashMap()
-        attributes.put("mime.type", "application/json")
+        attributes = {"mime.type": "application/json"}
 
         return FlowFileTransformResult(relationship = "success", attributes = attributes, contents = str.encode(output_json))

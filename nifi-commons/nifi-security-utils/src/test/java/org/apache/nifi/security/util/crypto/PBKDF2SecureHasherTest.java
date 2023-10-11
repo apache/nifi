@@ -290,7 +290,7 @@ public class PBKDF2SecureHasherTest {
         List<Integer> validHLengths = Arrays.asList(32, 64);
 
         // MAX_VALUE + 1 will become MIN_VALUE because of signed integer math
-        List<Integer> invalidDKLengths = Arrays.asList(-1, 0, Integer.MAX_VALUE + 1, new Integer(Integer.MAX_VALUE * 2 - 1));
+        List<Integer> invalidDKLengths = Arrays.asList(-1, 0, Integer.MAX_VALUE + 1, Integer.valueOf(Integer.MAX_VALUE * 2 - 1));
 
         // Act and Assert
         validHLengths.forEach(hLen -> {

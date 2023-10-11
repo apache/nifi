@@ -108,7 +108,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor BLOB_NAME_PREFIX = new PropertyDescriptor.Builder()
@@ -116,7 +116,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .displayName("Blob Name Prefix")
             .description("Search prefix for listing")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 

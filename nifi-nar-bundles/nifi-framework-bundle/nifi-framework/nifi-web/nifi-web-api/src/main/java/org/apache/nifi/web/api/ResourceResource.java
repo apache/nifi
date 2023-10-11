@@ -21,6 +21,16 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.util.List;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -29,23 +39,17 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.entity.ResourcesEntity;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.List;
-
 /**
  * RESTful endpoint for retrieving system diagnostics.
  */
 @Path("/resources")
 @Api(
-        value = "/resources",
-        description = "Provides the resources in this NiFi that can have access/authorization policies."
+    value = "/resources",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Provides the resources in this NiFi that can have access/authorization policies.")
+})
 public class ResourceResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;

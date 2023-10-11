@@ -17,16 +17,18 @@
 
 package org.apache.nifi.toolkit.tls.manager;
 
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 
 /**
  * KeyStore manager capable of reading or instantiating a CA Certificate
@@ -49,7 +51,10 @@ public class TlsCertificateAuthorityManager extends BaseTlsManager {
         if (entry == null) {
             TlsConfig tlsConfig = getTlsConfig();
             KeyPair keyPair = TlsHelper.generateKeyPair(tlsConfig.getKeyPairAlgorithm(), tlsConfig.getKeySize());
-            X509Certificate caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, CertificateUtils.reorderDn(tlsConfig.getDn()), tlsConfig.getSigningAlgorithm(), tlsConfig.getDays());
+            final X500Principal issuer = new X500Principal(tlsConfig.getDn());
+            final Duration validityPeriod = Duration.ofDays(tlsConfig.getDays());
+            final StandardCertificateBuilder certificateBuilder = new StandardCertificateBuilder(keyPair, issuer, validityPeriod);
+            X509Certificate caCert = certificateBuilder.build();
             entry = addPrivateKeyToKeyStore(keyPair, TlsToolkitStandalone.NIFI_KEY, caCert);
         } else if (!KeyStore.PrivateKeyEntry.class.isInstance(entry)) {
             throw new IOException("Expected " + TlsToolkitStandalone.NIFI_KEY + " alias to contain a private key entry");

@@ -73,6 +73,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
@@ -90,11 +91,12 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final StateManagerProvider stateManagerProvider;
     private final long processorStartTimeoutMillis;
     private final LifecycleStateManager lifecycleStateManager;
+    private final AtomicLong frameworkTaskThreadIndex = new AtomicLong(1L);
 
-    private final ScheduledExecutorService frameworkTaskExecutor;
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
 
     // thread pool for starting/stopping components
+    private volatile boolean shutdown = false;
     private final ScheduledExecutorService componentLifeCycleThreadPool;
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
@@ -111,8 +113,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
         processorStartTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
-
-        frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
     }
 
     public ControllerServiceProvider getControllerServiceProvider() {
@@ -123,20 +123,36 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return stateManagerProvider.getStateManager(componentId);
     }
 
-    public void scheduleFrameworkTask(final Runnable command, final String taskName, final long initialDelay, final long delay, final TimeUnit timeUnit) {
-        frameworkTaskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    command.run();
-                } catch (final Throwable t) {
-                    LOG.error("Failed to run Framework Task {} due to {}", taskName, t.toString());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.error("", t);
-                    }
-                }
+    public void scheduleFrameworkTask(final Runnable task, final String taskName, final long initialDelay, final long delay, final TimeUnit timeUnit) {
+        Thread.ofVirtual()
+            .name(taskName)
+            .start(() -> invokeRepeatedly(task, taskName, initialDelay, delay, timeUnit));
+    }
+
+    private void invokeRepeatedly(final Runnable task, final String taskName, final long initialDelay, final long delayBetweenInvocations, final TimeUnit timeUnit) {
+        if (initialDelay > 0) {
+            try {
+                timeUnit.sleep(initialDelay);
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
             }
-        }, initialDelay, delay, timeUnit);
+        }
+
+        while (!this.shutdown) {
+            try {
+                task.run();
+            } catch (final Exception e) {
+                LOG.error("Failed to run Framework Task {}", taskName, e);
+            }
+
+            try {
+                timeUnit.sleep(delayBetweenInvocations);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 
     /**
@@ -145,7 +161,29 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * @param task the task to perform
      */
     public Future<?> submitFrameworkTask(final Runnable task) {
-        return frameworkTaskExecutor.submit(task);
+        final CompletableFuture<?> future = new CompletableFuture<>();
+
+        Thread.ofVirtual()
+            .name("Framework Task Thread-" + frameworkTaskThreadIndex.getAndIncrement())
+            .start(wrapTask(task, future));
+
+        return future;
+    }
+
+    private Runnable wrapTask(final Runnable task, final CompletableFuture<?> future) {
+        return () -> {
+            try {
+                task.run();
+                future.complete(null);
+            } catch (final Exception e) {
+                LOG.error("Encountered unexpected Exception when performing background Framework Task", e);
+                future.completeExceptionally(e);
+            } catch (final Throwable t) {
+                LOG.error("Encountered unexpected Exception when performing background Framework Task", t);
+                future.completeExceptionally(t);
+                throw t;
+            }
+        };
     }
 
     @Override
@@ -172,6 +210,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void shutdown() {
+        shutdown = true;
+
         for (final SchedulingAgent schedulingAgent : strategyAgentMap.values()) {
             try {
                 schedulingAgent.shutdown();
@@ -181,7 +221,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             }
         }
 
-        frameworkTaskExecutor.shutdown();
         componentLifeCycleThreadPool.shutdown();
     }
 
@@ -197,7 +236,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
     }

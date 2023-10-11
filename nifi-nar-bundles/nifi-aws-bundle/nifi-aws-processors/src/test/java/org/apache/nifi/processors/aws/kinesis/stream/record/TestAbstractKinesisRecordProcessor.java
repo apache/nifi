@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ThrottlingException;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason;
-import com.amazonaws.services.kinesis.clientlibrary.types.ExtendedSequenceNumber;
-import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput;
-import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
-import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -38,8 +28,15 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import software.amazon.kinesis.common.InitialPositionInStream;
+import software.amazon.kinesis.exceptions.InvalidStateException;
+import software.amazon.kinesis.exceptions.ShutdownException;
+import software.amazon.kinesis.exceptions.ThrottlingException;
+import software.amazon.kinesis.lifecycle.events.InitializationInput;
+import software.amazon.kinesis.lifecycle.events.ShutdownRequestedInput;
+import software.amazon.kinesis.processor.RecordProcessorCheckpointer;
+import software.amazon.kinesis.retrieval.KinesisClientRecord;
+import software.amazon.kinesis.retrieval.kpl.ExtendedSequenceNumber;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -51,6 +48,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,30 +60,23 @@ public class TestAbstractKinesisRecordProcessor {
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Mock
-    private ProcessSessionFactory processSessionFactory;
+    private final ProcessSessionFactory processSessionFactory = mock(ProcessSessionFactory.class);
 
     private final MockProcessSession session = new MockProcessSession(new SharedSessionState(runner.getProcessor(), new AtomicLong(0)), runner.getProcessor());
-
     private AbstractKinesisRecordProcessor fixture;
+    private final RecordProcessorCheckpointer checkpointer = mock(RecordProcessorCheckpointer.class);
 
-    @Mock
-    private IRecordProcessorCheckpointer checkpointer;
-
-    @Mock
-    private Record kinesisRecord;
+    private final KinesisClientRecord kinesisRecord = mock(KinesisClientRecord.class);
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
         when(processSessionFactory.createSession()).thenReturn(session);
 
         // default test fixture will try operations twice with very little wait in between
         fixture = new AbstractKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER) {
             @Override
-            void processRecord(List<FlowFile> flowFiles, Record kinesisRecord, boolean lastRecord, ProcessSession session, StopWatch stopWatch) {
+            void processRecord(List<FlowFile> flowFiles, KinesisClientRecord kinesisRecord, boolean lastRecord, ProcessSession session, StopWatch stopWatch) {
                 // intentionally blank
             }
         };
@@ -100,9 +91,10 @@ public class TestAbstractKinesisRecordProcessor {
     @Test
     public void testInitialisation() {
         final ExtendedSequenceNumber esn = new ExtendedSequenceNumber(InitialPositionInStream.AT_TIMESTAMP.toString(), 123L);
-        final InitializationInput initializationInput = new InitializationInput()
-                .withExtendedSequenceNumber(esn)
-                .withShardId("shard-id");
+        final InitializationInput initializationInput = InitializationInput.builder()
+                .extendedSequenceNumber(esn)
+                .shardId("shard-id")
+                .build();
 
         fixture.initialize(initializationInput);
 
@@ -114,10 +106,11 @@ public class TestAbstractKinesisRecordProcessor {
     public void testInitialisationWithPendingCheckpoint() {
         final ExtendedSequenceNumber esn = new ExtendedSequenceNumber(InitialPositionInStream.AT_TIMESTAMP.toString(), 123L);
         final ExtendedSequenceNumber prev = new ExtendedSequenceNumber(InitialPositionInStream.LATEST.toString(), 456L);
-        final InitializationInput initializationInput = new InitializationInput()
-                .withExtendedSequenceNumber(esn)
-                .withPendingCheckpointSequenceNumber(prev)
-                .withShardId("shard-id");
+        final InitializationInput initializationInput = InitializationInput.builder()
+                .extendedSequenceNumber(esn)
+                .pendingCheckpointSequenceNumber(prev)
+                .shardId("shard-id")
+                .build();
 
         fixture.initialize(initializationInput);
 
@@ -127,51 +120,51 @@ public class TestAbstractKinesisRecordProcessor {
 
     @Test
     public void testShutdown() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.REQUESTED)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         fixture.setKinesisShardId("test-shard");
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
     }
 
     @Test
     public void testShutdownWithThrottlingFailures() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.REQUESTED)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         doThrow(new ThrottlingException("throttled")).when(checkpointer).checkpoint();
 
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(2)).checkpoint();
     }
 
     @Test
     public void testShutdownWithShutdownFailure() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.REQUESTED)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         doThrow(new ShutdownException("shutdown")).when(checkpointer).checkpoint();
 
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
     }
 
     @Test
     public void testShutdownWithInvalidStateFailure() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.ZOMBIE)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         doThrow(new InvalidStateException("invalid state")).when(checkpointer).checkpoint();
 
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
 
@@ -180,13 +173,13 @@ public class TestAbstractKinesisRecordProcessor {
 
     @Test
     public void testShutdownTerminateRecordsNotProcessing() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.TERMINATE)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         fixture.setKinesisShardId("test-shard");
         fixture.setProcessingRecords(false);
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
 
@@ -195,13 +188,13 @@ public class TestAbstractKinesisRecordProcessor {
 
     @Test
     public void testShutdownTerminateRecordsProcessing() throws InvalidStateException, ShutdownException {
-        final ShutdownInput shutdownInput = new ShutdownInput()
-                .withShutdownReason(ShutdownReason.TERMINATE)
-                .withCheckpointer(checkpointer);
+        final ShutdownRequestedInput shutdownInput = ShutdownRequestedInput.builder()
+                .checkpointer(checkpointer)
+                .build();
 
         fixture.setKinesisShardId("test-shard");
         fixture.setProcessingRecords(true);
-        fixture.shutdown(shutdownInput);
+        fixture.shutdownRequested(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
 

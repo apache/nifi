@@ -62,7 +62,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .required(true)
             .defaultValue(AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()

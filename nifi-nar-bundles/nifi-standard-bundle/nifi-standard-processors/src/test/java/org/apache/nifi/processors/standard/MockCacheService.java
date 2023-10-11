@@ -25,21 +25,34 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-final class MockCacheService<K, V> extends AbstractControllerService implements DistributedMapCacheClient {
-    private Map storage;
+final class MockCacheService extends AbstractControllerService implements DistributedMapCacheClient {
+    private Map<Object, Object> storage;
 
     public MockCacheService() {
         storage = new HashMap<>();
     }
 
+    /**
+     * Puts the value to the cache with the specified key, if it doesn't already exist
+     * @param key the key for into the map
+     * @param value the value to add to the map if and only if the key is absent
+     * @param keySerializer key serializer
+     * @param valueSerializer value serializer
+     * @return true if the value was added to the cache, false if it already exists
+     */
     @Override
     public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-        return false;
+        return storage.putIfAbsent(key, value) == null;
     }
 
     @Override
     public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
-        return null;
+        if (storage.containsKey(key)) {
+            return (V) storage.get(key);
+        } else {
+            storage.put(key, value);
+            return null;
+        }
     }
 
     @Override
@@ -54,7 +67,7 @@ final class MockCacheService<K, V> extends AbstractControllerService implements 
 
     @Override
     public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        return null;
+        return (V) storage.get(key);
     }
 
     @Override
@@ -64,7 +77,12 @@ final class MockCacheService<K, V> extends AbstractControllerService implements 
 
     @Override
     public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
-        return false;
+        if (storage.containsKey(key)) {
+            storage.remove(key);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override

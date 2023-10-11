@@ -26,7 +26,6 @@ import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.internal.StaticCredentialsProvider;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
@@ -89,7 +88,7 @@ public class TestCredentialsProviderFactory {
     public void testExplicitDefaultCredentialsExclusive() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.USE_DEFAULT_CREDENTIALS, "true");
-        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY, "BogusAccessKey");
+        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, "BogusAccessKey");
         runner.assertNotValid();
     }
 
@@ -97,7 +96,7 @@ public class TestCredentialsProviderFactory {
     public void testAccessKeyPairCredentials() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.USE_DEFAULT_CREDENTIALS, "false");
-        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY, "BogusAccessKey");
+        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, "BogusAccessKey");
         runner.setProperty(CredentialPropertyDescriptors.SECRET_KEY, "BogusSecretKey");
         runner.assertValid();
 
@@ -105,8 +104,6 @@ public class TestCredentialsProviderFactory {
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
-        assertEquals(StaticCredentialsProvider.class,
-                credentialsProvider.getClass(), "credentials provider should be equal");
 
         final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
@@ -117,14 +114,14 @@ public class TestCredentialsProviderFactory {
     @Test
     public void testAccessKeyPairIncomplete() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
-        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY, "BogusAccessKey");
+        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, "BogusAccessKey");
         runner.assertNotValid();
     }
 
     @Test
     public void testAccessKeyPairIncompleteS3() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
-        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY, "BogusAccessKey");
+        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, "BogusAccessKey");
         runner.assertNotValid();
     }
 

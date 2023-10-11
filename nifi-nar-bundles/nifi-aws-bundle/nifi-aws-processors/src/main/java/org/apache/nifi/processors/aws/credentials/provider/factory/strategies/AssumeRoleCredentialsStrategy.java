@@ -19,7 +19,9 @@ package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -150,7 +152,6 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final String assumeRoleSTSSigner = propertyContext.getProperty(ASSUME_ROLE_STS_SIGNER_OVERRIDE).getValue();
         final SSLContextService sslContextService = propertyContext.getProperty(ASSUME_ROLE_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-        STSAssumeRoleSessionCredentialsProvider.Builder builder;
         final ClientConfiguration config = new ClientConfiguration();
 
         if (sslContextService != null) {
@@ -175,26 +176,25 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
             config.withSignerOverride(assumeRoleSTSSigner);
         }
 
-        AWSSecurityTokenServiceClient securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
+        AWSSecurityTokenServiceClientBuilder securityTokenServiceBuilder = AWSSecurityTokenServiceClient.builder()
+                .withCredentials(primaryCredentialsProvider)
+                .withRegion(assumeRoleSTSRegion)
+                .withClientConfiguration(config);
+
         if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
-            if (assumeRoleSTSSignerType == CUSTOM_SIGNER) {
-                securityTokenService.setEndpoint(assumeRoleSTSEndpoint, securityTokenService.getServiceName(), assumeRoleSTSRegion);
-            } else {
-                securityTokenService.setEndpoint(assumeRoleSTSEndpoint);
-            }
+            AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(assumeRoleSTSEndpoint, assumeRoleSTSRegion);
+            securityTokenServiceBuilder.withEndpointConfiguration(endpointConfiguration);
         }
 
-        builder = new STSAssumeRoleSessionCredentialsProvider
-                .Builder(assumeRoleArn, assumeRoleName)
-                .withStsClient(securityTokenService)
+        STSAssumeRoleSessionCredentialsProvider.Builder builder = new STSAssumeRoleSessionCredentialsProvider.Builder(assumeRoleArn, assumeRoleName)
+                .withStsClient(securityTokenServiceBuilder.build())
                 .withRoleSessionDurationSeconds(maxSessionTime);
 
         if (assumeRoleExternalId != null && !assumeRoleExternalId.isEmpty()) {
-            builder = builder.withExternalId(assumeRoleExternalId);
+            builder.withExternalId(assumeRoleExternalId);
         }
 
         final AWSCredentialsProvider credsProvider = builder.build();
-
         return credsProvider;
     }
 

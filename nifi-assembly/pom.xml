@@ -338,12 +338,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-html-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -422,12 +416,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hl7-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-language-translation-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -494,7 +482,7 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-riemann-nar</artifactId>
+            <artifactId>nifi-hl7-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -554,12 +542,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cybersecurity-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-email-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -608,12 +590,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-spring-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-registry-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -633,6 +609,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mqtt-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-opentelemetry-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -699,12 +681,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-workday-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-tcp-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -795,18 +771,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-metrics-reporting-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -1015,26 +979,6 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>include-grpc</id>
-            <!-- This profile handles the inclusion of grpc artifacts. They are notoriously
-            environment specific in terms of build such as not working in os/arch=ppc64le
-            or in Centos6 due to requiring a newer version of GLIBC. -->
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-grpc-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>include-atlas</id>
             <!-- This profile handles the inclusion of atlas artifacts. The NAR
             is quite large and makes the resultant binary distribution significantly
@@ -1117,30 +1061,6 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>include-rules</id>
-            <!-- This profile handles includes of rules related artifacts. -->
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-easyrules-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-rules-action-handler-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>include-sql-reporting</id>
             <!-- This profile handles the inclusion of nifi-sql-reporting artifacts. -->
             <activation>
@@ -1153,18 +1073,6 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-sql-reporting-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-easyrules-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-rules-action-handler-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
@@ -1261,162 +1169,6 @@ language governing permissions and limitations under the License. -->
             </build>
         </profile>
         <profile>
-            <id>rpm</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <nifi.run.as>nifi</nifi.run.as>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>unpack-shared-resources</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                                    <includeArtifactIds>nifi-resources</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-docs</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
-                                    <includeArtifactIds>nifi-docs</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                    <excludes>LICENSE,NOTICE</excludes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>rpm-maven-plugin</artifactId>
-                        <configuration>
-                            <name>nifi</name>
-                            <summary>Apache NiFi</summary>
-                            <description>Apache NiFi is dataflow system based on the Flow-Based Programming concepts.</description>
-                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
-                            <url>https://nifi.apache.org</url>
-                            <group>Utilities</group>
-                            <prefix>/opt/nifi</prefix>
-                            <defineStatements>
-                                <defineStatement>_use_internal_dependency_generator 0</defineStatement>
-                            </defineStatements>
-                            <defaultDirmode>750</defaultDirmode>
-                            <defaultFilemode>640</defaultFilemode>
-                            <defaultUsername>nifi</defaultUsername>
-                            <defaultGroupname>nifi</defaultGroupname>
-                            <!-- This allows the stanza to produce bootstrap.conf that is pre-configured with run.as=nifi
-                            given the uid is created by the preinstallScriptlet below. Meanwhile, normal zip and tar.gz
-                            ship without this particular property set -->
-                            <installScriptlet>
-                                <!-- It is important to note because of the way the plugin calls the command, the sed backup
-                                parameter -i and the sed command do not beed to be wrapped by single or double quotes.
-                                Also note maven properties are processed before RPM variables and before sed commands -->
-                                <script>sed -i s/^run\.as=$/run\.as=${nifi.run.as}/ $RPM_BUILD_ROOT/opt/nifi/nifi-${project.version}/conf/bootstrap.conf</script>
-                            </installScriptlet>
-                            <preinstallScriptlet>
-                                <script>/usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi</script>
-                            </preinstallScriptlet>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>build-bin-rpm</id>
-                                <goals>
-                                    <goal>attached-rpm</goal>
-                                </goals>
-                                <configuration>
-                                    <classifier>bin</classifier>
-                                    <provides>
-                                        <provide>nifi</provide>
-                                    </provides>
-                                    <mappings>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}</directory>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>./LICENSE</location>
-                                                </source>
-                                                <source>
-                                                    <location>./NOTICE</location>
-                                                </source>
-                                                <source>
-                                                    <location>./README.md</location>
-                                                    <destination>README</destination>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi</directory>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/bin</directory>
-                                            <filemode>750</filemode>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-resources/bin/nifi.sh</location>
-                                                    <destination>nifi.sh</destination>
-                                                    <filter>true</filter>
-                                                </source>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-resources/bin/nifi-env.sh</location>
-                                                    <destination>nifi-env.sh</destination>
-                                                    <filter>true</filter>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/conf</directory>
-                                            <configuration>true</configuration>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-resources/conf</location>
-                                                    <filter>true</filter>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/lib</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/nifi-${project.version}-bin/nifi-${project.version}/lib</location>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/docs</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-docs</location>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                    </mappings>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>include-ranger</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1479,23 +1231,6 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-asn1-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>include-riemann</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-riemann-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>

@@ -33,13 +33,12 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,13 +65,12 @@ public class PrometheusReportingTaskIT {
         reportingInitContextStub = new MockReportingInitializationContext(TEST_INIT_CONTEXT_ID, TEST_INIT_CONTEXT_NAME,
                 new MockComponentLog(TEST_TASK_ID, testedReportingTask));
 
-        reportingContextStub = new MockReportingContext(Collections.emptyMap(),
-                new MockStateManager(testedReportingTask), new MockVariableRegistry());
+        reportingContextStub = new MockReportingContext(Collections.emptyMap(), new MockStateManager(testedReportingTask));
 
         reportingContextStub.setProperty(PrometheusMetricsUtil.INSTANCE_ID.getName(), "localhost");
 
         configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
-                reportingContextStub.getControllerServiceLookup());
+                reportingContextStub.getControllerServiceLookup(), null);
 
         rootGroupStatus.setId("1234");
         rootGroupStatus.setFlowFilesReceived(5);
@@ -158,8 +156,7 @@ public class PrometheusReportingTaskIT {
     }
 
     private String getMetrics() throws IOException {
-        URL url = new URL("http://localhost:9092/metrics");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        HttpURLConnection con = (HttpURLConnection) URI.create("http://localhost:9092/metrics").toURL().openConnection();
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
         assertEquals(HttpURLConnection.HTTP_OK, status);

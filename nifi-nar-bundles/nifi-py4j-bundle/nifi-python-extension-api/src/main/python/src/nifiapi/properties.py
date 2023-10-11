@@ -22,7 +22,7 @@ EMPTY_ALLOWABLE_VALUE_ARRAY = JvmHolder.gateway.new_array(JvmHolder.jvm.org.apac
 
 class ExpressionLanguageScope(Enum):
     NONE = 1
-    LIMITED = 2
+    ENVIRONMENT = 2
     FLOWFILE_ATTRIBUTES = 3
 
 
@@ -133,8 +133,9 @@ class PropertyDescriptor:
         :param expression_language_scope: documents the scope in which Expression Language is valid. This value must be specified as one of the enum values
                                           in `nifiapi.properties.ExpressionLanguageScope`. A value of `NONE` indicates that Expression Language will not be evaluated for this property.
                                           This is the default. A value of `FLOWFILE_ATTRIBUTES` indicates that FlowFile attributes may be referenced when configuring the property value.
-                                          A value of `LIMITED` indicates that Expression Language may be used but may not reference FlowFile attributes. For example, a value of `${now()}` might
-                                          be used to reference the current date and time, or `${hostname(true)}` might be used to specify the hostname.
+                                          A value of `ENVIRONMENT` indicates that Expression Language may be used and may reference environment variables but may not reference FlowFile attributes.
+                                          For example, a value of `${now()}` might be used to reference the current date and time, or `${hostname(true)}` might be used to specify the hostname.
+                                          Or a value of `${ENV_VAR}` could be used to reference an environment variable named `ENV_VAR`.
         :param dynamic: whether or not this Property Descriptor represents a dynamic (aka user-defined) property. This is not necessary to specify, as the framework can determine this.
                         However, it is available if there is a desire to explicitly set it for completeness' sake.
         :param validators: A list of property validators that can be used to ensure that the user-supplied value is valid. The standard validators can be referenced using the

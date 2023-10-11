@@ -38,7 +38,10 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -98,6 +101,40 @@ import java.util.zip.InflaterInputStream;
     + "property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@UseCase(
+    description = "Compress the contents of a FlowFile",
+    configuration = """
+        "Mode" = "compress"
+        "Compression Format" should be set to whichever compression algorithm should be used."""
+)
+@UseCase(
+    description = "Decompress the contents of a FlowFile",
+    configuration = """
+        "Mode" = "decompress"
+        "Compression Format" should be set to whichever compression algorithm was used to compress the data previously."""
+)
+@MultiProcessorUseCase(
+    description = "Check whether or not a FlowFile is compressed and if so, decompress it.",
+    notes = "If IdentifyMimeType determines that the content is not compressed, CompressContent will pass the FlowFile " +
+        "along to the 'success' relationship without attempting to decompress it.",
+    keywords = {"auto", "detect", "mime type", "compress", "decompress", "gzip", "bzip2"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = IdentifyMimeType.class,
+            configuration = """
+                Default property values are sufficient.
+                Connect the 'success' relationship to CompressContent.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = CompressContent.class,
+            configuration = """
+                "Mode" = "decompress"
+                "Compression Format" = "use mime.type attribute"
+                """
+        )
+    }
+)
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";

@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ThrottlingException;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason;
-import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput;
-import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
-import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
-import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
@@ -34,18 +24,30 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
+import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.kinesis.exceptions.InvalidStateException;
+import software.amazon.kinesis.exceptions.ShutdownException;
+import software.amazon.kinesis.exceptions.ThrottlingException;
+import software.amazon.kinesis.lifecycle.events.InitializationInput;
+import software.amazon.kinesis.lifecycle.events.LeaseLostInput;
+import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
+import software.amazon.kinesis.lifecycle.events.ShardEndedInput;
+import software.amazon.kinesis.lifecycle.events.ShutdownRequestedInput;
+import software.amazon.kinesis.processor.RecordProcessorCheckpointer;
+import software.amazon.kinesis.processor.ShardRecordProcessor;
+import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor {
+public abstract class AbstractKinesisRecordProcessor implements ShardRecordProcessor {
     public static final String AWS_KINESIS_SHARD_ID = "aws.kinesis.shard.id";
 
     public static final String AWS_KINESIS_SEQUENCE_NUMBER = "aws.kinesis.sequence.number";
@@ -90,15 +92,15 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
 
     @Override
     public void initialize(final InitializationInput initializationInput) {
-        if (initializationInput.getPendingCheckpointSequenceNumber() != null) {
+        if (initializationInput.pendingCheckpointSequenceNumber() != null) {
             log.warn("Initializing record processor for stream: {} / shard {}; from sequence number: {}; indicates previously uncheckpointed sequence number: {}",
-                    streamName, initializationInput.getShardId(), initializationInput.getExtendedSequenceNumber(), initializationInput.getPendingCheckpointSequenceNumber());
+                    streamName, initializationInput.shardId(), initializationInput.extendedSequenceNumber(), initializationInput.pendingCheckpointSequenceNumber());
         } else {
             log.debug("Initializing record processor for stream: {} / shard: {}; from sequence number: {}",
-                    streamName, initializationInput.getShardId(), initializationInput.getExtendedSequenceNumber());
+                    streamName, initializationInput.shardId(), initializationInput.extendedSequenceNumber());
         }
 
-        this.kinesisShardId = initializationInput.getShardId();
+        this.kinesisShardId = initializationInput.shardId();
 
         // ensure we don't immediately checkpoint
         this.nextCheckpointTimeInMillis = System.currentTimeMillis() + checkpointIntervalMillis;
@@ -108,15 +110,15 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
     public void processRecords(final ProcessRecordsInput processRecordsInput) {
         if (log.isDebugEnabled()) {
             log.debug("Processing {} records from {}; cache entry: {}; cache exit: {}; millis behind latest: {}",
-                    processRecordsInput.getRecords().size(), kinesisShardId,
-                    processRecordsInput.getCacheEntryTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheEntryTime().atZone(ZoneId.systemDefault())) : null,
-                    processRecordsInput.getCacheExitTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheExitTime().atZone(ZoneId.systemDefault())) : null,
-                    processRecordsInput.getMillisBehindLatest());
+                    processRecordsInput.records().size(), kinesisShardId,
+                    processRecordsInput.cacheEntryTime() != null ? dateTimeFormatter.format(processRecordsInput.cacheEntryTime().atZone(ZoneId.systemDefault())) : null,
+                    processRecordsInput.cacheExitTime() != null ? dateTimeFormatter.format(processRecordsInput.cacheExitTime().atZone(ZoneId.systemDefault())) : null,
+                    processRecordsInput.millisBehindLatest());
         }
 
         ProcessSession session = null;
         try {
-            final List<Record> records = processRecordsInput.getRecords();
+            final List<KinesisClientRecord> records = processRecordsInput.records();
             if (!records.isEmpty()) {
                 final List<FlowFile> flowFiles = new ArrayList<>(records.size());
                 final StopWatch stopWatch = new StopWatch(true);
@@ -130,7 +132,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                     processingRecords = false;
 
                     // if creating an Kinesis checkpoint fails, then the same record(s) can be retrieved again
-                    checkpointOnceEveryCheckpointInterval(processRecordsInput.getCheckpointer());
+                    checkpointOnceEveryCheckpointInterval(processRecordsInput.checkpointer());
                 });
             }
         } catch (final Exception e) {
@@ -146,11 +148,11 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         processingRecords = true;
     }
 
-    private int processRecordsWithRetries(final List<Record> records, final List<FlowFile> flowFiles,
+    private int processRecordsWithRetries(final List<KinesisClientRecord> records, final List<FlowFile> flowFiles,
                                            final ProcessSession session, final StopWatch stopWatch) {
         int recordsTransformed = 0;
         for (int r = 0; r < records.size(); r++) {
-            final Record kinesisRecord = records.get(r);
+            final KinesisClientRecord kinesisRecord = records.get(r);
             boolean processedSuccessfully = false;
             for (int i = 0; !processedSuccessfully && i < numRetries; i++) {
                 processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, r == records.size() - 1, session, stopWatch);
@@ -166,7 +168,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         return recordsTransformed;
     }
 
-    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
+    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                                          final ProcessSession session, final StopWatch stopWatch) {
         boolean processedSuccessfully = false;
         try {
@@ -197,7 +199,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
      *
      * @throws RuntimeException if there are any unhandled Exceptions that should be retried
      */
-    abstract void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
+    abstract void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                                 final ProcessSession session, final StopWatch stopWatch);
 
     void reportProvenance(final ProcessSession session, final FlowFile flowFile, final String partitionKey,
@@ -209,14 +211,14 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
     }
 
-    Map<String, String> getDefaultAttributes(final String sequenceNumber, final String partitionKey, final Date approximateArrivalTimestamp) {
+    Map<String, String> getDefaultAttributes(final String sequenceNumber, final String partitionKey, final Instant approximateArrivalTimestamp) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(AWS_KINESIS_SHARD_ID, kinesisShardId);
         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, sequenceNumber);
         attributes.put(AWS_KINESIS_PARTITION_KEY, partitionKey);
         if (approximateArrivalTimestamp != null) {
             attributes.put(AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP,
-                    dateTimeFormatter.format(approximateArrivalTimestamp.toInstant().atZone(ZoneId.systemDefault())));
+                    dateTimeFormatter.format(approximateArrivalTimestamp.atZone(ZoneId.systemDefault())));
         }
         return attributes;
     }
@@ -230,7 +232,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         }
     }
 
-    private void checkpointOnceEveryCheckpointInterval(final IRecordProcessorCheckpointer checkpointer) {
+    private void checkpointOnceEveryCheckpointInterval(final RecordProcessorCheckpointer checkpointer) {
         if (System.currentTimeMillis() > nextCheckpointTimeInMillis) {
             checkpointWithRetries(checkpointer);
             nextCheckpointTimeInMillis = System.currentTimeMillis() + checkpointIntervalMillis;
@@ -238,28 +240,37 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
     }
 
     @Override
-    public void shutdown(final ShutdownInput shutdownInput) {
-        log.debug("Shutting down Record Processor for shard: {} with reason: {}", kinesisShardId, shutdownInput.getShutdownReason());
-
-        // be sure to finish processing any records before shutdown on TERMINATE
-        if (ShutdownReason.TERMINATE == shutdownInput.getShutdownReason()) {
-            for (int i = 0; processingRecords && i < numRetries; i++) {
-                log.debug("Record Processor for shard {} still processing records, waiting before shutdown", kinesisShardId);
-                try {
-                    Thread.sleep(retryWaitMillis);
-                } catch (InterruptedException ie) {
-                    log.debug("Interrupted sleep while waiting for record processing to complete before shutdown (TERMINATE)", ie);
-                }
-            }
-
-            if (processingRecords) {
-                log.warn("Record Processor for shard {} still running, but maximum wait time elapsed, checkpoint will be attempted", kinesisShardId);
-            }
-        }
-        checkpointWithRetries(shutdownInput.getCheckpointer());
+    public void leaseLost(final LeaseLostInput leaseLostInput) {
+        log.debug("Lease lost");
     }
 
-    private void checkpointWithRetries(final IRecordProcessorCheckpointer checkpointer) {
+    @Override
+    public void shardEnded(final ShardEndedInput shardEndedInput) {
+        log.debug("Shutting down Record Processor for shard: {} with reason: Shard Ended", kinesisShardId);
+        checkpointWithRetries(shardEndedInput.checkpointer());
+    }
+
+    @Override
+    public void shutdownRequested(final ShutdownRequestedInput shutdownRequestedInput) {
+        log.debug("Shutting down Record Processor for shard: {} with reason: Shutdown Requested", kinesisShardId);
+
+        // be sure to finish processing any records before shutdown
+        for (int i = 0; processingRecords && i < numRetries; i++) {
+            log.debug("Record Processor for shard {} still processing records, waiting before shutdown", kinesisShardId);
+            try {
+                Thread.sleep(retryWaitMillis);
+            } catch (InterruptedException ie) {
+                log.debug("Interrupted sleep while waiting for record processing to complete before shutdown (TERMINATE)", ie);
+            }
+        }
+
+        if (processingRecords) {
+            log.warn("Record Processor for shard {} still running, but maximum wait time elapsed, checkpoint will be attempted", kinesisShardId);
+        }
+        checkpointWithRetries(shutdownRequestedInput.checkpointer());
+    }
+
+    private void checkpointWithRetries(final RecordProcessorCheckpointer checkpointer) {
         log.debug("Checkpointing shard " + kinesisShardId);
         try {
             for (int i = 0; i < numRetries; i++) {
@@ -267,7 +278,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                     break;
                 }
             }
-        } catch (ShutdownException se) {
+        } catch (final ShutdownException se) {
             // Ignore checkpoint if the processor instance has been shutdown (fail over).
             log.info("Caught shutdown exception, skipping checkpoint.", se);
         } catch (InvalidStateException e) {
@@ -276,12 +287,12 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         }
     }
 
-    private boolean attemptCheckpoint(final IRecordProcessorCheckpointer checkpointer, final int attempt) throws ShutdownException, InvalidStateException {
+    private boolean attemptCheckpoint(final RecordProcessorCheckpointer checkpointer, final int attempt) throws ShutdownException, InvalidStateException {
         boolean success = false;
         try {
             checkpointer.checkpoint();
             success = true;
-        } catch (ThrottlingException e) {
+        } catch (final ThrottlingException e) {
             // Backoff and re-attempt checkpoint upon transient failures
             if (attempt >= (numRetries - 1)) {
                 log.error("Checkpoint failed after {} attempts.", attempt + 1, e);

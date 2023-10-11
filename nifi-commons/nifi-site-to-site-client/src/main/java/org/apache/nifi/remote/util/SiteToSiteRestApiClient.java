@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.remote.util;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -38,10 +28,8 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -93,6 +81,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.entity.BasicHttpEntity;
@@ -135,6 +124,16 @@ import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 public class SiteToSiteRestApiClient implements Closeable {
 
@@ -318,7 +317,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
                 try {
                     final X509Certificate cert = (X509Certificate) certChain[0];
-                    trustedPeerDn = cert.getSubjectDN().getName().trim();
+                    trustedPeerDn = cert.getSubjectX500Principal().getName().trim();
                 } catch (final RuntimeException e) {
                     final String msg = "Could not extract subject DN from SSL session peer certificate";
                     logger.warn(msg);
@@ -1356,8 +1355,14 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         try {
-            return new URL(clusterUrl.getScheme(), clusterUrl.getHost(), clusterUrl.getPort(), uriPath).toURI().toString();
-        } catch (MalformedURLException|URISyntaxException e) {
+            return new URIBuilder()
+                    .setScheme(clusterUrl.getScheme())
+                    .setHost(clusterUrl.getHost())
+                    .setPort(clusterUrl.getPort())
+                    .setPath(uriPath)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -1369,8 +1374,14 @@ public class SiteToSiteRestApiClient implements Closeable {
     private void setBaseUrl(final String scheme, final String host, final int port, final String path) {
         final String baseUri;
         try {
-            baseUri = new URL(scheme, host, port, path).toURI().toString();
-        } catch (MalformedURLException|URISyntaxException e) {
+            baseUri = new URIBuilder()
+                    .setScheme(scheme)
+                    .setHost(host)
+                    .setPort(port)
+                    .setPath(path)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
         this.setBaseUrl(baseUri);

@@ -17,15 +17,6 @@
 
 package org.apache.nifi.python.processor;
 
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +25,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 
 public abstract class PythonProcessorProxy extends AbstractProcessor {
     private final PythonProcessorBridge bridge;
@@ -124,7 +123,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor {
         // We cache this to avoid having to call into the Python side while the Processor is running. However, once
         // it is stopped, its relationships may change due to properties, etc.
         final Set<Relationship> relationships = fetchRelationshipsFromPythonProcessor();
-        this.cachedRelationships = Collections.unmodifiableSet(new HashSet<>(relationships));
+        this.cachedRelationships = Set.copyOf(relationships);
     }
 
     @OnScheduled

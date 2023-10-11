@@ -46,10 +46,8 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
-import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
@@ -60,7 +58,6 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -83,8 +80,6 @@ import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
@@ -107,7 +102,6 @@ import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.util.FlowDifferenceFilters;
@@ -116,7 +110,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,9 +185,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new ConcurrentHashMap<>();
-    private final Map<String, Template> templates = new HashMap<>();
     private final PropertyEncryptor encryptor;
-    private final MutableVariableRegistry variableRegistry;
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
@@ -226,7 +217,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
-                                final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider,
+                                final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
                                 final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory) {
 
         this.id = id;
@@ -237,7 +228,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
         this.stateManagerProvider = stateManagerProvider;
-        this.variableRegistry = variableRegistry;
         this.flowManager = flowManager;
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
@@ -899,7 +889,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             ensureUniqueVersionControlId(group, ProcessGroup::getProcessGroups);
 
             group.setParent(this);
-            group.getVariableRegistry().setParent(getVariableRegistry());
 
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
             flowManager.onProcessGroupAdded(group);
@@ -1091,7 +1080,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             ensureUniqueVersionControlId(processor, ProcessGroup::getProcessors);
 
             processor.setProcessGroup(this);
-            processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
             flowManager.onProcessorAdded(processor);
             updateControllerServiceReferences(processor);
@@ -1247,6 +1235,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final Connection conn : processor.getConnections()) {
                 conn.verifyCanDelete();
             }
+
+            // Avoid performing any more validation on the processor, as it is no longer necessary and may
+            // cause issues with Python-based Processor, as validation may trigger, attempting to communicate
+            // with the Python process even after the Python process has been destroyed.
+            processor.pauseValidationTrigger();
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
@@ -1770,7 +1763,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             return scheduler.runProcessorOnce(processor, stopCallback);
         } catch (Exception e) {
-            processor.getLogger().error("Error while running processor {} once.", new Object[]{processor}, e);
+            processor.getLogger().error("Error while running processor {} once.", processor, e);
             return stopProcessor(processor);
         } finally {
             readLock.unlock();
@@ -2561,7 +2554,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             service.setProcessGroup(this);
-            service.getVariableRegistry().setParent(getVariableRegistry());
             this.controllerServices.put(service.getIdentifier(), service);
             LOG.info("{} added to {}", service, this);
             updateControllerServiceReferences(service);
@@ -2603,7 +2595,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.verifyCanDelete();
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
-                final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
+                final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
             }
 
@@ -2647,102 +2639,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                 } catch (Throwable t) {
                 }
             }
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void addTemplate(final Template template) {
-        requireNonNull(template);
-
-        writeLock.lock();
-        try {
-            final String id = template.getDetails().getId();
-            if (id == null) {
-                throw new IllegalStateException("Cannot add template that has no ID");
-            }
-
-            if (templates.containsKey(id)) {
-                throw new IllegalStateException("Process Group already contains a Template with ID " + id);
-            }
-
-            templates.put(id, template);
-            template.setProcessGroup(this);
-            LOG.info("{} added to {}", template, this);
-            onComponentModified();
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public Template getTemplate(final String id) {
-        readLock.lock();
-        try {
-            return templates.get(id);
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
-    public Template findTemplate(final String id) {
-        return findTemplate(id, this);
-    }
-
-    private Template findTemplate(final String id, final ProcessGroup start) {
-        final Template template = start.getTemplate(id);
-        if (template != null) {
-            return template;
-        }
-
-        for (final ProcessGroup child : start.getProcessGroups()) {
-            final Template childTemplate = findTemplate(id, child);
-            if (childTemplate != null) {
-                return childTemplate;
-            }
-        }
-
-        return null;
-    }
-
-    @Override
-    public Set<Template> getTemplates() {
-        readLock.lock();
-        try {
-            return new HashSet<>(templates.values());
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
-    public Set<Template> findAllTemplates() {
-        return findAllTemplates(this);
-    }
-
-    private Set<Template> findAllTemplates(final ProcessGroup group) {
-        final Set<Template> templates = new HashSet<>(group.getTemplates());
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            templates.addAll(findAllTemplates(childGroup));
-        }
-        return templates;
-    }
-
-    @Override
-    public void removeTemplate(final Template template) {
-        writeLock.lock();
-        try {
-            final Template existing = templates.get(requireNonNull(template).getIdentifier());
-            if (existing == null) {
-                throw new IllegalStateException("Template " + template.getIdentifier() + " is not a member of this ProcessGroup");
-            }
-
-            templates.remove(template.getIdentifier());
-            onComponentModified();
-
-            LOG.info("{} removed from flow", template);
-        } finally {
             writeLock.unlock();
         }
     }
@@ -3042,34 +2938,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanAddTemplate(final String name) {
-        // ensure the name is specified
-        if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("Template name cannot be blank.");
-        }
-
-        for (final Template template : getRoot().findAllTemplates()) {
-            final TemplateDTO existingDto = template.getDetails();
-
-            // ensure a template with this name doesnt already exist
-            if (name.equals(existingDto.getName())) {
-                throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
-            }
-        }
-    }
-
-    @Override
     public void verifyCanDelete() {
         verifyCanDelete(false);
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignorePortConnections) {
-        verifyCanDelete(ignorePortConnections, false);
-    }
-
-    @Override
-    public void verifyCanDelete(final boolean ignoreConnections, final boolean ignoreTemplates) {
+    public void verifyCanDelete(final boolean ignoreConnections) {
         readLock.lock();
         try {
             for (final Port port : inputPorts.values()) {
@@ -3095,11 +2969,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final ProcessGroup childGroup : processGroups.values()) {
                 // For nested child groups we can ignore the input/output port
                 // connections as they will be being deleted anyway.
-                childGroup.verifyCanDelete(true, ignoreTemplates);
-            }
-
-            if (!ignoreTemplates && !templates.isEmpty()) {
-                throw new IllegalStateException(String.format("Cannot delete Process Group because it contains %s Templates. The Templates must be deleted first.", templates.size()));
+                childGroup.verifyCanDelete(true);
             }
 
             if (!ignoreConnections) {
@@ -3563,87 +3433,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public MutableVariableRegistry getVariableRegistry() {
-        return variableRegistry;
-    }
-
-    @Override
-    public void verifyCanUpdateVariables(final Map<String, String> updatedVariables) {
-        if (updatedVariables == null || updatedVariables.isEmpty()) {
-            return;
-        }
-
-        readLock.lock();
-        try {
-            final Set<String> updatedVariableNames = getUpdatedVariables(updatedVariables);
-            if (updatedVariableNames.isEmpty()) {
-                return;
-            }
-
-            // Determine any Processors that references the variable
-            for (final ProcessorNode processor : getProcessors()) {
-                if (!processor.isRunning()) {
-                    continue;
-                }
-
-                for (final String variableName : updatedVariableNames) {
-                    if (isComponentImpactedByVariable(processor, variableName)) {
-                        throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + processor + ", which is currently running");
-                    }
-                }
-            }
-
-            // Determine any Controller Service that references the variable.
-            for (final ControllerServiceNode service : getControllerServices(false)) {
-                if (!service.isActive()) {
-                    continue;
-                }
-
-                for (final String variableName : updatedVariableNames) {
-                    if (isComponentImpactedByVariable(service, variableName)) {
-                        throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + service + ", which is currently running");
-                    }
-                }
-            }
-
-            // For any child Process Group that does not override the variable, also include its references.
-            // If a child group has a value for the same variable, though, then that means that the child group
-            // is overriding the variable and its components are actually referencing a different variable.
-            for (final ProcessGroup childGroup : getProcessGroups()) {
-                for (final String variableName : updatedVariableNames) {
-                    final ComponentVariableRegistry childRegistry = childGroup.getVariableRegistry();
-                    final VariableDescriptor descriptor = childRegistry.getVariableKey(variableName);
-                    final boolean overridden = childRegistry.getVariableMap().containsKey(descriptor);
-                    if (!overridden) {
-                        final Set<ComponentNode> affectedComponents = childGroup.getComponentsAffectedByVariable(variableName);
-
-                        for (final ComponentNode affectedComponent : affectedComponents) {
-                            if (affectedComponent instanceof ProcessorNode) {
-                                final ProcessorNode affectedProcessor = (ProcessorNode) affectedComponent;
-                                if (affectedProcessor.isRunning()) {
-                                    throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + affectedComponent + ", which is currently running.");
-                                }
-                            } else if (affectedComponent instanceof ControllerServiceNode) {
-                                final ControllerServiceNode affectedService = (ControllerServiceNode) affectedComponent;
-                                if (affectedService.isActive()) {
-                                    throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + affectedComponent + ", which is currently active.");
-                                }
-                            } else if (affectedComponent instanceof ReportingTaskNode) {
-                                final ReportingTaskNode affectedReportingTask = (ReportingTaskNode) affectedComponent;
-                                if (affectedReportingTask.isRunning()) {
-                                    throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + affectedComponent + ", which is currently running.");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
     public Optional<String> getVersionedComponentId() {
         return Optional.ofNullable(versionedComponentId.get());
     }
@@ -3663,93 +3452,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else {
                 throw new IllegalStateException(this + " is already under version control with a different Versioned Component ID");
             }
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public Set<ComponentNode> getComponentsAffectedByVariable(final String variableName) {
-        final Set<ComponentNode> affected = new HashSet<>();
-
-        // Determine any Processors that references the variable
-        for (final ProcessorNode processor : getProcessors()) {
-            if (isComponentImpactedByVariable(processor, variableName)) {
-                affected.add(processor);
-            }
-        }
-
-        // Determine any Controller Service that references the variable. If Service A references a variable,
-        // then that means that any other component that references that service is also affected, so recursively
-        // find any references to that service and add it.
-        for (final ControllerServiceNode service : getControllerServices(false)) {
-            if (isComponentImpactedByVariable(service, variableName)) {
-                affected.add(service);
-
-                final ControllerServiceReference reference = service.getReferences();
-                affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
-            }
-        }
-
-        // For any child Process Group that does not override the variable, also include its references.
-        // If a child group has a value for the same variable, though, then that means that the child group
-        // is overriding the variable and its components are actually referencing a different variable.
-        for (final ProcessGroup childGroup : getProcessGroups()) {
-            final ComponentVariableRegistry childRegistry = childGroup.getVariableRegistry();
-            final VariableDescriptor descriptor = childRegistry.getVariableKey(variableName);
-            final boolean overridden = childRegistry.getVariableMap().containsKey(descriptor);
-            if (!overridden) {
-                affected.addAll(childGroup.getComponentsAffectedByVariable(variableName));
-            }
-        }
-
-        return affected;
-    }
-
-    private Set<String> getUpdatedVariables(final Map<String, String> newVariableValues) {
-        final Set<String> updatedVariableNames = new HashSet<>();
-
-        final MutableVariableRegistry registry = getVariableRegistry();
-        for (final Map.Entry<String, String> entry : newVariableValues.entrySet()) {
-            final String varName = entry.getKey();
-            final String newValue = entry.getValue();
-
-            final String curValue = registry.getVariableValue(varName);
-            if (!Objects.equals(newValue, curValue)) {
-                updatedVariableNames.add(varName);
-            }
-        }
-
-        return updatedVariableNames;
-    }
-
-    private boolean isComponentImpactedByVariable(final ComponentNode component, final String variableName) {
-        final Set<PropertyDescriptor> propertyDescriptors = component.getRawPropertyValues().keySet();
-        for (final PropertyDescriptor descriptor : propertyDescriptors) {
-            final PropertyConfiguration propertyConfiguration = component.getProperty(descriptor);
-            if (propertyConfiguration.getVariableImpact().isImpacted(variableName)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    @Override
-    public void setVariables(final Map<String, String> variables) {
-        writeLock.lock();
-        try {
-            verifyCanUpdateVariables(variables);
-
-            if (variables == null) {
-                return;
-            }
-
-            final Map<VariableDescriptor, String> variableMap = new HashMap<>();
-            // cannot use Collectors.toMap because value may be null
-            variables.forEach((key, value) -> variableMap.put(new VariableDescriptor(key), value));
-
-            variableRegistry.setVariables(variableMap);
         } finally {
             writeLock.unlock();
         }
@@ -3906,7 +3608,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setOutputPorts(processGroup.getOutputPorts());
         copy.setProcessors(processGroup.getProcessors());
         copy.setRemoteProcessGroups(processGroup.getRemoteProcessGroups());
-        copy.setVariables(processGroup.getVariables());
         copy.setLabels(processGroup.getLabels());
         copy.setParameterContextName(processGroup.getParameterContextName());
         copy.setExecutionEngine(processGroup.getExecutionEngine());
@@ -4115,7 +3816,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
             .updateGroupVersionControlSnapshot(true)
-            .updateExistingVariables(false)
             .updateRpgUrls(false)
             .propertyDecryptor(value -> null)
             .build();

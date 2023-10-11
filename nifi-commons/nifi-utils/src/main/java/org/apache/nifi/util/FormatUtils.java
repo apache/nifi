@@ -156,13 +156,13 @@ public class FormatUtils {
      * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String}
      * input. If the resulting value is a decimal (i.e.
      * {@code 25 hours -> TimeUnit.DAYS = 1.04}), the value is rounded.
+     * Use {@link #getPreciseTimeDuration(String, TimeUnit)} if fractional values are desirable
      *
      * @param value the raw String input (i.e. "28 minutes")
      * @param desiredUnit the requested output {@link TimeUnit}
      * @return the whole number value of this duration in the requested units
-     * @deprecated As of Apache NiFi 1.9.0, because this method only returns whole numbers, use {@link #getPreciseTimeDuration(String, TimeUnit)} when possible.
+     * @see #getPreciseTimeDuration(String, TimeUnit)
      */
-    @Deprecated
     public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
         return Math.round(getPreciseTimeDuration(value, desiredUnit));
     }

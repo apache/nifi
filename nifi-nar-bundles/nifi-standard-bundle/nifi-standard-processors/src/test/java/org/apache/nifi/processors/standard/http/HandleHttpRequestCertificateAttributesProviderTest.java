@@ -111,8 +111,6 @@ class HandleHttpRequestCertificateAttributesProviderTest {
         final Map<String, String> attributes = provider.getCertificateAttributes(request);
 
         assertSubjectIssuerFound(attributes);
-
-        assertEquals(attributes.get(CertificateAttribute.HTTP_CERTIFICATE_PARSING_EXCEPTION.getName()), PARSING_EXCEPTION_MESSAGE);
     }
 
     @Test

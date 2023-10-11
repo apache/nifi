@@ -844,13 +844,6 @@ public interface SiteToSiteClient extends Closeable {
             return useCompression;
         }
 
-        @Override
-        public String getUrl() {
-            if (urls != null && urls.size() > 0) {
-                return urls.iterator().next();
-            }
-            return null;
-        }
 
         @Override
         public Set<String> getUrls() {

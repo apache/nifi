@@ -84,7 +84,7 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
 
         // Find & replace the provider element of the updated content in the original contents
         try {
-            def parsedXml = new XmlSlurper().parseText(updatedXmlContent)
+            def parsedXml = new groovy.xml.XmlSlurper().parseText(updatedXmlContent)
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)

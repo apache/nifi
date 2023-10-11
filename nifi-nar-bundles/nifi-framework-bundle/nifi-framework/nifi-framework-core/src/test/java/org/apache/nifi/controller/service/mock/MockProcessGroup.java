@@ -25,10 +25,8 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
@@ -50,10 +48,8 @@ import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.ArrayList;
@@ -75,7 +71,6 @@ public class MockProcessGroup implements ProcessGroup {
     private final Map<String, Port> inputPortMap = new HashMap<>();
     private final Map<String, Port> outputPortMap = new HashMap<>();
     private final FlowManager flowManager;
-    private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
     private ParameterContext parameterContext;
     private String defaultFlowfileExpiration;
@@ -651,11 +646,6 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignorePortConnections, final boolean ignoreTemplates) {
-
-    }
-
-    @Override
     public void verifyCanStart() {
 
     }
@@ -680,62 +670,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanAddTemplate(String name) {
-    }
-
-    @Override
-    public void addTemplate(final Template template) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void removeTemplate(final Template template) {
-    }
-
-    @Override
-    public Template getTemplate(final String id) {
-        return null;
-    }
-
-    @Override
-    public Template findTemplate(final String id) {
-        return null;
-    }
-
-    @Override
-    public Set<Template> getTemplates() {
-        return null;
-    }
-
-    @Override
-    public Set<Template> findAllTemplates() {
-        return null;
-    }
-
-    @Override
     public void verifyCanStart(final Connectable connectable) {
     }
 
     @Override
     public void verifyCanStop(final Connectable connectable) {
-    }
-
-    @Override
-    public MutableVariableRegistry getVariableRegistry() {
-        return variableRegistry;
-    }
-
-    @Override
-    public void verifyCanUpdateVariables(Map<String, String> updatedVariables) {
-    }
-
-    @Override
-    public void setVariables(Map<String, String> variables) {
-    }
-
-    @Override
-    public Set<ComponentNode> getComponentsAffectedByVariable(String variableName) {
-        return Collections.emptySet();
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
@@ -38,7 +39,6 @@ import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
-import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -55,9 +55,9 @@ import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -74,10 +74,8 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
@@ -102,6 +100,8 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -116,8 +116,8 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
@@ -130,11 +130,9 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
@@ -145,7 +143,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -322,6 +319,21 @@ public interface NiFiServiceFacade {
     ControllerConfigurationEntity getControllerConfiguration();
 
     /**
+     * Gets the snapshot for the given reporting task.
+     *
+     * @param reportingTaskId the id of the reporting task to get the snapshot for
+     * @return the reporting task snapshot
+     */
+    VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot(String reportingTaskId);
+
+    /**
+     * Gets the snapshot of all reporting tasks.
+     *
+     * @return the reporting task snapshot
+     */
+    VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot();
+
+    /**
      * Gets the controller level bulletins.
      *
      * @return Controller level bulletins
@@ -461,26 +473,6 @@ public interface NiFiServiceFacade {
      */
     Set<DocumentedTypeDTO> getWorkQueuePrioritizerTypes();
 
-    // ----------------------------------------
-    // Template methods
-    // ----------------------------------------
-
-    /**
-     * Verifies a template with the specified name can be created.
-     *
-     * @param groupId the id of the group for the template
-     * @param name name of proposed template
-     */
-    void verifyCanAddTemplate(String groupId, String name);
-
-    /**
-     * Verifies the given template can be instantiated in the group with the given ID
-     *
-     * @param groupId the ID of the Process Group
-     * @param snippetDTO the contents of the template
-     */
-    void verifyCanInstantiate(String groupId, FlowSnippetDTO snippetDTO);
-
     /**
      * Verifies the types of components in a versioned process group
      *
@@ -499,72 +491,6 @@ public interface NiFiServiceFacade {
      * @throws IllegalStateException if the flow cannot be imported into the specified group
      */
     void verifyImportProcessGroup(VersionControlInformationDTO versionControlInfo, final VersionedProcessGroup versionedProcessGroup, String groupId);
-
-    /**
-     * Creates a new Template based off the specified snippet.
-     *
-     * @param name name
-     * @param description description
-     * @param snippetId id
-     * @param groupId id of the process group
-     * @param idGenerationSeed the seed to use for generating a UUID
-     * @return template
-     */
-    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
-
-    /**
-     * Imports the specified Template.
-     *
-     * @param templateDTO The template dto
-     * @param groupId id of the process group
-     * @param idGenerationSeed the seed to use for generating a UUID
-     *
-     * @return The new template dto
-     */
-    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId, Optional<String> idGenerationSeed);
-
-    /**
-     * Instantiate the corresponding template.
-     *
-     * @param groupId group id
-     * @param originX x
-     * @param originY y
-     * @param templateEncodingVersion template encoding version
-     * @param snippet template snippet
-     * @param idGenerationSeed the ID to use for generating UUID's. May be null.
-     * @return snapshot
-     */
-    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateEncodingVersion, FlowSnippetDTO snippet, String idGenerationSeed);
-
-    /**
-     * Gets the template with the specified id.
-     *
-     * @param id id
-     * @return template
-     */
-    TemplateDTO getTemplate(String id);
-
-    /**
-     * Gets the template, includes contents, with the specified id.
-     *
-     * @param id id
-     * @return template
-     */
-    TemplateDTO exportTemplate(String id);
-
-    /**
-     * Gets all templates.
-     *
-     * @return templates
-     */
-    Set<TemplateEntity> getTemplates();
-
-    /**
-     * Deletes the specified template.
-     *
-     * @param id The id of the template
-     */
-    void deleteTemplate(String id);
 
     // ----------------------------------------
     // Processor methods
@@ -1086,48 +1012,6 @@ public interface NiFiServiceFacade {
     ProcessGroupEntity getProcessGroup(String groupId);
 
     /**
-     * Returns the Variable Registry for the Process Group with the given ID
-     *
-     * @param groupId the ID of the Process Group
-     * @param includeAncestorGroups whether or not to include the variables that are defined in the the process group's parent group & its parent group, etc.
-     * @return the Variable Registry transfer object
-     */
-    VariableRegistryEntity getVariableRegistry(String groupId, boolean includeAncestorGroups);
-
-    /**
-     * Returns a Variable Registry that includes the variables in the given DTO but has the affected components populated
-     *
-     * @param variableRegistryDto the Variable Registry that contains the variables of interest
-     * @return a Variable Registry that has the affected components populated
-     */
-    VariableRegistryEntity populateAffectedComponents(VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Updates the variable registry on behalf of the user currently logged in
-     *
-     * @param revision Revision to compare with current base revision
-     * @param variableRegistryDto the Variable Registry
-     */
-    VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Determines which components will be affected by updating the given Variable Registry.
-     *
-     * @param variableRegistryDto the variable registry
-     * @return the components that will be affected
-     */
-    Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
-
-    /**
-     * Determines which components are active and will be affected by updating the given Variable Registry. These active components
-     * are needed to authorize the request and deactivate prior to changing the variables.
-     *
-     * @param variableRegistryDto the variable registry
-     * @return the components that will be affected
-     */
-    Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
-
-    /**
      * Verifies that a Parameter Context matching the given DTO can be created
      * @param parameterContext the DTO that represents the Parameter Context
      * @throws IllegalStateException if a ParameterContext cannot be created for the given DTO
@@ -1208,13 +1092,13 @@ public interface NiFiServiceFacade {
     void verifyDeleteParameterContext(String parameterContextId);
 
     /**
-     * Gets all process groups in the specified parent group.
+     * Gets all child/descendant process groups in the specified parent group.
      *
      * @param parentGroupId The id of the parent group
-     * @param processGroupUpdateStrategy if process groups with its child groups should be included
-     * @return List of process groups
+     * @param processGroupRecursivity how far to recurse into child/descendant groups
+     * @return Set of all child or descendant process groups
      */
-    Set<ProcessGroupEntity> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy processGroupUpdateStrategy);
+    Set<ProcessGroupEntity> getProcessGroups(String parentGroupId, ProcessGroupRecursivity processGroupRecursivity);
 
     /**
      * Verifies the contents of the specified process group can be scheduled or unscheduled.
@@ -1716,6 +1600,12 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId the ID of the service
      */
     void verifyCanVerifyReportingTaskConfig(String reportingTaskId);
+
+    /**
+     * Verifies that the Flow Analysis Rule with the given identifier is in a state where its configuration can be verified
+     * @param flowAnalysisRuleId the ID of the flow analysis rule
+     */
+    void verifyCanVerifyFlowAnalysisRuleConfig(String flowAnalysisRuleId);
 
     /**
      * Verifies that the Parameter Provider with the given identifier is in a state where its configuration can be verified
@@ -2740,4 +2630,150 @@ public interface NiFiServiceFacade {
      */
     ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
 
+    // ----------------------------------------
+    // Flow Analysis Rule methods
+    // ----------------------------------------
+
+    /**
+     * Gets all flow analysis rules.
+     *
+     * @return flow analysis rules
+     */
+    Set<FlowAnalysisRuleEntity> getFlowAnalysisRules();
+
+    /**
+     * Returns the list of flow analysis rule types.
+     *
+     * @param bundleGroupFilter    if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter           if specified, type must match
+     * @return The list of available flow analysis rule types matching specified criteria
+     */
+    Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(String bundleGroupFilter, String bundleArtifactFilter, String typeFilter);
+
+    /**
+     * Verifies the specified flow analysis rule can be created.
+     *
+     * @param flowAnalysisRuleDTO flow analysis rule
+     */
+    void verifyCreateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Verifies the specified flow analysis rule can be updated.
+     *
+     * @param flowAnalysisRuleDTO flow analysis rule
+     */
+    void verifyUpdateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Performs verification of the given Configuration for the Flow Analysis Rule with the given ID
+     * @param flowAnalysisRuleId the id of the flow analysis rule
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performFlowAnalysisRuleConfigVerification(String flowAnalysisRuleId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param flowAnalysisRuleId the ID of the Flow Analysis Rule
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeFlowAnalysisRuleConfiguration(String flowAnalysisRuleId, Map<String, String> properties);
+
+    /**
+     * Verifies the specified flow analysis rule can be removed.
+     *
+     * @param flowAnalysisRuleId id of flow analysis rule
+     */
+    void verifyDeleteFlowAnalysisRule(final String flowAnalysisRuleId);
+
+    /**
+     * Verifies the state of a flow analysis rule can be cleared.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     */
+    void verifyCanClearFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Creates a flow analysis rule.
+     *
+     * @param revision            revision
+     * @param flowAnalysisRuleDTO The flow analysis rule (as DTO)
+     * @return The created flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity createFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Gets the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId id of the flow analysis rule
+     * @return the flow analysis rule
+     */
+    FlowAnalysisRuleEntity getFlowAnalysisRule(String flowAnalysisRuleId);
+
+    /**
+     * Get the descriptor for the specified property of the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId id of the flow analysis rule
+     * @param propertyName       property name
+     * @param sensitive          requested sensitive status
+     * @return descriptor
+     */
+    PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(String flowAnalysisRuleId, String propertyName, boolean sensitive);
+
+    /**
+     * Gets the state for the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     * @return the component state
+     */
+    ComponentStateDTO getFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Clears the state for the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     */
+    void clearFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Updates the specified flow analysis rule.
+     *
+     * @param revision            Revision to compare with current base revision
+     * @param flowAnalysisRuleDTO The flow analysis rule (as DTO)
+     * @return The updated flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity updateFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Deletes the flow analysis rule with the specified id.
+     *
+     * @param revision           Revision to compare with current base revision
+     * @param flowAnalysisRuleId The flow analysis rule id
+     * @return snapshot of the deleted flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String flowAnalysisRuleId);
+
+    /**
+     * Analyze the flow or a part of it
+     *
+     * @param processGroupId The id of the process group representing (a part of) the flow to be analyzed.
+     *                       Recursive - all child process groups will be analyzed as well.
+     */
+    void analyzeProcessGroup(String processGroupId);
+
+    /**
+     * @return all current rule violations
+     */
+    FlowAnalysisResultEntity getFlowAnalysisResult();
+
+    /**
+     * Returns the rule violations produced by the analysis of a given process group
+     * (Recursive - includes violations for all analyzed child process groups as well)
+     *
+     * @param processGroupId the id of the process that was analyzed
+     * @return rule violations produced by the analysis of the process group
+     */
+    FlowAnalysisResultEntity getFlowAnalysisResult(String processGroupId);
 }

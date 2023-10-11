@@ -18,10 +18,12 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 
@@ -31,6 +33,8 @@ public interface VersionedComponentStateLookup {
     ScheduledState getState(Port port);
 
     ScheduledState getState(ReportingTaskNode taskNode);
+
+    ScheduledState getState(FlowAnalysisRuleNode ruleNode);
 
     ScheduledState getState(ControllerServiceNode serviceNode);
 
@@ -54,6 +58,11 @@ public interface VersionedComponentStateLookup {
         @Override
         public ScheduledState getState(final ReportingTaskNode taskNode) {
             return taskNode.getScheduledState() == org.apache.nifi.controller.ScheduledState.DISABLED ? ScheduledState.DISABLED : ScheduledState.ENABLED;
+        }
+
+        @Override
+        public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
+            return ruleNode.getState() == FlowAnalysisRuleState.DISABLED ? ScheduledState.DISABLED : ScheduledState.ENABLED;
         }
 
         @Override
@@ -84,6 +93,17 @@ public interface VersionedComponentStateLookup {
         @Override
         public ScheduledState getState(final ReportingTaskNode taskNode) {
             return map(taskNode.getScheduledState());
+        }
+
+        @Override
+        public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
+            switch (ruleNode.getState()) {
+                case DISABLED:
+                    return ScheduledState.DISABLED;
+                case ENABLED:
+                default:
+                    return ScheduledState.ENABLED;
+            }
         }
 
         @Override

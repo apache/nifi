@@ -55,12 +55,6 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.3.version}</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
                 <groupId>commons-beanutils</groupId>
@@ -83,7 +77,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.31</version>
+                <version>9.33</version>
             </dependency>
             <!-- Override woodstox-core 5.3.0 from HBase -->
             <dependency>
@@ -95,7 +89,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

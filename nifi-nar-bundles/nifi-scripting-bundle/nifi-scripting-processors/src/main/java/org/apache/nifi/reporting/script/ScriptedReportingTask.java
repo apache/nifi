@@ -63,7 +63,7 @@ import java.util.Map;
 @DynamicProperty(
         name = "A script engine property to update",
         value = "The value to set it to",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
 @Restricted(
@@ -110,7 +110,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

@@ -16,12 +16,18 @@
  */
 package org.apache.nifi.processors.solr;
 
-import org.apache.nifi.controller.AbstractControllerService;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -38,18 +44,6 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import javax.security.auth.login.LoginException;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -424,46 +418,16 @@ public class TestPutSolrContentStream {
         runner.setProperty(SolrUtils.BASIC_USERNAME, "${solr.user}");
         runner.assertNotValid();
 
-        runner.setVariable("solr.user", "solrRocks");
+        runner.setEnvironmentVariableValue("solr.user", "solrRocks");
         runner.assertValid();
 
         runner.setProperty(SolrUtils.BASIC_PASSWORD, "${solr.password}");
         runner.assertNotValid();
 
-        runner.setVariable("solr.password", "solrRocksPassword");
+        runner.setEnvironmentVariableValue("solr.password", "solrRocksPassword");
         runner.assertValid();
     }
 
-    @Test
-    public void testBasicAuthAndKerberosCredentialServiceNotAllowedTogether() throws IOException, InitializationException {
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = createDefaultTestRunner(proc);
-        runner.assertValid();
-
-        runner.setProperty(SolrUtils.BASIC_USERNAME, "user1");
-        runner.setProperty(SolrUtils.BASIC_PASSWORD, "password");
-        runner.assertValid();
-
-        final String principal = "nifi@FOO.COM";
-        final String keytab = "src/test/resources/foo.keytab";
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
-        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
-        runner.enableControllerService(kerberosCredentialsService);
-        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
-
-        runner.assertNotValid();
-
-        runner.removeProperty(SolrUtils.BASIC_USERNAME);
-        runner.removeProperty(SolrUtils.BASIC_PASSWORD);
-        runner.assertValid();
-
-        proc.onScheduled(runner.getProcessContext());
-        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        assertNotNull(kerberosUser);
-        assertEquals(principal, kerberosUser.getPrincipal());
-        assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
-    }
 
     @Test
     public void testBasicAuthAndKerberosUserServiceNotAllowedTogether() throws IOException, InitializationException {
@@ -489,182 +453,6 @@ public class TestPutSolrContentStream {
         assertNotNull(kerberosUser);
     }
 
-    @Test
-    public void testBasicAuthAndKerberosPrincipalPasswordNotAllowedTogether() throws IOException, InitializationException {
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = createDefaultTestRunner(proc);
-        runner.assertValid();
-
-        runner.setProperty(SolrUtils.BASIC_USERNAME, "user1");
-        runner.setProperty(SolrUtils.BASIC_PASSWORD, "password");
-        runner.assertValid();
-
-        final String kerberosPrincipal = "nifi@FOO.COM";
-        final String kerberosPassword = "nifi";
-        runner.setProperty(SolrUtils.KERBEROS_PRINCIPAL, kerberosPrincipal);
-        runner.setProperty(SolrUtils.KERBEROS_PASSWORD, kerberosPassword);
-
-        runner.assertNotValid();
-
-        runner.removeProperty(SolrUtils.BASIC_USERNAME);
-        runner.removeProperty(SolrUtils.BASIC_PASSWORD);
-        runner.assertValid();
-
-        proc.onScheduled(runner.getProcessContext());
-        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        assertNotNull(kerberosUser);
-        assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
-    }
-
-    @Test
-    public void testKerberosPrincipalPasswordAndKerberosCredentialServiceNotAllowedTogether() throws IOException, InitializationException {
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = createDefaultTestRunner(proc);
-        runner.assertValid();
-
-        final String kerberosPrincipal = "nifi@FOO.COM";
-        final String kerberosPassword = "nifi";
-        runner.setProperty(SolrUtils.KERBEROS_PRINCIPAL, kerberosPrincipal);
-        runner.setProperty(SolrUtils.KERBEROS_PASSWORD, kerberosPassword);
-
-        final String principal = "nifi@FOO.COM";
-        final String keytab = "src/test/resources/foo.keytab";
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
-        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
-        runner.enableControllerService(kerberosCredentialsService);
-        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
-
-        runner.assertNotValid();
-
-        runner.removeProperty(SolrUtils.KERBEROS_PRINCIPAL);
-        runner.removeProperty(SolrUtils.KERBEROS_PASSWORD);
-        runner.assertValid();
-
-        proc.onScheduled(runner.getProcessContext());
-        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        assertNotNull(kerberosUser);
-        assertEquals(principal, kerberosUser.getPrincipal());
-        assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
-    }
-
-    @Test
-    public void testKerberosPrincipalPasswordAndKerberosUserServiceNotAllowedTogether() throws IOException, InitializationException {
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = createDefaultTestRunner(proc);
-        runner.assertValid();
-
-        runner.setProperty(SolrUtils.KERBEROS_PRINCIPAL, "nifi@FOO.COM");
-        runner.setProperty(SolrUtils.KERBEROS_PASSWORD, "nifi");
-
-        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
-        runner.setProperty(SolrUtils.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
-        runner.assertNotValid();
-
-        runner.removeProperty(SolrUtils.KERBEROS_PRINCIPAL);
-        runner.removeProperty(SolrUtils.KERBEROS_PASSWORD);
-        runner.assertValid();
-
-        proc.onScheduled(runner.getProcessContext());
-        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        assertNotNull(kerberosUser);
-    }
-
-    @Test
-    public void testKerberosCredentialsServiceAndKerberosUserServiceNotAllowedTogether() throws IOException, InitializationException {
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = createDefaultTestRunner(proc);
-        runner.assertValid();
-
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("nifi@FOO.COM", "src/test/resources/foo.keytab");
-        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
-        runner.enableControllerService(kerberosCredentialsService);
-        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
-        runner.assertValid();
-
-        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
-        runner.setProperty(SolrUtils.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
-        runner.assertNotValid();
-
-        runner.removeProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE);
-        runner.assertValid();
-
-        proc.onScheduled(runner.getProcessContext());
-        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        assertNotNull(kerberosUser);
-    }
-
-    @Test
-    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException, PrivilegedActionException {
-        final String principal = "nifi@FOO.COM";
-        final String keytab = "src/test/resources/foo.keytab";
-
-        // Setup a mock KerberosUser that will still execute the privileged action
-        final KerberosKeytabUser kerberosUser = mock(KerberosKeytabUser.class);
-        when(kerberosUser.getPrincipal()).thenReturn(principal);
-        when(kerberosUser.getKeytabFile()).thenReturn(keytab);
-        when(kerberosUser.doAs(any(PrivilegedExceptionAction.class))).thenAnswer((invocation -> {
-                    final PrivilegedExceptionAction action = (PrivilegedExceptionAction) invocation.getArguments()[0];
-                    action.run();
-                    return null;
-                })
-        );
-
-        // Configure the processor with the mock KerberosUser and with a credentials service
-        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient, kerberosUser);
-        final TestRunner runner = createDefaultTestRunner(proc);
-
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
-        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
-        runner.enableControllerService(kerberosCredentialsService);
-        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
-
-        // Run an update and verify the update worked based on a flow file going to success
-        try (FileInputStream fileIn = new FileInputStream(SOLR_JSON_MULTIPLE_DOCS_FILE)) {
-            runner.enqueue(fileIn);
-
-            runner.run(1, false);
-            runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
-        } finally {
-            try {
-                proc.getSolrClient().close();
-            } catch (Exception e) {
-            }
-        }
-
-        // Verify that during the update the user was logged in, TGT was checked, and the action was executed
-        verify(kerberosUser, times(1)).login();
-        verify(kerberosUser, times(1)).checkTGTAndRelogin();
-        verify(kerberosUser, times(1)).doAs(any(PrivilegedExceptionAction.class));
-    }
-
-
-    private class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
-
-        private String principal;
-        private String keytab;
-
-        public MockKerberosCredentialsService(String principal, String keytab) {
-            this.principal = principal;
-            this.keytab = keytab;
-        }
-
-        @Override
-        public String getKeytab() {
-            return keytab;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return principal;
-        }
-    }
 
     // Override the createSolrClient method to inject a custom SolrClient.
     private class CollectionVerifyingProcessor extends PutSolrContentStream {

@@ -38,7 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ACCESS_KEY;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ACCESS_KEY_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
@@ -83,7 +83,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(USE_DEFAULT_CREDENTIALS);
-        props.add(ACCESS_KEY);
+        props.add(ACCESS_KEY_ID);
         props.add(SECRET_KEY);
         props.add(CREDENTIALS_FILE);
         props.add(PROFILE_NAME);

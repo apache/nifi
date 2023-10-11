@@ -168,7 +168,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The Port to listen on for incoming HTTP requests")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("80")
             .build();
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -631,7 +631,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 try {
                   part.delete();
                 } catch (Exception e) {
-                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                  getLogger().error("Couldn't delete underlying storage for {}", part, e);
                 }
               }
             }

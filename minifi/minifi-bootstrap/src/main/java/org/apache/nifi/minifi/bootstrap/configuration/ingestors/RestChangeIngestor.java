@@ -31,7 +31,6 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
-import java.security.Security;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -48,6 +47,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfi
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.server.Request;
@@ -61,10 +61,6 @@ import org.slf4j.LoggerFactory;
 
 
 public class RestChangeIngestor implements ChangeIngestor {
-
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     public static final String GET_TEXT = "This is a config change listener for an Apache NiFi - MiNiFi instance.\n" +
         "Use this rest server to upload a flow.json to configure the MiNiFi instance.\n" +
@@ -85,6 +81,8 @@ public class RestChangeIngestor implements ChangeIngestor {
     public static final String DIFFERENTIATOR_KEY = RECEIVE_HTTP_BASE_KEY + ".differentiator";
 
     private final static Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
+
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP = Map.of(
         WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator
@@ -174,22 +172,34 @@ public class RestChangeIngestor implements ChangeIngestor {
         KeyStore trustStore = null;
 
         try (FileInputStream keyStoreStream = new FileInputStream(properties.getProperty(KEYSTORE_LOCATION_KEY))) {
-            keyStore = new StandardKeyStoreBuilder()
-                .type(properties.getProperty(KEYSTORE_TYPE_KEY))
+            final String keyStoreType = properties.getProperty(KEYSTORE_TYPE_KEY);
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                .type(keyStoreType)
                 .inputStream(keyStoreStream)
-                .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
-                .build();
+                .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray());
+
+            if (KeystoreType.BCFKS.getType().equals(keyStoreType)) {
+                builder.provider(BOUNCY_CASTLE_PROVIDER);
+            }
+
+            keyStore = builder.build();
         } catch (IOException ioe) {
             throw new UncheckedIOException("Key Store loading failed", ioe);
         }
 
         if (properties.getProperty(TRUSTSTORE_LOCATION_KEY) != null) {
+            final String trustStoreType = properties.getProperty(TRUSTSTORE_TYPE_KEY);
             try (FileInputStream trustStoreStream = new FileInputStream(properties.getProperty(TRUSTSTORE_LOCATION_KEY))) {
-                trustStore = new StandardKeyStoreBuilder()
-                    .type(properties.getProperty(TRUSTSTORE_TYPE_KEY))
+                final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                    .type(trustStoreType)
                     .inputStream(trustStoreStream)
-                    .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray())
-                    .build();
+                    .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray());
+
+                if (KeystoreType.BCFKS.getType().equals(trustStoreType)) {
+                    builder.provider(BOUNCY_CASTLE_PROVIDER);
+                }
+
+                trustStore = builder.build();
             } catch (IOException ioe) {
                 throw new UncheckedIOException("Trust Store loading failed", ioe);
             }

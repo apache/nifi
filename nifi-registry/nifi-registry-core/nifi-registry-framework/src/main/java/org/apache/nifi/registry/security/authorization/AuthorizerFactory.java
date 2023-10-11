@@ -16,8 +16,32 @@
  */
 package org.apache.nifi.registry.security.authorization;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import javax.sql.DataSource;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
@@ -47,31 +71,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.sql.DataSource;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Creates and configures Authorizers and their providers based on the configuration (authorizers.xml).
@@ -125,12 +124,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             final DataSource dataSource,
             final IdentityMapper identityMapper) {
 
-        this.properties = Validate.notNull(properties);
-        this.extensionManager = Validate.notNull(extensionManager);
+        this.properties = Objects.requireNonNull(properties);
+        this.extensionManager = Objects.requireNonNull(extensionManager);
         this.sensitivePropertyProviderFactory = sensitivePropertyProviderFactory;
-        this.registryService = Validate.notNull(registryService);
-        this.dataSource = Validate.notNull(dataSource);
-        this.identityMapper = Validate.notNull(identityMapper);
+        this.registryService = Objects.requireNonNull(registryService);
+        this.dataSource = Objects.requireNonNull(dataSource);
+        this.identityMapper = Objects.requireNonNull(identityMapper);
     }
 
     /***** UserGroupProviderLookup *****/
@@ -341,7 +340,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
 
             // otherwise create a new instance
-            Constructor constructor = userGroupProviderClass.getConstructor();
+            Constructor<?> constructor = userGroupProviderClass.getConstructor();
             instance = (UserGroupProvider) constructor.newInstance();
 
             // method injection
@@ -371,7 +370,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
 
             // otherwise create a new instance
-            Constructor constructor = accessPolicyClass.getConstructor();
+            Constructor<?> constructor = accessPolicyClass.getConstructor();
             instance = (AccessPolicyProvider) constructor.newInstance();
 
             // method injection
@@ -421,7 +420,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             Class<? extends Authorizer> authorizerClass = rawAuthorizerClass.asSubclass(Authorizer.class);
 
             // otherwise create a new instance
-            Constructor constructor = authorizerClass.getConstructor();
+            Constructor<?> constructor = authorizerClass.getConstructor();
             instance = (Authorizer) constructor.newInstance();
 
             // method injection
@@ -437,77 +436,65 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         return instance;
     }
 
-    private void performMethodInjection(final Object instance, final Class authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private void performMethodInjection(final Object instance, final Class<?> authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : authorizerClass.getMethods()) {
             if (method.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
+                final Class<?>[] argumentTypes = method.getParameterTypes();
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
+                // look for setters (single argument)
+                if (argumentTypes.length == 1) {
+                    final Class<?> argumentType = argumentTypes[0];
 
-                    // look for setters (single argument)
-                    if (argumentTypes.length == 1) {
-                        final Class<?> argumentType = argumentTypes[0];
-
-                        // look for well known types
-                        if (NiFiRegistryProperties.class.isAssignableFrom(argumentType)) {
-                            // nifi properties injection
-                            method.invoke(instance, properties);
-                        } else if (DataSource.class.isAssignableFrom(argumentType)) {
-                            // data source injection
-                            method.invoke(instance, dataSource);
-                        } else if (IdentityMapper.class.isAssignableFrom(argumentType)) {
-                            // identity mapper injection
-                            method.invoke(instance, identityMapper);
-                        }
+                    // look for well known types
+                    if (NiFiRegistryProperties.class.isAssignableFrom(argumentType)) {
+                        // nifi properties injection
+                        method.invoke(instance, properties);
+                    } else if (DataSource.class.isAssignableFrom(argumentType)) {
+                        // data source injection
+                        method.invoke(instance, dataSource);
+                    } else if (IdentityMapper.class.isAssignableFrom(argumentType)) {
+                        // identity mapper injection
+                        method.invoke(instance, identityMapper);
                     }
-                } finally {
-                    method.setAccessible(isAccessible);
                 }
             }
         }
 
-        final Class parentClass = authorizerClass.getSuperclass();
+        final Class<?> parentClass = authorizerClass.getSuperclass();
         if (parentClass != null && Authorizer.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }
     }
 
-    private void performFieldInjection(final Object instance, final Class authorizerClass) throws IllegalArgumentException, IllegalAccessException {
+    private void performFieldInjection(final Object instance, final Class<?> authorizerClass) throws IllegalArgumentException, IllegalAccessException {
         for (final Field field : authorizerClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = field.isAccessible();
                 field.setAccessible(true);
 
-                try {
-                    // get the type
-                    final Class<?> fieldType = field.getType();
+                // get the type
+                final Class<?> fieldType = field.getType();
 
-                    // only consider this field if it isn't set yet
-                    if (field.get(instance) == null) {
-                        // look for well known types
-                        if (NiFiRegistryProperties.class.isAssignableFrom(fieldType)) {
-                            // nifi properties injection
-                            field.set(instance, properties);
-                        } else if (DataSource.class.isAssignableFrom(fieldType)) {
-                            // data source injection
-                            field.set(instance, dataSource);
-                        } else if (IdentityMapper.class.isAssignableFrom(fieldType)) {
-                            // identity mapper injection
-                            field.set(instance, identityMapper);
-                        }
+                // only consider this field if it isn't set yet
+                if (field.get(instance) == null) {
+                    // look for well known types
+                    if (NiFiRegistryProperties.class.isAssignableFrom(fieldType)) {
+                        // nifi properties injection
+                        field.set(instance, properties);
+                    } else if (DataSource.class.isAssignableFrom(fieldType)) {
+                        // data source injection
+                        field.set(instance, dataSource);
+                    } else if (IdentityMapper.class.isAssignableFrom(fieldType)) {
+                        // identity mapper injection
+                        field.set(instance, identityMapper);
                     }
-
-                } finally {
-                    field.setAccessible(isAccessible);
                 }
             }
         }
 
-        final Class parentClass = authorizerClass.getSuperclass();
+        final Class<?> parentClass = authorizerClass.getSuperclass();
         if (parentClass != null && Authorizer.class.isAssignableFrom(parentClass)) {
             performFieldInjection(instance, parentClass);
         }

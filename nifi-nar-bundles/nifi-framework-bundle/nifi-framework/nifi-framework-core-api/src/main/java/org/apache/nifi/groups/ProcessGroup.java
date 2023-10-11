@@ -24,11 +24,9 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
@@ -41,7 +39,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -934,13 +931,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      */
     void synchronizeFlow(VersionedExternalFlow proposedSnapshot, FlowSynchronizationOptions synchronizationOptions, FlowMappingOptions flowMappingOptions);
 
-    /**
-     * Verifies a template with the specified name can be created.
-     *
-     * @param name name of the template
-     */
-    void verifyCanAddTemplate(String name);
-
     void verifyCanDelete();
 
     /**
@@ -953,20 +943,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
      */
     void verifyCanDelete(boolean ignorePortConnections);
-
-
-    /**
-     * Ensures that the ProcessGroup is eligible to be deleted.
-     *
-     * @param ignorePortConnections if true, the Connections that are currently connected to Ports
-     * will be ignored. Otherwise, the ProcessGroup is not eligible for deletion if its input ports
-     * or output ports have any connections
-     * @param ignoreTemplates if true, the Templates that are currently part of hte Process Group will be ignored.
-     * Otherwise, the ProcessGroup is not eligible for deletion if it has any templates
-     *
-     * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
-     */
-    void verifyCanDelete(boolean ignorePortConnections, boolean ignoreTemplates);
 
     void verifyCanStart(Connectable connectable);
 
@@ -1002,15 +978,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
 
     /**
-     * Ensures that the given variables can be updated
-     *
-     * @param updatedVariables the new set of variable names and values
-     *
-     * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
-     */
-    void verifyCanUpdateVariables(Map<String, String> updatedVariables);
-
-    /**
      * Ensures that the contents of the Process Group can be updated to match the given new flow
      *
      * @param updatedFlow the proposed updated flow
@@ -1043,70 +1010,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
      */
     void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String saveAction);
-
-    /**
-     * Adds the given template to this Process Group
-     *
-     * @param template the template to add
-     */
-    void addTemplate(Template template);
-
-    /**
-     * Removes the given template from the Process Group
-     *
-     * @param template the template to remove
-     */
-    void removeTemplate(Template template);
-
-    /**
-     * Returns the template with the given ID
-     *
-     * @param id the ID of the template
-     * @return the template with the given ID or <code>null</code> if no template
-     *         exists in this Process Group with the given ID
-     */
-    Template getTemplate(String id);
-
-    /**
-     * @param id of the template
-     * @return the Template with the given ID, if it exists as a child or
-     *         descendant of this ProcessGroup. This performs a recursive search of all
-     *         descendant ProcessGroups
-     */
-    Template findTemplate(String id);
-
-    /**
-     * @return a Set of all Templates that belong to this Process Group
-     */
-    Set<Template> getTemplates();
-
-    /**
-     * @return a Set of all Templates that belong to this Process Group and any descendant Process Groups
-     */
-    Set<Template> findAllTemplates();
-
-    /**
-     * Updates the variables that are provided by this Process Group
-     *
-     * @param variables the variables to provide
-     * @throws IllegalStateException if the Process Group is not in a state that allows the variables to be updated
-     */
-    void setVariables(Map<String, String> variables);
-
-    /**
-     * Returns the Variable Registry for this Process Group
-     *
-     * @return the Variable Registry for this Process Group
-     */
-    ComponentVariableRegistry getVariableRegistry();
-
-    /**
-     * Returns a set of all components that are affected by the variable with the given name
-     *
-     * @param variableName the name of the variable
-     * @return a set of all components that are affected by the variable with the given name
-     */
-    Set<ComponentNode> getComponentsAffectedByVariable(String variableName);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

@@ -17,6 +17,17 @@
 
 package org.apache.nifi.python.processor;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -43,18 +54,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 public class RecordTransformProxy extends PythonProcessorProxy {

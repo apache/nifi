@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.properties.ApplicationProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,6 +36,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.nifi.properties.ApplicationProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -83,7 +82,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String SITE_TO_SITE_HTTP_ENABLED = "nifi.remote.input.http.enabled";
     public static final String SITE_TO_SITE_HTTP_TRANSACTION_TTL = "nifi.remote.input.http.transaction.ttl";
     public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
-    public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
@@ -293,9 +291,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
 
-    // expression language properties
-    public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
-
     // analytics properties
     public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
     public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
@@ -303,6 +298,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME = "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
+
+    // flow analysis properties
+    public static final String BACKGROUND_FLOW_ANALYSIS_SCHEDULE = "nifi.flow.analysis.background.task.schedule";
 
     // runtime monitoring properties
     public static final String MONITOR_LONG_RUNNING_TASK_SCHEDULE = "nifi.monitor.long.running.task.schedule";
@@ -348,8 +346,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
     public static final String DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "conf/login-identity-providers.xml";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
-    public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
-    private static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "http/1.1";
+    private static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "h2 http/1.1";
     public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
@@ -609,16 +606,6 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     /**
-     * Returns the directory to which Templates are to be persisted
-     *
-     * @return the template directory
-     */
-    public Path getTemplateDirectory() {
-        final String strVal = getProperty(TEMPLATE_DIRECTORY);
-        return (strVal == null) ? DEFAULT_TEMPLATE_DIRECTORY : Paths.get(strVal);
-    }
-
-    /**
      * Get the flow service write delay.
      *
      * @return The write delay
@@ -734,7 +721,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     /**
-     * Get Web HTTPS Application Protocols defaults to HTTP/1.1
+     * Get Web HTTPS Application Protocols defaults to HTTP/2 and HTTP/1.1
      *
      * @return Set of configured HTTPS Application Protocols
      */
@@ -946,13 +933,6 @@ public class NiFiProperties extends ApplicationProperties {
         }
     }
 
-    /**
-     * @deprecated Use getClusterNodeProtocolCorePoolSize() and getClusterNodeProtocolMaxPoolSize() instead
-     */
-    @Deprecated()
-    public int getClusterNodeProtocolThreads() {
-        return getClusterNodeProtocolMaxPoolSize();
-    }
 
     public int getClusterNodeProtocolMaxPoolSize() {
         try {
@@ -1633,28 +1613,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     public Integer getFlowConfigurationArchiveMaxCount() {
         return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
-    }
-
-    public String getVariableRegistryProperties() {
-        return getProperty(VARIABLE_REGISTRY_PROPERTIES);
-    }
-
-    public Path[] getVariableRegistryPropertiesPaths() {
-        final List<Path> vrPropertiesPaths = new ArrayList<>();
-
-        final String vrPropertiesFiles = getVariableRegistryProperties();
-        if (!StringUtils.isEmpty(vrPropertiesFiles)) {
-
-            final String[] vrPropertiesFileList = vrPropertiesFiles.split(",");
-
-            for (String propertiesFile : vrPropertiesFileList) {
-                vrPropertiesPaths.add(Paths.get(propertiesFile));
-            }
-
-            return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
-        } else {
-            return new Path[]{};
-        }
     }
 
     /**

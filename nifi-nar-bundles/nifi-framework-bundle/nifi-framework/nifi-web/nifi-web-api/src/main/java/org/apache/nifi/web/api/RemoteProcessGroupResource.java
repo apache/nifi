@@ -22,6 +22,25 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.net.URI;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -45,32 +64,17 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 /**
  * RESTful endpoint for managing a Remote group.
  */
 @Path("/remote-process-groups")
 @Api(
-        value = "/remote-process-groups",
-        description = "Endpoint for managing a Remote Process Group."
+    value = "/remote-process-groups",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for managing a Remote Process Group.")
+})
 public class RemoteProcessGroupResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -904,7 +908,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             lookup -> {
                 final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
-                authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
+                authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false);
 
                 Set<Authorizable> remoteProcessGroups = processGroup.getEncapsulatedRemoteProcessGroups();
                 for (Authorizable remoteProcessGroup : remoteProcessGroups) {

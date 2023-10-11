@@ -30,8 +30,6 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +45,6 @@ public class StandardControllerServiceProviderTest {
 
     private ControllerService proxied;
     private ControllerService implementation;
-    private static VariableRegistry variableRegistry;
     private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
 
@@ -59,8 +56,6 @@ public class StandardControllerServiceProviderTest {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
-
-        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
     }
 
     @BeforeEach
@@ -83,7 +78,6 @@ public class StandardControllerServiceProviderTest {
             .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
             .validationTrigger(Mockito.mock(ValidationTrigger.class))
             .reloadComponent(Mockito.mock(ReloadComponent.class))
-            .variableRegistry(variableRegistry)
             .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
             .buildControllerService();

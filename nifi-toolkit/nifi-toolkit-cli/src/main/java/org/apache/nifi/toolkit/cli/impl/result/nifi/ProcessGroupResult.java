@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -24,6 +23,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
+import java.util.Objects;
 
 public class ProcessGroupResult extends AbstractWritableResult<ProcessGroupEntity> {
 
@@ -31,8 +31,7 @@ public class ProcessGroupResult extends AbstractWritableResult<ProcessGroupEntit
 
     public ProcessGroupResult(final ResultType resultType, final ProcessGroupEntity entity) {
         super(resultType);
-        this.entity = entity;
-        Validate.notNull(entity);
+        this.entity = Objects.requireNonNull(entity);
     }
 
     @Override

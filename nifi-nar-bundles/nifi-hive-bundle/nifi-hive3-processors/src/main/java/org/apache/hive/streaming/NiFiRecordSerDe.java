@@ -157,10 +157,10 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 populateRecord(result, record.getValue(field), field, schema);
             }
         } catch(SerDeException se) {
-            log.error("Error [{}] parsing Record [{}].", new Object[]{se.toString(), record}, se);
+            log.error("Error [{}] parsing Record [{}].", se.toString(), record, se);
             throw se;
         } catch (Exception e) {
-            log.error("Error [{}] parsing Record [{}].", new Object[]{e.toString(), record}, e);
+            log.error("Error [{}] parsing Record [{}].", e.toString(), record, e);
             throw new SerDeException(e);
         }
 

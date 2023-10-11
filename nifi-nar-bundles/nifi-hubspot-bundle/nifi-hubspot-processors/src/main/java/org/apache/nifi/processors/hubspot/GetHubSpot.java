@@ -109,7 +109,7 @@ public class GetHubSpot extends AbstractProcessor {
             .name("result-limit")
             .displayName("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.createLongValidator(1, 100, true))
             .build();
@@ -134,7 +134,7 @@ public class GetHubSpot extends AbstractProcessor {
                     " and to protect against HubSpot's mechanism that changes last updated timestamps after object creation."))
             .required(true)
             .defaultValue("30 sec")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
             .build();
@@ -145,7 +145,7 @@ public class GetHubSpot extends AbstractProcessor {
             .description("This property specifies the start time that the processor applies when running the first request." +
                     " The expected format is a UTC date-time such as '2011-12-03T10:15:30Z'")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
             .build();

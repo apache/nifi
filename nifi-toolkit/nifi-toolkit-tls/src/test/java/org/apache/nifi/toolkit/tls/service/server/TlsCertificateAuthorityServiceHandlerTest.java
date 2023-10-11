@@ -17,16 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.service.server;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,12 +28,14 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
@@ -61,22 +53,24 @@ import org.eclipse.jetty.server.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 public class TlsCertificateAuthorityServiceHandlerTest {
     X509Certificate caCert;
 
-    @Mock
-    Request baseRequest;
-
-    @Mock(lenient = true)
-    HttpServletRequest httpServletRequest;
-
-    @Mock(lenient = true)
-    HttpServletResponse httpServletResponse;
+    private final Request baseRequest = mock(Request.class);
+    private final HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+    private final HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
 
     JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest;
 
@@ -121,7 +115,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             response = new StringWriter();
             return new PrintWriter(response);
         });
-        caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
+        caCert = new StandardCertificateBuilder(keyPair, new X500Principal("CN=fakeCa"), Duration.ofDays(TlsConfig.DEFAULT_DAYS)).build();
         requestedDn = new TlsConfig().calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
         certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, null, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
@@ -143,7 +137,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         assertArrayEquals(testCaHmac, getResponse().getHmac());
         X509Certificate certificate = TlsHelper.parseCertificate(new StringReader(getResponse().getPemEncodedCertificate()));
         assertEquals(certificateKeyPair.getPublic(), certificate.getPublicKey());
-        assertEquals(new X500Name(requestedDn), new X500Name(certificate.getSubjectDN().toString()));
+        assertEquals(new X500Name(requestedDn), new X500Name(certificate.getSubjectX500Principal().toString()));
         certificate.verify(caCert.getPublicKey());
     }
 
@@ -193,7 +187,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
 
         JcaPKCS10CertificationRequest jcaPKCS10CertificationDecoded = TlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
 
-        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationDecoded);
+        Extensions extensions = jcaPKCS10CertificationDecoded.getRequestedExtensions();
         // Satisfy @After requirement
         baseRequest.setHandled(true);
 

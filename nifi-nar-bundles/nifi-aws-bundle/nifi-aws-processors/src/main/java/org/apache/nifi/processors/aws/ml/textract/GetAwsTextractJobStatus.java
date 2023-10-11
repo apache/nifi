@@ -17,20 +17,16 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
-import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.textract.AmazonTextractClient;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentTextDetectionRequest;
 import com.amazonaws.services.textract.model.GetExpenseAnalysisRequest;
 import com.amazonaws.services.textract.model.JobStatus;
 import com.amazonaws.services.textract.model.ThrottlingException;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -42,6 +38,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
 @CapabilityDescription("Retrieves the current status of an AWS Textract job.")
@@ -66,9 +69,12 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
     }
 
     @Override
-    protected AmazonTextractClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
+    protected AmazonTextractClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         return (AmazonTextractClient) AmazonTextractClient.builder()
                 .withRegion(context.getProperty(REGION).getValue())
+                .withClientConfiguration(config)
+                .withEndpointConfiguration(endpointConfiguration)
                 .withCredentials(credentialsProvider)
                 .build();
     }
@@ -99,44 +105,25 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
         } catch (ThrottlingException e) {
             getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
-            return;
         } catch (Exception e) {
             getLogger().warn("Failed to get Textract Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
     private Object getTask(TextractType typeOfTextract, AmazonTextractClient client, String awsTaskId) {
-        Object job = null;
-        switch (typeOfTextract) {
-            case DOCUMENT_ANALYSIS:
-                job = client.getDocumentAnalysis(new GetDocumentAnalysisRequest().withJobId(awsTaskId));
-                break;
-            case DOCUMENT_TEXT_DETECTION:
-                job = client.getDocumentTextDetection(new GetDocumentTextDetectionRequest().withJobId(awsTaskId));
-                break;
-            case EXPENSE_ANALYSIS:
-                job = client.getExpenseAnalysis(new GetExpenseAnalysisRequest().withJobId(awsTaskId));
-                break;
-        }
-        return job;
+        return switch (typeOfTextract) {
+            case DOCUMENT_ANALYSIS -> client.getDocumentAnalysis(new GetDocumentAnalysisRequest().withJobId(awsTaskId));
+            case DOCUMENT_TEXT_DETECTION -> client.getDocumentTextDetection(new GetDocumentTextDetectionRequest().withJobId(awsTaskId));
+            case EXPENSE_ANALYSIS -> client.getExpenseAnalysis(new GetExpenseAnalysisRequest().withJobId(awsTaskId));
+        };
     }
 
     private JobStatus getTaskStatus(TextractType typeOfTextract, AmazonTextractClient client, String awsTaskId) {
-        JobStatus jobStatus = JobStatus.IN_PROGRESS;
-        switch (typeOfTextract) {
-            case DOCUMENT_ANALYSIS:
-                jobStatus = JobStatus.fromValue(client.getDocumentAnalysis(new GetDocumentAnalysisRequest().withJobId(awsTaskId)).getJobStatus());
-                break;
-            case DOCUMENT_TEXT_DETECTION:
-                jobStatus = JobStatus.fromValue(client.getDocumentTextDetection(new GetDocumentTextDetectionRequest().withJobId(awsTaskId)).getJobStatus());
-                break;
-            case EXPENSE_ANALYSIS:
-                jobStatus = JobStatus.fromValue(client.getExpenseAnalysis(new GetExpenseAnalysisRequest().withJobId(awsTaskId)).getJobStatus());
-                break;
-
-        }
-        return jobStatus;
+        return switch (typeOfTextract) {
+            case DOCUMENT_ANALYSIS -> JobStatus.fromValue(client.getDocumentAnalysis(new GetDocumentAnalysisRequest().withJobId(awsTaskId)).getJobStatus());
+            case DOCUMENT_TEXT_DETECTION -> JobStatus.fromValue(client.getDocumentTextDetection(new GetDocumentTextDetectionRequest().withJobId(awsTaskId)).getJobStatus());
+            case EXPENSE_ANALYSIS -> JobStatus.fromValue(client.getExpenseAnalysis(new GetExpenseAnalysisRequest().withJobId(awsTaskId)).getJobStatus());
+        };
     }
 }

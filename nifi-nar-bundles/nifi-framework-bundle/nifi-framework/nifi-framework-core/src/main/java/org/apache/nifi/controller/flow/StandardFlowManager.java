@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.controller.flow;
 
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -36,6 +51,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSnippet;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -55,12 +71,14 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.deprecation.log.DeprecationLogger;
 import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNodeFactory;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.FlowAnalysisRuleLogObserver;
 import org.apache.nifi.logging.FlowRegistryClientLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -73,9 +91,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
@@ -91,21 +107,6 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -272,12 +273,11 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ProcessGroup createProcessGroup(final String id) {
-        final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(flowController.getVariableRegistry());
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
-            flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties, statelessGroupNodeFactory);
+            flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory);
         onProcessGroupAdded(group);
 
         return group;
@@ -314,7 +314,13 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends FlowFilePrioritizer> prioritizerClass = rawClass.asSubclass(FlowFilePrioritizer.class);
-            final Object processorObj = prioritizerClass.newInstance();
+            final Object processorObj;
+            try {
+                processorObj = prioritizerClass.getDeclaredConstructor().newInstance();
+            } catch (final InvocationTargetException | NoSuchMethodException e) {
+                throw new ClassNotFoundException("Could not find class or default no-arg constructor for " + type, e);
+            }
+
             prioritizer = prioritizerClass.cast(processorObj);
 
             return prioritizer;
@@ -342,10 +348,11 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
             .classloaderIsolationKey(classloaderIsolationKey)
             .pythonBridge(flowController.getPythonBridge())
             .buildProcessor();
@@ -405,7 +412,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .nodeTypeProvider(flowController)
                 .validationTrigger(flowController.getValidationTrigger())
                 .reloadComponent(flowController.getReloadComponent())
-                .variableRegistry(flowController.getVariableRegistry())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
                 .flowController(flowController)
@@ -425,7 +431,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
                 if (flowController.isInitialized()) {
                     final ConfigurationContext configurationContext = new StandardConfigurationContext(
-                            clientNode, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+                            clientNode, flowController.getControllerServiceProvider(), null);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, clientNode.getComponent(), configurationContext);
                 }
             } catch (final Exception e) {
@@ -454,7 +460,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final Class<?> clientClass = clientNode.getComponent().getClass();
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), clientClass, clientNode.getComponent().getIdentifier())) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(clientNode, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(clientNode, flowController.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, clientNode.getComponent(), configurationContext);
         }
 
@@ -484,7 +490,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
@@ -522,6 +527,71 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(
+            final String type,
+            final String id,
+            final BundleCoordinate bundleCoordinate,
+            final Set<URL> additionalUrls,
+            final boolean firstTimeAdded,
+            final boolean register,
+            final String classloaderIsolationKey
+    ) {
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(bundleCoordinate)
+            .controllerServiceProvider(flowController.getControllerServiceProvider())
+            .processScheduler(processScheduler)
+            .nodeTypeProvider(flowController)
+            .validationTrigger(flowController.getValidationTrigger())
+            .reloadComponent(flowController.getReloadComponent())
+            .addClasspathUrls(additionalUrls)
+            .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .flowController(flowController)
+            .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
+            .classloaderIsolationKey(classloaderIsolationKey)
+            .buildFlowAnalysisRuleNode();
+
+        LogRepositoryFactory.getRepository(flowAnalysisRuleNode.getIdentifier()).setLogger(flowAnalysisRuleNode.getLogger());
+
+        if (firstTimeAdded) {
+            FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleNode.getFlowAnalysisRule();
+            final Class<? extends ConfigurableComponent> flowAnalysisRuleClass = flowAnalysisRule.getClass();
+            final String identifier = flowAnalysisRule.getIdentifier();
+
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), flowAnalysisRuleClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, flowAnalysisRule);
+                logDeprecationNotice(flowAnalysisRule);
+
+                if (flowController.isInitialized()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, flowAnalysisRule, flowAnalysisRuleNode.getConfigurationContext());
+                }
+            } catch (final Exception e) {
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + flowAnalysisRule, e);
+            }
+        }
+
+        if (register) {
+            onFlowAnalysisRuleAdded(flowAnalysisRuleNode);
+
+            // Register log observer to provide bulletins when flow analysis rule logs anything at WARN level or above
+            logRepository.addObserver(LogLevel.WARN, new FlowAnalysisRuleLogObserver(bulletinRepository, flowAnalysisRuleNode));
+        }
+
+        return flowAnalysisRuleNode;
+    }
+
+    @Override
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate,
                                                          final Set<URL> additionalUrls, final boolean firstTimeAdded, final boolean registerLogObserver) {
         requireNonNull(type);
@@ -541,7 +611,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .nodeTypeProvider(flowController)
                 .validationTrigger(flowController.getValidationTrigger())
                 .reloadComponent(flowController.getReloadComponent())
-                .variableRegistry(flowController.getVariableRegistry())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
                 .flowController(flowController)
@@ -601,10 +670,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         service.verifyCanDelete();
 
         final ExtensionManager extensionManager = flowController.getExtensionManager();
-        final VariableRegistry variableRegistry = flowController.getVariableRegistry();
 
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, flowController.getControllerServiceProvider(), null, variableRegistry);
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, flowController.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
 
@@ -624,6 +692,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         rootControllerServices.remove(service.getIdentifier());
 
         processScheduler.submitFrameworkTask(() -> flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier()));
+
+        getRuleViolationsManager().ifPresent(
+            ruleViolationsManager -> processScheduler.submitFrameworkTask(
+                () -> ruleViolationsManager.removeRuleViolationsForSubject(service.getIdentifier())
+            )
+        );
 
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
@@ -646,11 +720,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .nodeTypeProvider(flowController)
             .validationTrigger(flowController.getValidationTrigger())
             .reloadComponent(flowController.getReloadComponent())
-            .variableRegistry(flowController.getVariableRegistry())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer().orElse(null))
+            .ruleViolationsManager(getRuleViolationsManager().orElse(null))
             .classloaderIsolationKey(classloaderIsolationKey)
             .buildControllerService();
 
@@ -665,7 +740,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             if (flowController.isInitialized()) {
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                     final ConfigurationContext configurationContext =
-                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
                 }
             }

@@ -244,7 +244,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
      * @throws ParseException if there is a problem parsing the response
      */
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
-        final URL url = new URL(discoveryUri);
+        final URL url = URI.create(discoveryUri).toURL();
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);

@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClient;
 import com.amazonaws.services.kms.model.CreateKeyRequest;
 import com.amazonaws.services.kms.model.CreateKeyResult;
 import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyResult;
-import com.amazonaws.services.kms.model.ScheduleKeyDeletionRequest;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteBucketRequest;
@@ -34,23 +34,32 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.Tag;
-import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -63,57 +72,70 @@ import static org.junit.jupiter.api.Assertions.fail;
  * @see ITListS3
  */
 public abstract class AbstractS3IT {
-    protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
-    protected final static String REGION = System.getProperty("it.aws.region", "us-west-1");
-    // Adding REGION to bucket prevents errors of
-    //      "A conflicting conditional operation is currently in progress against this resource."
-    // when bucket is rapidly added/deleted and consistency propagation causes this error.
-    // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
-    // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
-    protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis() + "-" + REGION;
+    protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
 
-    // Static so multiple Tests can use same client
-    protected static AmazonS3Client client;
-    protected static AWSKMS kmsClient;
+    private static AmazonS3 client;
+    private static AWSKMS kmsClient;
+    private final List<String> addedKeys = new ArrayList<>();
+
+    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
+
+    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
+            .withServices(LocalStackContainer.Service.S3, LocalStackContainer.Service.KMS);
+
 
     @BeforeAll
     public static void oneTimeSetup() {
-        // Creates a client and bucket for this test
+        localstack.start();
 
-        final FileInputStream fis;
-        try {
-            fis = new FileInputStream(CREDENTIALS_FILE);
-        } catch (FileNotFoundException e1) {
-            fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e1.getLocalizedMessage());
+        client = AmazonS3ClientBuilder.standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
+                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+                .build();
+
+        kmsClient = AWSKMSClient.builder()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
+                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+                .build();
+
+        final CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME);
+        client.createBucket(request);
+    }
+
+    protected AmazonS3 getClient() {
+        return client;
+    }
+
+    protected AWSKMS getKmsClient() {
+        return kmsClient;
+    }
+
+    protected String getEndpointOverride() {
+        return localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString();
+    }
+
+    protected static String getRegion() {
+        return localstack.getRegion();
+    }
+
+    protected static void setSecureProperties(final TestRunner runner, final PropertyDescriptor serviceDescriptor) throws InitializationException {
+        if (runner.getProcessContext().getProperty(serviceDescriptor).isSet()) {
             return;
         }
-        try {
-            final PropertiesCredentials credentials = new PropertiesCredentials(fis);
-            client = new AmazonS3Client(credentials);
-            kmsClient = new AWSKMSClient(credentials);
-            kmsClient.setRegion(Region.getRegion(Regions.fromName(REGION)));
 
-            if (client.doesBucketExist(BUCKET_NAME)) {
-                fail("Bucket " + BUCKET_NAME + " exists. Choose a different bucket name to continue test");
-            }
+        final AWSCredentialsProviderControllerService creds = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("creds", creds);
+        runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, localstack.getAccessKey());
+        runner.setProperty(CredentialPropertyDescriptors.SECRET_KEY, localstack.getSecretKey());
+        runner.enableControllerService(creds);
 
-            CreateBucketRequest request = REGION.contains("east")
-                    ? new CreateBucketRequest(BUCKET_NAME) // See https://github.com/boto/boto3/issues/125
-                    : new CreateBucketRequest(BUCKET_NAME, REGION);
-            client.createBucket(request);
+        runner.setProperty(serviceDescriptor, "creds");
+    }
 
-        } catch (final AmazonS3Exception e) {
-            fail("Can't create the key " + BUCKET_NAME + ": " + e.getLocalizedMessage());
-        } catch (final IOException e) {
-            fail("Caught IOException preparing tests: " + e.getLocalizedMessage());
-        } finally {
-            FileUtils.closeQuietly(fis);
-        }
-
-        if (!client.doesBucketExist(BUCKET_NAME)) {
-            fail("Setup incomplete, tests will fail");
-        }
+    @BeforeEach
+    public void clearKeys() {
+        addedKeys.clear();
     }
 
     @AfterAll
@@ -144,14 +166,13 @@ public abstract class AbstractS3IT {
             System.err.println("Unable to delete bucket " + BUCKET_NAME + e.toString());
         }
 
-        if (client.doesBucketExist(BUCKET_NAME)) {
+        if (client.doesBucketExistV2(BUCKET_NAME)) {
             fail("Incomplete teardown, subsequent tests might fail");
         }
     }
 
     protected void putTestFile(String key, File file) throws AmazonS3Exception {
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
-
         client.putObject(putRequest);
     }
 
@@ -171,10 +192,27 @@ public abstract class AbstractS3IT {
         client.putObject(putRequest);
     }
 
+    protected void waitForFilesAvailable() {
+        for (final String key : addedKeys) {
+            final long maxWaitTimestamp = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
+            while (System.currentTimeMillis() < maxWaitTimestamp) {
+                try {
+                    client.getObject(BUCKET_NAME, key);
+                } catch (final Exception e) {
+                    try {
+                        Thread.sleep(100L);
+                    } catch (final InterruptedException ie) {
+                        throw new AssertionError("Interrupted while waiting for files to become available", e);
+                    }
+                }
+            }
+        }
+    }
+
     protected void putFileWithObjectTag(String key, File file, List<Tag> objectTags) {
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
         putRequest.setTagging(new ObjectTagging(objectTags));
-        PutObjectResult result = client.putObject(putRequest);
+        client.putObject(putRequest);
     }
 
     protected Path getResourcePath(String resourceName) {
@@ -210,8 +248,21 @@ public abstract class AbstractS3IT {
         return dekResult.getKeyId();
     }
 
-    protected static void deleteKMSKey(String keyId) {
-        ScheduleKeyDeletionRequest req = new ScheduleKeyDeletionRequest().withKeyId(keyId).withPendingWindowInDays(7);
-        kmsClient.scheduleKeyDeletion(req);
+
+    protected TestRunner initRunner(final Class<? extends AbstractS3Processor> processorClass) {
+        TestRunner runner = TestRunners.newTestRunner(processorClass);
+
+        try {
+            setSecureProperties(runner, AbstractS3Processor.AWS_CREDENTIALS_PROVIDER_SERVICE);
+        } catch (InitializationException e) {
+            Assertions.fail("Could not set security properties");
+        }
+
+        runner.setProperty(AbstractS3Processor.S3_REGION, getRegion());
+        runner.setProperty(AbstractS3Processor.ENDPOINT_OVERRIDE, getEndpointOverride());
+        runner.setProperty(AbstractS3Processor.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
+
+        return runner;
     }
+
 }

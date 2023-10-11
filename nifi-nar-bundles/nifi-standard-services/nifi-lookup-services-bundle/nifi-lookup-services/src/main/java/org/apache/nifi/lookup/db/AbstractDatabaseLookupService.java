@@ -58,7 +58,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
                     + "the property specified in the lookup processor. Note that this may be case-sensitive depending on the database.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -68,7 +68,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
                     + "Setting this property to zero means no caching will be done and the table will be queried for each lookup value in each record. If the lookup "
                     + "table changes often or the most recent data must be retrieved, do not use the cache.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("0")
             .required(true)
             .build();
@@ -89,7 +89,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
             .description("Time interval to clear all cache entries. If the Cache Size is zero then this property is ignored.")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected List<PropertyDescriptor> properties;

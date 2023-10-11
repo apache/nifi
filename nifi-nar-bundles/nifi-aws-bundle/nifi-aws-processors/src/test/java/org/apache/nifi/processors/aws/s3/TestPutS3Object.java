@@ -22,6 +22,9 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.auth.SignerFactory;
 import com.amazonaws.auth.SignerParams;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.AWSS3V4Signer;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -73,14 +76,15 @@ public class TestPutS3Object {
         mockS3Client = mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
         };
         runner = TestRunners.newTestRunner(putS3Object);
 
         // MockPropertyValue does not evaluate system properties, set it in a variable with the same name
-        runner.setVariable("java.io.tmpdir", System.getProperty("java.io.tmpdir"));
+        runner.setEnvironmentVariableValue("java.io.tmpdir", System.getProperty("java.io.tmpdir"));
     }
 
     @Test
@@ -131,7 +135,8 @@ public class TestPutS3Object {
             if (!signerType.equals(customSignerValue)) {
                 runner.setProperty(PutS3Object.SIGNER_OVERRIDE, signerType);
                 ProcessContext context = runner.getProcessContext();
-                assertDoesNotThrow(() -> processor.createClient(context, credentialsProvider, config));
+                assertDoesNotThrow(() -> processor.createClient(context, credentialsProvider,
+                        Region.getRegion(Regions.DEFAULT_REGION), config, null));
             }
         }
     }
@@ -204,7 +209,7 @@ public class TestPutS3Object {
 
     private void prepareTest(String filename) {
         runner.setProperty(PutS3Object.S3_REGION, "ap-northeast-1");
-        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
+        runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 
         Map<String, String> ffAttributes = new HashMap<>();
@@ -217,7 +222,7 @@ public class TestPutS3Object {
 
     private void prepareTestWithRegionInAttributes(String filename, String region) {
         runner.setProperty(PutS3Object.S3_REGION, "attribute-defined-region");
-        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
+        runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 
         Map<String, String> ffAttributes = new HashMap<>();
@@ -281,7 +286,7 @@ public class TestPutS3Object {
         assertEquals(41, pd.size(), "size should be eq");
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(PutS3Object.BUCKET));
+        assertTrue(pd.contains(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE));
         assertTrue(pd.contains(PutS3Object.CANNED_ACL));
         assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
         assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
@@ -333,7 +338,7 @@ public class TestPutS3Object {
         runner.setProperty(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME, CustomS3Signer.class.getName());
 
         ProcessContext context = runner.getProcessContext();
-        processor.createClient(context, credentialsProvider, config);
+        processor.createClient(context, credentialsProvider, Region.getRegion(Regions.DEFAULT_REGION), config, null);
 
         final String signerName = config.getSignerOverride();
         assertNotNull(signerName);

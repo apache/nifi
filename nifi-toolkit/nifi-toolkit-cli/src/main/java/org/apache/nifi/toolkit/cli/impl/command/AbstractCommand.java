@@ -22,7 +22,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.Result;
@@ -33,9 +32,9 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -51,13 +50,9 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
     private PrintStream output;
 
     public AbstractCommand(final String name, final Class<R> resultClass) {
-        this.name = name;
-        this.resultClass = resultClass;
-        Validate.notNull(this.name);
-        Validate.notNull(this.resultClass);
-
+        this.name = Objects.requireNonNull(name);
+        this.resultClass = Objects.requireNonNull(resultClass);
         this.options = createBaseOptions();
-        Validate.notNull(this.options);
     }
 
     protected Options createBaseOptions() {
@@ -94,10 +89,8 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
     @Override
     public final void initialize(final Context context) {
-        Validate.notNull(context);
-        Validate.notNull(context.getOutput());
-        this.context = context;
-        this.output = context.getOutput();
+        this.context = Objects.requireNonNull(context);
+        this.output = Objects.requireNonNull(context.getOutput());
         this.doInitialize(context);
     }
 
@@ -248,9 +241,8 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         String contents;
         try {
             // try a public resource URL
-            URL url = new URL(inputFile);
-            contents = IOUtils.toString(url, StandardCharsets.UTF_8);
-        } catch (MalformedURLException e) {
+            contents = IOUtils.toString(URI.create(inputFile).toURL(), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException | MalformedURLException e) {
             // assume a local file then
             URI uri = Paths.get(inputFile).toAbsolutePath().toUri();
             contents = IOUtils.toString(uri, StandardCharsets.UTF_8);

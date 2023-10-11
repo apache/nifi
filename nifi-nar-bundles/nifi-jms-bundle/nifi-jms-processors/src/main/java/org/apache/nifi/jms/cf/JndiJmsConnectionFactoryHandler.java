@@ -43,43 +43,29 @@ import static org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties.JNDI_PRO
  * Handler class to retrieve a JMS Connection Factory object via JNDI.
  * The handler can be used from controller services and processors as well.
  */
-public class JndiJmsConnectionFactoryHandler implements IJMSConnectionFactoryProvider {
+public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryHandler {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;
     private final ComponentLog logger;
 
-    private volatile ConnectionFactory connectionFactory;
-
     public JndiJmsConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
+        super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
     public JndiJmsConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
+        super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
     @Override
-    public synchronized ConnectionFactory getConnectionFactory() {
-        if (connectionFactory == null) {
-            connectionFactory = lookupConnectionFactory();
-        } else {
-            logger.debug("Connection Factory has already been obtained from JNDI. Will return cached instance.");
-        }
-
-        return connectionFactory;
-    }
-
-    @Override
-    public synchronized void resetConnectionFactory(ConnectionFactory cachedFactory) {
-        if (cachedFactory == connectionFactory) {
-            logger.debug("Resetting connection factory");
-            connectionFactory = null;
-        }
+    public ConnectionFactory createConnectionFactory() {
+        return lookupConnectionFactory();
     }
 
     private ConnectionFactory lookupConnectionFactory() {

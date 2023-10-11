@@ -24,13 +24,10 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
-import org.apache.nifi.registry.bucket.BucketItem;
-import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.field.Fields;
-import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.util.List;
+import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -40,16 +37,23 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.util.List;
-import java.util.Set;
+import org.apache.nifi.registry.bucket.BucketItem;
+import org.apache.nifi.registry.event.EventService;
+import org.apache.nifi.registry.field.Fields;
+import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 @Path("/items")
 @Api(
-        value = "items",
-        description = "Retrieve items across all buckets for which the user is authorized.",
-        authorizations = { @Authorization("Authorization") }
+    value = "items",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Retrieve items across all buckets for which the user is authorized.")
+})
 public class ItemResource extends ApplicationResource {
 
     @Context

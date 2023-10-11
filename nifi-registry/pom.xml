@@ -36,12 +36,12 @@
     </modules>
     <properties>
         <jax.rs.api.version>2.1.1</jax.rs.api.version>
-        <spring.boot.version>2.7.14</spring.boot.version>
+        <spring.boot.version>2.7.16</spring.boot.version>
         <flyway.version>8.5.13</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jaxb.version>2.3.2</jaxb.version>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>6.7.0.202309050840-r</jgit.version>
         <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
     </properties>
 
@@ -176,31 +176,6 @@
                 <scope>runtime</scope>
                 <type>zip</type>
             </dependency>
-            <!-- exclude all transitive groovy deps so that spock uses whatever is directly declared -->
-            <dependency>
-                <groupId>org.spockframework</groupId>
-                <artifactId>spock-core</artifactId>
-                <version>2.3-groovy-3.0</version>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-test</artifactId>
-                <version>${nifi.groovy.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-cli-commons</artifactId>
-                <version>${nifi.groovy.version}</version>
-                <type>test</type>
-            </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>mysql</artifactId>
@@ -237,15 +212,9 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.codehaus.groovy</groupId>
-                    <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>${groovy.eclipse.compiler.version}</version>
-                    <extensions>true</extensions>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-war-plugin</artifactId>
-                    <version>3.3.2</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -254,7 +223,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.3.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -304,38 +273,6 @@
         </pluginManagement>
 
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <!-- Only run for tests -->
-                    <execution>
-                        <id>groovy-tests</id>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerId>groovy-eclipse-compiler</compilerId>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>${groovy.eclipse.compiler.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>${groovy.eclipse.batch.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>

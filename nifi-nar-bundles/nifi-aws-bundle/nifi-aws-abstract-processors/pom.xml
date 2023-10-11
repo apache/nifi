@@ -45,11 +45,34 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
+            <artifactId>kinesis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
             <artifactId>sns</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>software.amazon.awssdk</groupId>
                     <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>firehose</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.kinesis</groupId>
+            <artifactId>amazon-kinesis-client</artifactId>
+            <version>${aws-kinesis-client-library-version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.json</groupId>
+                    <artifactId>json</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -60,21 +83,6 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-dynamodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-kinesis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>amazon-kinesis-client</artifactId>
-            <version>${aws-kinesis-client-library-version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -113,7 +121,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -123,6 +130,11 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>2.9.2</version>
+        </dependency>
+        <!-- Version 2 of the AmazonS3EncryptionClient requires bouncy castle -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
     </dependencies>
     <build>

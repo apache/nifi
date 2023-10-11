@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
@@ -35,7 +36,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import javax.ws.rs.client.Entity;
@@ -233,7 +233,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
 
     @Override
     public ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving reporting task controller services", () -> {
+        return executeAction("Error retrieving reporting task/flow analysis rule controller services", () -> {
             final WebTarget target = flowTarget.path("controller/controller-services");
             return getRequestBuilder(target).get(ControllerServicesEntity.class);
         });
@@ -248,18 +248,27 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving parameter providers", () -> {
-            final WebTarget target = flowTarget.path("parameter-providers");
-            return getRequestBuilder(target).get(ParameterProvidersEntity.class);
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting tasks", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot");
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
         });
     }
 
     @Override
-    public TemplatesEntity getTemplates() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving templates", () -> {
-            final WebTarget target = flowTarget.path("templates");
-            return getRequestBuilder(target).get(TemplatesEntity.class);
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot(final String reportingTaskId) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot")
+                    .queryParam("reportingTaskId", reportingTaskId);
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
+        });
+    }
+
+    @Override
+    public ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving parameter providers", () -> {
+            final WebTarget target = flowTarget.path("parameter-providers");
+            return getRequestBuilder(target).get(ParameterProvidersEntity.class);
         });
     }
 

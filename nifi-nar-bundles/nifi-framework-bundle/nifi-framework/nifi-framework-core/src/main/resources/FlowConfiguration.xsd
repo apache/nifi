@@ -39,6 +39,8 @@
 
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
 
+            <xs:element name="flowAnalysisRules" type="FlowAnalysisRulesType" minOccurs="0" maxOccurs="1" />
+
             <xs:element name="parameterProviders" type="ParameterProvidersType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
         <xs:attribute name="encoding-version" type="xs:string"/>
@@ -194,6 +196,20 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="FlowAnalysisRuleEnforcementPolicy">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENFORCE"></xs:enumeration>
+            <xs:enumeration value="WARN"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlowAnalysisState">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENABLED"></xs:enumeration>
+            <xs:enumeration value="DISABLED"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="ProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -221,15 +237,8 @@
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
-            <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
-            <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
             <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="VariableType">
-        <xs:attribute name="name" />
-        <xs:attribute name="value" />
     </xs:complexType>
 
     <xs:simpleType name="FlowFileConcurrencyType">
@@ -288,8 +297,6 @@
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
-            <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
-            <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
             <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
@@ -549,6 +556,28 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="FlowAnalysisRulesType">
+        <xs:sequence>
+            <xs:element name="flowAnalysisRule" type="FlowAnalysisRuleType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FlowAnalysisRuleType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="comment" type="xs:string" />
+            <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="bundle" type="BundleType" />
+
+            <xs:element name="enforcementPolicy" type="FlowAnalysisRuleEnforcementPolicy"/>
+            <xs:element name="state" type="FlowAnalysisState" />
+
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="ParameterProvidersType">
         <xs:sequence>
             <xs:element name="parameterProvider" type="ParameterProviderType" minOccurs="0" maxOccurs="unbounded" />
@@ -566,18 +595,6 @@
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="TemplateType">
-        <xs:sequence>
-            <xs:element name="description" type="xs:string" />
-            <xs:element name="groupId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
-            <xs:element name="id" type="NonEmptyStringType" />
-            <xs:element name="name" type="NonEmptyStringType" />
-            <xs:element name="snippet" type="SnippetType" />
-            <xs:element name="timestamp" type="xs:string" />
-        </xs:sequence>
-        <xs:attribute name="encoding-version" type="xs:string" />
     </xs:complexType>
 
     <xs:complexType name="SnippetType">

@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
@@ -150,6 +151,24 @@ public class FlowFromDOMFactory {
         dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+
+    public static FlowAnalysisRuleDTO getFlowAnalysisRule(Element element, PropertyEncryptor encryptor, FlowEncodingVersion flowEncodingVersion) {
+        final FlowAnalysisRuleDTO dto = new FlowAnalysisRuleDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setComments(getString(element, "comment"));
+        dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
+
+        dto.setEnforcementPolicy(getString(element, "enforcementPolicy"));
+        dto.setState(getString(element, "state"));
+
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
+        dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
 
         return dto;
     }
@@ -297,16 +316,6 @@ public class FlowFromDOMFactory {
         dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
         dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
         dto.setLogFileSuffix(getString(element, "logFileSuffix"));
-
-        final Map<String, String> variables = new HashMap<>();
-        final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
-        for (int i = 0; i < variableList.getLength(); i++) {
-            final Element variableElement = (Element) variableList.item(i);
-            final String name = variableElement.getAttribute("name");
-            final String value = variableElement.getAttribute("value");
-            variables.put(name, value);
-        }
-        dto.setVariables(variables);
 
         final Element versionControlInfoElement = DomUtils.getChild(element, "versionControlInformation");
         dto.setVersionControlInformation(getVersionControlInformation(versionControlInfoElement));

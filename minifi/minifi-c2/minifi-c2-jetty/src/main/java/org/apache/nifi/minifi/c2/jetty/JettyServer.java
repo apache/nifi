@@ -33,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
-import java.security.Security;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
@@ -56,9 +55,8 @@ public class JettyServer {
     private static final String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
     private static final String WEB_DEFAULTS_XML = "webdefault.xml";
 
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    private static final String BCFKS = "BCFKS";
 
     public static void main(String[] args) throws Exception {
         C2Properties properties = C2Properties.getInstance();
@@ -116,11 +114,17 @@ public class JettyServer {
         File keyStoreFile = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toFile();
         logger.debug("Loading Key Store [{}]", keyStoreFile.getPath());
         try (FileInputStream keyStoreStream = new FileInputStream(keyStoreFile)) {
-            keyStore = new StandardKeyStoreBuilder()
-                .type(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE))
+            final String keyStoreType = properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE);
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                .type(keyStoreType)
                 .inputStream(keyStoreStream)
-                .password(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray())
-                .build();
+                .password(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray());
+
+            if (BCFKS.equals(keyStoreType)) {
+                builder.provider(BOUNCY_CASTLE_PROVIDER);
+            }
+
+            keyStore = builder.build();
         } catch (IOException ioe) {
             throw new UncheckedIOException("Key Store loading failed", ioe);
         }
@@ -128,11 +132,18 @@ public class JettyServer {
         File trustStoreFile = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE)).toFile();
         logger.debug("Loading Trust Store [{}]", trustStoreFile.getPath());
         try (FileInputStream trustStoreStream = new FileInputStream(trustStoreFile)) {
-            truststore = new StandardKeyStoreBuilder()
-                .type(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE))
+            final String trustStoreType = properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE);
+
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                .type(trustStoreType)
                 .inputStream(trustStoreStream)
-                .password(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD).toCharArray())
-                .build();
+                .password(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD).toCharArray());
+
+            if (BCFKS.equals(trustStoreType)) {
+                builder.provider(BOUNCY_CASTLE_PROVIDER);
+            }
+
+            truststore = builder.build();
         } catch (IOException ioe) {
             throw new UncheckedIOException("Trust Store loading failed", ioe);
         }

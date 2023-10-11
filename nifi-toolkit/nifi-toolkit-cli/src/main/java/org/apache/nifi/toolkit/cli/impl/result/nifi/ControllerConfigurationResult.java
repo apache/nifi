@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
@@ -24,14 +23,14 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 public class ControllerConfigurationResult extends AbstractWritableResult<ControllerConfigurationEntity> {
     private final ControllerConfigurationEntity controllerConfigurationEntity;
 
     public ControllerConfigurationResult(final ResultType resultType, final ControllerConfigurationEntity controllerConfigurationEntity) {
         super(resultType);
-        this.controllerConfigurationEntity = controllerConfigurationEntity;
-        Validate.notNull(controllerConfigurationEntity);
+        this.controllerConfigurationEntity = Objects.requireNonNull(controllerConfigurationEntity);
     }
 
     @Override

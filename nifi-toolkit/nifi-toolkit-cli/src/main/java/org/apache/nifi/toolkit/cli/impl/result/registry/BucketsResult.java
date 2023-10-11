@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
@@ -34,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -45,8 +45,7 @@ public class BucketsResult extends AbstractWritableResult<List<Bucket>> implemen
 
     public BucketsResult(final ResultType resultType, final List<Bucket> buckets) {
         super(resultType);
-        this.buckets = buckets;
-        Validate.notNull(buckets);
+        this.buckets = Objects.requireNonNull(buckets);
 
         // NOTE: it is important that the order the buckets are printed is the same order for the ReferenceResolver
         this.buckets.sort(Comparator.comparing(Bucket::getName));

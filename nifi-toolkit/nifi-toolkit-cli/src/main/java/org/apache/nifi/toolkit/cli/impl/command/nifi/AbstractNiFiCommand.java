@@ -81,7 +81,7 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         final String clientId = getContext().getSession().getNiFiClientID();
 
         final RevisionDTO revisionDTO = new RevisionDTO();
-        revisionDTO.setVersion(new Long(0));
+        revisionDTO.setVersion(Long.valueOf(0));
         revisionDTO.setClientId(clientId);
         return revisionDTO;
     }

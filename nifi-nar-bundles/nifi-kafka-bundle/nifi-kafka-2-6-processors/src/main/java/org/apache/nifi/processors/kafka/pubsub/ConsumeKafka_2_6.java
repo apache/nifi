@@ -81,7 +81,7 @@ import java.util.regex.Pattern;
         description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientComponent, VerifiableProcessor {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
@@ -100,7 +100,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
@@ -118,7 +118,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
@@ -145,7 +145,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .displayName("Message Demarcator")
             .required(false)
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .description("Since KafkaConsumer receives messages in batches, you have an option to output FlowFiles which contains "
                     + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "
                     + "for demarcating apart multiple Kafka messages. This is an optional property and if not provided each Kafka message received "
@@ -310,7 +310,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
                 .name(propertyDescriptorName)
                 .addValidator(new DynamicPropertyValidator(ConsumerConfig.class))
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 
@@ -483,11 +483,9 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
                 getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. "
                     + "Will roll back session and discard any partially received data.", lease);
             } catch (final KafkaException kex) {
-                getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}",
-                        new Object[]{lease, kex}, kex);
+                getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}", lease, kex, kex);
             } catch (final Throwable t) {
-                getLogger().error("Exception while processing data from kafka so will close the lease {} due to {}",
-                        new Object[]{lease, t}, t);
+                getLogger().error("Exception while processing data from kafka so will close the lease {} due to {}", lease, t, t);
             } finally {
                 activeLeases.remove(lease);
             }

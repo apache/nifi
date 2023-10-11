@@ -74,7 +74,6 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -460,15 +459,6 @@ public class NiFiRegistryFlowMapperTest {
         }
         when(processGroup.getControllerServices(false)).thenReturn(controllerServiceNodes);
 
-        // prep variable registry
-        final ComponentVariableRegistry componentVariableRegistry = mock(ComponentVariableRegistry.class);
-        when(processGroup.getVariableRegistry()).thenReturn(componentVariableRegistry);
-        final Map<VariableDescriptor, String> registryVariableMap = new LinkedHashMap<>();
-        if (includeVariableRegistry) {
-            registryVariableMap.putAll(prepareVariableRegistry());
-        }
-        when(componentVariableRegistry.getVariableMap()).thenReturn(registryVariableMap);
-
         // prepare remote process group
         final Set<RemoteProcessGroup> remoteProcessGroups = new LinkedHashSet<>();
         if (includeRemoteProcessGroup) {
@@ -750,16 +740,6 @@ public class NiFiRegistryFlowMapperTest {
                 assertEquals(controllerServiceNode.getName(), versionedControllerService.getName());
                 assertEquals(flowMapper.getGroupId(controllerServiceNode.getIdentifier()), versionedControllerService.getIdentifier());
                 assertEquals(expectedGroupIdentifier, versionedControllerService.getGroupIdentifier());
-            }
-
-            // verify variables
-            final Map<VariableDescriptor, String> variableRegistryMap = processGroup.getVariableRegistry().getVariableMap();
-            final Map<String, String> versionedVariableMap = versionedProcessGroup.getVariables();
-            if (variableRegistryMap.isEmpty()) {
-                assertTrue(versionedVariableMap.isEmpty());
-            } else {
-                final VariableDescriptor variableRegistryKey = variableRegistryMap.keySet().iterator().next();
-                assertEquals(variableRegistryMap.get(variableRegistryKey), versionedVariableMap.get(variableRegistryKey.getName()));
             }
 
             // verify remote process group(s)

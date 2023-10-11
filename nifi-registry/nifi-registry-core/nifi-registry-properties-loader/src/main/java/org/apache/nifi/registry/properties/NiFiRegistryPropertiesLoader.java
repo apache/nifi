@@ -21,14 +21,12 @@ import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.security.Security;
 import java.util.Properties;
 
 public class NiFiRegistryPropertiesLoader {
@@ -125,7 +123,6 @@ public class NiFiRegistryPropertiesLoader {
     public NiFiRegistryProperties load(final File file) {
         final ProtectedNiFiRegistryProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
         if (protectedNiFiProperties.hasProtectedKeys()) {
-            Security.addProvider(new BouncyCastleProvider());
             getSensitivePropertyProviderFactory()
                     .getSupportedProviders()
                     .forEach(protectedNiFiProperties::addSensitivePropertyProvider);

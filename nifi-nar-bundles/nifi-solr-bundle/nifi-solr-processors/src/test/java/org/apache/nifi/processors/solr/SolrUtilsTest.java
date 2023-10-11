@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -32,12 +37,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
@@ -76,16 +75,10 @@ public class SolrUtilsTest {
     public void testCreateSolrClientWithChrootSuffix() {
         when(context.getProperty(SolrUtils.SOLR_SOCKET_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
         when(context.getProperty(SolrUtils.SOLR_CONNECTION_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
-        when(context.getProperty(SolrUtils.SOLR_MAX_CONNECTIONS)).thenReturn(new MockPropertyValue("5"));
         when(context.getProperty(SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST)).thenReturn(new MockPropertyValue("5"));
         when(context.getProperty(SolrUtils.SOLR_TYPE)).thenReturn(new MockPropertyValue(SolrUtils.SOLR_TYPE_CLOUD.getValue()));
         when(context.getProperty(SolrUtils.SSL_CONTEXT_SERVICE)).thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE)).thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(SolrUtils.KERBEROS_PRINCIPAL)).thenReturn(new MockPropertyValue("kerb_principal"));
-        when(context.getProperty(SolrUtils.KERBEROS_PASSWORD)).thenReturn(new MockPropertyValue("kerb_password"));
         when(context.getProperty(SolrUtils.COLLECTION)).thenReturn(new MockPropertyValue("collection"));
-        when(context.getProperty(SolrUtils.ZK_CLIENT_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
-        when(context.getProperty(SolrUtils.ZK_CONNECTION_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
 
         final String solrLocation = "zookeeper1:2181,zookeeper2:2181,zookeeper3:2181/solr/UAT/something";
         SolrClient testClient = SolrUtils.createSolrClient(context, solrLocation);
@@ -96,16 +89,10 @@ public class SolrUtilsTest {
     public void testCreateSolrClientWithoutChrootSuffix() {
         when(context.getProperty(SolrUtils.SOLR_SOCKET_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
         when(context.getProperty(SolrUtils.SOLR_CONNECTION_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
-        when(context.getProperty(SolrUtils.SOLR_MAX_CONNECTIONS)).thenReturn(new MockPropertyValue("5"));
         when(context.getProperty(SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST)).thenReturn(new MockPropertyValue("5"));
         when(context.getProperty(SolrUtils.SOLR_TYPE)).thenReturn(new MockPropertyValue(SolrUtils.SOLR_TYPE_CLOUD.getValue()));
         when(context.getProperty(SolrUtils.SSL_CONTEXT_SERVICE)).thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE)).thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(SolrUtils.KERBEROS_PRINCIPAL)).thenReturn(new MockPropertyValue("kerb_principal"));
-        when(context.getProperty(SolrUtils.KERBEROS_PASSWORD)).thenReturn(new MockPropertyValue("kerb_password"));
         when(context.getProperty(SolrUtils.COLLECTION)).thenReturn(new MockPropertyValue("collection"));
-        when(context.getProperty(SolrUtils.ZK_CLIENT_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
-        when(context.getProperty(SolrUtils.ZK_CONNECTION_TIMEOUT)).thenReturn(new MockPropertyValue("2 s"));
 
         final String solrLocation = "zookeeper1:2181,zookeeper2:2181,zookeeper3:2181";
         SolrClient testClient = SolrUtils.createSolrClient(context, solrLocation);

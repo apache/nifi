@@ -17,11 +17,10 @@
 
 package org.apache.nifi.stateless.engine;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * If multiple Stateless dataflows are loaded concurrently within the same JVM, we need to ensure that the dataflows
@@ -38,19 +37,19 @@ public class NarUnpackLock {
 
     public static void lock() {
         lock.lock();
-        logger.debug("Lock obtained by thread {}: {}", Thread.currentThread().getId(), Thread.currentThread().getName());
+        logger.debug("Lock obtained by thread {}", Thread.currentThread());
     }
 
     public static void unlock() {
         lock.unlock();
-        logger.debug("Lock obtained by thread {}: {}", Thread.currentThread().getId(), Thread.currentThread().getName());
+        logger.debug("Lock unlocked by thread {}", Thread.currentThread());
     }
 
     public static boolean tryLock() {
         final boolean obtained = lock.tryLock();
 
         if (obtained) {
-            logger.debug("Lock obtained by thread {}: {}", Thread.currentThread().getId(), Thread.currentThread().getName());
+            logger.debug("Lock obtained by thread {}", Thread.currentThread());
         }
 
         return obtained;

@@ -90,10 +90,10 @@ public class TestHBase_2_ClientService {
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
-        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
-        runner.setVariable("zk-quorum", "localhost");
-        runner.setVariable("zk-client-port", "2181");
-        runner.setVariable("zk-znode", "/hbase");
+        runner.setEnvironmentVariableValue("hadoop-conf-files", "src/test/resources/hbase-site.xml");
+        runner.setEnvironmentVariableValue("zk-quorum", "localhost");
+        runner.setEnvironmentVariableValue("zk-client-port", "2181");
+        runner.setEnvironmentVariableValue("zk-znode", "/hbase");
 
         // conf file with no zk properties should be valid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);

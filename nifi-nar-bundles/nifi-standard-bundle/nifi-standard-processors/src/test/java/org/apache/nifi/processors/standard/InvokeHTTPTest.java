@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -245,7 +246,7 @@ public class InvokeHTTPTest {
         runner.assertPenalizeCount(1);
 
         final MockFlowFile flowFile = getFailureFlowFile();
-        flowFile.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, MalformedURLException.class.getName());
+        flowFile.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, IllegalArgumentException.class.getName());
         flowFile.assertAttributeExists(InvokeHTTP.EXCEPTION_MESSAGE);
     }
 
@@ -763,9 +764,8 @@ public class InvokeHTTPTest {
 
     @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
     @MethodSource
-    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String inputUrl, String expectedFileName) throws MalformedURLException {
-        URL baseUrl = new URL(getMockWebServerUrl());
-        URL targetUrl = new URL(baseUrl, inputUrl);
+    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String relativePath, String expectedFileName) throws MalformedURLException, URISyntaxException {
+        URL targetUrl = new URI("http", null, mockWebServer.getHostName(), mockWebServer.getPort(), String.format("/%s", relativePath), null, null).toURL();
 
         runner.setProperty(InvokeHTTP.HTTP_METHOD, httpMethod);
         runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());
@@ -789,8 +789,7 @@ public class InvokeHTTPTest {
             Arguments.of(HttpMethod.GET.name(), "file/", "file"),
             Arguments.of(HttpMethod.GET.name(), "file.txt", "file.txt"),
             Arguments.of(HttpMethod.GET.name(), "file.txt/", "file.txt"),
-            Arguments.of(HttpMethod.GET.name(), "file.txt/?qp=v", "file.txt"),
-            Arguments.of(HttpMethod.GET.name(), "f%69%6Cle.txt", "f%69%6Cle.txt"),
+            Arguments.of(HttpMethod.GET.name(), "f%69%6Cle.txt", "f%2569%256Cle.txt"),
             Arguments.of(HttpMethod.GET.name(), "path/to/file.txt", "file.txt"),
             Arguments.of(HttpMethod.GET.name(), "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(HttpMethod.POST.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),

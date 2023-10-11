@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processor.util.list;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -398,7 +396,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // Check if state already exists for this path. If so, we have already migrated the state.
         final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-        if (!stateMap.getStateVersion().isPresent()) {
+        if (stateMap.getStateVersion().isEmpty()) {
             try {
                 // Migrate state from the old way of managing state (distributed cache service and local file)
                 // to the new mechanism (State Manager).
@@ -444,13 +442,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
 
             // remove entry from distributed cache server
-            if (client != null) {
-                try {
-                    client.remove(path, new StringSerDe());
-                } catch (final IOException ioe) {
-                    getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
-                            + "State Management service, so the Distributed Cache Service is no longer needed.");
-                }
+            try {
+                client.remove(path, new StringSerDe());
+            } catch (final IOException ioe) {
+                getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
+                    + "State Management service, so the Distributed Cache Service is no longer needed.");
             }
         }
 
@@ -513,7 +509,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         return getIdentifier() + ".lastListingTime." + directory;
     }
 
-    private EntityListing deserialize(final String serializedState) throws JsonParseException, JsonMappingException, IOException {
+    private EntityListing deserialize(final String serializedState) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(serializedState, EntityListing.class);
     }
@@ -555,7 +551,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             context.getStateManager().clear(getStateScope(context));
 
         } catch (final IOException re) {
-            getLogger().error("Failed to remove previous state from the State Manager.", new Object[]{re.getMessage()}, re);
+            getLogger().error("Failed to remove previous state from the State Manager.", re.getMessage(), re);
             context.yield();
             return;
         }
@@ -565,7 +561,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // comparision in lastModifiedMap to the same entity.
             entityList = performListing(context, IGNORE_MIN_TIMESTAMP_VALUE, ListingMode.EXECUTION);
         } catch (final IOException pe) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{pe.getMessage()}, pe);
+            getLogger().error("Failed to perform listing on remote host due to {}", pe.getMessage(), pe);
             context.yield();
             return;
         }
@@ -670,7 +666,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 );
             }
         } catch (final IOException e) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
             context.yield();
             return;
         }
@@ -757,7 +753,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestampToListMillis, ListingMode.EXECUTION);
         } catch (final IOException e) {
-            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
             context.yield();
             return;
         }
@@ -1125,7 +1121,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             try {
                 return performListing(context, minTimestampToList, ListingMode.EXECUTION);
             } catch (final IOException e) {
-                getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Failed to perform listing on remote host due to {}", e.getMessage(), e);
                 return Collections.emptyList();
             }
         }, entity -> createAttributes(entity, context));

@@ -21,12 +21,6 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-docker</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <nifi.version>${project.version}</nifi.version>
-        <docker.image.name>eclipse-temurin</docker.image.name>
-        <docker.image.tag>11-jre</docker.image.tag>
-    </properties>
-
     <modules>
         <module>dockermaven</module>
         <module>dockerhub</module>

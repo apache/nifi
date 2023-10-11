@@ -23,6 +23,31 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -32,13 +57,13 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -59,32 +84,14 @@ import org.apache.nifi.web.util.ComponentLifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 @Path("/versions")
-@Api(value = "/versions", description = "Endpoint for managing version control for a flow")
+@Api(
+    value = "/versions",
+    tags = {"Swagger Resource"}
+)
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for managing version control for a flow.")
+})
 public class VersionsResource extends FlowUpdateResource<VersionControlInformationEntity, VersionedFlowUpdateRequestEntity> {
     private static final Logger logger = LoggerFactory.getLogger(VersionsResource.class);
 
@@ -161,7 +168,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                    false, true, false, true);
+                    false, false, true);
         });
 
         // get the versioned flow
@@ -572,7 +579,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // require read to this group and all descendants
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
             },
             () -> {
                 final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
@@ -1201,7 +1208,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                                                    final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
         logger.info("Updating Process Group with ID {} to version {} of the Versioned Flow", groupId, flowSnapshot.getSnapshotMetadata().getVersion());
 
-        // Step 10-11. Update Process Group to the new flow and update variable registry with any Variables that were added or removed
+        // Step 10-11. Update Process Group to the new flow
         final VersionControlInformationDTO requestVci = requestEntity.getVersionControlInformation();
 
         final FlowRegistryBucket bucket = flowSnapshot.getBucket();

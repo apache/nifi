@@ -19,6 +19,7 @@ package org.apache.nifi.processors.iceberg;
 
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
+import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
@@ -32,6 +33,8 @@ import org.apache.nifi.hive.metastore.ThriftMetastore;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHiveCatalogService;
 import org.apache.nifi.processors.iceberg.util.IcebergTestUtils;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
@@ -42,10 +45,9 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +62,8 @@ import static org.apache.nifi.processors.iceberg.PutIceberg.ICEBERG_RECORD_COUNT
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateData;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateNumberOfDataFiles;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 @DisabledOnOs(WINDOWS)
@@ -118,10 +122,10 @@ public class TestPutIcebergWithHiveCatalog {
         runner.setProperty(PutIceberg.RECORD_READER, "mock-reader-factory");
     }
 
-    private void initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
+    private void initCatalog(PartitionSpec spec, FileFormat fileFormat) throws InitializationException {
         Map<String, String> tableProperties = new HashMap<>();
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
-        tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
+        tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat.name());
 
         TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder()
                 .withMetastoreUri(metastore.getThriftConnectionUri())
@@ -139,16 +143,15 @@ public class TestPutIcebergWithHiveCatalog {
         runner.setProperty(PutIceberg.CATALOG, "catalog-service");
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"avro"})
-    public void onTriggerPartitioned(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerPartitioned() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .bucket("department", 3)
                 .build();
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.AVRO);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
@@ -174,18 +177,18 @@ public class TestPutIcebergWithHiveCatalog {
         validateNumberOfDataFiles(tableLocation, 3);
         validatePartitionFolders(tableLocation, Arrays.asList(
                 "department_bucket=0", "department_bucket=1", "department_bucket=2"));
+        assertProvenanceEvents();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"orc"})
-    public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerIdentityPartitioned() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("department")
                 .build();
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.ORC);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
@@ -211,11 +214,11 @@ public class TestPutIcebergWithHiveCatalog {
         validateNumberOfDataFiles(tableLocation, 3);
         validatePartitionFolders(tableLocation, Arrays.asList(
                 "department=Finance", "department=Marketing", "department=Sales"));
+        assertProvenanceEvents();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"parquet"})
-    public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerMultiLevelIdentityPartitioned() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("name")
                 .identity("department")
@@ -223,7 +226,7 @@ public class TestPutIcebergWithHiveCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.PARQUET);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
@@ -253,14 +256,14 @@ public class TestPutIcebergWithHiveCatalog {
                 "name=Joana/department=Sales/",
                 "name=John/department=Finance/"
         ));
+        assertProvenanceEvents();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"avro"})
-    public void onTriggerUnPartitioned(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerUnPartitioned() throws Exception {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(PartitionSpec.unpartitioned(), fileFormat);
+        initCatalog(PartitionSpec.unpartitioned(), FileFormat.AVRO);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "${catalog.name}");
         runner.setProperty(PutIceberg.TABLE_NAME, "${table.name}");
         runner.setProperty(PutIceberg.MAXIMUM_FILE_SIZE, "${max.filesize}");
@@ -287,5 +290,14 @@ public class TestPutIcebergWithHiveCatalog {
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
         validateData(table, expectedRecords, 0);
         validateNumberOfDataFiles(new URI(table.location()).getPath(), 1);
+        assertProvenanceEvents();
+    }
+
+    private void assertProvenanceEvents() {
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
+        assertTrue(sendEvent.getTransitUri().endsWith(CATALOG_NAME + ".db/" + TABLE_NAME));
     }
 }

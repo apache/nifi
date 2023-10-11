@@ -57,7 +57,6 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -103,19 +102,18 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
 
     public StandardParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id, final Authorizable parentAuthorizable,
                                          final ControllerServiceProvider controllerServiceProvider, final ValidationContextFactory validationContextFactory,
-                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
-                                         final ValidationTrigger validationTrigger) {
+                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(parameterProvider, id, parentAuthorizable, controllerServiceProvider, validationContextFactory,
                 parameterProvider.getComponent().getClass().getSimpleName(), parameterProvider.getComponent().getClass().getCanonicalName(),
-                variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
+                reloadComponent, extensionManager, validationTrigger, false);
     }
 
     public StandardParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id, final Authorizable parentAuthorizable,
                                          final ControllerServiceProvider controllerServiceProvider, final ValidationContextFactory validationContextFactory,
-                                         final String componentType, final String canonicalClassName, final ComponentVariableRegistry variableRegistry,
-                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
-        super(id, validationContextFactory, controllerServiceProvider, componentType, canonicalClassName, variableRegistry, reloadComponent,
+                                         final String componentType, final String canonicalClassName, final ReloadComponent reloadComponent,
+                                         final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+        super(id, validationContextFactory, controllerServiceProvider, componentType, canonicalClassName, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.parameterProviderRef = new AtomicReference<>(new ParameterProviderDetails(parameterProvider));
         this.serviceLookup = controllerServiceProvider;
@@ -196,7 +194,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, null, getVariableRegistry());
+        return new StandardConfigurationContext(this, serviceLookup, null);
     }
 
     @Override

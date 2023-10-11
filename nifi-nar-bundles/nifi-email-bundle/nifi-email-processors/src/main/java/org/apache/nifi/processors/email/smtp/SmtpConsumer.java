@@ -16,6 +16,20 @@
  */
 package org.apache.nifi.processors.email.smtp;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -31,21 +45,6 @@ import org.subethamail.smtp.MessageHandler;
 import org.subethamail.smtp.RejectException;
 import org.subethamail.smtp.TooMuchDataException;
 import org.subethamail.smtp.server.SMTPServer;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A simple consumer that provides a bridge between 'push' message distribution
@@ -140,10 +139,9 @@ public class SmtpConsumer implements MessageHandler {
         final Certificate[] tlsPeerCertificates = context.getTlsPeerCertificates();
         if (tlsPeerCertificates != null) {
             for (int i = 0; i < tlsPeerCertificates.length; i++) {
-                if (tlsPeerCertificates[i] instanceof X509Certificate) {
-                    X509Certificate x509Cert = (X509Certificate) tlsPeerCertificates[i];
+                if (tlsPeerCertificates[i] instanceof final X509Certificate x509Cert) {
                     attributes.put("smtp.certificate." + i + ".serial", x509Cert.getSerialNumber().toString());
-                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectDN().getName());
+                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectX500Principal().getName());
                 }
             }
         }

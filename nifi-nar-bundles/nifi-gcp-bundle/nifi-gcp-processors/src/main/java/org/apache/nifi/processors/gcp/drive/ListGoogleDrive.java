@@ -106,7 +106,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                     " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
                     " This results in the processor not creating outgoing FlowFiles. No additional error message is provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

@@ -35,7 +35,7 @@ public class TestFreeFormTextRecordSetWriter {
         runner.addControllerService("writer", writer);
         runner.setProperty(TestFreeFormTextRecordSetWriterProcessor.WRITER, "writer");
 
-        runner.setProperty(writer, FreeFormTextRecordSetWriter.TEXT, "ID: ${ID}, Name: ${NAME}, Age: ${AGE}, Country: ${COUNTRY}, Username: ${user.name}");
+        runner.setProperty(writer, FreeFormTextRecordSetWriter.TEXT, "ID: ${ID}, Name: ${NAME}, Age: ${AGE}, Country: ${COUNTRY}, Username: ${my.user.name}");
 
         return runner;
     }
@@ -47,7 +47,7 @@ public class TestFreeFormTextRecordSetWriter {
 
         runner.enableControllerService(writer);
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("user.name", "jdoe64");
+        attributes.put("my.user.name", "jdoe64");
         runner.enqueue("", attributes);
         runner.run();
         // In addition to making sure a flow file was output successfully, also check nothing got rolled back into the incoming queue. May be a moot point as there is a

@@ -25,11 +25,9 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.protocol.ClientProtocol;
 import org.apache.nifi.remote.protocol.ServerProtocol;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +132,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return codecClass.newInstance();
+            return codecClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + codecClass.getName(), e);
         }
@@ -193,7 +191,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return desiredClass.newInstance();
+            return desiredClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + desiredClass.getName(), e);
         }
@@ -219,7 +217,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return desiredClass.newInstance();
+            return desiredClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + desiredClass.getName(), e);
         }

@@ -42,6 +42,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -255,14 +256,23 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
         int resultCount = 0;
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes())) {
-            con.setAutoCommit(context.getProperty(AUTO_COMMIT).asBoolean());
+            final boolean isAutoCommit = con.getAutoCommit();
+            final boolean setAutoCommitValue = context.getProperty(AUTO_COMMIT).asBoolean();
+            // Only set auto-commit if necessary, log any "feature not supported" exceptions
+            if (isAutoCommit != setAutoCommitValue) {
+                try {
+                    con.setAutoCommit(setAutoCommitValue);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    logger.debug("setAutoCommit({}) not supported by this driver", setAutoCommitValue);
+                }
+            }
             try (final PreparedStatement st = con.prepareStatement(selectQuery)) {
                 if (fetchSize != null && fetchSize > 0) {
                     try {
                         st.setFetchSize(fetchSize);
                     } catch (SQLException se) {
                         // Not all drivers support this, just log the error (at debug level) and move on
-                        logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
+                        logger.debug("Cannot set fetch size to {} due to {}", fetchSize, se.getLocalizedMessage(), se);
                     }
                 }
                 st.setQueryTimeout(queryTimeout); // timeout in seconds

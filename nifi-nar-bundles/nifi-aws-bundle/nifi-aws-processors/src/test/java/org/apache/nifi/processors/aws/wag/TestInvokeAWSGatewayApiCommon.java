@@ -73,7 +73,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     }
 
     public void setupEndpointAndRegion() {
-        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_REGION, "us-east-1");
+        runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, mockWebServer.url("/").toString());
     }
@@ -324,7 +324,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
 
     @Test
-    // NOTE : Amazon does not support multiple headers with the same name!!!
     public void testMultipleSameHeaders() throws Exception {
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("double", "2").addHeader("double", "2"));
 
@@ -362,7 +361,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // amazon does not support headers with the same name, we'll only get 2 here
         // this is in the amazon layer, we only get Map<String,String> for headers so the 1 has been stripped
         // already
-        bundle1.assertAttributeEquals("double", "2");
+        bundle1.assertAttributeEquals("double", "2,2");
     }
 
     @Test
@@ -1267,10 +1266,10 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         setupEndpointAndRegion();
         URL proxyURL = mockWebServer.url("/").url();
 
-        runner.setVariable("proxy.host", proxyURL.getHost());
-        runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
-        runner.setVariable("proxy.username", "username");
-        runner.setVariable("proxy.password", "password");
+        runner.setEnvironmentVariableValue("proxy.host", proxyURL.getHost());
+        runner.setEnvironmentVariableValue("proxy.port", String.valueOf(proxyURL.getPort()));
+        runner.setEnvironmentVariableValue("proxy.username", "username");
+        runner.setEnvironmentVariableValue("proxy.password", "password");
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");

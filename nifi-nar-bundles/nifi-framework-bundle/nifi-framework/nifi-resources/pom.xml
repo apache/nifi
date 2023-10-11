@@ -25,8 +25,8 @@
     <description>Holds common resources used to build installers</description>
     <properties>
         <!--Wrapper Properties -->
-        <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
-        <nifi.jvm.heap.max>512m</nifi.jvm.heap.max>
+        <nifi.jvm.heap.init>1g</nifi.jvm.heap.init>
+        <nifi.jvm.heap.max>1g</nifi.jvm.heap.max>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
@@ -45,7 +45,6 @@
         <nifi.flow.configuration.archive.max.storage>500 MB</nifi.flow.configuration.archive.max.storage>
         <nifi.login.identity.provider.configuration.file>./conf/login-identity-providers.xml</nifi.login.identity.provider.configuration.file>
         <nifi.authorizer.configuration.file>./conf/authorizers.xml</nifi.authorizer.configuration.file>
-        <nifi.templates.directory>./conf/templates</nifi.templates.directory>
         <nifi.database.directory>./database_repository</nifi.database.directory>
 
         <nifi.state.management.configuration.file>./conf/state-management.xml</nifi.state.management.configuration.file>
@@ -67,8 +66,8 @@
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
         <nifi.content.claim.max.appendable.size>50 KB</nifi.content.claim.max.appendable.size>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
-        <nifi.content.repository.archive.max.retention.period>7 days</nifi.content.repository.archive.max.retention.period>
-        <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
+        <nifi.content.repository.archive.max.retention.period>3 hours</nifi.content.repository.archive.max.retention.period>
+        <nifi.content.repository.archive.max.usage.percentage>90%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
@@ -128,7 +127,7 @@
         <nifi.web.https.host>127.0.0.1</nifi.web.https.host>
         <nifi.web.https.port>8443</nifi.web.https.port>
         <nifi.web.https.network.interface.default />
-        <nifi.web.https.application.protocols>http/1.1</nifi.web.https.application.protocols>
+        <nifi.web.https.application.protocols>h2 http/1.1</nifi.web.https.application.protocols>
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
         <nifi.web.max.header.size>16 KB</nifi.web.max.header.size>
@@ -256,6 +255,9 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+
+        <!-- nifi.properties: flow analysis properties -->
+        <nifi.flow.analysis.background.task.schedule>5 mins</nifi.flow.analysis.background.task.schedule>
 
         <!-- nifi.properties: runtime monitoring properties -->
         <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>

@@ -45,39 +45,30 @@ public class ReflectionUtils {
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : instance.getClass().getMethods()) {
             if (method.isAnnotationPresent(annotation)) {
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
-                    if (argumentTypes.length > args.length) {
-                        throw new IllegalArgumentException(String.format("Unable to invoke method %1$s on %2$s because method expects %3$s parameters but only %4$s were given",
-                                method.getName(), instance, argumentTypes.length, args.length));
-                    }
+                final Class<?>[] argumentTypes = method.getParameterTypes();
+                if (argumentTypes.length > args.length) {
+                    throw new IllegalArgumentException(String.format("Unable to invoke method %1$s on %2$s because method expects %3$s parameters but only %4$s were given",
+                        method.getName(), instance, argumentTypes.length, args.length));
+                }
 
-                    for (int i = 0; i < argumentTypes.length; i++) {
-                        final Class<?> argType = argumentTypes[i];
-                        if (!argType.isAssignableFrom(args[i].getClass())) {
-                            throw new IllegalArgumentException(String.format(
-                                    "Unable to invoke method %1$s on %2$s because method parameter %3$s is expected to be of type %4$s but argument passed was of type %5$s",
-                                    method.getName(), instance, i, argType, args[i].getClass()));
-                        }
+                for (int i = 0; i < argumentTypes.length; i++) {
+                    final Class<?> argType = argumentTypes[i];
+                    if (!argType.isAssignableFrom(args[i].getClass())) {
+                        throw new IllegalArgumentException(String.format(
+                            "Unable to invoke method %1$s on %2$s because method parameter %3$s is expected to be of type %4$s but argument passed was of type %5$s",
+                            method.getName(), instance, i, argType, args[i].getClass()));
                     }
+                }
 
-                    if (argumentTypes.length == args.length) {
-                        method.invoke(instance, args);
-                    } else {
-                        final Object[] argsToPass = new Object[argumentTypes.length];
-                        for (int i = 0; i < argsToPass.length; i++) {
-                            argsToPass[i] = args[i];
-                        }
+                if (argumentTypes.length == args.length) {
+                    method.invoke(instance, args);
+                } else {
+                    final Object[] argsToPass = new Object[argumentTypes.length];
+                    System.arraycopy(args, 0, argsToPass, 0, argsToPass.length);
 
-                        method.invoke(instance, argsToPass);
-                    }
-                } finally {
-                    if (!isAccessible) {
-                        method.setAccessible(false);
-                    }
+                    method.invoke(instance, argsToPass);
                 }
             }
         }
@@ -102,46 +93,37 @@ public class ReflectionUtils {
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) {
         for (final Method method : instance.getClass().getMethods()) {
             if (method.isAnnotationPresent(annotation)) {
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
 
+                final Class<?>[] argumentTypes = method.getParameterTypes();
+                if (argumentTypes.length > args.length) {
+                    LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
+                        new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                    return false;
+                }
+
+                for (int i = 0; i < argumentTypes.length; i++) {
+                    final Class<?> argType = argumentTypes[i];
+                    if (!argType.isAssignableFrom(args[i].getClass())) {
+                        LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
+                            new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                        return false;
+                    }
+                }
+
                 try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
-                    if (argumentTypes.length > args.length) {
-                        LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                                new Object[]{method.getName(), instance, argumentTypes.length, args.length});
-                        return false;
-                    }
+                    if (argumentTypes.length == args.length) {
+                        method.invoke(instance, args);
+                    } else {
+                        final Object[] argsToPass = new Object[argumentTypes.length];
+                        System.arraycopy(args, 0, argsToPass, 0, argsToPass.length);
 
-                    for (int i = 0; i < argumentTypes.length; i++) {
-                        final Class<?> argType = argumentTypes[i];
-                        if (!argType.isAssignableFrom(args[i].getClass())) {
-                            LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                                    new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
-                            return false;
-                        }
+                        method.invoke(instance, argsToPass);
                     }
-
-                    try {
-                        if (argumentTypes.length == args.length) {
-                            method.invoke(instance, args);
-                        } else {
-                            final Object[] argsToPass = new Object[argumentTypes.length];
-                            for (int i = 0; i < argsToPass.length; i++) {
-                                argsToPass[i] = args[i];
-                            }
-
-                            method.invoke(instance, argsToPass);
-                        }
-                    } catch (final IllegalAccessException | IllegalArgumentException | InvocationTargetException t) {
-                        LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
-                        LOG.error("", t);
-                        return false;
-                    }
-                } finally {
-                    if (!isAccessible) {
-                        method.setAccessible(false);
-                    }
+                } catch (final IllegalAccessException | IllegalArgumentException | InvocationTargetException t) {
+                    LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
+                    LOG.error("", t);
+                    return false;
                 }
             }
         }

@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketTimeoutException;
+import java.nio.channels.ServerSocketChannel;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -54,30 +77,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketTimeoutException;
-import java.nio.channels.ServerSocketChannel;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
@@ -120,7 +119,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             .description("The port to listen on for communication.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
@@ -159,7 +158,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Reader")
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
 
@@ -168,7 +166,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data before writing to a FlowFile")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
 
@@ -189,7 +186,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Record Batch Size")
             .description("The maximum number of records to write to a single FlowFile.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
             .defaultValue("1000")
             .required(true)
             .build();
@@ -483,19 +479,17 @@ public class ListenTCPRecord extends AbstractProcessor {
         return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
     }
 
-    private void addClientCertificateAttributes(final Map<String, String> attributes, final SocketChannelRecordReader socketRecordReader)
-            throws SSLPeerUnverifiedException {
-        if (socketRecordReader instanceof SSLSocketChannelRecordReader) {
-            SSLSocketChannelRecordReader sslSocketRecordReader = (SSLSocketChannelRecordReader) socketRecordReader;
-            SSLSession sslSession = sslSocketRecordReader.getSession();
+    private void addClientCertificateAttributes(final Map<String, String> attributes, final SocketChannelRecordReader socketRecordReader) {
+        if (socketRecordReader instanceof final SSLSocketChannelRecordReader sslSocketRecordReader) {
+            final SSLSession sslSession = sslSocketRecordReader.getSession();
             try {
-                Certificate[] certificates = sslSession.getPeerCertificates();
+                final Certificate[] certificates = sslSession.getPeerCertificates();
                 if (certificates.length > 0) {
-                    X509Certificate certificate = (X509Certificate) certificates[0];
-                    attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, certificate.getSubjectDN().toString());
-                    attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, certificate.getIssuerDN().toString());
+                    final X509Certificate certificate = (X509Certificate) certificates[0];
+                    attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, certificate.getSubjectX500Principal().toString());
+                    attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, certificate.getIssuerX500Principal().toString());
                 }
-            } catch (SSLPeerUnverifiedException peerUnverifiedException) {
+            } catch (final SSLPeerUnverifiedException peerUnverifiedException) {
                 getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
                         socketRecordReader.getRemoteAddress(), peerUnverifiedException);
             }

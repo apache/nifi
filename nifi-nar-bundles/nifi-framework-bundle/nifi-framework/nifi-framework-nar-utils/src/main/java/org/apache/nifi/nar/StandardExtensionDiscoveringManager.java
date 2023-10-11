@@ -16,46 +16,6 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authorization.AccessPolicyProvider;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.UserGroupProvider;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.StateProvider;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
-import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.flow.resource.ExternalResourceProvider;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
-import org.apache.nifi.init.ConfigurableComponentInitializer;
-import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
-import org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime;
-import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.python.PythonBridge;
-import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
-import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -79,6 +39,46 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.AccessPolicyProvider;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.UserGroupProvider;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.flow.resource.ExternalResourceProvider;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.init.ConfigurableComponentInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -114,6 +114,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
+        definitionMap.put(FlowAnalysisRule.class, new HashSet<>());
         definitionMap.put(ParameterProvider.class, new HashSet<>());
         definitionMap.put(ControllerService.class, new HashSet<>());
         definitionMap.put(Authorizer.class, new HashSet<>());
@@ -439,7 +440,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
-                || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
+                || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
     }
 
     protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {
@@ -729,7 +730,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 processorBridge.initialize(initContext);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
-                tempComponent = (ConfigurableComponent) componentClass.newInstance();
+                tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
             }
 
             initializeTempComponent(tempComponent);

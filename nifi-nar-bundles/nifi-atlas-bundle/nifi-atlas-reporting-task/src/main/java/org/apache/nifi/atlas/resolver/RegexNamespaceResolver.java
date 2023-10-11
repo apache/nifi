@@ -48,7 +48,7 @@ public class RegexNamespaceResolver implements NamespaceResolver {
                     .Builder().name(propertyDescriptorName)
                     .description(PATTERN_PROPERTY_PREFIX_DESC)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .dynamic(true)
                     .sensitive(false)
                     .build();

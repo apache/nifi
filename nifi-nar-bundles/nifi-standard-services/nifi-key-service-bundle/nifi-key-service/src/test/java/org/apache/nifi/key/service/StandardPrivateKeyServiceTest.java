@@ -21,7 +21,8 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
-import org.bouncycastle.openssl.PKCS8Generator;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
 import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
@@ -30,6 +31,8 @@ import org.bouncycastle.operator.OutputEncryptor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -42,10 +45,15 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.UUID;
 
+import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_256_CBC;
+import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.DES3_CBC;
+import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_3DES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StandardPrivateKeyServiceTest {
     private static final String SERVICE_ID = StandardPrivateKeyServiceTest.class.getSimpleName();
+
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     private static final String PATH_NOT_FOUND = "/path/not/found";
 
@@ -103,10 +111,11 @@ class StandardPrivateKeyServiceTest {
         assertEquals(generatedPrivateKey, privateKey);
     }
 
-    @Test
-    void testGetPrivateKeyEncryptedKey() throws Exception {
+    @ParameterizedTest
+    @MethodSource("encryptionAlgorithms")
+    void testGetPrivateKeyEncryptedKey(final String encryptionAlgorithm) throws Exception {
         final String password = UUID.randomUUID().toString();
-        final OutputEncryptor outputEncryptor = getOutputEncryptor(password);
+        final OutputEncryptor outputEncryptor = getOutputEncryptor(encryptionAlgorithm, password);
         final String encryptedPrivateKey = getEncodedPrivateKey(generatedPrivateKey, outputEncryptor);
         final Path keyPath = writeKey(encryptedPrivateKey);
 
@@ -116,6 +125,14 @@ class StandardPrivateKeyServiceTest {
 
         final PrivateKey privateKey = service.getPrivateKey();
         assertEquals(generatedPrivateKey, privateKey);
+    }
+
+    private static String[] encryptionAlgorithms() {
+        return new String[] {
+                AES_256_CBC,
+                DES3_CBC,
+                PBE_SHA1_3DES
+        };
     }
 
     private Path writeKey(final String encodedPrivateKey) throws IOException {
@@ -137,8 +154,9 @@ class StandardPrivateKeyServiceTest {
         return stringWriter.toString();
     }
 
-    private OutputEncryptor getOutputEncryptor(final String password) throws OperatorCreationException {
-        return new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES)
+    private OutputEncryptor getOutputEncryptor(final String encryptionAlgorithm, final String password) throws OperatorCreationException {
+        return new JceOpenSSLPKCS8EncryptorBuilder(new ASN1ObjectIdentifier(encryptionAlgorithm))
+                .setProvider(BOUNCY_CASTLE_PROVIDER)
                 .setPassword(password.toCharArray())
                 .build();
     }

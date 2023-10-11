@@ -24,9 +24,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.record.sink.RecordSinkService;
-import org.apache.nifi.rules.PropertyContextActionHandler;
-import org.apache.nifi.rules.engine.RulesEngineService;
-
 
 public class QueryMetricsUtil {
 
@@ -45,7 +42,7 @@ public class QueryMetricsUtil {
                     + "SQL SELECT can select from the CONNECTION_STATUS, PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables. "
                     + "Note that the CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled).")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(new SqlValidator())
             .build();
 
@@ -56,22 +53,6 @@ public class QueryMetricsUtil {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor RULES_ENGINE = new PropertyDescriptor.Builder()
-            .name("rules-engine-service")
-            .displayName("Rules Engine Service")
-            .description("Specifies the Controller Service to use for applying rules to metrics.")
-            .identifiesControllerService(RulesEngineService.class)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor ACTION_HANDLER = new PropertyDescriptor.Builder()
-            .name("action-handler")
-            .displayName("Event Action Handler")
-            .description("Handler that will execute the defined action returned from rules engine (if Action type is supported by the handler)")
-            .identifiesControllerService(PropertyContextActionHandler.class)
             .required(true)
             .build();
 
@@ -89,9 +70,8 @@ public class QueryMetricsUtil {
 
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
 
-            final SqlParser.Config config = SqlParser.configBuilder()
-                    .setLex(Lex.MYSQL_ANSI)
-                    .build();
+            final SqlParser.Config config = SqlParser.config()
+                .withLex(Lex.MYSQL_ANSI);
 
             final SqlParser parser = SqlParser.create(substituted, config);
             try {

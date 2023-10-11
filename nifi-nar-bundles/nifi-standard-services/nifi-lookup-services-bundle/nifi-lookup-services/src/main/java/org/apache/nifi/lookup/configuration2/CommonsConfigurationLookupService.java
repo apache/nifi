@@ -67,7 +67,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .addValidator(new XXEValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private final Class<T> resultClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];

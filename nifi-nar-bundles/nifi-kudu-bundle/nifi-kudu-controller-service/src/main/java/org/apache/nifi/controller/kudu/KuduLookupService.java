@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.controller.kudu;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.security.auth.login.LoginException;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
@@ -38,12 +50,11 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosAction;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -51,20 +62,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import javax.security.auth.login.LoginException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 
 @CapabilityDescription("Lookup a record from Kudu Server associated with the specified key. Binary columns are base64 encoded. Only one matched row will be returned")
@@ -77,16 +74,15 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .description("Comma separated addresses of the Kudu masters to connect to.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kudu-lu-kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Specifies the Kerberos Credentials to use for authentication")
-            .required(false)
-            .identifiesControllerService(KerberosCredentialsService.class)
-            .build();
+    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+        .name("Kerberos User Service")
+        .description("Specifies the Kerberos Credentials to use for authentication")
+        .required(false)
+        .identifiesControllerService(KerberosUserService.class)
+        .build();
 
     public static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new PropertyDescriptor.Builder()
             .name("kudu-lu-operations-timeout-ms")
@@ -95,7 +91,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .required(false)
             .defaultValue(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final AllowableValue CLOSEST_REPLICA = new AllowableValue(ReplicaSelection.CLOSEST_REPLICA.toString(), ReplicaSelection.CLOSEST_REPLICA.name(),
@@ -121,7 +117,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .required(true)
             .defaultValue("default")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor RETURN_COLUMNS = new PropertyDescriptor.Builder()
@@ -131,13 +127,12 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .required(true)
             .defaultValue("*")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
 
     protected List<PropertyDescriptor> properties;
 
-    protected KerberosCredentialsService credentialsService;
     private volatile KerberosUser kerberosUser;
 
     protected String kuduMasters;
@@ -154,26 +149,22 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     protected void init(final ControllerServiceInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KERBEROS_USER_SERVICE);
         properties.add(KUDU_OPERATION_TIMEOUT_MS);
         properties.add(KUDU_REPLICA_SELECTION);
         properties.add(TABLE_NAME);
         properties.add(RETURN_COLUMNS);
-        addProperties(properties);
         this.properties = Collections.unmodifiableList(properties);
     }
 
-    protected void addProperties(List<PropertyDescriptor> properties) {
-    }
 
     protected void createKuduClient(ConfigurationContext context) throws LoginException {
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService userService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
-        if (credentialsService != null) {
-            final String keytab = credentialsService.getKeytab();
-            final String principal = credentialsService.getPrincipal();
-            kerberosUser = loginKerberosUser(principal, keytab);
+        if (userService != null) {
+            kerberosUser = userService.createKerberosUser();
+            kerberosUser.login();
 
             final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
             this.kuduClient = kerberosAction.execute();
@@ -182,14 +173,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
-        kerberosUser.login();
-        return kerberosUser;
-    }
 
     protected KuduClient buildClient(final String masters, final ConfigurationContext context) {
-        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
@@ -203,10 +189,8 @@ public class KuduLookupService extends AbstractControllerService implements Reco
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-
         try {
             kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-            credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
             if (kuduClient == null) {
                 getLogger().debug("Setting up Kudu connection...");
@@ -214,7 +198,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 createKuduClient(context);
                 getLogger().debug("Kudu connection successfully initialized");
             }
-        } catch(Exception ex){
+        } catch (final Exception ex) {
             getLogger().error("Exception occurred while interacting with Kudu due to " + ex.getMessage(), ex);
             throw new InitializationException(ex);
         }
@@ -228,15 +212,14 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
             //Result Schema
             resultSchema = kuduSchemaToNiFiSchema(tableSchema, columnNames);
-
-        } catch (KuduException e) {
+        } catch (final KuduException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
     @Override
     public Set<String> getRequiredKeys() {
-        return new HashSet<>();
+        return Collections.emptySet();
     }
 
     @Override
@@ -246,21 +229,17 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) {
-        Optional<Record> record;
-
-        if (kerberosUser != null) {
-            final KerberosAction<Optional<Record>> kerberosAction = new KerberosAction<>(kerberosUser, () -> getRecord(coordinates), getLogger());
-            record = kerberosAction.execute();
+        if (kerberosUser == null) {
+            return getRecord(coordinates);
         } else {
-            record = getRecord(coordinates);
+            final KerberosAction<Optional<Record>> kerberosAction = new KerberosAction<>(kerberosUser, () -> getRecord(coordinates), getLogger());
+            return kerberosAction.execute();
         }
-
-        return record;
     }
 
     private Optional<Record> getRecord(Map<String, Object> coordinates) {
         //Scanner
-        KuduScanner.KuduScannerBuilder builder = kuduClient.newScannerBuilder(table);
+        final KuduScanner.KuduScannerBuilder builder = kuduClient.newScannerBuilder(table);
 
         builder.setProjectedColumnNames(columnNames);
         builder.replicaSelection(replicaSelection);
@@ -272,20 +251,22 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 builder.addPredicate(KuduPredicate.newComparisonPredicate(tableSchema.getColumn(key), KuduPredicate.ComparisonOp.EQUAL, value))
         );
 
-        KuduScanner kuduScanner = builder.build();
+        final KuduScanner kuduScanner = builder.build();
 
         //Run lookup
-        for ( RowResult row : kuduScanner){
+        for (final RowResult row : kuduScanner) {
             final Map<String, Object> values = new HashMap<>();
-            for(String columnName : columnNames){
+            for (final String columnName : columnNames) {
                 Object object;
-                if(row.getColumnType(columnName) == Type.BINARY){
+                if (row.getColumnType(columnName) == Type.BINARY) {
                     object = Base64.getEncoder().encodeToString(row.getBinaryCopy(columnName));
                 } else {
                     object = row.getObject(columnName);
                 }
+
                 values.put(columnName, object);
             }
+
             return Optional.of(new MapRecord(resultSchema, values));
         }
 
@@ -293,8 +274,8 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         return Optional.empty();
     }
 
-    private List<String> getColumns(String columns){
-        if(columns.equals("*")){
+    private List<String> getColumns(final String columns) {
+        if (columns.equals("*")) {
             return tableSchema
                     .getColumns()
                     .stream().map(ColumnSchema::getName)
@@ -306,50 +287,31 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     private RecordSchema kuduSchemaToNiFiSchema(Schema kuduTableSchema, List<String> columnNames){
         final List<RecordField> fields = new ArrayList<>();
-        for(String columnName : columnNames) {
-            if(!kuduTableSchema.hasColumn(columnName)){
+        for (final String columnName : columnNames) {
+            if (!kuduTableSchema.hasColumn(columnName)) {
                 throw new IllegalArgumentException("Column not found in Kudu table schema " + columnName);
             }
-            ColumnSchema cs = kuduTableSchema.getColumn(columnName);
-            switch (cs.getType()) {
-                case INT8:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.BYTE.getDataType()));
-                    break;
-                case INT16:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.SHORT.getDataType()));
-                    break;
-                case INT32:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.INT.getDataType()));
-                    break;
-                case INT64:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.LONG.getDataType()));
-                    break;
-                case DECIMAL:
-                    final ColumnTypeAttributes attributes = cs.getTypeAttributes();
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.DECIMAL.getDecimalDataType(attributes.getPrecision(), attributes.getScale())));
-                    break;
-                case UNIXTIME_MICROS:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.TIMESTAMP.getDataType()));
-                    break;
-                case BINARY:
-                case STRING:
-                case VARCHAR:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
-                    break;
-                case DOUBLE:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.DOUBLE.getDataType()));
-                    break;
-                case BOOL:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.BOOLEAN.getDataType()));
-                    break;
-                case FLOAT:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.FLOAT.getDataType()));
-                    break;
-                case DATE:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.DATE.getDataType()));
-                    break;
-            }
+
+            final ColumnSchema cs = kuduTableSchema.getColumn(columnName);
+            final ColumnTypeAttributes attributes = cs.getTypeAttributes();
+
+            final RecordField field = switch (cs.getType()) {
+                case INT8 -> new RecordField(cs.getName(), RecordFieldType.BYTE.getDataType());
+                case INT16 -> new RecordField(cs.getName(), RecordFieldType.SHORT.getDataType());
+                case INT32 -> new RecordField(cs.getName(), RecordFieldType.INT.getDataType());
+                case INT64 -> new RecordField(cs.getName(), RecordFieldType.LONG.getDataType());
+                case DECIMAL -> new RecordField(cs.getName(), RecordFieldType.DECIMAL.getDecimalDataType(attributes.getPrecision(), attributes.getScale()));
+                case UNIXTIME_MICROS -> new RecordField(cs.getName(), RecordFieldType.TIMESTAMP.getDataType());
+                case BINARY, STRING, VARCHAR -> new RecordField(cs.getName(), RecordFieldType.STRING.getDataType());
+                case DOUBLE -> new RecordField(cs.getName(), RecordFieldType.DOUBLE.getDataType());
+                case BOOL -> new RecordField(cs.getName(), RecordFieldType.BOOLEAN.getDataType());
+                case FLOAT -> new RecordField(cs.getName(), RecordFieldType.FLOAT.getDataType());
+                case DATE -> new RecordField(cs.getName(), RecordFieldType.DATE.getDataType());
+            };
+
+            fields.add(field);
         }
+
         return new SimpleRecordSchema(fields);
     }
 

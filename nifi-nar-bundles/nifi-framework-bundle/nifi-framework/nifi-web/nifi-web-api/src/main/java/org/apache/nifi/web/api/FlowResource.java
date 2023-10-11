@@ -24,6 +24,8 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -43,6 +45,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -83,6 +86,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
@@ -109,8 +114,6 @@ import org.apache.nifi.web.api.entity.RuntimeManifestEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
@@ -137,10 +140,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.text.Collator;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -166,13 +171,19 @@ import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENAB
  */
 @Path("/flow")
 @Api(
-        value = "/flow",
-        description = "Endpoint for accessing the flow structure and component status."
+    value = "/flow",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for accessing the flow structure and component status.")
+})
 public class FlowResource extends ApplicationResource {
 
     private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
     private static final String RECURSIVE = "false";
+
+    private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN = "VersionedReportingTaskSnapshot-%s.json";
+    private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT = "yyyyMMddHHmmss";
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -184,7 +195,6 @@ public class FlowResource extends ApplicationResource {
     private LabelResource labelResource;
     private RemoteProcessGroupResource remoteProcessGroupResource;
     private ConnectionResource connectionResource;
-    private TemplateResource templateResource;
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
@@ -675,6 +685,86 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets a snapshot of reporting tasks.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks/snapshot")
+    @ApiOperation(
+            value = "Get a snapshot of the given reporting tasks and any controller services they use",
+            response = VersionedReportingTaskSnapshot.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getReportingTaskSnapshot(
+            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @QueryParam("reportingTaskId") final String reportingTaskId
+    ) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
+                serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
+
+        return generateOkResponse(snapshot).build();
+    }
+
+    /**
+     * Downloads a snapshot of reporting tasks.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks/download")
+    @ApiOperation(
+            value = "Download a snapshot of the given reporting tasks and any controller services they use",
+            response = byte[].class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response downloadReportingTaskSnapshot(
+            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @QueryParam("reportingTaskId") final String reportingTaskId
+    ) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final VersionedReportingTaskSnapshot snapshot = reportingTaskId == null
+                ? serviceFacade.getVersionedReportingTaskSnapshot() :
+                serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
+
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT);
+        final String filename = VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN.formatted(dateFormat.format(new Date()));
+        return generateOkResponse(snapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
     }
 
     /**
@@ -1524,6 +1614,63 @@ public class FlowResource extends ApplicationResource {
         // create response entity
         final ParameterProviderTypesEntity entity = new ParameterProviderTypesEntity();
         entity.setParameterProviderTypes(serviceFacade.getParameterProviderTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of available Flow Analysis Rules.
+     *
+     * @return A controllerServicesTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rule-types")
+    @ApiOperation(
+            value = "Retrieves the types of available Flow Analysis Rules",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = FlowAnalysisRuleTypesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRuleTypes(
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String typeFilter) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final FlowAnalysisRuleTypesEntity entity = new FlowAnalysisRuleTypesEntity();
+        entity.setFlowAnalysisRuleTypes(serviceFacade.getFlowAnalysisRuleTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -2989,53 +3136,83 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    // ---------
-    // templates
-    // ---------
+    // -------------
+    // flow-analysis
+    // -------------
 
     /**
-     * Retrieves all the of templates in this NiFi.
+     * Returns flow analysis results produced by the analysis of a given process group.
      *
-     * @return A templatesEntity.
+     * @return a flowAnalysisResultEntity containing flow analysis results produced by the analysis of the given process group
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("templates")
+    @Path("flow-analysis/results/{processGroupId}")
     @ApiOperation(
-            value = "Gets all templates",
-            response = TemplatesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getTemplates() {
-
+        value = "Returns flow analysis results produced by the analysis of a given process group",
+        response = FlowAnalysisResultEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getFlowAnalysisResults(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The id of the process group representing (a part of) the flow to be analyzed.",
+            required = true
+        )
+        @PathParam("processGroupId")
+        final String processGroupId
+    ) {
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 
-        // authorize access
         authorizeFlow();
 
-        // get all the templates
-        final Set<TemplateEntity> templates = serviceFacade.getTemplates();
-        templateResource.populateRemainingTemplateEntitiesContent(templates);
+        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult(processGroupId);
 
-        // create the response entity
-        final TemplatesEntity entity = new TemplatesEntity();
-        entity.setTemplates(templates);
-        entity.setGenerated(new Date());
+        return generateOkResponse(entity).build();
+    }
 
-        // generate the response
+    /**
+     * Returns all flow analysis results currently in effect.
+     *
+     * @return a flowAnalysisRuleEntity containing all flow analysis results currently in-effect
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis/results")
+    @ApiOperation(
+        value = "Returns all flow analysis results currently in effect",
+        response = FlowAnalysisResultEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getAllFlowAnalysisResults() {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeFlow();
+
+        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult();
+
         return generateOkResponse(entity).build();
     }
 
@@ -3148,10 +3325,6 @@ public class FlowResource extends ApplicationResource {
 
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
-    }
-
-    public void setTemplateResource(TemplateResource templateResource) {
-        this.templateResource = templateResource;
     }
 
     public void setProcessGroupResource(ProcessGroupResource processGroupResource) {

@@ -39,7 +39,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .displayName("App Key")
             .description("App Key of the user's Dropbox app." +
                     " See Additional Details for more information.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
@@ -49,7 +49,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .displayName("App Secret")
             .description("App Secret of the user's Dropbox app." +
                     " See Additional Details for more information.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
@@ -60,7 +60,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .displayName("Access Token")
             .description("Access Token of the user's Dropbox app." +
                     " See Additional Details for more information about Access Token generation.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
@@ -71,7 +71,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .displayName("Refresh Token")
             .description("Refresh Token of the user's Dropbox app." +
                     " See Additional Details for more information about Refresh Token generation.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)

@@ -85,7 +85,7 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.6"})
@@ -97,7 +97,7 @@ import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFK
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
     + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
     + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
-    expressionLanguageScope = VARIABLE_REGISTRY)
+    expressionLanguageScope = ENVIRONMENT)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success.")
 @SeeAlso({PublishKafka_2_6.class, ConsumeKafka_2_6.class, ConsumeKafkaRecord_2_6.class})
@@ -198,7 +198,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
             + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .defaultValue("5 sec")
         .build();
 
@@ -277,7 +277,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .name("transactional-id-prefix")
         .displayName("Transactional Id Prefix")
         .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
         .dependsOn(USE_TRANSACTIONS, "true")
         .required(false)
@@ -382,7 +382,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
             .name(propertyDescriptorName)
             .addValidator(new DynamicPropertyValidator(ProducerConfig.class))
             .dynamic(true)
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .build();
     }
 

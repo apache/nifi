@@ -54,7 +54,7 @@ public class KeytabCredentialsService extends AbstractControllerService implemen
         .name("Kerberos Principal")
         .description("Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in your nifi.properties")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .build();
 
@@ -62,7 +62,7 @@ public class KeytabCredentialsService extends AbstractControllerService implemen
         .name("Kerberos Keytab")
         .description("Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be set in your nifi.properties")
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .build();
 

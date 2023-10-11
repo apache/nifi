@@ -20,11 +20,9 @@ package org.apache.nifi.controller.state;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.nifi.components.state.StateMap;
 
 public class StandardStateMap implements StateMap {
-    private static final int EMPTY_VERSION = -1;
 
     private final Map<String, String> stateValues;
 
@@ -33,11 +31,6 @@ public class StandardStateMap implements StateMap {
     public StandardStateMap(final Map<String, String> stateValues, final Optional<String> stateVersion) {
         this.stateValues = Collections.unmodifiableMap(stateValues == null ? Collections.emptyMap() : stateValues);
         this.stateVersion = stateVersion;
-    }
-
-    @Override
-    public long getVersion() {
-        return stateVersion.map(version -> version.hashCode()).orElse(EMPTY_VERSION);
     }
 
     @Override

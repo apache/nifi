@@ -64,12 +64,6 @@
                 <artifactId>avatica</artifactId>
                 <version>${avatica.version}</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
                 <groupId>commons-beanutils</groupId>
@@ -109,7 +103,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.31</version>
+                <version>9.33</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

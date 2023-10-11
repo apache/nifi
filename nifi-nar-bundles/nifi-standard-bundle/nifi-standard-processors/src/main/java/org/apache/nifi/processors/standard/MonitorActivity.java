@@ -86,7 +86,7 @@ public class MonitorActivity extends AbstractProcessor {
             .description("Determines how much time must elapse before considering the flow to be inactive")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("5 min")
             .build();
     public static final PropertyDescriptor CONTINUALLY_SEND_MESSAGES = new PropertyDescriptor.Builder()

@@ -115,7 +115,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             .required(false)
             .description("Path to MIME type config file. Only one of Config File or Config Body may be used.")
             .addValidator(new StandardValidators.FileExistsValidator(true))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MIME_CONFIG_BODY = new PropertyDescriptor.Builder()

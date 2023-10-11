@@ -46,6 +46,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -158,7 +159,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     private List<PropertyDescriptor> properties;
@@ -202,7 +203,13 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
         try {
             connection = dbcpService.getConnection(attributes);
             originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+            if (originalAutoCommit) {
+                try {
+                    connection.setAutoCommit(false);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    getLogger().debug("setAutoCommit(false) not supported by this driver");
+                }
+            }
             final DMLSettings settings = new DMLSettings(context);
             final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions().getValue();
             final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions().getValue();

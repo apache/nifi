@@ -51,7 +51,7 @@ public class TestCSVSchemaInference {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new CSVReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         properties.put(CSVUtils.TRIM_FIELDS, "true");
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         final RecordSchema schema;
         try (final InputStream in = new FileInputStream(file);
@@ -99,7 +99,7 @@ public class TestCSVSchemaInference {
         properties.put(CSVUtils.VALUE_SEPARATOR, "${csv.delimiter}");
         properties.put(CSVUtils.QUOTE_CHAR, "${csv.quote}");
         properties.put(CSVUtils.ESCAPE_CHAR, "${csv.escape}");
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("csv.delimiter", ",");

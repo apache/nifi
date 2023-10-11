@@ -114,7 +114,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .name("Character Set")
             .description("Specifies which character set is used to encode the data in HBase")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
@@ -122,7 +122,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .name("Table Name")
             .description("The name of the HBase Table to put data into")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor COLUMNS = new PropertyDescriptor.Builder()
@@ -130,14 +130,14 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .description("A comma-separated list of \"<colFamily>:<colQualifier>\" pairs to return when scanning. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
     static final PropertyDescriptor FILTER_EXPRESSION = new PropertyDescriptor.Builder()
             .name("Filter Expression")
             .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor INITIAL_TIMERANGE = new PropertyDescriptor.Builder()

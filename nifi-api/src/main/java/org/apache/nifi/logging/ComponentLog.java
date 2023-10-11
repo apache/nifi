@@ -31,7 +31,7 @@ package org.apache.nifi.logging;
  * within the same NiFi instance.
  * </li>
  * <li>
- * If the last value in an Object[] argument that is passed to the logger is a
+ * If the last value in an Object... argument that is passed to the logger is a
  * Throwable, then the logged message will include a <code>toString()</code> of
  * the Throwable; in addition, if the component's logger is set to DEBUG level
  * via the logback configuration, the Stacktrace will also be logged. This
@@ -53,8 +53,6 @@ public interface ComponentLog {
 
     void warn(String msg, Object... os);
 
-    void warn(String msg, Object[] os, Throwable t);
-
     void warn(String msg);
 
     default void warn(LogMessage logMessage) {
@@ -66,8 +64,6 @@ public interface ComponentLog {
     void trace(String msg, Object... os);
 
     void trace(String msg);
-
-    void trace(String msg, Object[] os, Throwable t);
 
     default void trace(LogMessage logMessage) {
         log(LogLevel.TRACE, logMessage);
@@ -89,8 +85,6 @@ public interface ComponentLog {
 
     void info(String msg);
 
-    void info(String msg, Object[] os, Throwable t);
-
     default void info(LogMessage logMessage) {
         log(LogLevel.INFO, logMessage);
     }
@@ -103,8 +97,6 @@ public interface ComponentLog {
 
     void error(String msg);
 
-    void error(String msg, Object[] os, Throwable t);
-
     default void error(LogMessage logMessage) {
         log(LogLevel.ERROR, logMessage);
     }
@@ -112,8 +104,6 @@ public interface ComponentLog {
     void debug(String msg, Throwable t);
 
     void debug(String msg, Object... os);
-
-    void debug(String msg, Object[] os, Throwable t);
 
     void debug(String msg);
 
@@ -184,27 +174,6 @@ public interface ComponentLog {
         }
     }
 
-    default void log(LogLevel level, String msg, Object[] os, Throwable t) {
-        switch (level) {
-            case DEBUG:
-                debug(msg, os, t);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg, os, t);
-                break;
-            case INFO:
-                info(msg, os, t);
-                break;
-            case TRACE:
-                trace(msg, os, t);
-                break;
-            case WARN:
-                warn(msg, os, t);
-                break;
-        }
-    }
-
     default void log(LogMessage message) {
         switch (message.getLogLevel()) {
             case DEBUG:
@@ -232,7 +201,10 @@ public interface ComponentLog {
         Object[] os = logMessage.getObjects();
 
         if (os != null && t != null) {
-            log(level, msg, os, t);
+            Object[] ost = new Object[os.length + 1];
+            System.arraycopy(os, 0, ost, 0, os.length);
+            ost[ost.length - 1] = t;
+            log(level, msg, ost);
         } else if (os != null) {
             log(level, msg, os);
         } else if (t != null) {

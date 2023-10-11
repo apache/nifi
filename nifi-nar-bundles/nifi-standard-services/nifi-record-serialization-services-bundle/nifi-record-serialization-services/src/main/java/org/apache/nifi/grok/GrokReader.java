@@ -112,7 +112,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             + "will be used. If specified, all patterns specified will override the default patterns. See the Controller Service's "
             + "Additional Details for a list of pre-defined patterns.")
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .build();
 

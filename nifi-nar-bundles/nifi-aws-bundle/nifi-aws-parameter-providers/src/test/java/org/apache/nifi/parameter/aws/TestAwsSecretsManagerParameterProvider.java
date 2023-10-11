@@ -163,7 +163,7 @@ public class TestAwsSecretsManagerParameterProvider {
         parameterProvider.initialize(initContext);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null, null);
 
         List<ParameterGroup> parameterGroups = new ArrayList<>();
         // Verify parameter fetching

@@ -64,8 +64,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListableEntityWrapper;
 import org.apache.nifi.processor.util.list.ListedEntity;
@@ -116,6 +116,7 @@ import java.util.stream.Collectors;
         + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
         @WritesAttribute(attribute = "s3.bucket", description = "The name of the S3 bucket"),
+        @WritesAttribute(attribute = "s3.region", description = "The region of the S3 bucket"),
         @WritesAttribute(attribute = "filename", description = "The name of the file"),
         @WritesAttribute(attribute = "s3.etag", description = "The ETag that can be used to see if the file has changed"),
         @WritesAttribute(attribute = "s3.isLatest", description = "A boolean indicating if this is the latest version of the object"),
@@ -182,7 +183,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     public static final PropertyDescriptor PREFIX = new Builder()
             .name("prefix")
             .displayName("Prefix")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The prefix used to filter the object list. Do not begin with a forward slash '/'. In most cases, it should end with a forward slash '/'.")
@@ -284,22 +285,22 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+            BUCKET_WITHOUT_DEFAULT_VALUE,
+            REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             INITIAL_LISTING_TARGET,
             TRACKING_TIME_WINDOW,
-            BUCKET,
-            REGION,
-            ACCESS_KEY,
-            SECRET_KEY,
             RECORD_WRITER,
             MIN_AGE,
             MAX_AGE,
             BATCH_SIZE,
             WRITE_OBJECT_TAGS,
             WRITE_USER_METADATA,
+            ACCESS_KEY,
+            SECRET_KEY,
             CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
@@ -481,7 +482,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final long listingTimestamp = System.currentTimeMillis();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         final ListingSnapshot currentListing = listing.get();
@@ -499,7 +500,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         if (writerFactory == null) {
             writer = new AttributeObjectWriter(session);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
         }
 
         try {
@@ -523,7 +524,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
 
                     // Write the entity to the listing
-                    writer.addToListing(versionSummary, taggingResult, objectMetadata);
+                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
 
                     // Track the latest lastModified timestamp and keys having that timestamp.
                     // NOTE: Amazon S3 lists objects in UTF-8 character encoding in lexicographical order. Not ordered by timestamps.
@@ -552,7 +553,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             writer.finishListing();
         } catch (final Exception e) {
-            getLogger().error("Failed to list contents of bucket due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to list contents of bucket due to {}", e, e);
             writer.finishListingExceptionally(e);
             session.rollback();
             context.yield();
@@ -633,7 +634,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             if (writerFactory == null) {
                 writer = new AttributeObjectWriter(session);
             } else {
-                writer = new RecordObjectWriter(session, writerFactory, getLogger());
+                writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
             }
 
             try {
@@ -648,7 +649,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     GetObjectTaggingResult taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
                     ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
 
-                    writer.addToListing(s3VersionSummary, taggingResult, objectMetadata);
+                    writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
 
                     listCount++;
 
@@ -663,7 +664,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
                 writer.finishListing();
             } catch (final Exception e) {
-                getLogger().error("Failed to list contents of bucket due to {}", new Object[]{e}, e);
+                getLogger().error("Failed to list contents of bucket due to {}", e, e);
                 writer.finishListingExceptionally(e);
                 session.rollback();
                 context.yield();
@@ -679,7 +680,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain Object Tags for S3 Object {} in bucket {}. Will list S3 Object without the object tags",
-                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                        versionSummary.getKey(), versionSummary.getBucketName(), e);
             }
         }
         return taggingResult;
@@ -692,7 +693,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain User Metadata for S3 Object {} in bucket {}. Will list S3 Object without the user metadata",
-                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                        versionSummary.getKey(), versionSummary.getBucketName(), e);
             }
         }
         return objectMetadata;
@@ -702,7 +703,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final String delimiter = context.getProperty(DELIMITER).getValue();
         final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
@@ -910,7 +911,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     interface S3ObjectWriter {
         void beginListing() throws IOException, SchemaNotFoundException;
 
-        void addToListing(S3VersionSummary summary, GetObjectTaggingResult taggingResult, ObjectMetadata objectMetadata) throws IOException;
+        void addToListing(S3VersionSummary summary, GetObjectTaggingResult taggingResult, ObjectMetadata objectMetadata, String region) throws IOException;
 
         void finishListing() throws IOException;
 
@@ -957,11 +958,13 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         private final ComponentLog logger;
         private RecordSetWriter recordWriter;
         private FlowFile flowFile;
+        private String region;
 
-        public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger) {
+        public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger, final String region) {
             this.session = session;
             this.writerFactory = writerFactory;
             this.logger = logger;
+            this.region = region;
         }
 
         @Override
@@ -974,7 +977,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) throws IOException {
+        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata, String region) throws IOException {
             recordWriter.write(createRecordForListing(summary, taggingResult, objectMetadata));
         }
 
@@ -988,6 +991,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             } else {
                 final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
                 attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                attributes.put("s3.region", region);
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.transfer(flowFile, REL_SUCCESS);
@@ -999,7 +1003,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             try {
                 recordWriter.close();
             } catch (IOException e) {
-                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+                logger.error("Failed to write listing as Records due to {}", e, e);
             }
 
             session.remove(flowFile);
@@ -1060,11 +1064,12 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) {
+        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata, final String region) {
             // Create the attributes
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), versionSummary.getKey());
             attributes.put("s3.bucket", versionSummary.getBucketName());
+            attributes.put("s3.region", region);
             if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
                 attributes.put("s3.owner", versionSummary.getOwner().getId());
             }
@@ -1133,7 +1138,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final AmazonS3Client client = createClient(context);
 
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
-        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
 

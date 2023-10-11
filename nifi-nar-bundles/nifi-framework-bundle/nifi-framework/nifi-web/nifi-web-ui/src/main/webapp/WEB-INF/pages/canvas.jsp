@@ -112,6 +112,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/fetch-parameters-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-reporting-task-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/new-flow-analysis-rule-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-parameter-provider-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-parameter-context-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-processor-dialog.jsp"/>
@@ -143,10 +144,10 @@
         <jsp:include page="/WEB-INF/partials/canvas/shell.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/controller-service-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/reporting-task-configuration.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/flow-analysis-rule-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/parameter-provider-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/variable-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/override-policy-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>

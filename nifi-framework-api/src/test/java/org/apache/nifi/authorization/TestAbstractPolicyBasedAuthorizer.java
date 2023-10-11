@@ -50,8 +50,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testApproveBasedOnUser() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -86,8 +86,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testApprovedBasedOnGroup() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -131,8 +131,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testDeny() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -167,8 +167,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testResourceNotFound() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(null);
@@ -226,7 +226,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         policies1.add(policy1);
         policies1.add(policy2);
 
-        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer1.getGroups()).thenReturn(groups1);
         when(authorizer1.getUsers()).thenReturn(users1);
         when(authorizer1.getAccessPolicies()).thenReturn(policies1);
@@ -245,7 +245,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         policies2.add(policy2);
         policies2.add(policy1);
 
-        AbstractPolicyBasedAuthorizer authorizer2 = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        AbstractPolicyBasedAuthorizer authorizer2 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer2.getGroups()).thenReturn(groups2);
         when(authorizer2.getUsers()).thenReturn(users2);
         when(authorizer2.getAccessPolicies()).thenReturn(policies2);
@@ -295,7 +295,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         policies1.add(policy1);
         policies1.add(policy2);
 
-        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer1.getGroups()).thenReturn(groups1);
         when(authorizer1.getUsers()).thenReturn(users1);
         when(authorizer1.getAccessPolicies()).thenReturn(policies1);
@@ -319,7 +319,7 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testEmptyAuthorizer() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer.getGroups()).thenReturn(new HashSet<Group>());
         when(authorizer.getUsers()).thenReturn(new HashSet<User>());
         when(authorizer.getAccessPolicies()).thenReturn(new HashSet<AccessPolicy>());

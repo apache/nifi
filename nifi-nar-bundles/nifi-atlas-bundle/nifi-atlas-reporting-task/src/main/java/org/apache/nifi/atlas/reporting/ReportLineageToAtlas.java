@@ -80,8 +80,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -95,6 +94,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -116,7 +116,7 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
         " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @DynamicProperty(name = "hostnamePattern.<namespace>", value = "hostname Regex patterns",
-                 description = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+                 description = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
 @RequiresInstanceClassLoading
 public class ReportLineageToAtlas extends AbstractReportingTask {
@@ -131,7 +131,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " (e.g. https://knox-hostname:8443/gateway/{topology-name}/atlas)." +
                     " If not specified, 'atlas.rest.address' in Atlas Configuration File is used.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -169,7 +169,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .displayName("Atlas Username")
             .description("User name to communicate with Atlas.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -179,7 +179,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("Password to communicate with Atlas.")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -190,7 +190,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " If not specified and 'Create Atlas Configuration File' is disabled," +
                     " then, 'atlas-application.properties' file under root classpath is used.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.DIRECTORY)
             // Atlas generates ssl-client.xml in this directory and then loads it from classpath
             .dynamicallyModifiesClasspath(true)
@@ -202,7 +202,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("NiFi URL is used in Atlas to represent this NiFi cluster (or standalone instance)." +
                     " It is recommended to use one that can be accessible remotely instead of using 'localhost'.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -214,7 +214,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " Multiple mappings can be configured by user defined properties." +
                     " See 'Additional Details...' for more.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -246,7 +246,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " NOTE: Once this reporting task has started, restarting NiFi is required to changed this property" +
                     " as Atlas library holds a unmodifiable static reference to Kafka client.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -273,7 +273,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
             .name("nifi-kerberos-keytab")
@@ -283,7 +283,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("kerberos-credentials-service")
@@ -303,7 +303,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " It is ignored unless one of the SASL options of the <Security Protocol> are selected.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("kafka")
             .build();
 
@@ -447,8 +447,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .map(String::trim)
                 .forEach(input -> {
                     try {
-                        final URL url = new URL(input);
-                        schemes.add(url.toURI().getScheme());
+                        schemes.add(Objects.requireNonNull(URI.create(input).getScheme()));
                     } catch (Exception e) {
                         results.add(new ValidationResult.Builder().subject(ATLAS_URLS.getDisplayName()).input(input)
                                 .explanation("contains invalid URI: " + e).valid(false).build());
@@ -667,7 +666,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .map(String::trim)
                 .forEach(urlString -> {
                         try {
-                            new URL(urlString);
+                            URI.create(urlString).toURL();
                         } catch (Exception e) {
                             throw new ProcessException(e);
                         }
@@ -860,15 +859,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final ProcessGroupStatus rootProcessGroup = context.getEventAccess().getGroupStatus("root");
         final String flowName = rootProcessGroup.getName();
         final String nifiUrl = context.getProperty(ATLAS_NIFI_URL).evaluateAttributeExpressions().getValue();
-
-
-        final String namespace;
-        try {
-            final String nifiHostName = new URL(nifiUrl).getHost();
-            namespace = namespaceResolvers.fromHostNames(nifiHostName);
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Failed to parse NiFi URL, " + e.getMessage(), e);
-        }
+        final String nifiHostName = URI.create(nifiUrl).getHost();
+        final String namespace = namespaceResolvers.fromHostNames(nifiHostName);
 
         NiFiFlow existingNiFiFlow = null;
         try {

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Set;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 
 /**
  * Defines the capabilities of a content repository. Append options are not
@@ -143,24 +141,6 @@ public interface ContentRepository {
      */
     ContentClaim clone(ContentClaim original, boolean lossTolerant) throws IOException;
 
-    /**
-     * Creates a new content item that is the merger in iteration order of all
-     * content for the given claims
-     *
-     * @return the size of the destination
-     * @param claims the claims to merge which will be combined in order of
-     * collection iteration
-     * @param destination the claim to write the merged content to
-     * @param header if supplied will be prepended to the output
-     * @param footer if supplied will be appended to the output
-     * @param demarcator if supplied will be placed in between each merged
-     * object
-     * @throws IOException if unable to merge
-     * @throws IllegalArgumentException if the given destination is included in
-     * the given claims
-     */
-    @Deprecated
-    long merge(Collection<ContentClaim> claims, ContentClaim destination, byte[] header, byte[] footer, byte[] demarcator) throws IOException;
 
     /**
      * Imports content from the given path creating a new content object and

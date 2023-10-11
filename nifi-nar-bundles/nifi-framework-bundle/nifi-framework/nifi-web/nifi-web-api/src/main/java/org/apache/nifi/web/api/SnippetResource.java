@@ -22,6 +22,26 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.net.URI;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
@@ -39,33 +59,17 @@ import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 /**
  * RESTful endpoint for querying dataflow snippets.
  */
 @Path("/snippets")
 @Api(
-        value = "/snippets",
-        description = "Endpoint for accessing dataflow snippets."
+    value = "/snippets",
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for accessing dataflow snippets.")
+})
 public class SnippetResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -111,11 +115,11 @@ public class SnippetResource extends ApplicationResource {
     private void authorizeSnippetRequest(final SnippetDTO snippetRequest, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        // note - we are not authorizing templates or controller services as they are not considered when using this snippet
+        // note - we are not authorizing controller services as they are not considered when using this snippet
         snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
         });
         snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
@@ -184,8 +188,8 @@ public class SnippetResource extends ApplicationResource {
                 lookup -> {
                     final SnippetDTO snippetRequest = requestSnippetEntity.getSnippet();
 
-                    // the snippet being created may be used later for batch component modifications,
-                    // copy/paste, or template creation. during those subsequent actions, the snippet
+                    // the snippet being created may be used later for batch component modifications or
+                    // copy/paste. During those subsequent actions, the snippet
                     // will again be authorized accordingly (read or write). at this point we do not
                     // know what the snippet will be used for so we need to attempt to authorize as
                     // read OR write

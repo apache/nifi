@@ -18,7 +18,6 @@
 package org.apache.nifi.toolkit.tls.configuration;
 
 import java.util.List;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.StringUtils;
 
 /**
@@ -34,7 +33,6 @@ public class TlsConfig {
     public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA";
     public static final String DEFAULT_DN_PREFIX = "CN=";
     public static final String DEFAULT_DN_SUFFIX = ", OU=NIFI";
-    public static final boolean DEFAULT_REORDER_DN = true;
 
     private int days = DEFAULT_DAYS;
     private int keySize = DEFAULT_KEY_SIZE;
@@ -51,16 +49,11 @@ public class TlsConfig {
     private int port = DEFAULT_PORT;
     private String dnPrefix = DEFAULT_DN_PREFIX;
     private String dnSuffix = DEFAULT_DN_SUFFIX;
-    private boolean reorderDn = DEFAULT_REORDER_DN;
     private String additionalCACertificate = "";
     private List<String> domainAlternativeNames;
 
     public String calcDefaultDn(String hostname) {
-        String dn = dnPrefix + hostname + dnSuffix;
-        if (reorderDn) {
-            return CertificateUtils.reorderDn(dn);
-        }
-        return dn;
+        return dnPrefix + hostname + dnSuffix;
     }
 
     public int getPort() {
@@ -173,14 +166,6 @@ public class TlsConfig {
 
     public void setDnSuffix(String dnSuffix) {
         this.dnSuffix = dnSuffix;
-    }
-
-    public boolean getReorderDn() {
-        return reorderDn;
-    }
-
-    public void setReorderDn(boolean reorderDn) {
-        this.reorderDn = reorderDn;
     }
 
     public void initDefaults() {

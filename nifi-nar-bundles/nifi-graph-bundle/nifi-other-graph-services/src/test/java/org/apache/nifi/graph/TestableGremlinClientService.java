@@ -17,10 +17,10 @@
 
 package org.apache.nifi.graph;
 
-import org.apache.tinkerpop.gremlin.driver.Client;
+import org.apache.tinkerpop.gremlin.driver.Cluster;
 
-public class TestableGremlinClientService extends GremlinClientService {
-    public Client getClient() {
-        return client;
+public class TestableGremlinClientService extends TinkerpopClientService {
+    public Cluster getCluster() {
+        return cluster;
     }
 }

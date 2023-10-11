@@ -108,6 +108,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
+            .name("unmatched-column-behavior")
+            .displayName("Unmatched Column Behavior")
+            .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation.")
+            .allowableValues(UnmatchedColumnBehavior.class)
+            .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.getValue())
+            .required(true)
+            .build();
     static final PropertyDescriptor FILE_FORMAT = new PropertyDescriptor.Builder()
             .name("file-format")
             .displayName("File Format")
@@ -178,6 +186,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             CATALOG,
             CATALOG_NAMESPACE,
             TABLE_NAME,
+            UNMATCHED_COLUMN_BEHAVIOR,
             FILE_FORMAT,
             MAXIMUM_FILE_SIZE,
             KERBEROS_USER_SERVICE,
@@ -234,6 +243,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
     @Override
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
+        final long startNanos = System.nanoTime();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
@@ -255,8 +265,10 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
+            final UnmatchedColumnBehavior unmatchedColumnBehavior =
+                    UnmatchedColumnBehavior.valueOf(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
-            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format);
+            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format, unmatchedColumnBehavior, getLogger());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -281,6 +293,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
+        final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        session.getProvenanceReporter().send(flowFile, table.location(), transferMillis);
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -350,5 +364,4 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 .retry(3)
                 .run(file -> table.io().deleteFile(file.path().toString()));
     }
-
 }

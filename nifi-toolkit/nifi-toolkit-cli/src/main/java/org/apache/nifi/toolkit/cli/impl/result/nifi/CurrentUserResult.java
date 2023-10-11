@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.authorization.CurrentUser;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * Result for CurrentUser from registry.
@@ -32,8 +32,7 @@ public class CurrentUserResult extends AbstractWritableResult<CurrentUser> {
 
     public CurrentUserResult(final ResultType resultType, final CurrentUser currentUser) {
         super(resultType);
-        this.currentUser = currentUser;
-        Validate.notNull(this.currentUser);
+        this.currentUser = Objects.requireNonNull(currentUser);
     }
 
     @Override

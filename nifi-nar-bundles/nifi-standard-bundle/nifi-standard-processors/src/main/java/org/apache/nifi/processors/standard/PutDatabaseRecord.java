@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -93,7 +94,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
@@ -109,6 +110,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
 @WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the flow file will be routed to failure or retry, and this attribute "
         + "will be populated with the cause of the error.")
+@UseCase(description = "Insert records into a database")
 public class PutDatabaseRecord extends AbstractProcessor {
 
     public static final String UPDATE_TYPE = "UPDATE";
@@ -320,7 +322,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new Builder()

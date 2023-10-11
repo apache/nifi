@@ -17,6 +17,14 @@
 
 package org.apache.nifi.csv;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.input.BOMInputStream;
@@ -28,15 +36,6 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
@@ -54,8 +53,13 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
         }
 
         try {
-            final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).withFirstRecordAsHeader();
-            try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));
+            CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables);
+            if (!csvFormat.getSkipHeaderRecord()) {
+                csvFormat = csvFormat.builder().setHeader().setSkipHeaderRecord(true).build();
+            }
+
+            try (final InputStream bomInputStream = BOMInputStream.builder().setInputStream(contentStream).get();
+                 final Reader reader = new InputStreamReader(bomInputStream);
                 final CSVParser csvParser = new CSVParser(reader, csvFormat)) {
 
                 final List<RecordField> fields = new ArrayList<>();

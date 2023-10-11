@@ -18,7 +18,6 @@ package org.apache.nifi.registry.about;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -41,7 +40,7 @@ public class RegistryAbout {
      */
     @ApiModelProperty(
             value = "The version string for this Nifi Registry",
-            readOnly = true
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getRegistryAboutVersion() {
         return registryAboutVersion;

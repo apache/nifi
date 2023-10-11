@@ -22,15 +22,12 @@ import org.apache.nifi.security.util.crypto.HashService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.Security;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,11 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class CryptographicHashContentTest {
     private TestRunner runner;
-
-    @BeforeAll
-    static void setUpOnce() {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     @BeforeEach
     void setupRunner() {

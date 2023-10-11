@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -29,6 +28,7 @@ import org.glassfish.jersey.internal.guava.Lists;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Objects;
 
 public class NodesResult extends AbstractWritableResult<ClusterEntity> {
 
@@ -36,8 +36,7 @@ public class NodesResult extends AbstractWritableResult<ClusterEntity> {
 
     public NodesResult(ResultType resultType, ClusterEntity clusterEntity) {
         super(resultType);
-        this.clusterEntity = clusterEntity;
-        Validate.notNull(clusterEntity);
+        this.clusterEntity = Objects.requireNonNull(clusterEntity);
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -82,6 +83,37 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "RouteText.Group", description = "The value captured by all capturing groups in the 'Grouping Regular Expression' property. "
             + "If this property is not set or contains no capturing groups, this attribute will not be added.")
 })
+@UseCase(
+    description = "Drop blank or empty lines from the FlowFile's content.",
+    keywords = {"filter", "drop", "empty", "blank", "remove", "delete", "strip out", "lines", "text"},
+    configuration = """
+        "Routing Strategy" = "Route to each matching Property Name"
+        "Matching Strategy" = "Matches Regular Expression"
+        "Empty Line" = "^$"
+
+        Auto-terminate the "Empty Line" relationship.
+        Connect the "unmatched" relationship to the next processor in your flow.
+        """
+)
+@UseCase(
+    description = "Remove specific lines of text from a file, such as those containing a specific word or having a line length over some threshold.",
+    keywords = {"filter", "drop", "empty", "blank", "remove", "delete", "strip out", "lines", "text", "expression language"},
+    configuration = """
+        "Routing Strategy" = "Route to each matching Property Name"
+        "Matching Strategy" = "Satisfies Expression"
+
+        An additional property should be added named "Filter Out." The value should be a NiFi Expression Language Expression that can refer to two variables \
+        (in addition to FlowFile attributes): `line`, which is the line of text being evaluated; and `lineNo`, which is the line number in the file (starting with 1). \
+        The Expression should return `true` for any line that should be dropped.
+
+        For example, to remove any line that starts with a # symbol, we can set "Filter Out" to `${line:startsWith("#")}`.
+        We could also remove the first 2 lines of text by setting "Filter Out" to `${lineNo:le(2)}`. Note that we use the `le` function because we want lines numbers \
+        less than or equal to `2`, since the line index is 1-based.
+
+        Auto-terminate the "Filter Out" relationship.
+        Connect the "unmatched" relationship to the next processor in your flow.
+        """
+)
 public class RouteText extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteText.Route";

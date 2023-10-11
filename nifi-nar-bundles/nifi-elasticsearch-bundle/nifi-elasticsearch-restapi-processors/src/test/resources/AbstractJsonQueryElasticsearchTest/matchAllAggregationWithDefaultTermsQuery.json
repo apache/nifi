@@ -1,0 +1,17 @@
+{
+  "query" : {
+    "match_all" : { }
+  },
+  "aggs" : {
+    "term_agg" : {
+      "terms" : {
+        "field" : "msg"
+      }
+    },
+    "term_agg2" : {
+      "terms" : {
+        "field" : "msg"
+      }
+    }
+  }
+}

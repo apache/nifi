@@ -34,7 +34,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -309,7 +308,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
 
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
-                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );
@@ -331,7 +330,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
 
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
-                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
         );

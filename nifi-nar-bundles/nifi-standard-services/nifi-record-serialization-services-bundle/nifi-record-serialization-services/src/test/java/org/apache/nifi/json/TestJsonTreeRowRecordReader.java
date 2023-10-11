@@ -17,6 +17,8 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -296,11 +298,35 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testReadMultilineJSON() throws IOException, MalformedRecordException {
+        testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, null);
+    }
+
+    @Test
+    void testReadJSONStringTooLong() {
+        final StreamConstraintsException mre = assertThrows(StreamConstraintsException.class, () ->
+                testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, StreamReadConstraints.builder().maxStringLength(2).build()));
+        assertTrue(mre.getMessage().contains("maximum length"));
+        assertTrue(mre.getMessage().contains("(2)"));
+    }
+
+    @Test
+    void testReadJSONComments() throws IOException, MalformedRecordException {
+        testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", true, StreamReadConstraints.builder().maxStringLength(20_000).build());
+    }
+
+    @Test
+    void testReadJSONDisallowComments() {
+        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->
+            testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", false, StreamReadConstraints.builder().maxStringLength(20_000).build()));
+        assertTrue(mre.getMessage().contains("not parse"));
+    }
+
+    private void testReadAccountJson(final String inputFile, final boolean allowComments, final StreamReadConstraints streamReadConstraints) throws IOException, MalformedRecordException {
         final List<RecordField> fields = getFields(RecordFieldType.DECIMAL.getDecimalDataType(30, 10));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-multiline.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+        try (final InputStream in = new FileInputStream(inputFile);
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat, allowComments, streamReadConstraints)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");

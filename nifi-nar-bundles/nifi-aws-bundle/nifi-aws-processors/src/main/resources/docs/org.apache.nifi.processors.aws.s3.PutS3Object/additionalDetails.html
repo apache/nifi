@@ -21,6 +21,26 @@
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 <body>
+    <h2>Multi-part Upload Details</h2>
+    <p>
+        The upload uses either the PutS3Object method or the PutS3MultipartUpload method. The PutS3Object method sends the file in a single synchronous call,
+        but it has a 5GB size limit.  Larger files are sent using the PutS3MultipartUpload method. This multipart process saves state after each step so that
+        a large upload can be resumed with minimal loss if the processor or cluster is stopped and restarted.
+        A multipart upload consists of three steps:
+    </p>
+
+    <ol>
+        <li>Initiate upload</li>
+        <li>Upload the parts</li>
+        <li>Complete the upload</li>
+    </ol>
+
+    <p>
+        For multipart uploads, the processor saves state locally tracking the upload ID and parts uploaded, which must both be provided to complete the upload.
+        The AWS libraries select an endpoint URL based on the AWS region, but this can be overridden with the 'Endpoint Override URL' property for use with other
+        S3-compatible endpoints. The S3 API specifies that the maximum file size for a PutS3Object upload is 5GB. It also requires that parts in a multipart upload
+        must be at least 5MB in size, except for the last part. These limits establish the bounds for the Multipart Upload Threshold and Part Size properties.
+    </p>
 	<h2>Configuration Details</h2>
 	<h3>Object Key</h3>
 	<p>The Object Key property value should not start with "/".</p>

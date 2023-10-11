@@ -17,8 +17,9 @@
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -38,8 +39,8 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_SIGNER_OVERRIDE;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
@@ -89,24 +90,9 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
         return validationFailureResults;
     }
 
-    /**
-     * Create client using credentials provider. This is the preferred way for creating clients
-     */
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client with credentials provider");
-        return new AmazonS3Client(credentialsProvider, config);
+    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                          final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+        return null;
     }
-
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with awd credentials");
-        return new AmazonS3Client(credentials, config);
-    }
-
 }

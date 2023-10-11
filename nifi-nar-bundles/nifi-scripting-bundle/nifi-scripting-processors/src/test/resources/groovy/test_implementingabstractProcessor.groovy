@@ -44,7 +44,6 @@ class TestAbstractProcessor extends AbstractProcessor {
 			.name("custom_prop")
 			.displayName("a custom prop")
 			.description("bla bla bla")
-			.expressionLanguageSupported(false)
 			.required(true)
 			.addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
 			.build();

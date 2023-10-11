@@ -24,18 +24,10 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.authorization.User;
-import org.apache.nifi.registry.authorization.UserGroup;
-import org.apache.nifi.registry.event.EventFactory;
-import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.apache.nifi.registry.revision.web.ClientIdParameter;
-import org.apache.nifi.registry.revision.web.LongParameter;
-import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.net.URI;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -50,8 +42,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.registry.authorization.User;
+import org.apache.nifi.registry.authorization.UserGroup;
+import org.apache.nifi.registry.event.EventFactory;
+import org.apache.nifi.registry.event.EventService;
+import org.apache.nifi.registry.revision.entity.RevisionInfo;
+import org.apache.nifi.registry.revision.web.ClientIdParameter;
+import org.apache.nifi.registry.revision.web.LongParameter;
+import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * RESTful endpoints for managing tenants, ie, users and user groups.
@@ -59,10 +60,13 @@ import java.util.List;
 @Component
 @Path("tenants")
 @Api(
-        value = "tenants",
-        description = "Endpoint for managing users and user groups.",
-        authorizations = { @Authorization("Authorization") }
+    value = "tenants",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Endpoint for managing users and user groups.")
+})
 public class TenantResource extends ApplicationResource {
 
     @Autowired

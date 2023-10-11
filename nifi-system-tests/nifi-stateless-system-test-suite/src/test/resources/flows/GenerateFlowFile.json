@@ -152,7 +152,6 @@
     "labels": [],
     "funnels": [],
     "controllerServices": [],
-    "variables": {},
     "flowFileConcurrency": "UNBOUNDED",
     "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
     "componentType": "PROCESS_GROUP"

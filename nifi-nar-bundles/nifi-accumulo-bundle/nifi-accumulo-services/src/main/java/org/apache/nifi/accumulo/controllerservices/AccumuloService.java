@@ -75,7 +75,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .displayName("ZooKeeper Quorum")
             .description("Comma-separated list of ZooKeeper hosts for Accumulo.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected static final PropertyDescriptor INSTANCE_NAME = new PropertyDescriptor.Builder()
@@ -83,7 +83,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .displayName("Instance Name")
             .description("Instance name of the Accumulo cluster")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
@@ -100,7 +100,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .displayName("Accumulo User")
             .description("Connecting user for Accumulo")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD.toString())
             .build();
 
@@ -110,7 +110,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .description("Connecting user's password")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD.toString())
             .build();
 
@@ -135,7 +135,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .displayName("Kerberos Principal")
             .description("Kerberos Principal")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
             .build();
 
@@ -145,7 +145,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .description("Kerberos Password")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
             .build();
 

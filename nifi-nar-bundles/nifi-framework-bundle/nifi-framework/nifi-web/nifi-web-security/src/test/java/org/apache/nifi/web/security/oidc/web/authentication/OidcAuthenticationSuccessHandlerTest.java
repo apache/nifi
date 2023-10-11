@@ -41,6 +41,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
@@ -204,8 +205,8 @@ class OidcAuthenticationSuccessHandlerTest {
 
     URL getIssuer() {
         try {
-            return new URL(ISSUER);
-        } catch (final MalformedURLException e) {
+            return URI.create(ISSUER).toURL();
+        } catch (IllegalArgumentException | MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }

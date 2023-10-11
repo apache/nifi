@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.standard.ListenHTTP;
-import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
-import org.apache.nifi.util.FormatUtils;
-
+import java.io.IOException;
+import java.security.cert.X509Certificate;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -31,11 +28,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
-import java.io.IOException;
-import java.security.cert.X509Certificate;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Pattern;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.standard.ListenHTTP;
+import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.util.FormatUtils;
 
 @Path("/holds/*")
 public class ContentAcknowledgmentServlet extends HttpServlet {
@@ -70,9 +69,10 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
 
         final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
         String foundSubject = DEFAULT_FOUND_SUBJECT;
-        if (certs != null && certs.length > 0) {
+        if (certs != null) {
             for (final X509Certificate cert : certs) {
-                foundSubject = cert.getSubjectDN().getName();
+                foundSubject = cert.getSubjectX500Principal().getName();
+
                 if (authorizedPattern.matcher(foundSubject).matches()) {
                     break;
                 } else {

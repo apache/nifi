@@ -43,6 +43,7 @@ import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -57,10 +58,10 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.validation.RuleViolation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final AtomicReference<String> annotationData = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final ComponentVariableRegistry variableRegistry;
     private final ReloadComponent reloadComponent;
     private final ExtensionManager extensionManager;
 
@@ -119,8 +119,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                 final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+                                 final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                 final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
@@ -128,7 +128,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.reloadComponent = reloadComponent;
-        this.variableRegistry = variableRegistry;
         this.validationTrigger = validationTrigger;
         this.extensionManager = extensionManager;
         this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
@@ -190,7 +189,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 if (!StringUtils.isEmpty(value)) {
                     final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup());
                     final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
                     additionalUrls.addAll(references.asURLs());
                 }
@@ -758,6 +757,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
         Throwable failureCause = null;
+
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
                 return Collections.singletonList(
@@ -785,6 +785,23 @@ public abstract class AbstractComponentNode implements ComponentNode {
             // validate selected controller services implement the API required by the processor
             final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
             validationResults.addAll(referencedServiceValidationResults);
+
+            performFlowAnalysisOnThis();
+
+            getValidationContextFactory().getRuleViolationsManager().ifPresent(ruleViolationsManager -> {
+                Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
+                for (RuleViolation ruleViolation : ruleViolations) {
+                    if (ruleViolation.getEnforcementPolicy() == EnforcementPolicy.ENFORCE) {
+                        validationResults.add(
+                            new ValidationResult.Builder()
+                                .subject(getComponent().getClass().getSimpleName())
+                                .valid(false)
+                                .explanation(ruleViolation.getViolationMessage())
+                                .build()
+                        );
+                    }
+                }
+            });
 
             logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, validationResults);
 
@@ -992,6 +1009,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return null;
+    }
+
+    protected void performFlowAnalysisOnThis() {
     }
 
     private ValidationResult createInvalidResult(final String serviceId, final String propertyName, final String explanation) {
@@ -1338,11 +1358,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         } finally {
             lock.unlock();
         }
-    }
-
-    @Override
-    public ComponentVariableRegistry getVariableRegistry() {
-        return this.variableRegistry;
     }
 
     protected ReloadComponent getReloadComponent() {

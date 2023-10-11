@@ -61,13 +61,6 @@
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
                 <span class="component-button-grip"></span>
             </button>
-            <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.template}}"
-                    id="template-component"
-                    class="component-button icon icon-template"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
-                    nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.templateComponent);">
-                <span class="component-button-grip"></span>
-            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
                     id="label-component"
                     class="component-button icon icon-label"

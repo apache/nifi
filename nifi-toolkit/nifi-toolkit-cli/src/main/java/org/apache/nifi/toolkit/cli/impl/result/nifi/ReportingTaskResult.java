@@ -17,7 +17,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -26,6 +25,7 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 public class ReportingTaskResult extends AbstractWritableResult<ReportingTaskEntity> {
 
@@ -33,8 +33,7 @@ public class ReportingTaskResult extends AbstractWritableResult<ReportingTaskEnt
 
     public ReportingTaskResult(final ResultType resultType, final ReportingTaskEntity reportingTaskEntity) {
         super(resultType);
-        this.reportingTaskEntity = reportingTaskEntity;
-        Validate.notNull(reportingTaskEntity);
+        this.reportingTaskEntity = Objects.requireNonNull(reportingTaskEntity);
     }
 
     @Override

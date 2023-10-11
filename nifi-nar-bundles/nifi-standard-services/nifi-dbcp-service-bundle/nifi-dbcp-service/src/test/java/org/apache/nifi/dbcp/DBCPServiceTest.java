@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import org.apache.nifi.dbcp.utils.DBCPProperties;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.kerberos.KerberosUserService;
-import org.apache.nifi.kerberos.MockKerberosCredentialsService;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.NoOpProcessor;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -42,11 +25,27 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.kerberos.MockKerberosCredentialsService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -163,6 +162,15 @@ public class DBCPServiceTest {
     }
 
     @Test
+    public void testGetConnectionSensitiveDynamicPropertyWithoutPrefixAndWithPrefixShouldThrowException() {
+        runner.setProperty(service, "SENSITIVE.create", "true");
+        runner.setProperty(service, "create", "true");
+
+        final AssertionFailedError e = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
+        assertTrue(e.getMessage().contains("Duplicate"));
+    }
+
+    @Test
     public void testGetConnectionExecuteStatements() throws SQLException {
         runner.enableControllerService(service);
         runner.assertValid(service);
@@ -251,10 +259,10 @@ public class DBCPServiceTest {
 
         assertEquals(6, service.getDataSource().getMaxIdle());
         assertEquals(4, service.getDataSource().getMinIdle());
-        assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
-        assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
-        assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
-        assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
+        assertEquals(1000, service.getDataSource().getMaxConnDuration().toMillis());
+        assertEquals(1000, service.getDataSource().getDurationBetweenEvictionRuns().toMillis());
+        assertEquals(1000, service.getDataSource().getMinEvictableIdleDuration().toMillis());
+        assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleDuration().toMillis());
 
         service.getDataSource().close();
     }

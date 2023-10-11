@@ -54,13 +54,6 @@ language governing permissions and limitations under the License. -->
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-client</artifactId>
@@ -101,7 +94,7 @@ language governing permissions and limitations under the License. -->
             </activation>
             <properties>
                 <!-- also update the default Elasticsearch version in nifi-elasticsearch-test-utils#src/main/java/org/apache/nifi/elasticsearch/integration/AbstractElasticsearchITBase.java-->
-                <elasticsearch_docker_image>8.8.1</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.10.2</elasticsearch_docker_image>
                 <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
@@ -132,7 +125,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch7</id>
             <properties>
-                <elasticsearch_docker_image>7.17.10</elasticsearch_docker_image>
+                <elasticsearch_docker_image>7.17.13</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>

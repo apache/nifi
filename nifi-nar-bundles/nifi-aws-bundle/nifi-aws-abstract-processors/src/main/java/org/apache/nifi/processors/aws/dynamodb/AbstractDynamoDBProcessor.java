@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import java.math.BigDecimal;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -39,14 +37,16 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Base class for NiFi dynamo db related processors
@@ -83,7 +83,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table Name")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The DynamoDB table name")
             .build();
@@ -124,7 +124,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor HASH_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Hash Key Name")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The hash key name of the item")
             .build();
@@ -132,7 +132,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor RANGE_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Range Key Name")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The range key name of the item")
             .build();
@@ -140,7 +140,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor JSON_DOCUMENT = new PropertyDescriptor.Builder()
             .name("Json Document attribute")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The Json document to be retrieved from the dynamodb item")
             .build();
@@ -148,7 +148,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch items for each request (between 1 and 50)")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createLongValidator(1, 50, true))
             .defaultValue("1")
             .description("The items to be retrieved in one batch")
@@ -159,7 +159,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .description("Character set of data in the document")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue(Charset.defaultCharset().name())
             .build();
 
@@ -177,22 +177,17 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+    protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         getLogger().debug("Creating client with credentials provider");
-        return new AmazonDynamoDBClient(credentialsProvider, config);
+        return (AmazonDynamoDBClient) AmazonDynamoDBClient.builder()
+                .withClientConfiguration(config)
+                .withCredentials(credentialsProvider)
+                .withEndpointConfiguration(endpointConfiguration)
+                .withRegion(region.getName())
+                .build();
     }
 
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Deprecated
-    @Override
-    protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().debug("Creating client with aws credentials");
-        return new AmazonDynamoDBClient(credentials, config);
-    }
 
     protected Object getValue(final ProcessContext context, final PropertyDescriptor type, final PropertyDescriptor value, final Map<String, String> attributes) {
         if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
@@ -347,6 +342,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             throw new IllegalArgumentException(String.format("Hash key value is required.  Provided value was '%s'", hashKeyValue));
         }
     }
+
 
     @OnStopped
     public void onStopped() {

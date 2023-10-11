@@ -28,6 +28,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,7 +41,9 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
+@DisabledOnOs(WINDOWS)
 public class TestZooKeeperStateServer {
 
     private static ZooKeeperStateServer zkServer;

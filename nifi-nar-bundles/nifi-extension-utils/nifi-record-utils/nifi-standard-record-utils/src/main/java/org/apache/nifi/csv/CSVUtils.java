@@ -17,7 +17,9 @@
 
 package org.apache.nifi.csv;
 
+import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.DuplicateHeaderMode;
 import org.apache.commons.csv.QuoteMode;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.components.AllowableValue;
@@ -28,8 +30,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 public class CSVUtils {
 
@@ -146,12 +146,12 @@ public class CSVUtils {
     public static final PropertyDescriptor ALLOW_DUPLICATE_HEADER_NAMES = new PropertyDescriptor.Builder()
         .name("csvutils-allow-duplicate-header-names")
         .displayName("Allow Duplicate Header Names")
-        .description("Whether duplicate header names are allowed. Header names are case-sensitive, for example \"name\" and \"Name\" are treated as separate fields. " +
-                "Handling of duplicate header names is CSV Parser specific (where applicable):\n" +
-                "* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields " +
-                "created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n" +
-                "* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most " +
-                "duplicate CSV column")
+        .description("""
+            Whether duplicate header names are allowed. Header names are case-sensitive, for example "name" and "Name" are treated as separate fields.
+            Handling of duplicate header names is CSV Parser specific (where applicable):
+            * Apache Commons CSV - duplicate headers will result in column data "shifting" right with new fields created for "unknown_field_index_X" where "X" is the CSV column index number
+            * Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most duplicate CSV column
+            * FastCSV - duplicate headers will be de-duplicated with the field value being that of the left-most duplicate CSV column""")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .dependsOn(CSV_FORMAT, CUSTOM)
@@ -273,57 +273,60 @@ public class CSVUtils {
 
     private static CSVFormat buildCustomFormat(final PropertyContext context, final Map<String, String> variables) {
         final Character valueSeparator = getValueSeparatorCharUnescapedJava(context, variables);
-        CSVFormat format = CSVFormat.newFormat(valueSeparator)
-            .withAllowMissingColumnNames()
-            .withIgnoreEmptyLines();
+        CSVFormat.Builder builder = CSVFormat.Builder.create()
+            .setDelimiter(valueSeparator)
+            .setAllowMissingColumnNames(true)
+            .setIgnoreEmptyLines(true);
 
         final PropertyValue firstLineIsHeaderPropertyValue = context.getProperty(FIRST_LINE_IS_HEADER);
-        if (firstLineIsHeaderPropertyValue.getValue() != null && firstLineIsHeaderPropertyValue.asBoolean()) {
-            format = format.withFirstRecordAsHeader();
+        if (firstLineIsHeaderPropertyValue != null && firstLineIsHeaderPropertyValue.isSet() && firstLineIsHeaderPropertyValue.asBoolean()) {
+            builder = builder.setHeader().setSkipHeaderRecord(true);
         }
 
         final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
-        format = format.withQuote(quoteChar);
+        builder = builder.setQuote(quoteChar);
 
         final Character escapeChar = context.getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty() ? null : getCharUnescaped(context, ESCAPE_CHAR, variables);
-        format = format.withEscape(escapeChar);
+        builder = builder.setEscape(escapeChar);
 
-        format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
+        builder = builder.setTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
             final Character commentMarker = getCharUnescaped(context, COMMENT_MARKER, variables);
             if (commentMarker != null) {
-                format = format.withCommentMarker(commentMarker);
+                builder = builder.setCommentMarker(commentMarker);
             }
         }
         if (context.getProperty(NULL_STRING).isSet()) {
-            format = format.withNullString(unescape(context.getProperty(NULL_STRING).getValue()));
+            builder = builder.setNullString(unescape(context.getProperty(NULL_STRING).getValue()));
         }
 
         final PropertyValue quoteValue = context.getProperty(QUOTE_MODE);
         if (quoteValue != null && quoteValue.isSet()) {
             final QuoteMode quoteMode = QuoteMode.valueOf(quoteValue.getValue());
-            format = format.withQuoteMode(quoteMode);
+            builder = builder.setQuoteMode(quoteMode);
         }
 
         final PropertyValue trailingDelimiterValue = context.getProperty(TRAILING_DELIMITER);
         if (trailingDelimiterValue != null && trailingDelimiterValue.isSet()) {
             final boolean trailingDelimiter = trailingDelimiterValue.asBoolean();
-            format = format.withTrailingDelimiter(trailingDelimiter);
+            builder = builder.setTrailingDelimiter(trailingDelimiter);
         }
 
         final PropertyValue recordSeparator = context.getProperty(RECORD_SEPARATOR);
         if (recordSeparator != null && recordSeparator.isSet()) {
             final String separator = unescape(recordSeparator.getValue());
-            format = format.withRecordSeparator(separator);
+            builder = builder.setRecordSeparator(separator);
         }
 
         final PropertyValue allowDuplicateHeaderNames = context.getProperty(ALLOW_DUPLICATE_HEADER_NAMES);
         if (allowDuplicateHeaderNames != null && allowDuplicateHeaderNames.isSet()) {
-            format = format.withAllowDuplicateHeaderNames(allowDuplicateHeaderNames.asBoolean());
+            final boolean allow = allowDuplicateHeaderNames.asBoolean();
+            final DuplicateHeaderMode mode = allow ? DuplicateHeaderMode.ALLOW_ALL : DuplicateHeaderMode.DISALLOW;
+            builder = builder.setDuplicateHeaderMode(mode);
         }
 
-        return format;
+        return builder.build();
     }
 
     public static String unescape(String input) {

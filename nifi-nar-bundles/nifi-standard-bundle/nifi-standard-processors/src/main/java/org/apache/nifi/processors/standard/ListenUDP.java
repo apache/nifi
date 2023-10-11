@@ -71,7 +71,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
             .description("IP, or name, of a remote host. Only Datagrams from the specified Sending Host Port and this host will "
                     + "be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(new HostValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SENDING_HOST_PORT = new PropertyDescriptor.Builder()
@@ -79,7 +79,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
             .description("Port being used by remote host to send Datagrams. Only Datagrams from the specified Sending Host and "
                     + "this port will be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final String UDP_PORT_ATTR = "udp.port";

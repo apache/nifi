@@ -30,7 +30,7 @@ public class Resource {
      *
      * @return The name of the resource
      */
-    @ApiModelProperty(value = "The name of the resource.", readOnly = true)
+    @ApiModelProperty(value = "The name of the resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getName() {
         return name;
     }
@@ -44,7 +44,7 @@ public class Resource {
      *
      * @return The identifier of the resource
      */
-    @ApiModelProperty(value = "The identifier of the resource.", readOnly = true)
+    @ApiModelProperty(value = "The identifier of the resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }

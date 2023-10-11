@@ -46,7 +46,7 @@ public class CountEvents extends AbstractSessionFactoryProcessor {
         .description("Arbitrary Name")
         .required(false)
         .addValidator(VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
     static final PropertyDescriptor SENSITIVE = new Builder()
@@ -55,7 +55,7 @@ public class CountEvents extends AbstractSessionFactoryProcessor {
         .description("Sensitive Property with no real meaning")
         .required(false)
         .addValidator(VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .sensitive(true)
         .build();
 

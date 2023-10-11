@@ -543,6 +543,6 @@ public class TestADLSCredentialsControllerService {
 
     private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {
         runner.setProperty(credentialsService, propertyDescriptor, String.format("${%s}", variableName));
-        runner.setVariable(variableName, variableValue);
+        runner.setEnvironmentVariableValue(variableName, variableValue);
     }
 }

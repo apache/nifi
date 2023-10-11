@@ -559,8 +559,8 @@ public class TestMergeRecord {
 
     @Test
     public void testMergeWithMinRecordsFromVariableRegistry() {
-        runner.setVariable("min_records", "3");
-        runner.setVariable("max_records", "3");
+        runner.setEnvironmentVariableValue("min_records", "3");
+        runner.setEnvironmentVariableValue("max_records", "3");
         runner.setValidateExpressionUsage(true);
 
         // Test MIN_RECORDS
@@ -610,8 +610,8 @@ public class TestMergeRecord {
     @Test
     public void testNegativeMinAndMaxRecordsValidators(){
 
-        runner.setVariable("min_records", "-3");
-        runner.setVariable("max_records", "-1");
+        runner.setEnvironmentVariableValue("min_records", "-3");
+        runner.setEnvironmentVariableValue("max_records", "-1");
 
         // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
         runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
@@ -639,15 +639,15 @@ public class TestMergeRecord {
         // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
         // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
         // property cannot be negative or zero" rules
-        runner.setVariable("min_records", "-1");
-        runner.setVariable("max_records", "-3");
+        runner.setEnvironmentVariableValue("min_records", "-1");
+        runner.setEnvironmentVariableValue("max_records", "-3");
         runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
         runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
         runner.assertNotValid();
 
         // This configuration is valid
-        runner.setVariable("min_records", "1");
-        runner.setVariable("max_records", "5");
+        runner.setEnvironmentVariableValue("min_records", "1");
+        runner.setEnvironmentVariableValue("max_records", "5");
         runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
         runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
         runner.assertValid();

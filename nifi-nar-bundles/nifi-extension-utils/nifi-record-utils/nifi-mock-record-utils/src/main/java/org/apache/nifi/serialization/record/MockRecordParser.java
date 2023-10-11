@@ -73,7 +73,9 @@ public class MockRecordParser extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+        throws IOException, SchemaNotFoundException {
+
         final Iterator<Object[]> itr = records.iterator();
 
         return new RecordReader() {
@@ -81,6 +83,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
 
             @Override
             public void close() throws IOException {
+                in.close();
             }
 
             @Override

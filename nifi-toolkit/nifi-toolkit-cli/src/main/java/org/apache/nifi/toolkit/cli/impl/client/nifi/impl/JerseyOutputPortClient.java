@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import java.io.IOException;
+import javax.ws.rs.client.WebTarget;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
-
-import javax.ws.rs.client.WebTarget;
-import java.io.IOException;
 
 public class JerseyOutputPortClient extends CRUDJerseyClient<PortEntity> implements OutputPortClient {
 
@@ -57,11 +56,6 @@ public class JerseyOutputPortClient extends CRUDJerseyClient<PortEntity> impleme
     @Override
     public PortEntity deleteOutputPort(final PortEntity entity) throws NiFiClientException, IOException {
         return deleteComponent(entity);
-    }
-
-    @Override
-    public PortEntity startInpuOutputPort(final PortEntity entity) throws NiFiClientException, IOException {
-        return startOutputPort(entity);
     }
 
     @Override

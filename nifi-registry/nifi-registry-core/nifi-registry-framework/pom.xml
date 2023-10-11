@@ -127,12 +127,13 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>1.5</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>addTestSources</goal>
-                            <goal>testCompile</goal>
+                            <goal>generateTestStubs</goal>
+                            <goal>compileTests</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -419,22 +420,6 @@
                     <artifactId>spring-jdbc</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.spockframework</groupId>
-            <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib-nodep</artifactId>
-            <version>2.2.2</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.unboundid</groupId>

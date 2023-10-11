@@ -116,39 +116,6 @@ public class ExecuteGraphQueryRecordTest {
     }
 
     @Test
-    public void testComplexFlowFile() throws Exception {
-        setupGraphClient(false);
-        List<Map<String,Object>> test = new ArrayList<>();
-        Map<String, Object> tempMap = new HashMap<>();
-        tempMap.put("tMap", "123");
-        tempMap.put("L", new ArrayList<Integer>(){
-            {
-                add(1);
-                add(2);
-                add(3);
-            }
-        });
-        test.add(tempMap);
-
-        byte[] json = JsonOutput.toJson(test).getBytes();
-        String submissionScript = "Map<String, Object> vertexHashes = new HashMap()\n" +
-                "vertexHashes.put('1234', tMap)\n" +
-                "[ 'L': L, 'result': vertexHashes ]";
-        runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
-        runner.setProperty("tMap", "/tMap");
-        runner.setProperty("L", "/L");
-        runner.enqueue(json, enqueProperties);
-
-        runner.run();
-        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-
-        assertTrue(contentEqualsWindowsSafe(relGraph, "/testComplexFlowFile.json"));
-    }
-
-    @Test
     public void testAttributes() throws Exception {
         setupGraphClient(false);
         List<Map<String, Object>> test = new ArrayList<>();

@@ -26,6 +26,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -53,6 +55,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,10 +67,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -148,6 +153,10 @@ public class TestConsumeAzureEventHub {
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
+        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.assertValid();
+        configureProxyControllerService();
+        testRunner.assertValid();
     }
 
     @Test
@@ -179,7 +188,7 @@ public class TestConsumeAzureEventHub {
     }
 
     @Test
-    public void testProcessorConfigValidityWithTokenSet() {
+    public void testProcessorConfigValidityWithTokenSet() throws InitializationException {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
@@ -192,10 +201,12 @@ public class TestConsumeAzureEventHub {
         testRunner.assertValid();
         testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
         testRunner.assertValid();
+        configureProxyControllerService();
+        testRunner.assertValid();
     }
 
     @Test
-    public void testProcessorConfigValidityWithStorageKeySet() {
+    public void testProcessorConfigValidityWithStorageKeySet() throws InitializationException {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
@@ -205,6 +216,10 @@ public class TestConsumeAzureEventHub {
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
+        testRunner.assertValid();
+        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.assertValid();
+        configureProxyControllerService();
         testRunner.assertValid();
     }
 
@@ -494,6 +509,18 @@ public class TestConsumeAzureEventHub {
                     return eventData;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private void configureProxyControllerService() throws InitializationException {
+        final String serviceId = "proxyConfigurationService";
+        final ProxyConfiguration proxyConfiguration = mock(ProxyConfiguration.class);
+        when(proxyConfiguration.getProxyType()).thenReturn(Proxy.Type.HTTP);
+        final ProxyConfigurationService service = mock(ProxyConfigurationService.class);
+        when(service.getIdentifier()).thenReturn(serviceId);
+        when(service.getConfiguration()).thenReturn(proxyConfiguration);
+        testRunner.addControllerService(serviceId, service);
+        testRunner.enableControllerService(service);
+        testRunner.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
     }
 
     private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {

@@ -16,13 +16,9 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,15 +29,11 @@ import java.util.Map;
 public class ITDeleteS3Object extends AbstractS3IT {
 
     @Test
-    public void testSimpleDelete() throws IOException {
+    public void testSimpleDelete() {
         // Prepares for this test
         putTestFile("delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
-
-        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.S3_REGION, REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(DeleteS3Object.class);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-me");
@@ -53,16 +45,11 @@ public class ITDeleteS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testDeleteFolder() throws IOException {
+    public void testDeleteFolder() {
         // Prepares for this test
         putTestFile("folder/delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
-
-        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.S3_REGION, REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(DeleteS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "folder/delete-me");
         runner.enqueue(new byte[0], attrs);
@@ -73,24 +60,11 @@ public class ITDeleteS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testDeleteFolderUsingCredentialsProviderService() throws Throwable {
+    public void testDeleteFolderUsingCredentialsProviderService() {
         // Prepares for this test
         putTestFile("folder/delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.enableControllerService(serviceImpl);
-
-        runner.assertValid(serviceImpl);
-
-        runner.setProperty(DeleteS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.setProperty(DeleteS3Object.S3_REGION, REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(DeleteS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "folder/delete-me");
         runner.enqueue(new byte[0], attrs);
@@ -101,15 +75,11 @@ public class ITDeleteS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testDeleteFolderNoExpressionLanguage() throws IOException {
+    public void testDeleteFolderNoExpressionLanguage() {
         // Prepares for this test
         putTestFile("folder/delete-me", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
-
-        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.S3_REGION, REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(DeleteS3Object.class);
         runner.setProperty(DeleteS3Object.KEY, "folder/delete-me");
 
         final Map<String, String> attrs = new HashMap<>();
@@ -122,13 +92,8 @@ public class ITDeleteS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testTryToDeleteNotExistingFile() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new DeleteS3Object());
-
-        runner.setProperty(DeleteS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(DeleteS3Object.S3_REGION, REGION);
-        runner.setProperty(DeleteS3Object.BUCKET, BUCKET_NAME);
-
+    public void testTryToDeleteNotExistingFile() {
+        final TestRunner runner = initRunner(DeleteS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "no-such-a-file");
         runner.enqueue(new byte[0], attrs);

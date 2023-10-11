@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -29,6 +28,7 @@ import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,8 +41,7 @@ public class RegistryClientsResult extends AbstractWritableResult<FlowRegistryCl
 
     public RegistryClientsResult(final ResultType resultType, final FlowRegistryClientsEntity registryClients) {
         super(resultType);
-        this.registryClients = registryClients;
-        Validate.notNull(this.registryClients);
+        this.registryClients = Objects.requireNonNull(registryClients);
     }
 
     @Override

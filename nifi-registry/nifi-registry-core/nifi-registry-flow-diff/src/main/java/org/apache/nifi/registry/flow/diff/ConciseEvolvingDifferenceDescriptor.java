@@ -62,12 +62,6 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
             case PROPERTY_PARAMETERIZATION_REMOVED:
                 description = String.format("Property '%s' is no longer a parameter reference", fieldName);
                 break;
-            case VARIABLE_ADDED:
-                description = String.format("Variable '%s' was added", fieldName);
-                break;
-            case VARIABLE_REMOVED:
-                description = String.format("Variable '%s' was removed", fieldName);
-                break;
             case POSITION_CHANGED:
                 description = "Position was changed";
                 break;

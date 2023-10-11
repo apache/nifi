@@ -97,7 +97,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -172,7 +172,7 @@
                     <artifactId>guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>
@@ -217,7 +217,7 @@
                     <artifactId>woodstox-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>

@@ -34,11 +34,17 @@ import java.net.URI;
 import java.util.OptionalLong;
 
 public class SlackRestService {
+    private static final ObjectMapper objectMapper;
+    static {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
     private static final String POST_MESSAGE_PATH = "chat.postMessage";
     private final WebClientServiceProvider webClientServiceProvider;
     private final String accessToken;
     private final String apiUrl;
-    private final ObjectMapper objectMapper;
     private final ComponentLog logger;
     private final String charset;
 
@@ -50,9 +56,6 @@ public class SlackRestService {
         this.webClientServiceProvider = webClientServiceProvider;
         this.accessToken = accessToken;
         this.apiUrl = apiUrl;
-        this.objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.charset = charset;
         this.logger = logger;
     }
