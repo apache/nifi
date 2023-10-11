@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.commandLine;
+package org.apache.nifi.toolkit.commandline;
 
 /**
  * Exception for errors while parsing the command line

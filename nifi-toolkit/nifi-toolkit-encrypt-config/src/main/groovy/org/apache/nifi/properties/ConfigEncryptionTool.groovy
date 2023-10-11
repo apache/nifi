@@ -35,8 +35,8 @@ import org.apache.nifi.flow.encryptor.JsonFlowEncryptor
 import org.apache.nifi.properties.scheme.ProtectionScheme
 import org.apache.nifi.properties.scheme.StandardProtectionScheme
 import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
-import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
-import org.apache.nifi.toolkit.tls.commandLine.ExitCode
+import org.apache.nifi.toolkit.commandline.CommandLineParseException
+import org.apache.nifi.toolkit.commandline.ExitCode
 import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice

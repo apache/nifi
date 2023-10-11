@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.commandLine;
+package org.apache.nifi.toolkit.commandline;
 
 /**
  * Possible exit codes

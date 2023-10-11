@@ -17,10 +17,10 @@
 ## How to execute minifi-integration-tests
 
 ### Build required modules
-mvn -pl minifi/minifi-assembly -am install -T1C -DskipTests
-mvn -pl minifi/minifi-docker -am install -T1C -DskipTests -P docker
-mvn -pl nifi-toolkit/nifi-toolkit-assembly -am install -T1C -DskipTests
-mvn -pl minifi/minifi-integration-tests -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-assembly -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-docker -am install -T1C -DskipTests -P docker
+- mvn -pl nifi-toolkit/nifi-toolkit-assembly -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-integration-tests -am install -T1C -DskipTests
 
 ### Execute integration tests
-mvn verify -Pdocker -f minifi/minifi-integration-tests/pom.xml
+- mvn verify -Pdocker -f minifi/minifi-integration-tests/pom.xml
