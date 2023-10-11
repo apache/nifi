@@ -167,6 +167,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                     " Note: when using a remote.yaml file, this username value (if set) will overload any " +
                     "username set in the YAML file.")
             .required(false)
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
@@ -178,6 +179,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                     "password set in the YAML file")
             .required(false)
             .sensitive(true)
+            .addValidator(Validator.VALID)
             .build();
 
     public static final PropertyDescriptor EXTRA_RESOURCE = new PropertyDescriptor.Builder()
