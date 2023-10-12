@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.io.CleanupMode.ALWAYS;
 
-public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
+public class WorkingDirectoryUtilsTest {
 
     @Test
     public void testDeleteNonexistentFile(@TempDir(cleanup = ALWAYS) File tempDir) {
         File nonexistentFile = new File(tempDir, "testFile");
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeDirectory(nonexistentFile);
+        WorkingDirectoryUtils.purgeDirectory(nonexistentFile);
 
         assertFalse(nonexistentFile.exists());
     }
@@ -43,7 +43,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
         File file = new File(tempDir, "testFile");
         file.createNewFile();
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeDirectory(file);
+        WorkingDirectoryUtils.purgeDirectory(file);
 
         assertFalse(file.exists());
     }
@@ -60,7 +60,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
         subDirectoryContent.createNewFile();
         directoryContent.createNewFile();
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeDirectory(directory);
+        WorkingDirectoryUtils.purgeDirectory(directory);
 
         assertFalse(directory.exists());
     }
@@ -71,7 +71,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
 
         rootDirectory.mkdir();
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeIncompleteUnpackedNars(rootDirectory);
+        WorkingDirectoryUtils.purgeIncompleteUnpackedNars(rootDirectory);
 
         assertTrue(rootDirectory.exists());
     }
@@ -86,7 +86,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
         directoryContent1.createNewFile();
         directoryContent2.createNewFile();
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeIncompleteUnpackedNars(rootDirectory);
+        WorkingDirectoryUtils.purgeIncompleteUnpackedNars(rootDirectory);
 
         assertTrue(rootDirectory.exists() && directoryContent1.exists() && directoryContent2.exists());
     }
@@ -97,7 +97,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
         rootDirectory.mkdir();
         TestDirectoryStructure testDirectoryStructure = new TestDirectoryStructure(rootDirectory);
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.purgeIncompleteUnpackedNars(testDirectoryStructure.getRootDirectory());
+        WorkingDirectoryUtils.purgeIncompleteUnpackedNars(testDirectoryStructure.getRootDirectory());
 
         assertTrue(testDirectoryStructure.isConsistent());
     }
@@ -137,7 +137,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
         TestDirectoryStructure narExtensionsStructure = new TestDirectoryStructure(narExtensions);
         TestDirectoryStructure extensionsStructure = new TestDirectoryStructure(extensions);
 
-        StatelessKafkaConnectorWorkingDirectoryUtil.checkWorkingDirectoryIntegrity(workingDirectory);
+        WorkingDirectoryUtils.reconcileWorkingDirectory(workingDirectory);
 
         assertTrue(workingDirectory.exists()
                 && nar.exists()
@@ -178,12 +178,12 @@ public class StatelessKafkaConnectorWorkingDirectoryUtilTest {
 
         public TestDirectoryStructure(final File rootDirectory) throws IOException {
             this.rootDirectory = rootDirectory;
-            subDirectory1 = new File(rootDirectory, "subDirectory1-" + StatelessKafkaConnectorWorkingDirectoryUtil.NAR_UNPACKED_SUFFIX);
+            subDirectory1 = new File(rootDirectory, "subDirectory1-" + WorkingDirectoryUtils.NAR_UNPACKED_SUFFIX);
             subDirectory2 = new File(rootDirectory, "subDirector2");
-            subDirectory3 = new File(rootDirectory, "subDirector3-" + StatelessKafkaConnectorWorkingDirectoryUtil.NAR_UNPACKED_SUFFIX);
+            subDirectory3 = new File(rootDirectory, "subDirector3-" + WorkingDirectoryUtils.NAR_UNPACKED_SUFFIX);
             fileInRoot = new File(rootDirectory, "fileInRoot");
             subDirectory1File1 = new File(subDirectory1, "subDirectory1File1");
-            subDirectory1File2 = new File(subDirectory1, StatelessKafkaConnectorWorkingDirectoryUtil.HASH_FILENAME);
+            subDirectory1File2 = new File(subDirectory1, WorkingDirectoryUtils.HASH_FILENAME);
             subDirectory2File1 = new File(subDirectory2, "subDirectory2File1");
             subDirectory3Dir1 = new File(subDirectory3, "subDirectory3Dir1");
             subDirectory3File1 = new File(subDirectory3, "subDirectory3File1");

@@ -23,11 +23,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Arrays;
 
-public class StatelessKafkaConnectorWorkingDirectoryUtil {
+public class WorkingDirectoryUtils {
 
-    public static final String NAR_UNPACKED_SUFFIX = "nar-unpacked";
-    public static final String HASH_FILENAME = "nar-digest";
-    private static final Logger logger = LoggerFactory.getLogger(StatelessKafkaConnectorWorkingDirectoryUtil.class);
+    protected static final String NAR_UNPACKED_SUFFIX = "nar-unpacked";
+    protected static final String HASH_FILENAME = "nar-digest";
+    private static final Logger logger = LoggerFactory.getLogger(WorkingDirectoryUtils.class);
 
     /**
      * Goes through the nar/extensions and extensions directories within the working directory
@@ -35,7 +35,7 @@ public class StatelessKafkaConnectorWorkingDirectoryUtil {
      * "nar-digest" file in it.
      * @param workingDirectory File object pointing to the working directory.
      */
-    public static void checkWorkingDirectoryIntegrity(final File workingDirectory) {
+    public static void reconcileWorkingDirectory(final File workingDirectory) {
         purgeIncompleteUnpackedNars(new File(new File(workingDirectory, "nar"), "extensions"));
         purgeIncompleteUnpackedNars(new File(workingDirectory, "extensions"));
     }
@@ -51,16 +51,18 @@ public class StatelessKafkaConnectorWorkingDirectoryUtil {
         final File[] unpackedDirs = directory.listFiles(file -> file.isDirectory() && file.getName().endsWith(NAR_UNPACKED_SUFFIX));
         if (unpackedDirs == null || unpackedDirs.length == 0) {
             logger.debug("Found no unpacked NARs in {}", directory);
-            logger.debug("Directory contains: {}", Arrays.deepToString(directory.listFiles()));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Directory contains: {}", Arrays.deepToString(directory.listFiles()));
+            }
             return;
         }
 
         for (final File unpackedDir : unpackedDirs) {
             final File narHashFile = new File(unpackedDir, HASH_FILENAME);
-            if (!narHashFile.exists()) {
-                purgeDirectory(unpackedDir);
-            } else {
+            if (narHashFile.exists()) {
                 logger.debug("Already successfully unpacked {}", unpackedDir);
+            } else {
+                purgeDirectory(unpackedDir);
             }
         }
     }
@@ -85,10 +87,10 @@ public class StatelessKafkaConnectorWorkingDirectoryUtil {
                 }
             }
         }
-        deleteOrDebug(fileOrDirectory);
+        deleteQuietly(fileOrDirectory);
     }
 
-    private static void deleteOrDebug(final File file) {
+    private static void deleteQuietly(final File file) {
         final boolean deleted = file.delete();
         if (!deleted) {
             logger.debug("Failed to cleanup temporary file {}", file);

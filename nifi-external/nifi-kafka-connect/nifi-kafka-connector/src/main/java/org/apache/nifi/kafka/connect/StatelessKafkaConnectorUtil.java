@@ -92,7 +92,7 @@ public class StatelessKafkaConnectorUtil {
             // unpacking NARs at the same time, as it could potentially result in the working directory becoming corrupted.
             unpackNarLock.lock();
             try {
-                StatelessKafkaConnectorWorkingDirectoryUtil.checkWorkingDirectoryIntegrity(engineConfiguration.getWorkingDirectory());
+                WorkingDirectoryUtils.reconcileWorkingDirectory(engineConfiguration.getWorkingDirectory());
 
                 bootstrap = StatelessBootstrap.bootstrap(engineConfiguration, StatelessNiFiSourceTask.class.getClassLoader());
 
