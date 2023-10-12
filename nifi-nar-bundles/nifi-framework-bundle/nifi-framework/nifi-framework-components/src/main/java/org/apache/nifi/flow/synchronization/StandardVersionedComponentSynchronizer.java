@@ -72,7 +72,6 @@ import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ComponentIdGenerator;
-import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
