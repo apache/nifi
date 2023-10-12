@@ -254,20 +254,22 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 case LACK_OF_HEARTBEAT:
                 case UNABLE_TO_COMMUNICATE:
                 case NOT_YET_CONNECTED:
-                case STARTUP_FAILURE: {
+                case MISMATCHED_FLOWS:
+                case MISSING_BUNDLE:
+                case NODE_SHUTDOWN:
+                case FAILED_TO_SERVICE_REQUEST:
+                case STARTUP_FAILURE:
                     clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node previously "
                             + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
 
                     clusterCoordinator.requestNodeConnect(nodeId, null);
                     break;
-                }
-                default: {
+                default:
                     // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
-                    logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
+                    logger.info("Ignoring received heartbeat from disconnected node {}. Node was disconnected due to [{}]. Issuing disconnection request.", nodeId, disconnectionCode);
                     clusterCoordinator.requestNodeDisconnect(nodeId, disconnectionCode, connectionStatus.getReason());
                     removeHeartbeat(nodeId);
                     break;
-                }
             }
 
             return;
