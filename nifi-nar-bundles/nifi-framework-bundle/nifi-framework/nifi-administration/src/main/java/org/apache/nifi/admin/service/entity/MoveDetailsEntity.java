@@ -22,13 +22,13 @@ package org.apache.nifi.admin.service.entity;
 public enum MoveDetailsEntity implements EntityProperty {
     ACTION("action"),
 
-    GROUP("sourceId"),
+    GROUP("group"),
 
-    GROUP_ID("sourceName"),
+    GROUP_ID("groupId"),
 
-    PREVIOUS_GROUP("sourceType"),
+    PREVIOUS_GROUP("previousGroup"),
 
-    PREVIOUS_GROUP_ID("destinationId");
+    PREVIOUS_GROUP_ID("previousGroupId");
 
     private final String property;
 
