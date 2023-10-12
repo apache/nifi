@@ -14,31 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Purges actions up to a specified end date.
+ * Enumeration of Action Purge Details properties stored as Entity objects
  */
-public class DeletePreviousValues implements AdministrationAction<Void> {
+public enum PurgeDetailsEntity implements EntityProperty {
+    ACTION("action"),
 
-    private final String propertyName;
-    private final String componentId;
+    END_DATE("endDate");
 
-    public DeletePreviousValues(String propertyName, String componentId) {
-        this.propertyName = propertyName;
-        this.componentId = componentId;
+    private final String property;
+
+    PurgeDetailsEntity(final String property) {
+        this.property = property;
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-
-        actionDao.deletePreviousValues(propertyName, componentId);
-
-        return null;
+    public String getProperty() {
+        return property;
     }
-
 }

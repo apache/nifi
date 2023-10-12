@@ -14,30 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.history.PreviousValue;
-
-import java.util.List;
-import java.util.Map;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Gets the action with the specified id.
+ * Enumeration of Action Connect Details properties stored as Entity objects
  */
-public class GetPreviousValues implements AdministrationAction<Map<String, List<PreviousValue>>> {
+public enum ConnectDetailsEntity implements EntityProperty {
+    ACTION("action"),
 
-    private final String componentId;
+    SOURCE_ID("sourceId"),
 
-    public GetPreviousValues(String componentId) {
-        this.componentId = componentId;
+    SOURCE_NAME("sourceName"),
+
+    SOURCE_TYPE("sourceType"),
+
+    DESTINATION_ID("destinationId"),
+
+    DESTINATION_NAME("destinationName"),
+
+    DESTINATION_TYPE("destinationType"),
+
+    RELATIONSHIP("relationship");
+
+    private final String property;
+
+    ConnectDetailsEntity(final String property) {
+        this.property = property;
     }
 
     @Override
-    public Map<String, List<PreviousValue>> execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-        return actionDao.getPreviousValues(componentId);
+    public String getProperty() {
+        return property;
     }
-
 }

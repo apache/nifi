@@ -14,23 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.admin.dao.DAOFactory;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Defines the administration action. Actions are provided a DAO factory and
- * authority provider to perform a require action.
- *
- * @param <T> type
+ * Enumeration of Action link properties for referencing other Entity objects
  */
-public interface AdministrationAction<T> {
+public enum ActionLink implements EntityProperty {
+    CONNECT_DETAILS("connectDetails"),
 
-    /**
-     * Performs an action using the specified DAOFactory and AuthorityProvider.
-     *
-     * @param daoFactory factory
-     * @return action result
-     */
-    T execute(DAOFactory daoFactory);
+    MOVE_DETAILS("moveDetails"),
+
+    CONFIGURE_DETAILS("configureDetails"),
+
+    PURGE_DETAILS("purgeDetails");
+
+    private final String property;
+
+    ActionLink(final String property) {
+        this.property = property;
+    }
+
+    @Override
+    public String getProperty() {
+        return property;
+    }
 }

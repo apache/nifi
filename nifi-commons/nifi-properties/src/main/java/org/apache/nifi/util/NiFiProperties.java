@@ -74,7 +74,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
-    public static final String H2_URL_APPEND = "nifi.h2.url.append";
     public static final String REMOTE_INPUT_HOST = "nifi.remote.input.host";
     public static final String REMOTE_INPUT_PORT = "nifi.remote.input.socket.port";
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";

@@ -14,12 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.transaction;
+package org.apache.nifi.admin.service.entity;
 
 /**
- *
+ * Enumeration of Extension Details properties stored as Entity objects
  */
-public interface TransactionBuilder {
+public enum ExtensionDetailsEntity implements EntityProperty {
+    EXTENSION_TYPE("extensionType");
 
-    Transaction start() throws TransactionException;
+    private final String property;
+
+    ExtensionDetailsEntity(final String property) {
+        this.property = property;
+    }
+
+    @Override
+    public String getProperty() {
+        return property;
+    }
 }

@@ -14,12 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.admin.service.entity;
 
 /**
- *
+ * Enumeration of Action Move Details properties stored as Entity objects
  */
-public interface DAOFactory {
+public enum MoveDetailsEntity implements EntityProperty {
+    ACTION("action"),
 
-    ActionDAO getActionDAO();
+    GROUP("group"),
+
+    GROUP_ID("groupId"),
+
+    PREVIOUS_GROUP("previousGroup"),
+
+    PREVIOUS_GROUP_ID("previousGroupId");
+
+    private final String property;
+
+    MoveDetailsEntity(final String property) {
+        this.property = property;
+    }
+
+    @Override
+    public String getProperty() {
+        return property;
+    }
 }

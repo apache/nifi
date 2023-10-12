@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.service.action;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.admin.dao.ActionDAO;
-import org.apache.nifi.admin.dao.DAOFactory;
+package org.apache.nifi.admin.service.entity;
 
 /**
- * Gets the action with the specified id.
+ * Abstraction for stored properties of persistent Entities
  */
-public class GetActionAction implements AdministrationAction<Action> {
-
-    private final Integer id;
-
-    public GetActionAction(Integer id) {
-        this.id = id;
-    }
-
-    @Override
-    public Action execute(DAOFactory daoFactory) {
-        ActionDAO actionDao = daoFactory.getActionDAO();
-        return actionDao.getAction(id);
-    }
-
+public interface EntityProperty {
+    /**
+     * Get property name for an element of an Entity
+     *
+     * @return Property name
+     */
+    String getProperty();
 }
