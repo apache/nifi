@@ -16,14 +16,13 @@
  */
 
 import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { DocumentedType } from '../../../state/extension-types';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgIf } from '@angular/common';
-import { RestrictionsTipInput } from '../../../state/shared';
+import { DocumentedType, RestrictionsTipInput } from '../../../state/shared';
 import { NifiTooltipDirective } from '../nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 

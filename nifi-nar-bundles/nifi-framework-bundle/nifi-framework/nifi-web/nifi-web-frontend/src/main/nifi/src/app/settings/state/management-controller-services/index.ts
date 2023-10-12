@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity, Revision } from '../../../state/shared';
-import { Bundle } from '../../../state/extension-types';
+import { Bundle, ControllerServiceEntity, Revision } from '../../../state/shared';
 
 export const managementControllerServicesFeatureKey = 'managementControllerServices';
 
@@ -32,6 +31,14 @@ export interface CreateControllerService {
 }
 
 export interface CreateControllerServiceSuccess {
+    controllerService: ControllerServiceEntity;
+}
+
+export interface ConfigureControllerService {
+    payload: any;
+}
+
+export interface ConfigureControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 

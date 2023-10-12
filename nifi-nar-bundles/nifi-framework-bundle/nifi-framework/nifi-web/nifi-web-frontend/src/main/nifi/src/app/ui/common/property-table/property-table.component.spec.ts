@@ -15,12 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { PropertyTable } from './property-table.component';
 
-.general-form {
-    @include mat.button-density(-1);
-}
+describe('PropertyTable', () => {
+    let component: PropertyTable;
+    let fixture: ComponentFixture<PropertyTable>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [PropertyTable]
+        });
+        fixture = TestBed.createComponent(PropertyTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

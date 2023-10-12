@@ -15,12 +15,19 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { Component, Input } from '@angular/core';
+import { UnorderedListTipInput } from '../../../../state/shared';
+import { NgForOf } from '@angular/common';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
-
-.general-form {
-    @include mat.button-density(-1);
+@Component({
+    selector: 'unordered-list-tip',
+    standalone: true,
+    templateUrl: './unordered-list-tip.component.html',
+    imports: [NgForOf],
+    styleUrls: ['./unordered-list-tip.component.scss']
+})
+export class UnorderedListTip {
+    @Input() left: number = 0;
+    @Input() top: number = 0;
+    @Input() data: UnorderedListTipInput | undefined;
 }

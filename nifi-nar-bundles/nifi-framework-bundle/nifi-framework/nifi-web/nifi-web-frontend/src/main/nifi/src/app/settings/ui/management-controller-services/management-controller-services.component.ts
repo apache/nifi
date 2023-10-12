@@ -21,6 +21,7 @@ import { ManagementControllerServicesState } from '../../state/management-contro
 import { selectManagementControllerServicesState } from '../../state/management-controller-services/management-controller-services.selectors';
 import {
     loadManagementControllerServices,
+    openConfigureControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion
 } from '../../state/management-controller-services/management-controller-services.actions';
@@ -52,6 +53,16 @@ export class ManagementControllerServices implements OnInit {
 
     refreshControllerServiceListing(): void {
         this.store.dispatch(loadManagementControllerServices());
+    }
+
+    configureControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openConfigureControllerServiceDialog({
+                request: {
+                    controllerService: entity
+                }
+            })
+        );
     }
 
     deleteControllerService(entity: ControllerServiceEntity): void {

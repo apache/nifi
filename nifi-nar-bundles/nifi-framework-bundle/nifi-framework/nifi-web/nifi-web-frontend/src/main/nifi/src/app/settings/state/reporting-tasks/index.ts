@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { BulletinEntity, Permissions, Revision } from '../../../state/shared';
-import { Bundle, DocumentedType } from '../../../state/extension-types';
+import { BulletinEntity, Bundle, DocumentedType, Permissions, Revision } from '../../../state/shared';
 
 export const reportingTasksFeatureKey = 'reportingTasks';
 

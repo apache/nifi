@@ -15,22 +15,4 @@
   ~ limitations under the License.
   -->
 
-<div class="general-form w-96">
-    <form [formGroup]="controllerForm" (ngSubmit)="apply()">
-        <div>
-            <mat-form-field>
-                <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input matInput formControlName="timerDrivenThreadCount" type="text" />
-            </mat-form-field>
-        </div>
-        <div>
-            <button
-                [disabled]="!controllerForm.dirty || controllerForm.invalid"
-                type="submit"
-                color="primary"
-                mat-raised-button>
-                Apply
-            </button>
-        </div>
-    </form>
-</div>
+<div class="tooltip" [style.left.px]="left" [style.top.px]="top">{{ data?.text }}</div>

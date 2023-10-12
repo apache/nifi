@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import { DocumentedType } from '../extension-types';
-
 export interface OkDialogRequest {
     title: string;
     message: string;
@@ -29,6 +27,10 @@ export interface YesNoDialogRequest {
 
 export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
+}
+
+export interface EditControllerServiceRequest {
+    controllerService: ControllerServiceEntity;
 }
 
 export interface TextTipInput {
@@ -46,6 +48,10 @@ export interface ValidationErrorsTipInput {
 
 export interface BulletinsTipInput {
     bulletins: BulletinEntity[];
+}
+
+export interface PropertyTipInput {
+    descriptor: PropertyDescriptor;
 }
 
 export interface RestrictionsTipInput {
@@ -113,4 +119,63 @@ export interface ControllerServiceEntity {
     uri: string;
     status: any;
     component: any;
+}
+
+export interface DocumentedType {
+    bundle: Bundle;
+    description: string;
+    restricted: boolean;
+    tags: string[];
+    type: string;
+    explicitRestrictions?: ExplicitRestriction[];
+    usageRestriction?: string;
+    deprecationReason?: string;
+}
+
+export interface Bundle {
+    artifact: string;
+    group: string;
+    version: string;
+}
+
+export interface AllowableValue {
+    displayName: string;
+    value: string;
+    description: string;
+}
+
+export interface AllowableValueEntity {
+    canRead: boolean;
+    allowableValue: AllowableValue;
+}
+
+export interface PropertyDependency {
+    propertyName: string;
+    dependentValues: string[];
+}
+
+export interface PropertyDescriptor {
+    name: string;
+    displayName: string;
+    description: string;
+    defaultValue: string;
+    allowableValues: AllowableValueEntity[];
+    required: boolean;
+    sensitive: boolean;
+    dynamic: boolean;
+    supportsEl: boolean;
+    expressionLanguageScope: string;
+    identifiesControllerService: string;
+    identifiesControllerServiceBundle: Bundle;
+    dependencies: PropertyDependency[];
+}
+
+export interface Property {
+    property: string;
+    value: string | null;
+    descriptor: PropertyDescriptor;
+}
+
+export interface Properties {
+    properties: Property[];
 }

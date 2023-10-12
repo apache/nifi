@@ -16,8 +16,7 @@
  */
 
 import { Position } from '../shared';
-import { BulletinEntity, ComponentType, Permissions } from '../../../state/shared';
-import { Bundle, DocumentedType } from '../../../state/extension-types';
+import { BulletinEntity, Bundle, ComponentType, DocumentedType, Permissions } from '../../../state/shared';
 
 export const flowFeatureKey = 'flowState';
 

@@ -24,9 +24,10 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { selectControllerServiceTypes } from '../../../state/extension-types/extension-types.selectors';
-import { CreateControllerService } from '../../../ui/common/create-controller-service/create-controller-service.component';
+import { CreateControllerService } from '../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { Client } from '../../../service/client.service';
 import { YesNoDialog } from '../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { EditControllerService } from '../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -128,6 +129,31 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.createControllerServiceSuccess),
                 tap(() => {
                     this.dialog.closeAll();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openConfigureControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(EditControllerService, {
+                        data: {
+                            controllerService: request.controllerService
+                        },
+                        panelClass: 'large-dialog'
+                    });
+
+                    dialogReference.componentInstance.editControllerService.pipe(take(1)).subscribe((payload: any) => {
+                        this.store.dispatch(
+                            ManagementControllerServicesActions.configureControllerService({
+                                request: payload
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }

@@ -17,9 +17,8 @@
 
 import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { DocumentedType } from '../../../state/extension-types';
-import { CreateControllerServiceRequest } from '../../../state/shared';
-import { ExtensionCreation } from '../extension-creation/extension-creation.component';
+import { CreateControllerServiceRequest, DocumentedType } from '../../../../state/shared';
+import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
 
 @Component({
     selector: 'create-controller-service',

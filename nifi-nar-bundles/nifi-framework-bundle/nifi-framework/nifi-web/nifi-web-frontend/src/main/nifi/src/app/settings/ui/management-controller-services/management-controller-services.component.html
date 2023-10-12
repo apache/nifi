@@ -29,6 +29,7 @@
             <div class="flex-1">
                 <controller-service-table
                     [controllerServices]="serviceState.controllerServices"
+                    (configureControllerService)="configureControllerService($event)"
                     (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
             </div>
             <div class="flex justify-between">

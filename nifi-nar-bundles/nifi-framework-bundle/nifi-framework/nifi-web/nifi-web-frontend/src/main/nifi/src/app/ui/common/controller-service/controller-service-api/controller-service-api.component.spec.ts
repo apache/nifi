@@ -15,12 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { TextTip } from './text-tip.component';
 
-.general-form {
-    @include mat.button-density(-1);
-}
+describe('TextTip', () => {
+    let component: TextTip;
+    let fixture: ComponentFixture<TextTip>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [TextTip]
+        });
+        fixture = TestBed.createComponent(TextTip);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

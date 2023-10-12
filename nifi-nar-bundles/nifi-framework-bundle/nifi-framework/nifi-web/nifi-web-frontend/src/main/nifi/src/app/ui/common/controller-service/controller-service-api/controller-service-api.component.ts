@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { Component, Input } from '@angular/core';
+import { TextTipInput } from '../../../../state/shared';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
-
-.general-form {
-    @include mat.button-density(-1);
+@Component({
+    selector: 'text-tip',
+    standalone: true,
+    templateUrl: './text-tip.component.html',
+    styleUrls: ['./text-tip.component.scss']
+})
+export class TextTip {
+    @Input() left: number = 0;
+    @Input() top: number = 0;
+    @Input() data: TextTipInput | undefined;
 }

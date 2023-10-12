@@ -15,12 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { EditControllerService } from './edit-controller-service.component';
 
-.general-form {
-    @include mat.button-density(-1);
-}
+describe('EditPort', () => {
+    let component: EditControllerService;
+    let fixture: ComponentFixture<EditControllerService>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [EditControllerService]
+        });
+        fixture = TestBed.createComponent(EditControllerService);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

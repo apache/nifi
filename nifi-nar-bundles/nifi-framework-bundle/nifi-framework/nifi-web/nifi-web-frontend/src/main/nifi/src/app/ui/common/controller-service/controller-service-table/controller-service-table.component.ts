@@ -19,7 +19,7 @@ import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgClass, NgIf } from '@angular/common';
 import {
@@ -27,11 +27,11 @@ import {
     ControllerServiceEntity,
     TextTipInput,
     ValidationErrorsTipInput
-} from '../../../state/shared';
-import { NifiTooltipDirective } from '../nifi-tooltip.directive';
-import { TextTip } from '../tooltips/text-tip/text-tip.component';
-import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component';
-import { ValidationErrorsTip } from '../tooltips/validation-errors-tip/validation-errors-tip.component';
+} from '../../../../state/shared';
+import { NifiTooltipDirective } from '../../nifi-tooltip.directive';
+import { TextTip } from '../../tooltips/text-tip/text-tip.component';
+import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
+import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 
 @Component({
     selector: 'controller-service-table',
@@ -60,6 +60,8 @@ export class ControllerServiceTable implements AfterViewInit {
         };
     }
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
@@ -190,6 +192,10 @@ export class ControllerServiceTable implements AfterViewInit {
 
     canConfigure(entity: ControllerServiceEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
+    }
+
+    configureClicked(entity: ControllerServiceEntity): void {
+        this.configureControllerService.next(entity);
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {

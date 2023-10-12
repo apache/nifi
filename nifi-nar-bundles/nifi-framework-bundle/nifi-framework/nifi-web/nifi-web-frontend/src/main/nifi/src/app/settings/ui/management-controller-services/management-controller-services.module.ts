@@ -19,7 +19,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ManagementControllerServices } from './management-controller-services.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../ui/common/controller-service-table/controller-service-table.component';
+import { ControllerServiceTable } from '../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 
 @NgModule({
     declarations: [ManagementControllerServices],

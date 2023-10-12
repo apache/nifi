@@ -15,22 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div class="general-form w-96">
-    <form [formGroup]="controllerForm" (ngSubmit)="apply()">
-        <div>
-            <mat-form-field>
-                <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input matInput formControlName="timerDrivenThreadCount" type="text" />
-            </mat-form-field>
-        </div>
-        <div>
-            <button
-                [disabled]="!controllerForm.dirty || controllerForm.invalid"
-                type="submit"
-                color="primary"
-                mat-raised-button>
-                Apply
-            </button>
-        </div>
-    </form>
+<div class="tooltip" [style.left.px]="left" [style.top.px]="top">
+    <div class="flex flex-col gap-y-3" *ngIf="data?.descriptor; let descriptor">
+        <div *ngIf="hasDescription(descriptor)">{{ descriptor.description }}</div>
+        <div *ngIf="hasDefaultValue(descriptor)"><b>Default Value:</b> {{ descriptor.defaultValue }}</div>
+        <div><b>Expression language scope:</b> {{ descriptor.expressionLanguageScope }}</div>
+        <div><b>Sensitive property:</b> {{ descriptor.sensitive }}</div>
+        <div *ngIf="identifiesControllerService(descriptor)"><b>Requires Controller Service:</b> {{ formatControllerService(descriptor) }}</div>
+        <!-- TODO - Property History -->
+    </div>
 </div>

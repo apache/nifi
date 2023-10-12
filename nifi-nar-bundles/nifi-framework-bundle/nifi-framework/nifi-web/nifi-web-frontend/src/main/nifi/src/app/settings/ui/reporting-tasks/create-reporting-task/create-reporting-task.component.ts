@@ -17,12 +17,12 @@
 
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { DocumentedType } from '../../../../state/extension-types';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../ui/common/extension-creation/extension-creation.component';
 import { CreateReportingTaskRequest, ReportingTasksState } from '../../../state/reporting-tasks';
 import { createReportingTask } from '../../../state/reporting-tasks/reporting-tasks.actions';
 import { Client } from '../../../../service/client.service';
+import { DocumentedType } from '../../../../state/shared';
 
 @Component({
     selector: 'create-reporting-task',

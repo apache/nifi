@@ -15,12 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.mat-mdc-form-field {
-    width: 100%;
-}
+import { UnorderedListTip } from './unordered-list-tip.component';
 
-.general-form {
-    @include mat.button-density(-1);
-}
+describe('UnorderedListTip', () => {
+    let component: UnorderedListTip;
+    let fixture: ComponentFixture<UnorderedListTip>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [UnorderedListTip]
+        });
+        fixture = TestBed.createComponent(UnorderedListTip);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

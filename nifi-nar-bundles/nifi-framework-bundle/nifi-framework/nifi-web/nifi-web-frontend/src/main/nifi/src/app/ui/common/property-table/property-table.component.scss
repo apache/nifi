@@ -15,7 +15,12 @@
  * limitations under the License.
  */
 
-.controller-service-table {
+@use '@angular/material' as mat;
+
+.property-table {
+    @include mat.table-density(-4);
+    min-width: 740px;
+
     table {
         width: 100%;
 
@@ -26,6 +31,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             padding: 0 8px;
+            cursor: default;
         }
 
         th {
@@ -45,29 +51,14 @@
             background-color: #f4f6f7;
         }
 
-        .fa,
-        .icon {
-            color: #004849;
+        .fa {
             width: 10px;
             height: 14px;
-            text-align: center;
-        }
-
-        .mat-column-moreDetails {
-            min-width: 90px;
         }
 
         .mat-column-actions {
             min-width: 115px;
         }
-    }
-
-    .mat-mdc-table .mdc-data-table__header-row {
-        height: 35px;
-    }
-
-    .mat-mdc-table .mdc-data-table__row {
-        height: 35px;
     }
 }
 

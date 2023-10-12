@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ExplicitRestriction } from '../shared';
+import { DocumentedType } from '../shared';
 
 export const extensionTypesFeatureKey = 'extensionTypes';
 
@@ -29,23 +29,6 @@ export interface LoadExtensionTypesForSettingsResponse {
     reportingTaskTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
-}
-
-export interface Bundle {
-    artifact: string;
-    group: string;
-    version: string;
-}
-
-export interface DocumentedType {
-    bundle: Bundle;
-    description: string;
-    restricted: boolean;
-    tags: string[];
-    type: string;
-    explicitRestrictions?: ExplicitRestriction[];
-    usageRestriction?: string;
-    deprecationReason?: string;
 }
 
 export interface CreateExtensionRequest {

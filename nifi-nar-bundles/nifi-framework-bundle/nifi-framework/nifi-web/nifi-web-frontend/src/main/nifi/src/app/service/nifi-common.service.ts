@@ -137,4 +137,21 @@ export class NiFiCommon {
         }
         return groupString + bundle.artifact;
     }
+
+    /**
+     * Constant regex for leading and/or trailing whitespace.
+     */
+    private static readonly LEAD_TRAIL_WHITE_SPACE_REGEX: RegExp = /^[ \s]+|[ \s]+$/;
+
+    /**
+     * Checks the specified value for leading and/or trailing whitespace only.
+     *
+     * @argument {string} value     The value to check
+     */
+    public hasLeadTrailWhitespace(value: string): boolean {
+        if (this.isBlank(value)) {
+            return false;
+        }
+        return NiFiCommon.LEAD_TRAIL_WHITE_SPACE_REGEX.test(value);
+    }
 }

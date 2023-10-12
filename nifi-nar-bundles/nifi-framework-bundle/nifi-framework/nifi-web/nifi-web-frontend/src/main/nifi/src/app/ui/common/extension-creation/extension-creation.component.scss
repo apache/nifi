@@ -15,8 +15,13 @@
  * limitations under the License.
  */
 
+@use '@angular/material' as mat;
+
 .extension-creation-dialog {
+    @include mat.button-density(-1);
+
     .type-table {
+        @include mat.table-density(-4);
         min-width: 740px;
 
         table {
@@ -58,14 +63,6 @@
             .fa.fa-shield {
                 color: #ba554a;
             }
-        }
-
-        .mat-mdc-table .mdc-data-table__header-row {
-            height: 35px;
-        }
-
-        .mat-mdc-table .mdc-data-table__row {
-            height: 35px;
         }
     }
 

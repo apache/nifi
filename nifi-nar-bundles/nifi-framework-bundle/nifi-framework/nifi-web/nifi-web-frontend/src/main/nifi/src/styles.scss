@@ -207,7 +207,9 @@ $nifi-theme: mat.define-light-theme(
             primary: $nifi-primary,
             accent: $nifi-accent,
             warn: $nifi-warn
-        )
+        ),
+        //typography: mat.define-typography-config(),
+        density: -3
     )
 );
 
@@ -225,7 +227,7 @@ body {
 
 body {
     margin: 0;
-    font-family: Roboto, 'Helvetica Neue', sans-serif;
+    //font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
 a {
@@ -405,6 +407,7 @@ button.nifi-button:hover {
     cursor: pointer;
 }
 
+.value,
 .refresh-timestamp {
     font-weight: 500;
     color: #775351;

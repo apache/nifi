@@ -18,11 +18,11 @@
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CreateProcessorDialogRequest } from '../../../state/flow';
-import { DocumentedType } from '../../../../state/extension-types';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { createProcessor } from '../../../state/flow/flow.actions';
 import { ExtensionCreation } from '../../../../ui/common/extension-creation/extension-creation.component';
+import { DocumentedType } from '../../../../state/shared';
 
 @Component({
     selector: 'create-processor',

@@ -17,12 +17,15 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    ConfigureControllerService,
+    ConfigureControllerServiceSuccess,
     CreateControllerService,
     CreateControllerServiceSuccess,
     DeleteControllerService,
     DeleteControllerServiceSuccess,
     LoadManagementControllerServicesResponse
 } from './index';
+import { EditControllerServiceRequest } from '../../../state/shared';
 
 export const loadManagementControllerServices = createAction(
     '[Management Controller Services] Load Management Controller Services'
@@ -50,6 +53,21 @@ export const createControllerService = createAction(
 export const createControllerServiceSuccess = createAction(
     '[Management Controller Services] Create Controller Service Success',
     props<{ response: CreateControllerServiceSuccess }>()
+);
+
+export const openConfigureControllerServiceDialog = createAction(
+    '[Management Controller Services] Open Configure Controller Service Dialog',
+    props<{ request: EditControllerServiceRequest }>()
+);
+
+export const configureControllerService = createAction(
+    '[Management Controller Services] Configure Controller Service',
+    props<{ request: ConfigureControllerService }>()
+);
+
+export const configureControllerServiceSuccess = createAction(
+    '[Management Controller Services] Configure Controller Service Success',
+    props<{ response: ConfigureControllerServiceSuccess }>()
 );
 
 export const promptControllerServiceDeletion = createAction(

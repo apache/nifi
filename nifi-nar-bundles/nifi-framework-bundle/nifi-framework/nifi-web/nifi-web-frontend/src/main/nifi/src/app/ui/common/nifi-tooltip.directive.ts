@@ -34,6 +34,8 @@ export class NifiTooltipDirective<T> {
 
     @HostListener('mouseenter', ['$event'])
     mouseEnter(event: MouseEvent) {
+        console.log('mouseenter');
+
         // @ts-ignore
         const { x, y, width, height } = event.currentTarget.getBoundingClientRect();
 
