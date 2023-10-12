@@ -40,18 +40,23 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ScheduledStateChangeListener;
@@ -1090,6 +1095,54 @@ public class StandardVersionedComponentSynchronizerTest {
         assertEquals(new HashSet<>(Arrays.asList("abc", "secret", "Added", "Added 2")), synchronizer.getUpdatedParameterNames(existing, proposed));
     }
 
+    @Test
+    public void testUpdateParameterContextWhenContextDoesNotExist() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName("does-not-exist");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Collections.emptyMap());
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        verify(processGroup, times(0)).setParameterContext(any(ParameterContext.class));
+    }
+
+    @Test
+    public void testUpdateParameterContextWhenContextDoesExist() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        final VersionedParameterContext parameterContext = new VersionedParameterContext();
+        parameterContext.setName("My Params");
+        parameterContext.setParameters(Collections.emptySet());
+
+        final Map<String, VersionedParameterContext> parameterContextMap = new HashMap<>();
+        parameterContextMap.put(parameterContext.getName(), parameterContext);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName(parameterContext.getName());
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        verify(processGroup, times(1)).setParameterContext(any(ParameterContext.class));
+    }
 
     private VersionedParameterContext createVersionedParameterContext(final String name, final Map<String, String> parameters, final Set<String> sensitiveParamNames) {
         final Set<VersionedParameter> versionedParameters = new HashSet<>();
