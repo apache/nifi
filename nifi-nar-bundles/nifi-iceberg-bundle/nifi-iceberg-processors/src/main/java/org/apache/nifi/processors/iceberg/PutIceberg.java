@@ -383,10 +383,9 @@ public class PutIceberg extends AbstractIcebergProcessor {
     private void addSnapshotSummaryProperties(ProcessContext context, AppendFiles appender, FlowFile flowFile) {
         appender.set(ICEBERG_SNAPSHOT_SUMMARY_FLOWFILE_UUID, flowFile.getAttribute(CoreAttributes.UUID.key()));
 
-        for (Map.Entry<String, String> dynamicProperty : getDynamicProperties(context, context.getProperties()).entrySet()) {
+        for (Map.Entry<String, String> dynamicProperty : getDynamicProperties(context, flowFile).entrySet()) {
             String key = dynamicProperty.getKey().substring(ICEBERG_SNAPSHOT_SUMMARY_PREFIX.length());
-            String value = context.newPropertyValue(dynamicProperty.getValue()).evaluateAttributeExpressions().getValue();
-            appender.set(key, value);
+            appender.set(key, dynamicProperty.getValue());
         }
     }
 
