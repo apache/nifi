@@ -137,7 +137,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(new JsonPointerPropertyNameValidator())
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }
@@ -165,7 +165,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                     addField("/type", type, baseTicketNode, record);
 
                     for (Map.Entry<String, PropertyValue> dynamicProperty : dynamicProperties.entrySet()) {
-                        addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
+                        addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record, null);
                     }
 
                     ObjectNode ticketNode = recordCache.getIfPresent(baseTicketNode.toString());

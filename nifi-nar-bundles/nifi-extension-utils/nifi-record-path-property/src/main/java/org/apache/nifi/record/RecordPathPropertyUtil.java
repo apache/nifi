@@ -17,6 +17,7 @@
 package org.apache.nifi.record;
 
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -45,10 +46,11 @@ public final class RecordPathPropertyUtil {
      *
      * @param propertyValue property value to be resolved
      * @param record        record to receive the value from if the field value is a record path
+     * @param flowFile      FlowFile to evaluate attribute expressions
      */
-    public static String resolveFieldValue(PropertyValue propertyValue, Record record) {
+    public static String resolveFieldValue(PropertyValue propertyValue, Record record, FlowFile flowFile) {
         if (propertyValue.isSet()) {
-            final String value = propertyValue.evaluateAttributeExpressions().getValue();
+            final String value = propertyValue.evaluateAttributeExpressions(flowFile).getValue();
             final Matcher matcher = RECORD_PATH_PATTERN.matcher(value);
             if (matcher.matches()) {
                 return resolveRecordState(matcher.group(1), record);

@@ -71,13 +71,12 @@ public final class ZendeskUtils {
                 // filter non-blank dynamic properties
                 .filter(e -> e.getKey().isDynamic()
                         && StringUtils.isNotBlank(e.getValue())
-                        && StringUtils.isNotBlank(context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties()).getValue())
                 )
                 // convert to Map keys and evaluated property values
                 .collect(Collectors.toMap(
-                        e -> e.getKey().getName(),
-                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties())
-                ));
+                        k -> k.getKey().getName(),
+                        v -> context.getProperty(v.getKey()))
+                );
     }
 
     /**

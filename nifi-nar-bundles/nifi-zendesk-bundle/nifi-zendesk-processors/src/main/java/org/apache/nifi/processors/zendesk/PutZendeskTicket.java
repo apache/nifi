@@ -181,13 +181,13 @@ public class PutZendeskTicket extends AbstractZendesk {
 
                 while ((record = reader.nextRecord()) != null) {
                     ObjectNode baseTicketNode = mapper.createObjectNode();
-                    addField("/comment/body", context.getProperty(ZENDESK_TICKET_COMMENT_BODY), baseTicketNode, record);
-                    addField("/subject", context.getProperty(ZENDESK_TICKET_SUBJECT), baseTicketNode, record);
-                    addField("/priority", context.getProperty(ZENDESK_TICKET_PRIORITY), baseTicketNode, record);
-                    addField("/type", context.getProperty(ZENDESK_TICKET_TYPE), baseTicketNode, record);
+                    addField("/comment/body", context.getProperty(ZENDESK_TICKET_COMMENT_BODY), baseTicketNode, record, flowFile);
+                    addField("/subject", context.getProperty(ZENDESK_TICKET_SUBJECT), baseTicketNode, record, flowFile);
+                    addField("/priority", context.getProperty(ZENDESK_TICKET_PRIORITY), baseTicketNode, record, flowFile);
+                    addField("/type", context.getProperty(ZENDESK_TICKET_TYPE), baseTicketNode, record, flowFile);
 
                     for (Map.Entry<String, PropertyValue> dynamicProperty : dynamicProperties.entrySet()) {
-                        addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
+                        addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record, flowFile);
                     }
                     zendeskTickets.add(baseTicketNode);
                 }

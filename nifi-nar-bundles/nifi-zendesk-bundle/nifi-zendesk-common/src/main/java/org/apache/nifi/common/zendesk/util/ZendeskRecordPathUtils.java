@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.record.RecordPathPropertyUtil;
 import org.apache.nifi.serialization.record.Record;
 
@@ -37,6 +38,10 @@ public final class ZendeskRecordPathUtils {
     private ZendeskRecordPathUtils() {
     }
 
+    public static void addField(String path, PropertyValue propertyValue, ObjectNode baseTicketNode, Record record) {
+        addField(path, propertyValue, baseTicketNode, record, null);
+    }
+
     /**
      * Resolves the input property value and appends it as a new node at the given path.
      *
@@ -44,9 +49,10 @@ public final class ZendeskRecordPathUtils {
      * @param propertyValue  property value to be resolved
      * @param baseTicketNode base request object where the field value will be added
      * @param record         record to receive the value from if the field value is a record path
+     * @param flowFile       FlowFile to evaluate attribute expressions
      */
-    public static void addField(String path, PropertyValue propertyValue, ObjectNode baseTicketNode, Record record) {
-        final String resolvedValue = RecordPathPropertyUtil.resolveFieldValue(propertyValue, record);
+    public static void addField(String path, PropertyValue propertyValue, ObjectNode baseTicketNode, Record record, FlowFile flowFile) {
+        final String resolvedValue = RecordPathPropertyUtil.resolveFieldValue(propertyValue, record, flowFile);
 
         if (resolvedValue != null) {
             addNewNodeAtPath(baseTicketNode, JsonPointer.compile(path), new TextNode(resolvedValue));
@@ -61,15 +67,16 @@ public final class ZendeskRecordPathUtils {
      * @param propertyValue  dynamic property value
      * @param baseTicketNode base request object where the field value will be added
      * @param record         record to receive the value from if the field value is a record path
+     * @param flowFile       FlowFile to evaluate attribute expressions
      */
-    public static void addDynamicField(String path, PropertyValue propertyValue, ObjectNode baseTicketNode, Record record) {
+    public static void addDynamicField(String path, PropertyValue propertyValue, ObjectNode baseTicketNode, Record record, FlowFile flowFile) {
         if (path.startsWith(ZENDESK_TICKET_ROOT_NODE)) {
             path = path.substring(7);
         } else if (path.startsWith(ZENDESK_TICKETS_ROOT_NODE)) {
             path = path.substring(8);
         }
 
-        addField(path, propertyValue, baseTicketNode, record);
+        addField(path, propertyValue, baseTicketNode, record, flowFile);
     }
 
     /**
