@@ -17,7 +17,6 @@
 
 package org.apache.nifi.flow.synchronization;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -1944,31 +1943,27 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             group.setParameterContext(null);
         } else if (proposedParameterContextName != null) {
             final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
-            createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
-            if (currentParamContext == null) {
-                // Create a new Parameter Context based on the parameters provided
+            if (versionedParameterContext != null) {
+                createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
+                if (currentParamContext == null) {
+                    // Create a new Parameter Context based on the parameters provided
+                    final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+                    final ParameterContext selectedParameterContext;
+                    if (contextByName == null) {
+                        final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
+                                versionedParameterContext.getName(), versionedParameterContext.getName());
+                        selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
+                                parameterProviderReferences, componentIdGenerator);
+                    } else {
+                        selectedParameterContext = contextByName;
+                        addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                    }
 
-                // Protect against NPE in the event somehow the proposed name is not in the set of contexts
-                if (versionedParameterContext == null) {
-                    final String paramContextNames = StringUtils.join(versionedParameterContexts.keySet());
-                    throw new IllegalStateException("Proposed parameter context name '" + proposedParameterContextName
-                        + "' does not exist in set of available parameter contexts [" + paramContextNames + "]");
-                }
-
-                final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
-                final ParameterContext selectedParameterContext;
-                if (contextByName == null) {
-                    final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), versionedParameterContext.getName());
-                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                    group.setParameterContext(selectedParameterContext);
                 } else {
-                    selectedParameterContext = contextByName;
-                    addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                    // Update the current Parameter Context so that it has any Parameters included in the proposed context
+                    addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                 }
-
-                group.setParameterContext(selectedParameterContext);
-            } else {
-                // Update the current Parameter Context so that it has any Parameters included in the proposed context
-                addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
             }
         }
     }
