@@ -36,12 +36,25 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
             return false;
         }
 
+        // We need to try to open flow into the Port's group. To do this, we need to get the data valve for the parent group,
+        // as it is responsible for data flowing into and out of its children.
+        final ProcessGroup dataValveGroup = port.getProcessGroup().getParent();
+        final DataValve dataValve = dataValveGroup.getDataValve();
+        final boolean openFlowIntoGroup = dataValve.tryOpenFlowIntoGroup(port.getProcessGroup());
+        if (!openFlowIntoGroup) {
+            claimed.set(false);
+            return false;
+        }
+
         // The claim is now held by this thread. Check if the ProcessGroup is empty.
         final boolean empty = !port.getProcessGroup().isDataQueued();
         if (empty) {
             // Process Group is empty so return true indicating that the claim is now held.
             return true;
         }
+
+        // We have already opened flow into group, so now we must close it, since we are not allowing flow in
+        dataValve.closeFlowIntoGroup(port.getProcessGroup());
 
         // Process Group was not empty, so we cannot allow any more FlowFiles through. Reset claimed to false and return false,
         // indicating that the caller did not obtain the claim.
@@ -52,5 +65,9 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
     @Override
     public void releaseClaim(final Port port) {
         claimed.set(false);
+
+        final ProcessGroup dataValveGroup = port.getProcessGroup().getParent();
+        final DataValve dataValve = dataValveGroup.getDataValve();
+        dataValve.closeFlowIntoGroup(port.getProcessGroup());
     }
 }
