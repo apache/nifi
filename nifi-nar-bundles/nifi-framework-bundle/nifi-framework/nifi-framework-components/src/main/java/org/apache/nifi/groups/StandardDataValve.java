@@ -84,8 +84,13 @@ public class StandardDataValve implements DataValve {
         if (destinationGroup.isDataQueued()) {
             // If the destination group already has data queued up, and the valve is not already open, do not allow data to
             // flow into the group. If we did, we would end up mixing together two different batches of data.
-            logger.debug("Will not allow data to flow into {} because valve is not already open and the Process Group has data queued", destinationGroup);
+            logger.trace("Will not allow data to flow into {} because valve is not already open and the Process Group has data queued", destinationGroup);
             return "Process Group already has data queued and valve is not already allowing data into group";
+        }
+
+        if (destinationGroup.getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT && groupsWithDataFlowingOut.contains(destinationGroup.getIdentifier())) {
+            logger.trace("Will not allow data to flow into {} because Outbound Policy is Batch Output and valve is already open to allow data to flow out of group", destinationGroup);
+            return "Data Valve is already allowing data to flow out of group";
         }
 
         for (final Port port : destinationGroup.getInputPorts()) {
@@ -102,7 +107,7 @@ public class StandardDataValve implements DataValve {
 
                 final boolean flowingOutOfSourceGroup = groupsWithDataFlowingOut.contains(sourceGroup.getIdentifier());
                 if (Boolean.TRUE.equals(flowingOutOfSourceGroup)) {
-                    logger.debug("Will not allow data to flow into {} because port {} has an incoming connection from {} and that Process Group is currently allowing data to flow out",
+                    logger.trace("Will not allow data to flow into {} because port {} has an incoming connection from {} and that Process Group is currently allowing data to flow out",
                         destinationGroup, port, sourceConnectable);
                     return "Source connected to Input Port is an Output Port with Batch Output and is currently allowing data to flow out";
                 }
@@ -119,13 +124,15 @@ public class StandardDataValve implements DataValve {
             return;
         }
 
-        for (final Port port : destinationGroup.getInputPorts()) {
-            for (final Connection connection : port.getIncomingConnections()) {
-                if (!connection.getFlowFileQueue().isEmpty()) {
-                    logger.debug("Triggered to close flow of data into group {} but Input Port has incoming Connection {}, which is not empty, so will not close valve",
-                        destinationGroup, connection);
+        if (destinationGroup.getFlowFileConcurrency() == FlowFileConcurrency.SINGLE_BATCH_PER_NODE) {
+            for (final Port port : destinationGroup.getInputPorts()) {
+                for (final Connection connection : port.getIncomingConnections()) {
+                    if (!connection.getFlowFileQueue().isEmpty()) {
+                        logger.debug("Triggered to close flow of data into group {} but Input Port has incoming Connection {}, which is not empty, so will not close valve",
+                            destinationGroup, connection);
 
-                    return;
+                        return;
+                    }
                 }
             }
         }
@@ -175,14 +182,14 @@ public class StandardDataValve implements DataValve {
                 }
 
                 if (!connection.getFlowFileQueue().isEmpty()) {
-                    logger.debug("Not allowing data to flow out of {} because {} has a destination of {}, which has data queued and its Process Group is "
+                    logger.trace("Not allowing data to flow out of {} because {} has a destination of {}, which has data queued and its Process Group is "
                         + "configured with a FlowFileConcurrency of Batch Per Node.", sourceGroup, port, connection);
                     return "Output Connection already has data queued";
                 }
 
                 final boolean dataFlowingIntoDestination = groupsWithDataFlowingIn.contains(destinationProcessGroup.getIdentifier());
                 if (dataFlowingIntoDestination) {
-                    logger.debug("Not allowing data to flow out of {} because {} has a destination of {}, and its Process Group is "
+                    logger.trace("Not allowing data to flow out of {} because {} has a destination of {}, and its Process Group is "
                         + "currently allowing data to flow in", sourceGroup, port, connection);
                     return "Destination Process Group is allowing data to flow in";
                 }
