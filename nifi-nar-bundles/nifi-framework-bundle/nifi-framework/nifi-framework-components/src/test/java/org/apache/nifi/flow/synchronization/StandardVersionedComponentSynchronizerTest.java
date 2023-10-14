@@ -1131,6 +1131,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         final VersionedParameterContext parameterContext = new VersionedParameterContext();
         parameterContext.setName("My Params");
+        parameterContext.setDescription("Context Description");
         parameterContext.setParameters(Collections.emptySet());
 
         final Map<String, VersionedParameterContext> parameterContextMap = new HashMap<>();
