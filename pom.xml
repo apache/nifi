@@ -1100,6 +1100,7 @@
                                 !ITestConsumeEmail#validateUrl,
                                 !PrometheusReportingTaskIT#testNullLabel,
                                 !SnowflakeConnectionPoolIT,
+                                !SnowflakePipeIT,
                                 !SalesforceRestServiceIT,
                                 !QuerySalesforceObjectIT,
                                 !PutSalesforceObjectIT,
@@ -1121,7 +1122,7 @@
                                 !ITRedisDistributedMapCacheClientService#testSentinelRedisWithUsernameAndPasswordAuthentication,
                                 !ITRedisDistributedMapCacheClientService#testStandaloneRedis,
                                 !ITRedisDistributedMapCacheClientService#testStandaloneRedisWithAuthentication,
-                                !SnowflakePipeIT,
+                                !SecureDatabaseIT,
                                 !SecureFileIT,
                                 !SecureProxyIT#testAccessStatus,
                                 !SecureProxyIT#testAccessStatusAsProxiedAdmin,
@@ -1130,7 +1131,8 @@
                                 !SecureNiFiRegistryClientIT#testTenantsClientGroups,
                                 !SecureNiFiRegistryClientIT#testTenantsClientUsers,
                                 !SecureNiFiRegistryClientIT#testCrudOperations,
-                                !SecureDatabaseIT,
+                                !UnsecuredNiFiRegistryClientIT#testFlowSnapshotsWithParameterContextAndEncodingVersion,
+                                !UnsecuredNiFiRegistryClientIT#testNiFiRegistryClient,
                                 !ITConnectionAccessControl,
                                 !ITLabelAccessControl,
                                 !ITOutputPortAccessControl,
@@ -1143,8 +1145,7 @@
                                 !ITPreventProxiedAnonymousAccess,
                                 !ITPreventDirectAnonymousAccess,
                                 !ITAllowDirectAnonymousAccess,
-                                !ITProcessGroupAccessControl,
-                                !UnsecuredNiFiRegistryClientIT#testFlowSnapshotsWithParameterContextAndEncodingVersion
+                                !ITProcessGroupAccessControl
                             </test>
                         </configuration>
                     </plugin>
