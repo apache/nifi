@@ -64,7 +64,7 @@ ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
 RUN groupadd -g ${GID} ${MINIFI_USER} \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_USER}
 
-COPY --from=builder ${MINIFI_BASE_DIR} ${MINIFI_BASE_DIR}
+COPY --chown=minifi:minifi --from=builder ${MINIFI_BASE_DIR} ${MINIFI_BASE_DIR}
 
 USER ${MINIFI_USER}
 
