@@ -60,7 +60,7 @@ ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
 RUN groupadd -g ${GID} ${MINIFI_C2_USER} \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER}
 
-COPY --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
+COPY --chown=c2:c2 --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
 
 USER ${MINIFI_C2_USER}
 

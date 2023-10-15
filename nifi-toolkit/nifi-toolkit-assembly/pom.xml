@@ -28,7 +28,6 @@ language governing permissions and limitations under the License. -->
                     <excludes combine.children="append">
                         <exclude>src/main/resources/conf/config-client.json</exclude>
                         <exclude>src/main/resources/conf/config-server.json</exclude>
-                        <exclude>docker/tests/exit-codes.sh</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -20,9 +20,8 @@ set -exuo pipefail
 TAG=$1
 VERSION=$2
 
-container_name="nifi-registry-${TAG}-integration-test"
-image_name="apache/nifi-registry:${TAG}"
-port=18080
+container_name="nifi-minifi-${TAG}-integration-test"
+image_name="apache/nifi-minifi:${TAG}"
 
 trap '{ docker logs "${container_name}" | tail -10; docker inspect -f "{{json .State}}" "${container_name}"; docker rm -f "${container_name}"; }' EXIT
 
@@ -30,19 +29,18 @@ echo "Deleting any existing ${container_name} containers"
 docker rm -f "${container_name}"
 echo
 
-echo "Checking that all files are owned by NiFi"
-test -z "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "find /opt/nifi-registry ! -user nifi")"
+echo "Checking that all files are owned by MiNiFi"
+test -z "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "find /opt/minifi ! -user minifi")"
 echo
 
 echo "Checking environment variables"
-test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_HOME}')"
-test "/opt/nifi-registry/nifi-registry-${VERSION}" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'readlink ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current')"
-test "/opt/nifi-registry/nifi-toolkit-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "readlink \${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${VERSION}")"
+test "/opt/minifi/minifi-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${MINIFI_HOME}')"
+test "/opt/minifi/minifi-${VERSION}" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'readlink ${MINIFI_BASE_DIR}/minifi-current')"
 
-test "/opt/nifi-registry" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_BASE_DIR}')"
+test "/opt/minifi" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${MINIFI_BASE_DIR}')"
 echo
 
-echo "Starting NiFi Registry container..."
+echo "Starting MiNiFi container..."
 docker run -d --name "${container_name}" "${image_name}"
 ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${container_name}")
 echo
@@ -52,24 +50,20 @@ sleep_time=10
 
 sleep ${sleep_time}
 for i in $(seq 1 "${max_iterations}") :; do
-    echo "Waiting for NiFi Registry startup - iteration: ${i}"
-    if docker exec "${container_name}" bash -c " echo Running < /dev/tcp/${ip}/${port}"; then
-        echo "NiFi Registry found active on port ${port}"
+    echo "Waiting for MiNiFi startup - iteration: ${i}"
+    if docker exec "${container_name}" bash -c './bin/minifi.sh status | grep -F "Apache MiNiFi is currently running"'; then
+        echo "MiNiFi found active"
         break
     fi
     echo
     if [ "${i}" -eq "${max_iterations}" ]; then
-      echo "NiFi Registry did not start within expected time"
+      echo "MiNiFi did not start within expected time"
       exit 1
     fi
     sleep 10
 done
 echo
 
-echo "Checking NiFi Registry REST API Access"
-test "200" = "$(docker exec "${container_name}" bash -c "curl -sSo /dev/null -w %{http_code} -k http://${ip}:${port}/nifi-registry-api/access")"
-echo
-
-echo "Stopping NiFi Registry container"
+echo "Stopping MiNiFi container"
 time docker stop "${container_name}"
 echo

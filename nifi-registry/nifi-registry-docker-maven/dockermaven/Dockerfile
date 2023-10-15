@@ -41,14 +41,12 @@ RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh \
 
 COPY $NIFI_REGISTRY_BINARY $NIFI_REGISTRY_BASE_DIR
 RUN unzip ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY_NAME} -d ${NIFI_REGISTRY_BASE_DIR} \
-    && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY_NAME} \
-    && ln -s ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION} ${NIFI_REGISTRY_HOME}
+    && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY_NAME}
 
 COPY $NIFI_TOOLKIT_BINARY $NIFI_REGISTRY_BASE_DIR
 RUN unzip ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}-bin.zip -d ${NIFI_REGISTRY_BASE_DIR} \
     && rm ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}-bin.zip \
-    && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} ${NIFI_TOOLKIT_HOME} \
-    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}
+    && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} ${NIFI_TOOLKIT_HOME}
 
 
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
@@ -57,6 +55,7 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
+ARG NIFI_REGISTRY_VERSION
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
@@ -72,6 +71,10 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY --chown=nifi:nifi --from=artifactbase $NIFI_REGISTRY_BASE_DIR $NIFI_REGISTRY_BASE_DIR
+
+RUN ln -s ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION} ${NIFI_REGISTRY_HOME} \
+    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} \
+    && chown -h nifi:nifi ${NIFI_REGISTRY_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}
 
 USER nifi
 

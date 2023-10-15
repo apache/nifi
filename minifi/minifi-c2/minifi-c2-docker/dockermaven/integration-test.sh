@@ -20,29 +20,28 @@ set -exuo pipefail
 TAG=$1
 VERSION=$2
 
-container_name="nifi-registry-${TAG}-integration-test"
-image_name="apache/nifi-registry:${TAG}"
-port=18080
+container_name="nifi-minifi-c2-${TAG}-integration-test"
+image_name="apache/nifi-minifi-c2:${TAG}"
+port=10090
 
-trap '{ docker logs "${container_name}" | tail -10; docker inspect -f "{{json .State}}" "${container_name}"; docker rm -f "${container_name}"; }' EXIT
+trap '{ docker inspect -f "{{json .State}}" "${container_name}"; docker rm -f "${container_name}"; }' EXIT
 
 echo "Deleting any existing ${container_name} containers"
 docker rm -f "${container_name}"
 echo
 
-echo "Checking that all files are owned by NiFi"
-test -z "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "find /opt/nifi-registry ! -user nifi")"
+echo "Checking that all files are owned by C2"
+test -z "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "find /opt/minifi-c2 ! -user c2")"
 echo
 
 echo "Checking environment variables"
-test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_HOME}')"
-test "/opt/nifi-registry/nifi-registry-${VERSION}" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'readlink ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current')"
-test "/opt/nifi-registry/nifi-toolkit-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "readlink \${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${VERSION}")"
+test "/opt/minifi-c2/minifi-c2-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${MINIFI_C2_HOME}')"
+test "/opt/minifi-c2/minifi-c2-${VERSION}" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'readlink ${MINIFI_C2_BASE_DIR}/minifi-c2-current')"
 
-test "/opt/nifi-registry" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_BASE_DIR}')"
+test "/opt/minifi-c2" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${MINIFI_C2_BASE_DIR}')"
 echo
 
-echo "Starting NiFi Registry container..."
+echo "Starting MiNiFi C2 container..."
 docker run -d --name "${container_name}" "${image_name}"
 ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${container_name}")
 echo
@@ -52,24 +51,24 @@ sleep_time=10
 
 sleep ${sleep_time}
 for i in $(seq 1 "${max_iterations}") :; do
-    echo "Waiting for NiFi Registry startup - iteration: ${i}"
+    echo "Waiting for MiNiFi C2 startup - iteration: ${i}"
     if docker exec "${container_name}" bash -c " echo Running < /dev/tcp/${ip}/${port}"; then
-        echo "NiFi Registry found active on port ${port}"
+        echo "MiNiFi C2 found active on port ${port}"
         break
     fi
     echo
     if [ "${i}" -eq "${max_iterations}" ]; then
-      echo "NiFi Registry did not start within expected time"
+      echo "MiNiFi C2 did not start within expected time"
       exit 1
     fi
     sleep 10
 done
 echo
 
-echo "Checking NiFi Registry REST API Access"
-test "200" = "$(docker exec "${container_name}" bash -c "curl -sSo /dev/null -w %{http_code} -k http://${ip}:${port}/nifi-registry-api/access")"
+echo "Checking MiNiFi C2 Config Access (Invalid request)"
+test "400" = "$(docker exec "${container_name}" bash -c "curl -sSo /dev/null -w %{http_code} -m 10 --retry 5 --retry-connrefused --retry-max-time 60 http://${ip}:${port}/c2/config")"
 echo
 
-echo "Stopping NiFi Registry container"
+echo "Stopping MiNiFi C2 container"
 time docker stop "${container_name}"
 echo

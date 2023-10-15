@@ -24,7 +24,7 @@
     <packaging>pom</packaging>
     <description>Holds common resources used to build installers</description>
     <properties>
-        <!--Wrapper Properties -->
+        <!--Wrapper Prope§rties -->
         <nifi.jvm.heap.init>1g</nifi.jvm.heap.init>
         <nifi.jvm.heap.max>1g</nifi.jvm.heap.max>
         <nifi.run.as />
