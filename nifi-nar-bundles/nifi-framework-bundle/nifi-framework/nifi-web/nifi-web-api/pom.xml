@@ -378,6 +378,17 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- H2 Database dependencies for migration from NiFi 1.23.2 and earlier -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-h2-database-migrator</artifactId>
+            <version>1.24.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- testing dependencies -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

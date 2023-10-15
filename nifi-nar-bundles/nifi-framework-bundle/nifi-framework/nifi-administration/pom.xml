@@ -21,6 +21,9 @@
         <version>1.24.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-administration</artifactId>
+    <properties>
+        <xodus.version>2.0.1</xodus.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -82,6 +85,16 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.xodus</groupId>
+            <artifactId>xodus-openAPI</artifactId>
+            <version>${xodus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.xodus</groupId>
+            <artifactId>xodus-entity-store</artifactId>
+            <version>${xodus.version}</version>
         </dependency>
     </dependencies>
 </project>

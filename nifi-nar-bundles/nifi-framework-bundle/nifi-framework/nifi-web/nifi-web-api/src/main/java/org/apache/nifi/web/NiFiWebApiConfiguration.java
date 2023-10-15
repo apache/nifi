@@ -16,10 +16,18 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.admin.service.EntityStoreAuditService;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.migration.FlowConfigurationHistoryMigrator;
 import org.apache.nifi.web.security.configuration.WebSecurityConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportResource;
+
+import java.io.File;
 
 /**
  * Web Application Spring Configuration
@@ -29,7 +37,6 @@ import org.springframework.context.annotation.ImportResource;
         WebSecurityConfiguration.class
 })
 @ImportResource({"classpath:nifi-context.xml",
-    "classpath:nifi-administration-context.xml",
     "classpath:nifi-authorizer-context.xml",
     "classpath:nifi-cluster-manager-context.xml",
     "classpath:nifi-cluster-protocol-context.xml",
@@ -40,4 +47,18 @@ public class NiFiWebApiConfiguration {
         super();
     }
 
+    /**
+     * Audit Service implementation from nifi-administration
+     *
+     * @param properties NiFi Properties
+     * @return Audit Service implementation using Persistent Entity Store
+     */
+    @Autowired
+    @Bean
+    public AuditService auditService(final NiFiProperties properties) throws Exception {
+        final File databaseDirectory = properties.getDatabaseRepositoryPath().toFile();
+        final AuditService auditService = new EntityStoreAuditService(databaseDirectory);
+        FlowConfigurationHistoryMigrator.reconcileDatabaseRepository(databaseDirectory.toPath(), auditService);
+        return auditService;
+    }
 }
