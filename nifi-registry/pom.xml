@@ -43,8 +43,8 @@
         <groovy.eclipse.compiler.version>3.7.0</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>5.13.2.202306221912-r</jgit.version>
-        <!-- JGit 5.13 requires SSHD 2.9.2 or earlier -->
-        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
+        <!-- JGit 5.13 requires SSHD 2.9.3 or earlier -->
+        <org.apache.sshd.version>2.9.3</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>
