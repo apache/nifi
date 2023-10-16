@@ -16,23 +16,23 @@
     -->
     <head>
         <meta charset="utf-8"/>
-        <title>JsonTreeReader</title>
+        <title>YamlTreeReader</title>
         <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <p>
-            The JsonTreeReader Controller Service reads a JSON Object and creates a Record object either for the
-            entire JSON Object tree or a subpart (see "Starting Field Strategies" section). The Controller Service
-            must be configured with a Schema that describes the structure of the JSON data. If any field exists in
-            the JSON that is not in the schema, that field will be skipped. If the schema contains a field for which
-            no JSON field exists, a null value will be used in the Record (or the default value defined in the schema,
+            The YamlTreeReader Controller Service reads a YAML Object and creates a Record object either for the
+            entire YAML Object tree or a subpart (see "Starting Field Strategies" section). The Controller Service
+            must be configured with a Schema that describes the structure of the YAML data. If any field exists in
+            the YAML that is not in the schema, that field will be skipped. If the schema contains a field for which
+            no YAML field exists, a null value will be used in the Record (or the default value defined in the schema,
             if applicable).
         </p>
 
         <p>
-            If the root element of the JSON is a JSON Array, each JSON Object within that array will be treated as
-            its own separate Record. If the root element is a JSON Object, the JSON will all be treated as a single
+            If the root element of the YAML is a YAML Array, each YAML Object within that array will be treated as
+            its own separate Record. If the root element is a YAML Object, the YAML will all be treated as a single
             Record.
         </p>
 
@@ -172,92 +172,128 @@
         <h2>Starting Field Strategies</h2>
 
         <p>
-            When using JsonTreeReader, two different starting field strategies can be selected. With the default Root Node strategy, the JsonTreeReader begins processing from the root element
-            of the JSON and creates a Record object for the entire JSON Object tree, while the Nested Field strategy defines a nested field from which to begin processing.
+            When using YamlTreeReader, two different starting field strategies can be selected. With the default Root Node strategy, the YamlTreeReader begins processing from the root element
+            of the YAML and creates a Record object for the entire YAML Object tree, while the Nested Field strategy defines a nested field from which to begin processing.
         </p>
         <p>
-            Using the Nested Field strategy, a schema corresponding to the nested JSON part should be specified. In case of schema inference, the JsonTreeReader will automatically
+            Using the Nested Field strategy, a schema corresponding to the nested YAML part should be specified. In case of schema inference, the YamlTreeReader will automatically
             infer a schema from nested records.
         </p>
 
         <h3>Root Node Strategy</h3>
 
         <p>
-            Consider the following JSON is read with the default Root Node strategy:
+            Consider the following YAML is read with the default Root Node strategy:
         </p>
 <code>
 <pre>
-[
-  {
-    "id": 17,
-    "name": "John",
-    "child": {
-      "id": "1"
-    },
-    "dob": "10-29-1982",
-    "siblings": [
-      {
-        "name": "Jeremy",
-        "id": 4
-      },
-      {
-        "name": "Julia",
-        "id": 8
-      }
-    ]
-  },
-  {
-    "id": 98,
-    "name": "Jane",
-    "child": {
-      "id": 2
-    },
-    "dob": "08-30-1984",
-    "gender": "F",
-    "siblingIds": [],
-    "siblings": []
-  }
-]
+- id: 17
+  name: John
+  child:
+    id: "1"
+  dob: 10-29-1982
+  siblings:
+    - name: Jeremy
+      id: 4
+    - name: Julia
+      id: 8
+- id: 98
+  name: Jane
+  child:
+    id: 2
+  dob: 08-30-1984
+  gender: F
+  siblingIds: []
+  siblings: []
 </pre>
 </code>
 
         <p>
-            Also, consider that the schema that is configured for this JSON is as follows (assuming that the AvroSchemaRegistry
+            Also, consider that the schema that is configured for this YAML is as follows (assuming that the AvroSchemaRegistry
             Controller Service is chosen to denote the Schema):
         </p>
 
 <code>
 <pre>
 {
-    "namespace": "nifi",
-    "name": "person",
-    "type": "record",
-    "fields": [
-        { "name": "id", "type": "int" },
-        { "name": "name", "type": "string" },
-        { "name": "gender", "type": "string" },
-        { "name": "dob", "type": {
-            "type": "int",
-            "logicalType": "date"
-        }},
-        { "name": "siblings", "type": {
-            "type": "array",
-            "items": {
-                "type": "record",
-                "fields": [
-                    { "name": "name", "type": "string" }
-                ]
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [
+    {
+      "name": "id",
+      "type": ["int","null"]
+    },
+    {
+      "name": "name",
+      "type": ["string","null"]
+    },
+    {
+      "name": "child",
+      "type": [
+        {
+          "type": "record",
+          "name": "childType",
+          "fields": [
+            {
+              "name": "id",
+              "type": ["int","string","null"]
             }
-        }}
-    ]
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "dob",
+      "type": ["string","null"]
+    },
+    {
+      "name": "siblings",
+      "type": [
+        {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "siblingsType",
+            "fields": [
+              {
+                "name": "name",
+                "type": ["string","null"]
+              },
+              {
+                "name": "id",
+                "type": ["int","null"]
+              }
+            ]
+          }
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "gender",
+      "type": ["string","null"]
+    },
+    {
+      "name": "siblingIds",
+      "type": [
+        {
+          "type": "array",
+          "items": "string"
+        },
+        "null"
+      ]
+    }
+  ]
 }
 </pre>
 </code>
 
         <p>
             Let us also assume that this Controller Service is configured with the "Date Format" property set to "MM-dd-yyyy", as this
-            matches the date format used for our JSON data. This will result in the JSON creating two separate records, because the root
-            element is a JSON array with two elements.
+            matches the date format used for our YAML data. This will result in the YAML creating two separate records, because the root
+            element is a YAML array with two elements.
         </p>
 
         <p>
@@ -351,8 +387,8 @@
         <h3>Nested Field Strategy</h3>
 
         <p>
-            Using the Nested Field strategy, consider the same JSON where the specified Starting Field Name is
-            "siblings". The schema that is configured for this JSON is as follows:
+            Using the Nested Field strategy, consider the same YAML where the specified Starting Field Name is
+            "siblings". The schema that is configured for this YAML is as follows:
         </p>
 
 <code>
@@ -410,8 +446,8 @@
         <h2>Schema Application Strategies</h2>
 
         <p>
-            When using JsonTreeReader with "Nested Field Strategy" and the "Schema Access Strategy" is not "Infer Schema",
-            it can be configured for the entire original JSON ("Whole document" strategy) or for the nested field section ("Selected part" strategy).
+            When using YamlTreeReader with "Nested Field Strategy" and the "Schema Access Strategy" is not "Infer Schema",
+            it can be configured for the entire original YAML ("Whole document" strategy) or for the nested field section ("Selected part" strategy).
         </p>
 
     </body>

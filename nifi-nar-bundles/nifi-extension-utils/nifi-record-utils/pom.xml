@@ -30,6 +30,7 @@
         <module>nifi-json-record-utils</module>
 	      <module>nifi-mock-record-utils</module>
         <module>nifi-schema-inference-utils</module>
+        <module>nifi-yaml-record-utils</module>
     </modules>
 
     <dependencyManagement>

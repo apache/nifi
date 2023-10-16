@@ -22,7 +22,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
@@ -56,7 +55,7 @@ import java.util.function.Supplier;
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     public static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
 
-    static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
             .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
@@ -88,7 +87,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private JsonParser jsonParser;
     private JsonNode firstJsonNode;
     private StartingFieldStrategy strategy;
-
     private Map<String, String> capturedFields;
     private BiPredicate<String, String> captureFieldPredicate;
 
@@ -102,28 +100,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         lazyDateFormat = () -> df;
         lazyTimeFormat = () -> tf;
         lazyTimestampFormat = () -> tsf;
-    }
-
-    protected AbstractJsonRowRecordReader(final InputStream in,
-                                          final ComponentLog logger,
-                                          final String dateFormat,
-                                          final String timeFormat,
-                                          final String timestampFormat)
-            throws IOException, MalformedRecordException {
-
-        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null, false, null);
-    }
-
-    protected AbstractJsonRowRecordReader(final InputStream in,
-                                          final ComponentLog logger,
-                                          final String dateFormat,
-                                          final String timeFormat,
-                                          final String timestampFormat,
-                                          final boolean allowComments,
-                                          final StreamReadConstraints streamReadConstraints)
-            throws IOException, MalformedRecordException {
-
-        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null, allowComments, streamReadConstraints);
     }
 
     /**
@@ -140,7 +116,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
      *                               be accessed by calling {@link #getCapturedFields()}
      * @param allowComments          whether to allow comments within the JSON stream
      * @param streamReadConstraints  configuration for the JsonFactory stream reader {@link StreamReadConstraints}
-     *
+     * @param tokenParserFactory     factory to provide an instance of com.fasterxml.jackson.core.JsonParser
      * @throws IOException              in case of JSON stream processing failure
      * @throws MalformedRecordException in case of malformed JSON input
      */
@@ -153,7 +129,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final String nestedFieldName,
                                           final BiPredicate<String, String> captureFieldPredicate,
                                           final boolean allowComments,
-                                          final StreamReadConstraints streamReadConstraints)
+                                          final StreamReadConstraints streamReadConstraints,
+                                          final TokenParserFactory tokenParserFactory)
             throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
@@ -163,14 +140,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         capturedFields = new LinkedHashMap<>();
 
         try {
-            final ObjectMapper codec = new ObjectMapper();
-            if (allowComments) {
-                codec.enable(JsonParser.Feature.ALLOW_COMMENTS);
-            }
-            codec.getFactory().setStreamReadConstraints(streamReadConstraints != null ? streamReadConstraints : DEFAULT_STREAM_READ_CONSTRAINTS);
-
-            jsonParser = codec.getFactory().createParser(in);
-            jsonParser.setCodec(codec);
+            final StreamReadConstraints configuredStreamReadConstraints = streamReadConstraints == null ? DEFAULT_STREAM_READ_CONSTRAINTS : streamReadConstraints;
+            jsonParser = tokenParserFactory.getJsonParser(in, configuredStreamReadConstraints, allowComments);
 
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
                 while (jsonParser.nextToken() != null) {
