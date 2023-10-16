@@ -111,7 +111,7 @@
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.35.0</version>
+                <version>0.37.0</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.activation</groupId>
