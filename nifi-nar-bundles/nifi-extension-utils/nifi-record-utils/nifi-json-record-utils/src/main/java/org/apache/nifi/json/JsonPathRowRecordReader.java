@@ -66,7 +66,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                                    final boolean allowComments, final StreamReadConstraints streamReadConstraints)
                 throws MalformedRecordException, IOException {
 
-        super(in, logger, dateFormat, timeFormat, timestampFormat, allowComments, streamReadConstraints);
+        super(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null, allowComments, streamReadConstraints, new JsonParserFactory());
 
         this.schema = schema;
         this.jsonPaths = jsonPaths;

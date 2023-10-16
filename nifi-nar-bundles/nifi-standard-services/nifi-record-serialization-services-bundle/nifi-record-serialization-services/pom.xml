@@ -69,6 +69,11 @@
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-yaml-record-utils</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>1.10.0</version>
@@ -270,7 +275,16 @@
                         <exclude>src/test/resources/xml/testschema</exclude>
                         <exclude>src/test/resources/xml/testschema2</exclude>
                         <exclude>src/test/resources/xml/testschema3</exclude>
+                        <exclude>src/test/resources/yaml/*.yaml</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
                 </configuration>
             </plugin>
         </plugins>

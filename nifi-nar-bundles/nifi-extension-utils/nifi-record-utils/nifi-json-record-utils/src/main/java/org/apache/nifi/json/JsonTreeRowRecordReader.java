@@ -56,16 +56,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                                    final String dateFormat, final String timeFormat, final String timestampFormat)
             throws IOException, MalformedRecordException {
 
-        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, false, null);
-    }
-
-    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-                                   final String dateFormat, final String timeFormat, final String timestampFormat,
-                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints)
-            throws IOException, MalformedRecordException {
-
-        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null,
-                allowComments, streamReadConstraints);
+        this(in, logger, schema, dateFormat, timeFormat, timestampFormat,  null, null, null, null);
     }
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
@@ -75,18 +66,18 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             throws IOException, MalformedRecordException {
 
         this(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy,
-                captureFieldPredicate, false, null);
+                captureFieldPredicate, false, null, new JsonParserFactory());
     }
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
                                    final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
                                    final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate,
-                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints)
+                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints, TokenParserFactory tokenParserFactory)
             throws IOException, MalformedRecordException {
 
         super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, captureFieldPredicate,
-                allowComments, streamReadConstraints);
+                allowComments, streamReadConstraints, tokenParserFactory);
 
         if (startingFieldStrategy == StartingFieldStrategy.NESTED_FIELD && schemaApplicationStrategy == SchemaApplicationStrategy.WHOLE_JSON) {
             this.schema = getSelectedSchema(schema, startingFieldName);
@@ -110,7 +101,6 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                     }
                 }
             }
-
         }
         throw new RuntimeException(String.format("Selected schema field [%s] not found.", startingFieldName));
     }
