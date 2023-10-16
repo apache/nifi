@@ -16,7 +16,9 @@
 # under the License.
 #
 
-FROM eclipse-temurin:17-jre
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -31,22 +33,22 @@ ENV MINIFI_BINARY minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_BINARY_PATH nifi/${MINIFI_VERSION}/${MINIFI_BINARY}
 ENV MINIFI_BINARY_URL ${MIRROR}/${MINIFI_BINARY_PATH}
 
-RUN mkdir -p $MINIFI_BASE_DIR
-ADD sh/ ${MINIFI_BASE_DIR}/scripts/
+RUN mkdir -p "${MINIFI_BASE_DIR}"
+ADD sh/ "${MINIFI_BASE_DIR}/scripts/"
 
 # Download, validate, and expand Apache MiNiFi binary.
 RUN apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-    && echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
-    && unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
-    && rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
+    && curl -fSL "${MINIFI_BINARY_URL}" -o "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" \
+    && echo "$(curl ${MINIFI_BINARY_URL}.sha256) *${MINIFI_BASE_DIR}/${MINIFI_BINARY}" | sha256sum -c - \
+    && unzip "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" -d "${MINIFI_BASE_DIR}" \
+    && rm "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" \
     && groupadd -g ${GID} minifi \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
-    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
-    && chown -R -L minifi:minifi ${MINIFI_BASE_DIR} \
-    && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
+    && ln -s "${MINIFI_BASE_DIR}/minifi-${MINIFI_VERSION}" "${MINIFI_HOME}" \
+    && chown -R -L minifi:minifi "${MINIFI_BASE_DIR}" \
+    && chmod -R +x "${MINIFI_BASE_DIR}/scripts"/*.sh
 
 USER minifi
 
