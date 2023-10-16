@@ -17,17 +17,17 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { TextTip } from './text-tip.component';
+import { ControllerServiceApi } from './controller-service-api.component';
 
-describe('TextTip', () => {
-    let component: TextTip;
-    let fixture: ComponentFixture<TextTip>;
+describe('ControllerServiceApi', () => {
+    let component: ControllerServiceApi;
+    let fixture: ComponentFixture<ControllerServiceApi>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [TextTip]
+            declarations: [ControllerServiceApi]
         });
-        fixture = TestBed.createComponent(TextTip);
+        fixture = TestBed.createComponent(ControllerServiceApi);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

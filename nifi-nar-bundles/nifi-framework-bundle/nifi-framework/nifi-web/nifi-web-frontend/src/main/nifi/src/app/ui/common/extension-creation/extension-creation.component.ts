@@ -22,9 +22,10 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgIf } from '@angular/common';
-import { DocumentedType, RestrictionsTipInput } from '../../../state/shared';
+import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
 import { NifiTooltipDirective } from '../nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
+import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 
 @Component({
     selector: 'extension-creation',
@@ -90,6 +91,17 @@ export class ExtensionCreation implements AfterViewInit {
         return '';
     }
 
+    implementsControllerService(documentedType: DocumentedType): boolean {
+        return !this.nifiCommon.isEmpty(documentedType.controllerServiceApis);
+    }
+
+    getControllerServiceApiTipData(documentedType: DocumentedType): ControllerServiceApiTipInput {
+        return {
+            // @ts-ignore
+            controllerServiceApis: documentedType.controllerServiceApis
+        };
+    }
+
     formatTags(documentedType: DocumentedType): string {
         if (documentedType?.tags) {
             return documentedType.tags.join(', ');
@@ -133,4 +145,6 @@ export class ExtensionCreation implements AfterViewInit {
             this.extensionTypeSelected.next(documentedType);
         }
     }
+
+    protected readonly ControllerServiceApiTip = ControllerServiceApiTip;
 }

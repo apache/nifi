@@ -16,18 +16,19 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { UnorderedListTipInput } from '../../../../state/shared';
+import { ControllerServiceApiTipInput } from '../../../../state/shared';
 import { NgForOf } from '@angular/common';
+import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({
-    selector: 'unordered-list-tip',
+    selector: 'controller-service-api-tip',
     standalone: true,
-    templateUrl: './unordered-list-tip.component.html',
-    imports: [NgForOf],
-    styleUrls: ['./unordered-list-tip.component.scss']
+    templateUrl: './controller-service-api-tip.component.html',
+    imports: [NgForOf, ControllerServiceApi],
+    styleUrls: ['./controller-service-api-tip.component.scss']
 })
-export class UnorderedListTip {
+export class ControllerServiceApiTip {
     @Input() left: number = 0;
     @Input() top: number = 0;
-    @Input() data: UnorderedListTipInput | undefined;
+    @Input() data: ControllerServiceApiTipInput | undefined;
 }

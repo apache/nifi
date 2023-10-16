@@ -47,7 +47,15 @@
                     <!-- Version Column -->
                     <ng-container matColumnDef="version">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                        <td mat-cell *matCellDef="let item">{{ formatVersion(item) }}</td>
+                        <td mat-cell *matCellDef="let item">
+                            {{ formatVersion(item) }}
+                            <div
+                                class="fa fa-list"
+                                *ngIf="implementsControllerService(item)"
+                                nifiTooltip
+                                [tooltipComponentType]="ControllerServiceApiTip"
+                                [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
+                        </td>
                     </ng-container>
 
                     <!-- Tags Column -->

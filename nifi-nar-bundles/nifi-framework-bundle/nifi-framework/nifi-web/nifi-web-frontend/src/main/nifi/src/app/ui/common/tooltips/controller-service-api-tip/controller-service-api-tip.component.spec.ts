@@ -17,17 +17,17 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { UnorderedListTip } from './unordered-list-tip.component';
+import { ControllerServiceApiTip } from './controller-service-api-tip.component';
 
-describe('UnorderedListTip', () => {
-    let component: UnorderedListTip;
-    let fixture: ComponentFixture<UnorderedListTip>;
+describe('ControllerServiceApiTip', () => {
+    let component: ControllerServiceApiTip;
+    let fixture: ComponentFixture<ControllerServiceApiTip>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [UnorderedListTip]
+            declarations: [ControllerServiceApiTip]
         });
-        fixture = TestBed.createComponent(UnorderedListTip);
+        fixture = TestBed.createComponent(ControllerServiceApiTip);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

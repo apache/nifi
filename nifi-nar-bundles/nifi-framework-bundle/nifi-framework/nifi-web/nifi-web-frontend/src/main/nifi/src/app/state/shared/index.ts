@@ -41,6 +41,15 @@ export interface UnorderedListTipInput {
     items: string[];
 }
 
+export interface ControllerServiceApi {
+    type: string;
+    bundle: Bundle;
+}
+
+export interface ControllerServiceApiTipInput {
+    controllerServiceApis: ControllerServiceApi[];
+}
+
 export interface ValidationErrorsTipInput {
     isValidating: boolean;
     validationErrors: string[];
@@ -127,6 +136,7 @@ export interface DocumentedType {
     restricted: boolean;
     tags: string[];
     type: string;
+    controllerServiceApis?: ControllerServiceApi[];
     explicitRestrictions?: ExplicitRestriction[];
     usageRestriction?: string;
     deprecationReason?: string;

@@ -16,16 +16,24 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { TextTipInput } from '../../../../state/shared';
+import { Bundle } from '../../../../state/shared';
+import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Component({
-    selector: 'text-tip',
+    selector: 'controller-service-api',
     standalone: true,
-    templateUrl: './text-tip.component.html',
-    styleUrls: ['./text-tip.component.scss']
+    templateUrl: './controller-service-api.component.html',
+    styleUrls: ['./controller-service-api.component.scss']
 })
-export class TextTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
-    @Input() data: TextTipInput | undefined;
+export class ControllerServiceApi {
+    @Input() type!: string;
+    @Input() bundle!: Bundle;
+
+    constructor(private nifiCommon: NiFiCommon) {}
+
+    formatControllerService(type: string, bundle: Bundle) {
+        const formattedType: string = this.nifiCommon.formatType({ type, bundle });
+        const formattedBundle: string = this.nifiCommon.formatBundle(bundle);
+        return `${formattedType} from ${formattedBundle}`;
+    }
 }

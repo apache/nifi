@@ -29,6 +29,7 @@ import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
+import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -45,7 +46,8 @@ import { PropertyTable } from '../../property-table/property-table.component';
         MatOptionModule,
         MatSelectModule,
         NgForOf,
-        PropertyTable
+        PropertyTable,
+        ControllerServiceApi
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })

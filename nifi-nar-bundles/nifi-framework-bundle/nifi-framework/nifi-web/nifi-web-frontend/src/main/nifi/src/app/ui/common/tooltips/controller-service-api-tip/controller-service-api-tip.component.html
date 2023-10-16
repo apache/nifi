@@ -15,8 +15,11 @@
   ~ limitations under the License.
   -->
 
-<div class="tooltip" [style.left.px]="left" [style.top.px]="top">
+<div class="tooltip flex flex-col gap-y-3" [style.left.px]="left" [style.top.px]="top">
+    <div>Supports Controller Services</div>
     <ul>
-        <li *ngFor="let item of data?.items">{{ item }}</li>
+        <li *ngFor="let serviceApi of data?.controllerServiceApis">
+            <controller-service-api [type]="serviceApi.type" [bundle]="serviceApi.bundle"></controller-service-api>
+        </li>
     </ul>
 </div>
