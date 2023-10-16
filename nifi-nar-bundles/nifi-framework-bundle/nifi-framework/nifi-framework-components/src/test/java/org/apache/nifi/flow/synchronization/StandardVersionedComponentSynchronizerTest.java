@@ -40,7 +40,6 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
-import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
@@ -72,6 +71,7 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -1099,12 +1099,15 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @Test
     public void testUpdateParameterContextWhenContextDoesNotExist() {
+        final ComponentVariableRegistry variableRegistry = mock(ComponentVariableRegistry.class);
+        when(variableRegistry.getVariableMap()).thenReturn(Collections.emptyMap());
+
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         when(processGroup.getIdentifier()).thenReturn("pg1");
         when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
-        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroup.getVariableRegistry()).thenReturn(variableRegistry);
 
         final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
         rootGroup.setIdentifier("pg1");
@@ -1120,15 +1123,19 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @Test
     public void testUpdateParameterContextWhenContextDoesExist() {
+        final ComponentVariableRegistry variableRegistry = mock(ComponentVariableRegistry.class);
+        when(variableRegistry.getVariableMap()).thenReturn(Collections.emptyMap());
+
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         when(processGroup.getIdentifier()).thenReturn("pg1");
         when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
-        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroup.getVariableRegistry()).thenReturn(variableRegistry);
 
         final VersionedParameterContext parameterContext = new VersionedParameterContext();
         parameterContext.setName("My Params");
+        parameterContext.setDescription("Description");
         parameterContext.setParameters(Collections.emptySet());
 
         final Map<String, VersionedParameterContext> parameterContextMap = new HashMap<>();
