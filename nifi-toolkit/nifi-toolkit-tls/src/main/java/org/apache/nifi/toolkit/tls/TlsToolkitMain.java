@@ -86,7 +86,7 @@ public class TlsToolkitMain {
             printUsageAndExit("Unknown service: " + service, ExitCode.INVALID_ARGS);
         }
 
-        System.out.println("The TLS Toolkit is deprecated and targeted for removal in Apache NiFi 2.0.");
+        System.err.println("The TLS Toolkit is deprecated and targeted for removal in Apache NiFi 2.0.");
 
         try {
             return mainClass.getDeclaredMethod("main", String[].class);
