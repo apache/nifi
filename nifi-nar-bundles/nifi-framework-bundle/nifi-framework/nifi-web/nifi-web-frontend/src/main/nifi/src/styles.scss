@@ -296,11 +296,20 @@ a:hover {
     word-wrap: break-word;
     white-space: normal;
     color: #000;
+    z-index: 1;
 
     ul {
         list-style: disc outside;
         margin-left: 1em;
     }
+}
+
+.property-editor {
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+    font-family: Roboto;
+    font-weight: 400;
 }
 
 /*

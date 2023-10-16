@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, Input } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -33,6 +33,15 @@ import {
 import { NifiTooltipDirective } from '../nifi-tooltip.directive';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { PropertyTip } from '../tooltips/property-tip/property-tip.component';
+import { NfEditor } from './editors/nf-editor/nf-editor.component';
+import {
+    CdkConnectedOverlay,
+    CdkOverlayOrigin,
+    ConnectionPositionPair,
+    OriginConnectionPosition,
+    OverlayConnectionPosition
+} from '@angular/cdk/overlay';
+import { ComboEditor } from './editors/combo-editor/combo-editor.component';
 
 export interface PropertyItem extends Property {
     deleted: boolean;
@@ -43,7 +52,18 @@ export interface PropertyItem extends Property {
     selector: 'property-table',
     standalone: true,
     templateUrl: './property-table.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, NgIf, NifiTooltipDirective, NgTemplateOutlet],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        NgIf,
+        NifiTooltipDirective,
+        NgTemplateOutlet,
+        NfEditor,
+        CdkOverlayOrigin,
+        CdkConnectedOverlay,
+        ComboEditor
+    ],
     styleUrls: ['./property-table.component.scss']
 })
 export class PropertyTable implements AfterViewInit {
@@ -71,6 +91,7 @@ export class PropertyTable implements AfterViewInit {
         this.initFilter();
     }
 
+    protected readonly NfEditor = NfEditor;
     protected readonly TextTip = TextTip;
     protected readonly PropertyTip = PropertyTip;
 
@@ -78,7 +99,29 @@ export class PropertyTable implements AfterViewInit {
     displayedColumns: string[] = ['property', 'value', 'actions'];
     dataSource: MatTableDataSource<PropertyItem> = new MatTableDataSource<PropertyItem>();
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    private originPos: OriginConnectionPosition = {
+        originX: 'start',
+        originY: 'top'
+    };
+    private editorOverlayPos: OverlayConnectionPosition = {
+        overlayX: 'start',
+        overlayY: 'top'
+    };
+    private editorPosition: ConnectionPositionPair = new ConnectionPositionPair(
+        this.originPos,
+        this.editorOverlayPos,
+        0,
+        0
+    );
+    public editorPositions: ConnectionPositionPair[] = [this.editorPosition];
+    editorOpen: boolean = false;
+    editorTrigger: any = null;
+    editorItem!: PropertyItem;
+
+    constructor(
+      private changeDetector: ChangeDetectorRef,
+      private nifiCommon: NiFiCommon
+  ) {}
 
     ngAfterViewInit(): void {
         this.initFilter();
@@ -86,7 +129,7 @@ export class PropertyTable implements AfterViewInit {
 
     initFilter(): void {
         this.dataSource.filterPredicate = (data: PropertyItem, filter: string) => this.isVisible(data);
-        this.dataSource.filter = 'some-filter';
+        this.dataSource.filter = ' ';
     }
 
     isVisible(item: PropertyItem): boolean {
@@ -98,10 +141,10 @@ export class PropertyTable implements AfterViewInit {
             return true;
         }
 
-        return this.arePropertyDependencySatisfied(item, item.descriptor.dependencies);
+        return this.arePropertyDependenciesSatisfied(item, item.descriptor.dependencies);
     }
 
-    arePropertyDependencySatisfied(item: PropertyItem, dependencies: PropertyDependency[]): boolean {
+    arePropertyDependenciesSatisfied(item: PropertyItem, dependencies: PropertyDependency[]): boolean {
         for (const dependency of dependencies) {
             if (!this.isPropertyDependencySatisfied(dependency)) {
                 return false;
@@ -192,6 +235,30 @@ export class PropertyTable implements AfterViewInit {
         return {
             descriptor: item.descriptor
         };
+    }
+
+    hasAllowableValues(item: PropertyItem): boolean {
+        return Array.isArray(item.descriptor.allowableValues);
+    }
+
+    openEditor(editorTrigger: any, item: PropertyItem): void {
+        this.editorItem = item;
+        this.editorTrigger = editorTrigger;
+        this.editorOpen = true;
+    }
+
+    savePropertyValue(item: PropertyItem, newValue: string): void {
+        item.value = newValue;
+
+        // this is needed to trigger the filter to be reapplied
+        this.dataSource._updateChangeSubscription();
+        this.changeDetector.markForCheck();
+
+        this.closeEditor();
+    }
+
+    closeEditor(): void {
+        this.editorOpen = false;
     }
 
     selectProperty(property: any): void {}

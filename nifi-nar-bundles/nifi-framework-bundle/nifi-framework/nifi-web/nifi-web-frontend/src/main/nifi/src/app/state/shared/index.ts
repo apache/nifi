@@ -63,6 +63,11 @@ export interface PropertyTipInput {
     descriptor: PropertyDescriptor;
 }
 
+export interface PropertyHintTipInput {
+    supportsEl: boolean;
+    supportsParameters: boolean;
+}
+
 export interface RestrictionsTipInput {
     usageRestriction: string;
     explicitRestrictions: ExplicitRestriction[];
@@ -150,8 +155,8 @@ export interface Bundle {
 
 export interface AllowableValue {
     displayName: string;
-    value: string;
-    description: string;
+    value: string | null;
+    description?: string;
 }
 
 export interface AllowableValueEntity {

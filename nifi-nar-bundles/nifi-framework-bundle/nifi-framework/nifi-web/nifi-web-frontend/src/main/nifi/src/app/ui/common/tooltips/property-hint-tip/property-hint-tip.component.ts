@@ -16,34 +16,19 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
-import { PropertyDescriptor, PropertyTipInput } from '../../../../state/shared';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { PropertyHintTipInput } from '../../../../state/shared';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({
-    selector: 'property-tip',
+    selector: 'property-hint-tip',
     standalone: true,
-    templateUrl: './property-tip.component.html',
-    imports: [NgForOf, NgIf, ControllerServiceApi],
-    styleUrls: ['./property-tip.component.scss']
+    templateUrl: './property-hint-tip.component.html',
+    imports: [NgForOf, NgIf, ControllerServiceApi, NgTemplateOutlet],
+    styleUrls: ['./property-hint-tip.component.scss']
 })
-export class PropertyTip {
+export class PropertyHintTip {
     @Input() left: number = 0;
     @Input() top: number = 0;
-    @Input() data: PropertyTipInput | undefined;
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    hasDescription(descriptor: PropertyDescriptor): boolean {
-        return !this.nifiCommon.isBlank(descriptor.description);
-    }
-
-    hasDefaultValue(descriptor: PropertyDescriptor): boolean {
-        return !this.nifiCommon.isBlank(descriptor.defaultValue);
-    }
-
-    identifiesControllerService(descriptor: PropertyDescriptor): boolean {
-        return !this.nifiCommon.isBlank(descriptor.identifiesControllerService);
-    }
+    @Input() data: PropertyHintTipInput | undefined;
 }

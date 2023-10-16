@@ -22,10 +22,11 @@ import { ComponentRef, Directive, HostListener, Input, Type, ViewContainerRef } 
     standalone: true
 })
 export class NifiTooltipDirective<T> {
-    @Input('tooltipComponentType') tooltipComponentType!: Type<T>;
-    @Input('tooltipInputData') tooltipInputData: any;
-    @Input('xOffset') xOffset: number = 0;
-    @Input('yOffset') yOffset: number = 0;
+    @Input() tooltipComponentType!: Type<T>;
+    @Input() tooltipInputData: any;
+    @Input() xOffset: number = 0;
+    @Input() yOffset: number = 0;
+    @Input() delayClose: boolean = true;
 
     private closeTimer: number = -1;
     private tooltipRef: ComponentRef<T> | undefined;
@@ -61,9 +62,13 @@ export class NifiTooltipDirective<T> {
 
     @HostListener('mouseleave', ['$event'])
     mouseLeave(event: MouseEvent) {
-        this.closeTimer = window.setTimeout(() => {
+        if (this.delayClose) {
+            this.closeTimer = window.setTimeout(() => {
+                this.tooltipRef?.destroy();
+                this.closeTimer = -1;
+            }, 400);
+        } else {
             this.tooltipRef?.destroy();
-            this.closeTimer = -1;
-        }, 400);
+        }
     }
 }
