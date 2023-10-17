@@ -72,19 +72,9 @@ WD="/tmp/test-keys-$(date +"%Y%m%d-%H%M%S")"
 mkdir "$WD"
 cd "$WD"
 
-# copy existing CA key/cert pair to working directory, rename to default tls-toolkit names
+# copy existing CA key/cert pair to working directory, rename to default names
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-key.pem ./nifi-key.key
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-cert.pem ./nifi-cert.pem
-
-# use NiFi Toolkit Docker image to generate new keys/certs
-docker run -v "$WD":/tmp -w /tmp apache/nifi-toolkit:latest tls-toolkit standalone \
-      --hostnames proxy \
-      --subjectAlternativeNames localhost \
-      --nifiDnSuffix ", OU=nifi" \
-      --keyStorePassword password \
-      --trustStorePassword password \
-      --days 9999 \
-      -O
 
 # switch to output directory, create final output directory
 cd "$WD"
@@ -124,22 +114,15 @@ WD="/tmp/test-keys-$(date +"%Y%m%d-%H%M%S")"
 mkdir "$WD"
 cd "$WD"
 
-# copy existing CA key/cert pair to working directory, rename to default tls-toolkit names
+# copy existing CA key/cert pair to working directory, rename to default names
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-key.pem ./nifi-key.key
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-cert.pem ./nifi-cert.pem
-
-# use NiFi Toolkit Docker image to generate new keys/certs
-docker run -v "$WD":/tmp -w /tmp apache/nifi-toolkit:latest tls-toolkit standalone \
-      --clientCertDn "CN=user2, OU=nifi" \
-      --clientCertPassword password \
-      --days 9999 \
-      -O
 
 # switch to output directory, create final output directory
 cd "$WD"
 mkdir keys
 
-# transform tls-toolkit output to final output
+# transform keystores to final output
 keytool -importkeystore \
       -srckeystore CN=user2_OU=nifi.p12 -srcstoretype PKCS12 -srcstorepass password -srcalias nifi-key \
       -destkeystore keys/user2-ks.jks -deststoretype JKS -deststorepass password -destalias user2-key
@@ -184,19 +167,6 @@ The steps for regenerating these test keys are:
 WD="/tmp/test-keys-$(date +"%Y%m%d-%H%M%S")"
 mkdir "$WD"
 cd "$WD"
-
-# use NiFi Toolkit Docker image to generate new keys/certs
-docker run -v "$WD":/tmp -w /tmp apache/nifi-toolkit:latest tls-toolkit standalone \
-      --certificateAuthorityHostname "Test CA (Do Not Trust)" \
-      --hostnames registry \
-      --subjectAlternativeNames localhost \
-      --nifiDnSuffix ", OU=nifi" \
-      --keyStorePassword password \
-      --trustStorePassword password \
-      --clientCertDn "CN=user1, OU=nifi" \
-      --clientCertPassword password \
-      --days 9999 \
-      -O
 
 # switch to output directory, create final output directory
 cd "$WD"
