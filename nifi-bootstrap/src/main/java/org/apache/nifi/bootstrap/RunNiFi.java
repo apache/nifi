@@ -25,6 +25,10 @@ import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -37,6 +41,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -1165,6 +1171,9 @@ public class RunNiFi {
 
         nifiPropsFilename = nifiPropsFilename.trim();
 
+        String xmx = null;
+        String xms = null;
+
         final List<String> javaAdditionalArgs = new ArrayList<>();
         for (final Map.Entry<String, String> entry : props.entrySet()) {
             final String key = entry.getKey();
@@ -1172,6 +1181,12 @@ public class RunNiFi {
 
             if (key.startsWith("java.arg")) {
                 javaAdditionalArgs.add(value);
+                if(value.toLowerCase().startsWith("-xms")) {
+                    xms = StringUtils.substringAfter(value.toLowerCase(), "-xms");
+                }
+                if(value.toLowerCase().startsWith("-xmx")) {
+                    xmx = StringUtils.substringAfter(value.toLowerCase(), "-xmx");
+                }
             }
         }
 
@@ -1197,8 +1212,7 @@ public class RunNiFi {
             cpFiles.add(file.getAbsolutePath());
         }
 
-        String runtimeJavaVersion = System.getProperty("java.version");
-        defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
+        defaultLogger.info(printBasicOSJavaDetails(xms, xmx));
 
         final StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
@@ -1251,6 +1265,7 @@ public class RunNiFi {
         cmd.add("-classpath");
         cmd.add(classPath);
         cmd.addAll(javaAdditionalArgs);
+
         cmd.add("-Dnifi.properties.file.path=" + nifiPropsFilename);
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=NiFi");
@@ -1389,6 +1404,45 @@ public class RunNiFi {
                     }
                 }
             }
+        }
+    }
+
+    private String printBasicOSJavaDetails(final String xms, final String xmx) {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode details = mapper.createObjectNode();
+
+        // java version
+        details.put("javaVersion", System.getProperty("java.version"));
+
+        // num cores
+        final OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        details.put("cores", os.getAvailableProcessors());
+
+        // max file descriptor count + total physical memory
+        try {
+            final OperatingSystemMXBean osStats = ManagementFactory.getOperatingSystemMXBean();
+            final Class<?> unixOsMxBeanClass = Class.forName("com.sun.management.UnixOperatingSystemMXBean");
+            if (unixOsMxBeanClass.isAssignableFrom(osStats.getClass())) {
+                final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
+                totalPhysicalMemory.setAccessible(true);
+                details.put("totalPhysicalMemoryMB", ((Long) totalPhysicalMemory.invoke(osStats)) / (1024*1024));
+
+                final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
+                maxFileDescriptors.setAccessible(true);
+                details.put("maxOpenFileDescriptors", (Long) maxFileDescriptors.invoke(osStats));
+            }
+        } catch (final Throwable t) {
+            // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
+        }
+
+        // min/max heap
+        details.put("xms", xms);
+        details.put("xmx", xmx);
+
+        try {
+            return mapper.writeValueAsString(details);
+        } catch (JsonProcessingException e) {
+            return "Could not print basic OD and Java details..." + e.getLocalizedMessage();
         }
     }
 
