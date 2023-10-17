@@ -483,7 +483,7 @@ Here is an example as Initial User Identity called `admin` :
         <class>org.apache.nifi.registry.security.authorization.file.FileAccessPolicyProvider</class>
         <property name="User Group Provider">file-user-group-provider</property>
         <property name="Authorizations File">./conf/authorizations.xml</property>
-        <property name="Initial Admin Identity">Test</property>
+        <property name="Initial Admin Identity">admin</property>
         <property name="NiFi Group Name"></property>
     </accessPolicyProvider>
 
