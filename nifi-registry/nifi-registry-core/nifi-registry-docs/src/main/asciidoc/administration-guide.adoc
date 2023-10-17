@@ -475,7 +475,7 @@ Here is an example as Initial User Identity called `admin` :
         <identifier>file-user-group-provider</identifier>
         <class>org.apache.nifi.registry.security.authorization.file.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
-        <property name="Initial User Identity 1">Test</property>
+        <property name="Initial User Identity 1">admin</property>
     </userGroupProvider>
    
     <accessPolicyProvider>
