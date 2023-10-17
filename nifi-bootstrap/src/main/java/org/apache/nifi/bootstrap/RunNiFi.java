@@ -25,10 +25,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -1408,15 +1404,13 @@ public class RunNiFi {
     }
 
     private String printBasicOSJavaDetails(final String xms, final String xmx) {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode details = mapper.createObjectNode();
+        Map<String, String> details = new HashMap<String, String>(6);
 
         // java version
         details.put("javaVersion", System.getProperty("java.version"));
 
         // num cores
-        final OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        details.put("cores", os.getAvailableProcessors());
+        details.put("cores", Integer.toString(Runtime.getRuntime().availableProcessors()));
 
         // max file descriptor count + total physical memory
         try {
@@ -1425,11 +1419,11 @@ public class RunNiFi {
             if (unixOsMxBeanClass.isAssignableFrom(osStats.getClass())) {
                 final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
                 totalPhysicalMemory.setAccessible(true);
-                details.put("totalPhysicalMemoryMB", ((Long) totalPhysicalMemory.invoke(osStats)) / (1024*1024));
+                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory.invoke(osStats)) / (1024*1024)));
 
                 final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
                 maxFileDescriptors.setAccessible(true);
-                details.put("maxOpenFileDescriptors", (Long) maxFileDescriptors.invoke(osStats));
+                details.put("maxOpenFileDescriptors", String.valueOf(maxFileDescriptors.invoke(osStats)));
             }
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
@@ -1439,11 +1433,7 @@ public class RunNiFi {
         details.put("xms", xms);
         details.put("xmx", xmx);
 
-        try {
-            return mapper.writeValueAsString(details);
-        } catch (JsonProcessingException e) {
-            return "Could not print basic OD and Java details..." + e.getLocalizedMessage();
-        }
+        return details.toString();
     }
 
     private void writeSensitiveKeyFile(Map<String, String> props, Path sensitiveKeyFile) throws IOException {
