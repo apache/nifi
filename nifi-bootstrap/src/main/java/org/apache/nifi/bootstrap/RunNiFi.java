@@ -38,7 +38,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -1416,10 +1415,9 @@ public class RunNiFi {
 
         // max file descriptor count + total physical memory
         try {
-            final OperatingSystemMXBean osStats = ManagementFactory.getOperatingSystemMXBean();
-            final ObjectName osObjectName = osStats.getObjectName();
+            final ObjectName osObjectName = ManagementFactory.getOperatingSystemMXBean().getObjectName();
             final Object maxOpenFileCount = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "MaxFileDescriptorCount");
-            details.put("maxOpenFileDescriptors", String.valueOf((maxOpenFileCount)));
+            details.put("maxOpenFileDescriptors", String.valueOf(maxOpenFileCount));
             final Object totalPhysicalMemory = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "TotalPhysicalMemorySize");
             details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
         } catch (final Throwable t) {
