@@ -15,12 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.create-port-form {
-    @include mat.button-density(-1);
+import { NewPropertyDialog } from './new-property-dialog.component';
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-}
+describe('NewPropertyDialog', () => {
+    let component: NewPropertyDialog;
+    let fixture: ComponentFixture<NewPropertyDialog>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [NewPropertyDialog]
+        });
+        fixture = TestBed.createComponent(NewPropertyDialog);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

@@ -17,7 +17,7 @@
 
 @use '@angular/material' as mat;
 
-.edit-form {
+.edit-port-form {
     @include mat.button-density(-1);
 
     .mat-mdc-form-field {

@@ -18,7 +18,11 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { CreateControllerService, DeleteControllerService } from '../state/management-controller-services';
+import {
+    ConfigureControllerService,
+    CreateControllerService,
+    DeleteControllerService
+} from '../state/management-controller-services';
 import { Client } from '../../service/client.service';
 import { NiFiCommon } from '../../service/nifi-common.service';
 import { ControllerServiceEntity } from '../../state/shared';
@@ -63,13 +67,26 @@ export class ManagementControllerServiceService {
         });
     }
 
+    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
+        const params: any = {
+            propertyName,
+            sensitive
+        };
+        return this.httpClient.get(`${ManagementControllerServiceService.API}/controller-services/${id}/descriptors`, {
+            params
+        });
+    }
+
+    updateControllerService(configureControllerService: ConfigureControllerService): Observable<any> {
+        return this.httpClient.put(
+            this.stripProtocol(configureControllerService.uri),
+            configureControllerService.payload
+        );
+    }
+
     deleteControllerService(deleteControllerService: DeleteControllerService): Observable<any> {
         const entity: ControllerServiceEntity = deleteControllerService.controllerService;
         const revision: any = this.client.getRevision(entity);
         return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
     }
-
-    // updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
-    //     return this.httpClient.put(`${ControllerServiceService.API}/controller/config`, controllerEntity);
-    // }
 }

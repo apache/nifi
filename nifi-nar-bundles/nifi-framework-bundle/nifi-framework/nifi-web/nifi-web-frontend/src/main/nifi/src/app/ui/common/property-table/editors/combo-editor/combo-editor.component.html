@@ -16,7 +16,7 @@
   -->
 
 <div class="property-editor p-4" cdkDrag>
-    <form [formGroup]="comboEditorForm" (ngSubmit)="okClick()">
+    <form [formGroup]="comboEditorForm">
         <div class="flex flex-col gap-y-3">
             <div>
                 <mat-select
@@ -34,14 +34,16 @@
                                 [tooltipComponentType]="TextTip"
                                 [tooltipInputData]="getAllowableValueOptionTipData(allowableValue)"
                                 [delayClose]="false">
-                                <span class="option-text" [class.unset]="allowableValue.value == null">{{ allowableValue.displayName }}</span>
+                                <span class="option-text" [class.unset]="allowableValue.value == null">{{
+                                    allowableValue.displayName
+                                }}</span>
                             </mat-option>
                         </ng-container>
                         <ng-template #noDescription>
-                            <mat-option
-                              [value]="allowableValue.id"
-                              (mousedown)="preventDrag($event)">
-                                <span class="option-text" [class.unset]="allowableValue.value == null">{{ allowableValue.displayName }}</span>
+                            <mat-option [value]="allowableValue.id" (mousedown)="preventDrag($event)">
+                                <span class="option-text" [class.unset]="allowableValue.value == null">{{
+                                    allowableValue.displayName
+                                }}</span>
                             </mat-option>
                         </ng-template>
                     </ng-container>
@@ -59,8 +61,9 @@
                 <button
                     [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid"
                     (mousedown)="preventDrag($event)"
-                    type="submit"
+                    type="button"
                     color="primary"
+                    (click)="okClicked()"
                     mat-raised-button>
                     Ok
                 </button>

@@ -16,7 +16,7 @@
   -->
 
 <h2 mat-dialog-title>Edit Controller Service</h2>
-<form class="controller-service-edit-form" [formGroup]="editControllerServiceForm" (ngSubmit)="submitForm()">
+<form class="controller-service-edit-form" [formGroup]="editControllerServiceForm">
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Settings">
@@ -71,7 +71,12 @@
             </mat-tab>
             <mat-tab label="Properties">
                 <div class="tab-content py-4">
-                    <property-table [properties]="properties"></property-table>
+                    <property-table
+                        formControlName="properties"
+                        [createNewProperty]="createNewProperty"
+                        [supportsSensitiveDynamicProperties]="
+                            request.controllerService.component.supportsSensitiveDynamicProperties
+                        "></property-table>
                 </div>
             </mat-tab>
             <mat-tab label="Comments">
@@ -88,8 +93,9 @@
         <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid"
-            type="submit"
+            type="button"
             color="primary"
+            (click)="submitForm()"
             mat-raised-button>
             Apply
         </button>

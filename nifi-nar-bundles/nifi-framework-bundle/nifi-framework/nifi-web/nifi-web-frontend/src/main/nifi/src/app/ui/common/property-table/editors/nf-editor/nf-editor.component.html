@@ -16,7 +16,7 @@
   -->
 
 <div class="property-editor p-4" cdkDrag>
-    <form [formGroup]="nfEditorForm" (ngSubmit)="okClick()">
+    <form [formGroup]="nfEditorForm">
         <div class="flex flex-col gap-y-3">
             <div class="flex justify-end">
                 <div
@@ -63,8 +63,9 @@
                 <button
                     [disabled]="!nfEditorForm.dirty || nfEditorForm.invalid"
                     (mousedown)="preventDrag($event)"
-                    type="submit"
+                    type="button"
                     color="primary"
+                    (click)="okClicked()"
                     mat-raised-button>
                     Ok
                 </button>

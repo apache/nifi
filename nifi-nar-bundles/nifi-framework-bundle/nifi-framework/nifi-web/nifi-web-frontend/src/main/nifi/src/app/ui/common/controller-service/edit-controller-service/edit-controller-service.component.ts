@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../service/client.service';
-import { ControllerServiceEntity, EditControllerServiceRequest, Properties } from '../../../../state/shared';
+import { ControllerServiceEntity, EditControllerServiceRequest, Property } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,6 +30,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
+import { Observable } from 'rxjs';
 
 @Component({
     selector: 'edit-controller-service',
@@ -52,8 +53,10 @@ import { ControllerServiceApi } from '../controller-service-api/controller-servi
     styleUrls: ['./edit-controller-service.component.scss']
 })
 export class EditControllerService {
-    editControllerServiceForm: FormGroup;
+    @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
     @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();
+
+    editControllerServiceForm: FormGroup;
 
     bulletinLevels = [
         {
@@ -78,32 +81,29 @@ export class EditControllerService {
         }
     ];
 
-    properties: Properties;
-
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditControllerServiceRequest,
         private formBuilder: FormBuilder,
         private client: Client,
         private nifiCommon: NiFiCommon
     ) {
+        const serviceProperties: any = request.controllerService.component.properties;
+        const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
+            const [property, value] = entry;
+            return {
+                property,
+                value,
+                descriptor: request.controllerService.component.descriptors[property]
+            };
+        });
+
         // build the form
         this.editControllerServiceForm = this.formBuilder.group({
             name: new FormControl(request.controllerService.component.name, Validators.required),
             bulletinLevel: new FormControl(request.controllerService.component.bulletinLevel, Validators.required),
+            properties: new FormControl(properties),
             comments: new FormControl(request.controllerService.component.comments)
         });
-
-        const serviceProperties: any = request.controllerService.component.properties;
-        this.properties = {
-            properties: Object.entries(serviceProperties).map((entry: any) => {
-                const [property, value] = entry;
-                return {
-                    property,
-                    value,
-                    descriptor: request.controllerService.component.descriptors[property]
-                };
-            })
-        };
     }
 
     formatType(entity: ControllerServiceEntity): string {
@@ -123,6 +123,13 @@ export class EditControllerService {
                 comments: this.editControllerServiceForm.get('comments')?.value
             }
         };
+
+        const properties: Property[] = this.editControllerServiceForm.get('properties')?.value;
+        if (properties.length) {
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            payload.component.properties = values;
+        }
 
         this.editControllerService.next(payload);
     }

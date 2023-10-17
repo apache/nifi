@@ -25,11 +25,21 @@ export interface YesNoDialogRequest {
     message: string;
 }
 
+export interface NewPropertyDialogRequest {
+    allowsSensitive: boolean;
+}
+
+export interface NewPropertyDialogResponse {
+    name: string;
+    senstive: boolean;
+}
+
 export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
 }
 
 export interface EditControllerServiceRequest {
+    id: string;
     controllerService: ControllerServiceEntity;
 }
 
@@ -189,8 +199,4 @@ export interface Property {
     property: string;
     value: string | null;
     descriptor: PropertyDescriptor;
-}
-
-export interface Properties {
-    properties: Property[];
 }

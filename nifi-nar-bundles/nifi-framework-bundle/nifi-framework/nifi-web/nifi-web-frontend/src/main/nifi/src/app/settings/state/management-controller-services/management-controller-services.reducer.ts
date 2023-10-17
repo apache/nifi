@@ -18,6 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { ManagementControllerServicesState } from './index';
 import {
+    configureControllerServiceSuccess,
     createControllerServiceSuccess,
     deleteControllerServiceSuccess,
     loadManagementControllerServices,
@@ -54,6 +55,14 @@ export const managementControllerServicesReducer = createReducer(
     on(createControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             draftState.controllerServices.push(response.controllerService);
+        });
+    }),
+    on(configureControllerServiceSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.controllerServices.findIndex((f: any) => response.id === f.id);
+            if (componentIndex > -1) {
+                draftState.controllerServices[componentIndex] = response.controllerService;
+            }
         });
     }),
     on(deleteControllerServiceSuccess, (state, { response }) => {

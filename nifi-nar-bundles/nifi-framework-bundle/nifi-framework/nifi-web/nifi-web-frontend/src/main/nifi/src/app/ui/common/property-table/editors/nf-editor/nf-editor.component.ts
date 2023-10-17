@@ -99,7 +99,7 @@ export class NfEditor {
         }
     }
 
-    okClick(): void {
+    okClicked(): void {
         const valueControl: AbstractControl | null = this.nfEditorForm.get('value');
         if (valueControl) {
             this.ok.next(valueControl.value);

@@ -71,7 +71,7 @@ export class ComboEditor {
                 id: i++,
                 displayName: 'No value',
                 value: null
-            }
+            };
             this.itemLookup.set(noValue.id, noValue);
             this.allowableValues.push(noValue);
 
@@ -80,19 +80,21 @@ export class ComboEditor {
             }
         }
 
-        const allowableValueItems: AllowableValueItem[] = this.descriptor.allowableValues.map((allowableValueEntity) => {
-            const allowableValue: AllowableValueItem = {
-                ...allowableValueEntity.allowableValue,
-                id: i++
-            };
-            this.itemLookup.set(allowableValue.id, allowableValue);
+        const allowableValueItems: AllowableValueItem[] = this.descriptor.allowableValues.map(
+            (allowableValueEntity) => {
+                const allowableValue: AllowableValueItem = {
+                    ...allowableValueEntity.allowableValue,
+                    id: i++
+                };
+                this.itemLookup.set(allowableValue.id, allowableValue);
 
-            if (allowableValue.value == item.value) {
-                selectedItem = allowableValue;
+                if (allowableValue.value == item.value) {
+                    selectedItem = allowableValue;
+                }
+
+                return allowableValue;
             }
-
-            return allowableValue;
-        });
+        );
         this.allowableValues.push(...allowableValueItems);
 
         if (selectedItem) {
@@ -141,7 +143,7 @@ export class ComboEditor {
         };
     }
 
-    okClick(): void {
+    okClicked(): void {
         const valueControl: AbstractControl | null = this.comboEditorForm.get('value');
         if (valueControl) {
             const selectedItem: AllowableValueItem | undefined = this.itemLookup.get(valueControl.value);

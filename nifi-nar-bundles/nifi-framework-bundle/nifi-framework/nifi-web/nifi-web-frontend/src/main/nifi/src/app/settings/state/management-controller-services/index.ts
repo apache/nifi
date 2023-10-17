@@ -35,10 +35,13 @@ export interface CreateControllerServiceSuccess {
 }
 
 export interface ConfigureControllerService {
+    id: string;
+    uri: string;
     payload: any;
 }
 
 export interface ConfigureControllerServiceSuccess {
+    id: string;
     controllerService: ControllerServiceEntity;
 }
 

@@ -16,7 +16,7 @@
   -->
 
 <h2 mat-dialog-title>Create New {{ portTypeLabel }}</h2>
-<form class="create-form" [formGroup]="createPortForm" (ngSubmit)="createPort()">
+<form class="create-port-form" [formGroup]="createPortForm">
     <banner></banner>
     <mat-dialog-content>
         <mat-form-field>
@@ -39,8 +39,9 @@
         <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!createPortForm.dirty || createPortForm.invalid"
-            type="submit"
+            type="button"
             color="primary"
+            (click)="createPort()"
             mat-raised-button>
             Add
         </button>

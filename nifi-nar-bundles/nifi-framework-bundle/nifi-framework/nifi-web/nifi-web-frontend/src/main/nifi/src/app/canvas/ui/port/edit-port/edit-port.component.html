@@ -16,7 +16,7 @@
   -->
 
 <h2 mat-dialog-title>Edit {{ portTypeLabel }}</h2>
-<form class="edit-form" [formGroup]="editPortForm" (ngSubmit)="editPort()">
+<form class="edit-port-form" [formGroup]="editPortForm">
     <banner></banner>
     <mat-dialog-content>
         <div>
@@ -46,8 +46,9 @@
         <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editPortForm.dirty || editPortForm.invalid"
-            type="submit"
+            type="button"
             color="primary"
+            (click)="editPort()"
             mat-raised-button>
             Apply
         </button>

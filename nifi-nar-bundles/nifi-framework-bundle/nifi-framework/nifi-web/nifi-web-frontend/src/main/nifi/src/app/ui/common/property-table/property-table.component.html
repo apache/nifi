@@ -19,13 +19,13 @@
     <div class="flex justify-between items-center">
         <div class="font-bold">Required field</div>
         <div>
-            <button class="nifi-button">
+            <button class="nifi-button" type="button" (click)="newPropertyClicked()">
                 <i class="fa fa-plus"></i>
             </button>
         </div>
     </div>
     <div class="h-96 overflow-y-auto overflow-x-hidden border">
-        <table mat-table [dataSource]="dataSource">
+        <table mat-table #propertyTable [dataSource]="dataSource">
             <!-- Property Column -->
             <ng-container matColumnDef="property">
                 <th mat-header-cell *matHeaderCellDef>Property</th>
@@ -51,6 +51,7 @@
                 <th mat-header-cell *matHeaderCellDef>Value</th>
                 <td mat-cell *matCellDef="let item">
                     <div
+                        [id]="formatId(item)"
                         class="pointer"
                         cdkOverlayOrigin
                         #trigger="cdkOverlayOrigin"
@@ -98,13 +99,23 @@
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let item"></td>
+                <td mat-cell *matCellDef="let item">
+                    <div class="flex items-center gap-x-3">
+                        <!-- TODO - convert to parameter, go to parameter, go to service, create new service -->
+                        <div
+                            class="pointer fa fa-trash"
+                            *ngIf="item.type == 'userDefined'"
+                            (click)="deleteProperty(item)"
+                            title="Delete"></div>
+                    </div>
+                </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr
                 mat-row
                 *matRowDef="let row; let even = even; columns: displayedColumns"
+                (click)="selectProperty(row)"
                 [class.selected]="isSelected(row)"
                 [class.even]="even"></tr>
         </table>

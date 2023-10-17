@@ -15,23 +15,25 @@
   ~ limitations under the License.
   -->
 
-<div class="general-form w-96">
-    <form [formGroup]="controllerForm">
+<h2 mat-dialog-title>Add Property</h2>
+<form class="new-property-form" [formGroup]="newPropertyForm">
+    <mat-dialog-content>
         <div>
             <mat-form-field>
-                <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input matInput formControlName="timerDrivenThreadCount" type="text" />
+                <mat-label>Property Name</mat-label>
+                <input matInput formControlName="name" cdkFocusInitial type="text" />
             </mat-form-field>
         </div>
-        <div>
-            <button
-                [disabled]="!controllerForm.dirty || controllerForm.invalid"
-                type="button"
-                color="primary"
-                (click)="apply()"
-                mat-raised-button>
-                Apply
-            </button>
+        <div class="flex flex-col">
+            <label>Sensitive Value</label>
+            <mat-radio-group formControlName="sensitive">
+                <mat-radio-button [value]="true">Yes</mat-radio-button>
+                <mat-radio-button [value]="false">No</mat-radio-button>
+            </mat-radio-group>
         </div>
-    </form>
-</div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-raised-button mat-dialog-close color="accent">Cancel</button>
+        <button mat-raised-button (click)="addProperty()" color="primary">Ok</button>
+    </mat-dialog-actions>
+</form>

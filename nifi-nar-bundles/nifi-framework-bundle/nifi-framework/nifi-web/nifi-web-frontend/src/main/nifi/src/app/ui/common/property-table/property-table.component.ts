@@ -15,7 +15,18 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, ChangeDetectorRef, Component, Input } from '@angular/core';
+import {
+    AfterViewInit,
+    ChangeDetectorRef,
+    Component,
+    DestroyRef,
+    forwardRef,
+    inject,
+    Input,
+    QueryList,
+    ViewChildren
+} from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -23,7 +34,6 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import { NgIf, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
-    Properties,
     Property,
     PropertyDependency,
     PropertyDescriptor,
@@ -42,9 +52,15 @@ import {
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
 import { ComboEditor } from './editors/combo-editor/combo-editor.component';
+import { Observable, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface PropertyItem extends Property {
+    id: number;
+    triggerEdit: boolean;
     deleted: boolean;
+    dirty: boolean;
+    added: boolean;
     type: 'required' | 'userDefined' | 'optional';
 }
 
@@ -64,32 +80,20 @@ export interface PropertyItem extends Property {
         CdkConnectedOverlay,
         ComboEditor
     ],
-    styleUrls: ['./property-table.component.scss']
+    styleUrls: ['./property-table.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => PropertyTable),
+            multi: true
+        }
+    ]
 })
-export class PropertyTable implements AfterViewInit {
-    @Input() set properties(properties: Properties) {
-        this.itemLookup.clear();
+export class PropertyTable implements AfterViewInit, ControlValueAccessor {
+    @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
+    @Input() supportsSensitiveDynamicProperties: boolean = false;
 
-        const propertyItems: PropertyItem[] = properties.properties.map((property) => {
-            // create the property item
-            const item: PropertyItem = {
-                ...property,
-                deleted: false,
-                type: property.descriptor.required
-                    ? 'required'
-                    : property.descriptor.dynamic
-                    ? 'userDefined'
-                    : 'optional'
-            };
-
-            // store the property item in a map for an efficient lookup later
-            this.itemLookup.set(property.property, item);
-            return item;
-        });
-
-        this.dataSource = new MatTableDataSource<PropertyItem>(propertyItems);
-        this.initFilter();
-    }
+    private destroyRef = inject(DestroyRef);
 
     protected readonly NfEditor = NfEditor;
     protected readonly TextTip = TextTip;
@@ -98,6 +102,14 @@ export class PropertyTable implements AfterViewInit {
     itemLookup: Map<string, PropertyItem> = new Map<string, PropertyItem>();
     displayedColumns: string[] = ['property', 'value', 'actions'];
     dataSource: MatTableDataSource<PropertyItem> = new MatTableDataSource<PropertyItem>();
+    selectedItem!: PropertyItem;
+
+    @ViewChildren('trigger') valueTriggers!: QueryList<CdkOverlayOrigin>;
+
+    isDisabled: boolean = false;
+    isTouched: boolean = false;
+    onTouched!: () => void;
+    onChange!: (properties: Property[]) => void;
 
     private originPos: OriginConnectionPosition = {
         originX: 'start',
@@ -119,12 +131,33 @@ export class PropertyTable implements AfterViewInit {
     editorItem!: PropertyItem;
 
     constructor(
-      private changeDetector: ChangeDetectorRef,
-      private nifiCommon: NiFiCommon
-  ) {}
+        private changeDetector: ChangeDetectorRef,
+        private nifiCommon: NiFiCommon
+    ) {}
 
     ngAfterViewInit(): void {
         this.initFilter();
+
+        this.valueTriggers.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            const item: PropertyItem | undefined = this.dataSource.data.find((item) => item.triggerEdit);
+
+            if (item) {
+                const valueTrigger: CdkOverlayOrigin | undefined = this.valueTriggers.find(
+                    (valueTrigger: CdkOverlayOrigin) => {
+                        return this.formatId(item) == valueTrigger.elementRef.nativeElement.getAttribute('id');
+                    }
+                );
+
+                if (valueTrigger) {
+                    setTimeout(function () {
+                        // trigger a click to start editing the new item
+                        valueTrigger.elementRef.nativeElement.click();
+                    }, 0);
+                }
+
+                item.triggerEdit = false;
+            }
+        });
     }
 
     initFilter(): void {
@@ -183,6 +216,86 @@ export class PropertyTable implements AfterViewInit {
         // if the dependent item does not have a value, consider the
         // dependency not met
         return false;
+    }
+
+    registerOnChange(onChange: (properties: Property[]) => void): void {
+        this.onChange = onChange;
+    }
+
+    registerOnTouched(onTouch: () => void): void {
+        this.onTouched = onTouch;
+    }
+
+    setDisabledState(isDisabled: boolean): void {
+        // TODO - update component to disable controls accordingly
+        this.isDisabled = isDisabled;
+    }
+
+    writeValue(properties: Property[]): void {
+        this.itemLookup.clear();
+
+        let i: number = 0;
+        const propertyItems: PropertyItem[] = properties.map((property) => {
+            // create the property item
+            const item: PropertyItem = {
+                ...property,
+                id: i++,
+                triggerEdit: false,
+                deleted: false,
+                added: false,
+                dirty: false,
+                type: property.descriptor.required
+                    ? 'required'
+                    : property.descriptor.dynamic
+                    ? 'userDefined'
+                    : 'optional'
+            };
+
+            // store the property item in a map for an efficient lookup later
+            this.itemLookup.set(property.property, item);
+            return item;
+        });
+
+        this.setPropertyItems(propertyItems);
+    }
+
+    private setPropertyItems(propertyItems: PropertyItem[]): void {
+        this.dataSource = new MatTableDataSource<PropertyItem>(propertyItems);
+        this.initFilter();
+    }
+
+    newPropertyClicked(): void {
+        this.createNewProperty(this.supportsSensitiveDynamicProperties)
+            .pipe(take(1))
+            .subscribe((property) => {
+                const currentPropertyItems: PropertyItem[] = this.dataSource.data;
+
+                const i: number = currentPropertyItems.length;
+                const item: PropertyItem = {
+                    ...property,
+                    id: i,
+                    triggerEdit: true,
+                    deleted: false,
+                    added: true,
+                    dirty: true,
+                    type: property.descriptor.required
+                        ? 'required'
+                        : property.descriptor.dynamic
+                        ? 'userDefined'
+                        : 'optional'
+                };
+
+                this.itemLookup.set(property.property, item);
+
+                const propertyItems: PropertyItem[] = [...currentPropertyItems, item];
+                this.setPropertyItems(propertyItems);
+
+                this.handleChanged();
+            });
+    }
+
+    formatId(item: PropertyItem): string {
+        return 'property-' + item.id;
     }
 
     hasInfo(descriptor: PropertyDescriptor): boolean {
@@ -247,26 +360,70 @@ export class PropertyTable implements AfterViewInit {
         this.editorOpen = true;
     }
 
-    savePropertyValue(item: PropertyItem, newValue: string): void {
-        item.value = newValue;
+    deleteProperty(item: PropertyItem): void {
+        if (!item.deleted) {
+            item.value = null;
+            item.deleted = true;
+            item.dirty = true;
 
+            this.handleChanged();
+        }
+    }
+
+    savePropertyValue(item: PropertyItem, newValue: string): void {
+        if (item.value != newValue) {
+            item.value = newValue;
+            item.dirty = true;
+
+            this.handleChanged();
+        }
+
+        this.closeEditor();
+    }
+
+    private handleChanged() {
         // this is needed to trigger the filter to be reapplied
         this.dataSource._updateChangeSubscription();
         this.changeDetector.markForCheck();
 
-        this.closeEditor();
+        // mark the component as touched if not already
+        if (!this.isTouched) {
+            this.isTouched = true;
+            this.onTouched();
+        }
+
+        // emit the changes
+        this.onChange(this.serializeProperties());
+    }
+
+    serializeProperties(): Property[] {
+        const properties: PropertyItem[] = this.dataSource.data;
+
+        // only include dirty items
+        return properties
+            .filter((item) => item.dirty)
+            .filter((item) => !(item.added && item.deleted))
+            .map((item) => {
+                return {
+                    property: item.property,
+                    descriptor: item.descriptor,
+                    value: item.value
+                };
+            });
     }
 
     closeEditor(): void {
         this.editorOpen = false;
     }
 
-    selectProperty(property: any): void {}
+    selectProperty(item: PropertyItem): void {
+        this.selectedItem = item;
+    }
 
-    isSelected(property: any): boolean {
-        // if (this.selectedType) {
-        //     return documentedType.type == this.selectedType.type;
-        // }
+    isSelected(item: PropertyItem): boolean {
+        if (this.selectedItem) {
+            return item.property == this.selectedItem.property;
+        }
         return false;
     }
 }

@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
-import { catchError, from, map, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
@@ -28,6 +28,8 @@ import { CreateControllerService } from '../../../ui/common/controller-service/c
 import { Client } from '../../../service/client.service';
 import { YesNoDialog } from '../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditControllerService } from '../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
+import { NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../state/shared';
+import { NewPropertyDialog } from '../../../ui/common/new-property-dialog/new-property-dialog.component';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -147,13 +149,91 @@ export class ManagementControllerServicesEffects {
                         panelClass: 'large-dialog'
                     });
 
+                    dialogReference.componentInstance.createNewProperty = (
+                        allowsSensitive: boolean
+                    ): Observable<Property> => {
+                        const dialogRequest: NewPropertyDialogRequest = { allowsSensitive };
+                        return this.dialog
+                            .open(NewPropertyDialog, {
+                                data: { dialogRequest },
+                                panelClass: 'small-dialog'
+                            })
+                            .afterClosed()
+                            .pipe(
+                                take(1),
+                                switchMap((dialogResponse: NewPropertyDialogResponse) => {
+                                    if (dialogResponse) {
+                                        return this.managementControllerServiceService
+                                            .getPropertyDescriptor(
+                                                request.id,
+                                                dialogResponse.name,
+                                                dialogResponse.senstive
+                                            )
+                                            .pipe(
+                                                take(1),
+                                                map((response) => {
+                                                    return {
+                                                        property: dialogResponse.name,
+                                                        value: null,
+                                                        descriptor: response.propertyDescriptor
+                                                    };
+                                                })
+                                            );
+                                    } else {
+                                        return NEVER;
+                                    }
+                                })
+                            );
+                    };
+
                     dialogReference.componentInstance.editControllerService.pipe(take(1)).subscribe((payload: any) => {
                         this.store.dispatch(
                             ManagementControllerServicesActions.configureControllerService({
-                                request: payload
+                                request: {
+                                    id: request.controllerService.id,
+                                    uri: request.controllerService.uri,
+                                    payload
+                                }
                             })
                         );
                     });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    configureControllerService$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.configureControllerService),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.managementControllerServiceService.updateControllerService(request)).pipe(
+                    map((response) =>
+                        ManagementControllerServicesActions.configureControllerServiceSuccess({
+                            response: {
+                                id: request.id,
+                                controllerService: response
+                            }
+                        })
+                    ),
+                    catchError((error) =>
+                        of(
+                            ManagementControllerServicesActions.managementControllerServicesApiError({
+                                error: error.error
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    configureControllerServiceSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.configureControllerServiceSuccess),
+                tap(() => {
+                    this.dialog.closeAll();
                 })
             ),
         { dispatch: false }

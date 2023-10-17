@@ -59,6 +59,7 @@ export class ManagementControllerServices implements OnInit {
         this.store.dispatch(
             openConfigureControllerServiceDialog({
                 request: {
+                    id: entity.id,
                     controllerService: entity
                 }
             })
