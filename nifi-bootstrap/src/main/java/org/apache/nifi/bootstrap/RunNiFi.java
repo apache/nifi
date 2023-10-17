@@ -71,6 +71,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.management.ObjectName;
+
 /**
  * <p>
  * The class which bootstraps Apache NiFi. This class looks for the
@@ -1415,16 +1417,11 @@ public class RunNiFi {
         // max file descriptor count + total physical memory
         try {
             final OperatingSystemMXBean osStats = ManagementFactory.getOperatingSystemMXBean();
-            final Class<?> unixOsMxBeanClass = Class.forName("com.sun.management.UnixOperatingSystemMXBean");
-            if (unixOsMxBeanClass.isAssignableFrom(osStats.getClass())) {
-                final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
-                totalPhysicalMemory.setAccessible(true);
-                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory.invoke(osStats)) / (1024*1024)));
-
-                final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
-                maxFileDescriptors.setAccessible(true);
-                details.put("maxOpenFileDescriptors", String.valueOf(maxFileDescriptors.invoke(osStats)));
-            }
+            final ObjectName osObjectName = osStats.getObjectName();
+            final Object maxOpenFileCount = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "MaxFileDescriptorCount");
+            details.put("maxOpenFileDescriptors", String.valueOf((maxOpenFileCount)));
+            final Object totalPhysicalMemory = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "TotalPhysicalMemorySize");
+            details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
         }
