@@ -28,7 +28,6 @@ language governing permissions and limitations under the License. -->
                     <excludes combine.children="append">
                         <exclude>src/main/resources/conf/config-client.json</exclude>
                         <exclude>src/main/resources/conf/config-server.json</exclude>
-                        <exclude>docker/tests/tls-toolkit.sh</exclude>
                         <exclude>docker/tests/exit-codes.sh</exclude>
                     </excludes>
                 </configuration>
@@ -194,19 +193,6 @@ language governing permissions and limitations under the License. -->
                                     <executable>${project.basedir}/docker/tests/exit-codes.sh</executable>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>
-                                        <argument>${project.version}-maven</argument>
-                                    </arguments>
-                                    <executable>${project.basedir}/docker/tests/tls-toolkit.sh</executable>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
@@ -227,10 +213,6 @@ language governing permissions and limitations under the License. -->
                         <executions>
                             <execution>
                                 <id>Docker integration tests - exit codes</id>
-                                <phase>none</phase>
-                            </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
                                 <phase>none</phase>
                             </execution>
                         </executions>
@@ -254,10 +236,6 @@ language governing permissions and limitations under the License. -->
                         <executions>
                             <execution>
                                 <id>Docker integration tests - exit codes</id>
-                                <phase>none</phase>
-                            </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
                                 <phase>none</phase>
                             </execution>
                         </executions>

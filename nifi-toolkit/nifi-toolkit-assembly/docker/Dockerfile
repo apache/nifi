@@ -48,9 +48,6 @@ RUN chmod -R +x ${NIFI_TOOLKIT_BASE_DIR}/scripts/*.sh \
 
 USER nifi
 
-# Default port for TLS Toolkit CA Server
-EXPOSE 9443
-
 WORKDIR ${NIFI_TOOLKIT_HOME}
 
 # Startup NiFi
