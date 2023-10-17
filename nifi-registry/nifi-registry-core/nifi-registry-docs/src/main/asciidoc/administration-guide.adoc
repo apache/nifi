@@ -261,10 +261,6 @@ The implementation supports the Authorization Code Grant Type as described in
 link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] and
 link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
 
-After successful authentication with the Authorization Server, NiFi Registry generates an application Bearer Token with an
-expiration based on the OAuth2 Access Token expiration. NiFi Registry stores authorized tokens using the local State
-Provider and encrypts serialized information using the application Sensitive Properties Key.
-
 The implementation enables
 link:https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect RP-Initiated Logout 1.0^] when the
 Authorization Server includes an `end_session_endpoint` element in the OpenID Discovery configuration.
