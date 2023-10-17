@@ -266,7 +266,7 @@ link:https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect
 Authorization Server includes an `end_session_endpoint` element in the OpenID Discovery configuration.
 
 
-OpenID Connect integration supports the following settings in _nifi.properties_.
+OpenID Connect integration supports the following settings in _nifi-registry.properties_.
 
 [options="header"]
 |==================================================================================================================================================
