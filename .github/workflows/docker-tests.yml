@@ -29,7 +29,6 @@ on:
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
       - 'nifi-toolkit/nifi-toolkit-cli/**'
       - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
-      - 'nifi-toolkit/nifi-toolkit-tls/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
       - 'minifi/minifi-c2/minifi-c2-assembly/**'
@@ -44,7 +43,6 @@ on:
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
       - 'nifi-toolkit/nifi-toolkit-cli/**'
       - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
-      - 'nifi-toolkit/nifi-toolkit-tls/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
       - 'minifi/minifi-c2/minifi-c2-assembly/**'
@@ -87,7 +85,6 @@ env:
     -pl -nifi-toolkit/nifi-toolkit-assembly
     -pl -nifi-toolkit/nifi-toolkit-cli
     -pl -nifi-toolkit/nifi-toolkit-encrypt-config
-    -pl -nifi-toolkit/nifi-toolkit-tls
     -pl -minifi/minifi-assembly
     -pl -minifi/minifi-c2/minifi-c2-assembly
 
@@ -113,26 +110,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: macos-latest doesn't come with Docker and Colima seems to have problems with the nifi-docker integration_test scripts - see NIFI-12177/NIFI-12191
         os: [ ubuntu-latest ]
         version: [ 21 ]
     timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} Java ${{ matrix.version }}
-    env:
-      # default to Amazon Corretto JDK
-      JAVA_DISTRIBUTION: corretto
     steps:
-      # Zulu JDK appears to be more reliable for MacOS
-      - name: Use Java distribution Zulu
-        if: ${{ runner.os == 'macOS' }}
-        run: echo "JAVA_DISTRIBUTION=zulu" >> "$GITHUB_ENV"
       - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Set up Java ${{ env.JAVA_DISTRIBUTION }} ${{ matrix.version }}
+      - name: Set up Java Zulu ${{ matrix.version }}
         uses: actions/setup-java@v3
         with:
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          distribution: 'zulu'
           java-version: ${{ matrix.version }}
           cache: 'maven'
 

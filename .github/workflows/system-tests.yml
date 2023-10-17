@@ -53,7 +53,6 @@ env:
     -D skipTests
     -am
   MAVEN_RUN_ARGUMENTS: >-
-    package
     verify
     -P integration-tests
     -D include-python-integration-tests=true

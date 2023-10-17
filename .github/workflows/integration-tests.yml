@@ -73,6 +73,10 @@ env:
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
+    -pl -:nifi-docs
+    -pl -:nifi-maven-archetypes
+    -pl -:nifi-processor-bundle-archetype
+    -pl -:nifi-service-bundle-archetype
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -86,26 +90,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: macos-latest doesn't come with Docker and Colima seems to have problems with Test Containers - see NIFI-12191
         os: [ ubuntu-latest ]
         version: [ 21 ]
     timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} Java ${{ matrix.version }}
-    env:
-      # default to Amazon Corretto JDK
-      JAVA_DISTRIBUTION: corretto
     steps:
-      # Zulu JDK appears to be more reliable for MacOS
-      - name: Use Java distribution Zulu
-        if: ${{ runner.os == 'macOS' }}
-        run: echo "JAVA_DISTRIBUTION=zulu" >> "$GITHUB_ENV"
       - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Set up Java ${{ env.JAVA_DISTRIBUTION }} ${{ matrix.version }}
+      - name: Set up Java Zulu ${{ matrix.version }}
         uses: actions/setup-java@v3
         with:
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          distribution: 'zulu'
           java-version: ${{ matrix.version }}
           cache: 'maven'
 
