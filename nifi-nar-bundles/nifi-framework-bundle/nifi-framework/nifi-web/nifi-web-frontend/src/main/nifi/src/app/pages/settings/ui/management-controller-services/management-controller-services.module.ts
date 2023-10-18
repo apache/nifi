@@ -16,33 +16,14 @@
  */
 
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { authGuard } from './service/guard/auth.guard';
-
-const routes: Routes = [
-    {
-        path: 'login',
-        loadChildren: () => import('./login/feature/login.module').then((m) => m.LoginModule)
-    },
-    {
-        path: 'settings',
-        canMatch: [authGuard],
-        loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
-    },
-    {
-        path: '',
-        canMatch: [authGuard],
-        loadChildren: () => import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
-    }
-];
+import { CommonModule } from '@angular/common';
+import { ManagementControllerServices } from './management-controller-services.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 
 @NgModule({
-    imports: [
-        RouterModule.forRoot(routes, {
-            paramsInheritanceStrategy: 'always',
-            useHash: true
-        })
-    ],
-    exports: [RouterModule]
+    declarations: [ManagementControllerServices],
+    exports: [ManagementControllerServices],
+    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable]
 })
-export class AppRoutingModule {}
+export class ManagementControllerServicesModule {}

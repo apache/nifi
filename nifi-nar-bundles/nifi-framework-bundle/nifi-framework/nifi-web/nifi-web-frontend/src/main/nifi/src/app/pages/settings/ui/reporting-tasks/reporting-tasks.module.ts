@@ -16,33 +16,17 @@
  */
 
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { authGuard } from './service/guard/auth.guard';
-
-const routes: Routes = [
-    {
-        path: 'login',
-        loadChildren: () => import('./login/feature/login.module').then((m) => m.LoginModule)
-    },
-    {
-        path: 'settings',
-        canMatch: [authGuard],
-        loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
-    },
-    {
-        path: '',
-        canMatch: [authGuard],
-        loadChildren: () => import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
-    }
-];
+import { CommonModule } from '@angular/common';
+import { ReportingTasks } from './reporting-tasks.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
+import { NifiTooltipDirective } from '../../../../ui/common/nifi-tooltip.directive';
+import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
 
 @NgModule({
-    imports: [
-        RouterModule.forRoot(routes, {
-            paramsInheritanceStrategy: 'always',
-            useHash: true
-        })
-    ],
-    exports: [RouterModule]
+    declarations: [ReportingTasks, ReportingTaskTable],
+    exports: [ReportingTasks],
+    imports: [CommonModule, NgxSkeletonLoaderModule, MatSortModule, MatTableModule, NifiTooltipDirective]
 })
-export class AppRoutingModule {}
+export class ReportingTasksModule {}
