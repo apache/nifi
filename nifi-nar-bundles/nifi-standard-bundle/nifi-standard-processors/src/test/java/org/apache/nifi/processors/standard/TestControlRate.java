@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestControlRate {
 
@@ -44,6 +44,35 @@ public class TestControlRate {
     public void setRunner() {
         controlRate = new ConfigurableControlRate();
         runner = TestRunners.newTestRunner(controlRate);
+    }
+
+    @Test
+    public void testRouteToRateExceeded() {
+        runner.setProperty(ControlRate.RATE_EXCEEDED_STRATEGY, ControlRate.ROUTE_TO_RATE_EXCEEDED.getValue());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "10");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 min");
+        runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
+
+        for (int i = 0; i < 100; i++) {
+            final Map<String, String> attributes = Collections.singletonMap("group", Integer.toString(i));
+            runner.enqueue("", attributes);
+        }
+
+        for (int i = 0; i < 25; i++) {
+            final Map<String, String> attributes = Collections.singletonMap("group", "50");
+            runner.enqueue("", attributes);
+        }
+
+        runner.run();
+
+        // The first 100 should all go to success, as should the next 9 (as that's a total of 10 for group '50').
+        runner.assertTransferCount(ControlRate.REL_SUCCESS, 109);
+
+        // The rest should all go to 'rate exceeded'
+        runner.assertTransferCount(ControlRate.REL_RATE_EXCEEDED, 16);
+        final List<MockFlowFile> exceededFlowFiles = runner.getFlowFilesForRelationship(ControlRate.REL_RATE_EXCEEDED);
+        exceededFlowFiles.forEach(ff -> ff.assertAttributeEquals("group", "50"));
     }
 
     @Test
