@@ -29,7 +29,7 @@ import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angu
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { UserEffects } from './state/user/user.effects';
-import { LoginModule } from './login/feature/login.module';
+import { LoginModule } from './pages/login/feature/login.module';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';

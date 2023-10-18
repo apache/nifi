@@ -16,8 +16,8 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { AuthStorage } from '../../../service/auth-storage.service';
-import { AuthService } from '../../../service/auth.service';
+import { AuthStorage } from '../../../../service/auth-storage.service';
+import { AuthService } from '../../../../service/auth.service';
 
 @Component({
     selector: 'login-message',

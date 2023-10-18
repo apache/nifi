@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@use '../../../../../../../node_modules/@angular/material/index' as mat;
+@use '@angular/material' as mat;
 
 .mat-mdc-form-field {
     width: 100%;

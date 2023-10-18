@@ -19,11 +19,11 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as AccessActions from './access.actions';
 import { catchError, combineLatest, from, map, of, switchMap, tap } from 'rxjs';
-import { AuthService } from '../../../service/auth.service';
-import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthService } from '../../../../service/auth.service';
+import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { OkDialog } from '../../../ui/common/ok-dialog/ok-dialog.component';
+import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 
 @Injectable()
 export class AccessEffects {

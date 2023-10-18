@@ -17,11 +17,11 @@
 
 import { Component } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Store } from '@ngrx/store';
 import { LoginState } from '../../state';
 import { login } from '../../state/access/access.actions';
-import { AuthService } from '../../../service/auth.service';
+import { AuthService } from '../../../../service/auth.service';
 
 @Component({
     selector: 'login-form',
