@@ -15,31 +15,12 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
-
-.controller-service-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
-    @include mat.button-density(-1);
-
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
+.controller-service-references {
+    ul.nested {
+        padding-inline-start: 20px;
     }
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    .supports-controller-services {
-        ul {
-            list-style: disc outside;
-            margin-left: 1em;
-        }
+    .references {
+        margin-left: 20px;
     }
 }

@@ -134,6 +134,28 @@ export enum ComponentType {
     Connection = 'Connection'
 }
 
+export interface ControllerServiceReferencingComponent {
+    groupId: string;
+    id: string;
+    name: string;
+    type: string;
+    state: string;
+    properties: { [key: string]: string };
+    descriptors: { [key: string]: PropertyDescriptor };
+    validationErrors: string[];
+    referenceType: string;
+    activeThreadCount?: number;
+    referenceCycle: boolean;
+    referencingComponents: ControllerServiceReferencingComponentEntity[];
+}
+
+export interface ControllerServiceReferencingComponentEntity {
+    permissions: Permissions;
+    bulletins: BulletinEntity[];
+    operatePermissions: Permissions;
+    component: ControllerServiceReferencingComponent;
+}
+
 export interface ControllerServiceEntity {
     permissions: Permissions;
     operatePermissions?: Permissions;

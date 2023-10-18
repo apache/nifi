@@ -31,6 +31,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { Observable } from 'rxjs';
+import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -48,7 +49,8 @@ import { Observable } from 'rxjs';
         MatSelectModule,
         NgForOf,
         PropertyTable,
-        ControllerServiceApi
+        ControllerServiceApi,
+        ControllerServiceReferences
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })

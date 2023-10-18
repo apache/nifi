@@ -15,31 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.controller-service-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
-    @include mat.button-density(-1);
+import { ControllerServiceReferences } from './controller-service-references.component';
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
+describe('ControllerServiceReferences', () => {
+    let component: ControllerServiceReferences;
+    let fixture: ComponentFixture<ControllerServiceReferences>;
 
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
-    }
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ControllerServiceReferences]
+        });
+        fixture = TestBed.createComponent(ControllerServiceReferences);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    .supports-controller-services {
-        ul {
-            list-style: disc outside;
-            margin-left: 1em;
-        }
-    }
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

@@ -40,7 +40,7 @@
                             <div>Bundle</div>
                             <div class="value">{{ formatBundle(request.controllerService) }}</div>
                         </div>
-                        <div class="flex flex-col mb-5">
+                        <div class="supports-controller-services flex flex-col mb-5">
                             <div>Supports Controller Service</div>
                             <div class="value">
                                 <ul>
@@ -66,7 +66,15 @@
                             </mat-form-field>
                         </div>
                     </div>
-                    <div class="w-full">Referencing Components</div>
+                    <div class="flex flex-col w-full">
+                        <div>Referencing Components</div>
+                        <div>
+                            <controller-service-references
+                                [serviceReferences]="
+                                    request.controllerService.component.referencingComponents
+                                "></controller-service-references>
+                        </div>
+                    </div>
                 </div>
             </mat-tab>
             <mat-tab label="Properties">
