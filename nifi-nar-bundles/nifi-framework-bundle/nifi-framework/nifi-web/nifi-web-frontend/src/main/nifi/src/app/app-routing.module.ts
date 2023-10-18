@@ -32,7 +32,7 @@ const routes: Routes = [
     {
         path: '',
         canMatch: [authGuard],
-        loadChildren: () => import('./canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
+        loadChildren: () => import('./pages/canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
     }
 ];
 

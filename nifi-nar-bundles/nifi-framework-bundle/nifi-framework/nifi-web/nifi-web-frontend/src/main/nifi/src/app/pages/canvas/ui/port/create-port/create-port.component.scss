@@ -15,18 +15,12 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { LoadUserResponse, UserState } from './index';
-import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../pages/canvas/state/flow';
+@use '../../../../../../../node_modules/@angular/material/index' as mat;
 
-export const loadUser = createAction('[User] Load User');
+.create-port-form {
+    @include mat.button-density(-1);
 
-export const loadUserSuccess = createAction('[User] Load User Success', props<{ response: LoadUserResponse }>());
-
-export const userApiError = createAction('[User] User Api Error', props<{ error: string }>());
-
-export const clearUserApiError = createAction('[User] Clear User Api Error');
-
-export const startUserPolling = createAction('[User] Start User Polling');
-
-export const stopUserPolling = createAction('[User] Stop User Polling');
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+}
