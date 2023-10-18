@@ -666,6 +666,11 @@ public class MockProcessSession implements ProcessSession {
             }
 
             @Override
+            public boolean markSupported() {
+                return true;
+            }
+
+            @Override
             public void reset() {
                 bais.reset();
             }

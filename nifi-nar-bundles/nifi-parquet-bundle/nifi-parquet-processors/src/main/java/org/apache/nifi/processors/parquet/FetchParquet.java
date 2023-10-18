@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import java.io.IOException;
+import java.util.Optional;
+
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -30,13 +35,17 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parquet.filter.OffsetRecordFilter;
+import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
+import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
-import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
 import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.hadoop.ParquetReader;
-import java.io.IOException;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.io.InputFile;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -51,6 +60,16 @@ import java.io.IOException;
         @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file"),
         @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
+@ReadsAttributes({
+        @ReadsAttribute(
+                attribute = ParquetAttribute.RECORD_OFFSET,
+                description = "Gets the index of first record in the input."
+        ),
+        @ReadsAttribute(
+                attribute = ParquetAttribute.RECORD_COUNT,
+                description = "Gets the number of records in the input."
+        )
+})
 @SeeAlso({PutParquet.class})
 @Restricted(restrictions = {
     @Restriction(
@@ -60,10 +79,32 @@ import java.io.IOException;
 public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override
-    public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path)
-            throws IOException {
-        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(path).withConf(conf);
-        return new AvroParquetHDFSRecordReader(readerBuilder.build());
+    public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path) throws IOException {
+        final Long offset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.RECORD_OFFSET))
+                .map(Long::parseLong)
+                .orElse(null);
+
+        final Long count = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.RECORD_COUNT))
+                .map(Long::parseLong)
+                .orElse(null);
+
+        final long fileStartOffset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.FILE_RANGE_START_OFFSET))
+                .map(Long::parseLong)
+                .orElse(0L);
+        final long fileEndOffset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.FILE_RANGE_END_OFFSET))
+                .map(Long::parseLong)
+                .orElse(Long.MAX_VALUE);
+
+        final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
+        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(inputFile)
+                .withConf(conf)
+                .withFileRange(fileStartOffset, fileEndOffset);
+
+        if (offset != null) {
+            readerBuilder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));
+        }
+
+        return new AvroParquetHDFSRecordReader(readerBuilder.build(), count);
     }
 
 }
