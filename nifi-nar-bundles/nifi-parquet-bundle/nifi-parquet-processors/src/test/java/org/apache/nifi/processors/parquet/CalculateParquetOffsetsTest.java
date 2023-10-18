@@ -18,9 +18,9 @@
 package org.apache.nifi.processors.parquet;
 
 import static java.util.Collections.singletonMap;
-import static org.apache.nifi.processors.parquet.SplitParquet.PROP_RECORDS_PER_SPLIT;
-import static org.apache.nifi.processors.parquet.SplitParquet.PROP_ZERO_CONTENT_OUTPUT;
-import static org.apache.nifi.processors.parquet.SplitParquet.REL_SUCCESS;
+import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.PROP_RECORDS_PER_SPLIT;
+import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.PROP_ZERO_CONTENT_OUTPUT;
+import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,7 +37,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class SplitParquetTest {
+public class CalculateParquetOffsetsTest {
 
     private static final Path PARQUET_PATH = Paths.get("src/test/resources/TestParquetReader.parquet");
     private static final Path NOT_PARQUET_PATH = Paths.get("src/test/resources/core-site.xml");
@@ -51,7 +51,7 @@ public class SplitParquetTest {
 
     @BeforeEach
     public void setUp() {
-        runner = TestRunners.newTestRunner(new SplitParquet());
+        runner = TestRunners.newTestRunner(new CalculateParquetOffsets());
     }
 
     @Test
