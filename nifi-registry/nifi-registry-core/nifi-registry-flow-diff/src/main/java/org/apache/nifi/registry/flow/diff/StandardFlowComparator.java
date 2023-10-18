@@ -456,8 +456,8 @@ public class StandardFlowComparator implements FlowComparator {
         }
 
         addIfDifferent(differences, DifferenceType.LABEL_VALUE_CHANGED, labelA, labelB, VersionedLabel::getLabel);
-        addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getHeight);
-        addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getWidth);
+        addIfDifferent(differences, DifferenceType.SIZE_CHANGED, labelA, labelB, VersionedLabel::getHeight);
+        addIfDifferent(differences, DifferenceType.SIZE_CHANGED, labelA, labelB, VersionedLabel::getWidth);
         addIfDifferent(differences, DifferenceType.STYLE_CHANGED, labelA, labelB, VersionedLabel::getStyle);
         addIfDifferent(differences, DifferenceType.ZINDEX_CHANGED, labelA, labelB, VersionedLabel::getzIndex);
     }
