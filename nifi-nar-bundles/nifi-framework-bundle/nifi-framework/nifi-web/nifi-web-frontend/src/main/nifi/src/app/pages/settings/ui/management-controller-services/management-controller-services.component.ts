@@ -18,12 +18,16 @@
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
-import { selectManagementControllerServicesState } from '../../state/management-controller-services/management-controller-services.selectors';
+import {
+    selectControllerServiceIdFromRoute,
+    selectManagementControllerServicesState
+} from '../../state/management-controller-services/management-controller-services.selectors';
 import {
     loadManagementControllerServices,
     openConfigureControllerServiceDialog,
     openNewControllerServiceDialog,
-    promptControllerServiceDeletion
+    promptControllerServiceDeletion,
+    selectControllerService
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
@@ -35,6 +39,7 @@ import { initialState } from '../../state/management-controller-services/managem
 })
 export class ManagementControllerServices implements OnInit {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
+    selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
 
     constructor(private store: Store<ManagementControllerServicesState>) {}
 
@@ -69,6 +74,16 @@ export class ManagementControllerServices implements OnInit {
     deleteControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             promptControllerServiceDeletion({
+                request: {
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    selectControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            selectControllerService({
                 request: {
                     controllerService: entity
                 }

@@ -62,6 +62,10 @@ export interface DeleteReportingTaskSuccess {
     reportingTask: ReportingTaskEntity;
 }
 
+export interface SelectReportingTask {
+    reportingTask: ReportingTaskEntity;
+}
+
 export interface ReportingTaskEntity {
     permissions: Permissions;
     operatePermissions?: Permissions;

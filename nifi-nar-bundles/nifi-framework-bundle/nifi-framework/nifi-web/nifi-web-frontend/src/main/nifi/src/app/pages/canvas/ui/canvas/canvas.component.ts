@@ -20,7 +20,9 @@ import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
 import {
+    centerSelectedComponent,
     deselectAllComponents,
+    editComponent,
     loadProcessGroup,
     selectComponents,
     setSkipTransform,
@@ -34,13 +36,25 @@ import { selectTransform } from '../../state/transform/transform.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SelectedComponent } from '../../state/flow';
 import {
+    selectBulkSelectedComponentIds,
+    selectConnection,
     selectCurrentProcessGroupId,
+    selectFunnel,
+    selectInputPort,
+    selectLabel,
+    selectOutputPort,
+    selectProcessGroup,
     selectProcessGroupIdFromRoute,
     selectProcessGroupRoute,
+    selectProcessor,
+    selectRemoteProcessGroup,
+    selectSingleEditedComponent,
+    selectSingleSelectedComponent,
     selectSkipTransform
 } from '../../state/flow/flow.selectors';
-import { filter, switchMap, withLatestFrom } from 'rxjs';
-import { restoreViewport } from '../../state/transform/transform.actions';
+import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
+import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
+import { ComponentType } from '../../../../state/shared';
 
 @Component({
     selector: 'fd-canvas',
@@ -66,6 +80,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
                 this.scale = transform.scale;
             });
 
+        // load the process group from the route
         this.store
             .select(selectProcessGroupIdFromRoute)
             .pipe(
@@ -83,6 +98,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
                 );
             });
 
+        // handle process group loading and viewport restoration
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
@@ -98,6 +114,105 @@ export class CanvasComponent implements OnInit, OnDestroy {
                 } else {
                     this.store.dispatch(restoreViewport());
                 }
+            });
+
+        // handle single component selection
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(
+                filter((processGroupId) => processGroupId != null),
+                switchMap(() => this.store.select(selectSingleSelectedComponent)),
+                filter((selectedComponent) => selectedComponent != null),
+                withLatestFrom(this.store.select(selectSkipTransform)),
+                takeUntilDestroyed()
+            )
+            .subscribe(([selectedComponent, skipTransform]) => {
+                if (skipTransform) {
+                    this.store.dispatch(setSkipTransform({ skipTransform: false }));
+                } else {
+                    this.store.dispatch(centerSelectedComponent());
+                }
+            });
+
+        // handle bulk component selection
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(
+                filter((processGroupId) => processGroupId != null),
+                switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
+                filter((ids) => ids.length > 0),
+                withLatestFrom(this.store.select(selectSkipTransform)),
+                takeUntilDestroyed()
+            )
+            .subscribe(([ids, skipTransform]) => {
+                if (skipTransform) {
+                    this.store.dispatch(setSkipTransform({ skipTransform: false }));
+                } else {
+                    this.store.dispatch(zoomFit());
+                }
+            });
+
+        // handle component edit
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(
+                filter((processGroupId) => processGroupId != null),
+                switchMap(() => this.store.select(selectSingleEditedComponent)),
+                // ensure there is a selected component
+                filter((selectedComponent) => selectedComponent != null),
+                switchMap((selectedComponent) => {
+                    // @ts-ignore
+                    const component: SelectedComponent = selectedComponent;
+
+                    let component$;
+                    switch (component.componentType) {
+                        case ComponentType.Processor:
+                            component$ = this.store.select(selectProcessor(component.id));
+                            break;
+                        case ComponentType.InputPort:
+                            component$ = this.store.select(selectInputPort(component.id));
+                            break;
+                        case ComponentType.OutputPort:
+                            component$ = this.store.select(selectOutputPort(component.id));
+                            break;
+                        case ComponentType.ProcessGroup:
+                            component$ = this.store.select(selectProcessGroup(component.id));
+                            break;
+                        case ComponentType.RemoteProcessGroup:
+                            component$ = this.store.select(selectRemoteProcessGroup(component.id));
+                            break;
+                        case ComponentType.Connection:
+                            component$ = this.store.select(selectConnection(component.id));
+                            break;
+                        case ComponentType.Funnel:
+                            component$ = this.store.select(selectFunnel(component.id));
+                            break;
+                        case ComponentType.Label:
+                            component$ = this.store.select(selectLabel(component.id));
+                            break;
+                        default:
+                            throw 'Unrecognized Component Type';
+                    }
+
+                    // combine the original selection with the component
+                    return component$.pipe(
+                        take(1),
+                        map((component) => [selectedComponent, component])
+                    );
+                }),
+                takeUntilDestroyed()
+            )
+            .subscribe(([selectedComponent, component]) => {
+                // initiate the edit request
+                this.store.dispatch(
+                    editComponent({
+                        request: {
+                            type: selectedComponent.componentType,
+                            uri: component.uri,
+                            entity: component
+                        }
+                    })
+                );
             });
     }
 

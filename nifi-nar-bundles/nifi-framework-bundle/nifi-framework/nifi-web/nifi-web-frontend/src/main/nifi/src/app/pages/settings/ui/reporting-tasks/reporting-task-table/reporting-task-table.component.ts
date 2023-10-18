@@ -47,6 +47,9 @@ export class ReportingTaskTable implements AfterViewInit {
             return '';
         };
     }
+    @Input() selectedReportingTaskId!: string;
+
+    @Output() selectReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
@@ -233,13 +236,13 @@ export class ReportingTaskTable implements AfterViewInit {
         return false;
     }
 
-    selectReportingTask(entity: ReportingTaskEntity): void {
-        this.selectedReportingTask = entity;
+    select(entity: ReportingTaskEntity): void {
+        this.selectReportingTask.next(entity);
     }
 
     isSelected(entity: ReportingTaskEntity): boolean {
-        if (this.selectedReportingTask) {
-            return entity.id == this.selectedReportingTask.id;
+        if (this.selectedReportingTaskId) {
+            return entity.id == this.selectedReportingTaskId;
         }
         return false;
     }

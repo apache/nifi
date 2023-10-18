@@ -28,7 +28,9 @@
             </div>
             <div class="flex-1">
                 <controller-service-table
+                    [selectedServiceId]="selectedServiceId$ | async"
                     [controllerServices]="serviceState.controllerServices"
+                    (selectControllerService)="selectControllerService($event)"
                     (configureControllerService)="configureControllerService($event)"
                     (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
             </div>

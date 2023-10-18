@@ -30,6 +30,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import { NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../../state/shared';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -38,7 +39,8 @@ export class ManagementControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private managementControllerServiceService: ManagementControllerServiceService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private router: Router
     ) {}
 
     loadControllerConfig$ = createEffect(() =>
@@ -288,5 +290,17 @@ export class ManagementControllerServicesEffects {
                 )
             )
         )
+    );
+
+    selectControllerService$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.selectControllerService),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/settings', 'management-controller-services', request.controllerService.id]);
+                })
+            ),
+        { dispatch: false }
     );
 }

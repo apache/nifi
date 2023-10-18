@@ -18,8 +18,17 @@
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
 import { reportingTasksFeatureKey } from './index';
+import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectReportingTasksState = createSelector(
     selectSettingsState,
     (state: SettingsState) => state[reportingTasksFeatureKey]
 );
+
+export const selectReportingTaskIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        // always select the reporting task from the route
+        return route.params.id;
+    }
+    return null;
+});

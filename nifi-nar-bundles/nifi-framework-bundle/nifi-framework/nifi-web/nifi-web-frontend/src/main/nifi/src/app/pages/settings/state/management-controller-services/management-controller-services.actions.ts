@@ -23,7 +23,8 @@ import {
     CreateControllerServiceSuccess,
     DeleteControllerService,
     DeleteControllerServiceSuccess,
-    LoadManagementControllerServicesResponse
+    LoadManagementControllerServicesResponse,
+    SelectControllerService
 } from './index';
 import { EditControllerServiceRequest } from '../../../../state/shared';
 
@@ -83,4 +84,9 @@ export const deleteControllerService = createAction(
 export const deleteControllerServiceSuccess = createAction(
     '[Management Controller Services] Delete Controller Service Success',
     props<{ response: DeleteControllerServiceSuccess }>()
+);
+
+export const selectControllerService = createAction(
+    '[Management Controller Services] Select Controller Service',
+    props<{ request: SelectControllerService }>()
 );

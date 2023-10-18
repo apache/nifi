@@ -18,9 +18,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { FlowDesignerComponent } from './flow-designer.component';
-import { EditCanvasItem } from '../ui/edit-canvas-item/edit-canvas-item.component';
-import { SelectCanvasItem } from '../ui/select-canvas-item/select-canvas-item.component';
-import { BulkSelectCanvasItems } from '../ui/bulk-select-canvas-items/bulk-select-canvas-items.component';
 import { RootGroupRedirector } from '../ui/root/redirector/root-group-redirector.component';
 import { rootGroupGuard } from '../ui/root/guard/root-group.guard';
 
@@ -29,11 +26,11 @@ const routes: Routes = [
         path: 'process-groups/:processGroupId',
         component: FlowDesignerComponent,
         children: [
-            { path: 'bulk/:ids', component: BulkSelectCanvasItems },
+            { path: 'bulk/:ids', component: FlowDesignerComponent },
             {
                 path: ':type/:id',
-                component: SelectCanvasItem,
-                children: [{ path: 'edit', component: EditCanvasItem }]
+                component: FlowDesignerComponent,
+                children: [{ path: 'edit', component: FlowDesignerComponent }]
             }
         ]
     },

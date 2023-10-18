@@ -151,7 +151,7 @@
             <tr
                 mat-row
                 *matRowDef="let row; let even = even; columns: displayedColumns"
-                (click)="selectControllerService(row)"
+                (click)="select(row)"
                 [class.selected]="isSelected(row)"
                 [class.even]="even"></tr>
         </table>

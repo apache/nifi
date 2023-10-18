@@ -53,6 +53,10 @@ export interface DeleteControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 
+export interface SelectControllerService {
+    controllerService: ControllerServiceEntity;
+}
+
 export interface ManagementControllerServicesState {
     controllerServices: ControllerServiceEntity[];
     loadedTimestamp: string;

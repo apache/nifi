@@ -18,8 +18,17 @@
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
 import { managementControllerServicesFeatureKey } from './index';
+import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectManagementControllerServicesState = createSelector(
     selectSettingsState,
     (state: SettingsState) => state[managementControllerServicesFeatureKey]
 );
+
+export const selectControllerServiceIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        // always select the controller service from the route
+        return route.params.id;
+    }
+    return null;
+});

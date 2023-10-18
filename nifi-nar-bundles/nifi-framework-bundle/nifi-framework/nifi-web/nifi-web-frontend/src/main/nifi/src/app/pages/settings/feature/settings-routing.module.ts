@@ -32,8 +32,26 @@ const routes: Routes = [
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'general' },
             { path: 'general', component: General },
-            { path: 'management-controller-services', component: ManagementControllerServices },
-            { path: 'reporting-tasks', component: ReportingTasks },
+            {
+                path: 'management-controller-services',
+                component: ManagementControllerServices,
+                children: [
+                    {
+                        path: ':id',
+                        component: ManagementControllerServices
+                    }
+                ]
+            },
+            {
+                path: 'reporting-tasks',
+                component: ReportingTasks,
+                children: [
+                    {
+                        path: ':id',
+                        component: ReportingTasks
+                    }
+                ]
+            },
             { path: 'flow-analysis-rules', component: FlowAnalysisRules },
             { path: 'registry-clients', component: RegistryClients },
             { path: 'parameter-providers', component: ParameterProviders }

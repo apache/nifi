@@ -28,7 +28,9 @@
             </div>
             <div class="flex-1">
                 <reporting-task-table
+                    [selectedReportingTaskId]="selectedReportingTaskId$ | async"
                     [reportingTasks]="reportingTaskState.reportingTasks"
+                    (selectReportingTask)="selectReportingTask($event)"
                     (deleteReportingTask)="deleteReportingTask($event)"
                     (stopReportingTask)="stopReportingTask($event)"
                     (startReportingTask)="startReportingTask($event)"></reporting-task-table>

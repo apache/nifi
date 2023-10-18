@@ -59,6 +59,10 @@ export class ControllerServiceTable implements AfterViewInit {
             return '';
         };
     }
+    @Input() selectedServiceId!: string;
+
+    @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
@@ -70,7 +74,6 @@ export class ControllerServiceTable implements AfterViewInit {
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'scope', 'actions'];
     dataSource: MatTableDataSource<ControllerServiceEntity> = new MatTableDataSource<ControllerServiceEntity>();
-    selectedControllerService: ControllerServiceEntity | null = null;
 
     @ViewChild(MatSort) sort!: MatSort;
 
@@ -233,13 +236,13 @@ export class ControllerServiceTable implements AfterViewInit {
         return false;
     }
 
-    selectControllerService(entity: ControllerServiceEntity): void {
-        this.selectedControllerService = entity;
+    select(entity: ControllerServiceEntity): void {
+        this.selectControllerService.next(entity);
     }
 
     isSelected(entity: ControllerServiceEntity): boolean {
-        if (this.selectedControllerService) {
-            return entity.id == this.selectedControllerService.id;
+        if (this.selectedServiceId) {
+            return entity.id == this.selectedServiceId;
         }
         return false;
     }

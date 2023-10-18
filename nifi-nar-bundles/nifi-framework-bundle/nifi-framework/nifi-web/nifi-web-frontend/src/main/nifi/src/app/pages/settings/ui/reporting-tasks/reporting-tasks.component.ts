@@ -19,11 +19,15 @@ import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
-import { selectReportingTasksState } from '../../state/reporting-tasks/reporting-tasks.selectors';
+import {
+    selectReportingTaskIdFromRoute,
+    selectReportingTasksState
+} from '../../state/reporting-tasks/reporting-tasks.selectors';
 import {
     loadReportingTasks,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
+    selectReportingTask,
     startReportingTask,
     stopReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
@@ -35,6 +39,7 @@ import {
 })
 export class ReportingTasks {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
+    selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
 
     constructor(private store: Store<ReportingTasksState>) {}
 
@@ -53,6 +58,16 @@ export class ReportingTasks {
 
     refreshReportingTaskListing(): void {
         this.store.dispatch(loadReportingTasks());
+    }
+
+    selectReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            selectReportingTask({
+                request: {
+                    reportingTask: entity
+                }
+            })
+        );
     }
 
     deleteReportingTask(entity: ReportingTaskEntity): void {

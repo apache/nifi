@@ -22,6 +22,7 @@ import {
     DeleteReportingTask,
     DeleteReportingTaskSuccess,
     LoadReportingTasksResponse,
+    SelectReportingTask,
     StartReportingTask,
     StartReportingTaskSuccess,
     StopReportingTask,
@@ -83,6 +84,11 @@ export const deleteReportingTask = createAction(
 );
 
 export const deleteReportingTaskSuccess = createAction(
-    '[Management Controller Services] Delete Reporting Task Success',
+    '[Reporting Tasks] Delete Reporting Task Success',
     props<{ response: DeleteReportingTaskSuccess }>()
+);
+
+export const selectReportingTask = createAction(
+    '[Reporting Tasks] Select Reporting Task',
+    props<{ request: SelectReportingTask }>()
 );

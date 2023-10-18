@@ -26,6 +26,7 @@ import { selectReportingTaskTypes } from '../../../../state/extension-types/exte
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -33,7 +34,8 @@ export class ReportingTasksEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private reportingTaskService: ReportingTaskService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private router: Router
     ) {}
 
     loadReportingTasks$ = createEffect(() =>
@@ -213,5 +215,17 @@ export class ReportingTasksEffects {
                 )
             )
         )
+    );
+
+    selectReportingTask$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ReportingTaskActions.selectReportingTask),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/settings', 'reporting-tasks', request.reportingTask.id]);
+                })
+            ),
+        { dispatch: false }
     );
 }
