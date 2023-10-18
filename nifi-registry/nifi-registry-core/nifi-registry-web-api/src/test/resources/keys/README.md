@@ -76,7 +76,8 @@ cd "$WD"
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-key.pem ./nifi-key.key
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-cert.pem ./nifi-cert.pem
 
-# place new keystores / truststores (for more info: https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
+# place new keystores / truststores
+#   for more info, see the [walkthrough for securing NiFi with mTLS](https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
 
 # switch to output directory, create final output directory
 cd "$WD"
@@ -120,7 +121,8 @@ cd "$WD"
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-key.pem ./nifi-key.key
 cp /path/to/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys/ca-cert.pem ./nifi-cert.pem
 
-# place new keystores / truststores (for more info: https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
+# place new keystores / truststores
+#   for more info, see the [walkthrough for securing NiFi with mTLS](https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
 
 # switch to output directory, create final output directory
 cd "$WD"
@@ -172,7 +174,8 @@ WD="/tmp/test-keys-$(date +"%Y%m%d-%H%M%S")"
 mkdir "$WD"
 cd "$WD"
 
-# place new keystores / truststores (for more info: https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
+# place new keystores / truststores
+#   for more info, see the [walkthrough for securing NiFi with mTLS](https://nifi.apache.org/docs/nifi-docs/html/walkthroughs.html#securing-nifi-with-mtls)
 
 # switch to output directory, create final output directory
 cd "$WD"
