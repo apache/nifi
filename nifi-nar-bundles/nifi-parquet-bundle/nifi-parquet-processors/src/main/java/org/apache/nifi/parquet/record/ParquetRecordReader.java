@@ -16,42 +16,75 @@
  */
 package org.apache.nifi.parquet.record;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.parquet.filter.AndRecordFilter;
+import org.apache.nifi.parquet.filter.LimitRecordFilter;
+import org.apache.nifi.parquet.filter.OffsetRecordFilter;
 import org.apache.nifi.parquet.stream.NifiParquetInputFile;
+import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.ParquetReader.Builder;
 import org.apache.parquet.io.InputFile;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
 
 public class ParquetRecordReader implements RecordReader {
 
     private GenericRecord lastParquetRecord;
-    private RecordSchema recordSchema;
+    private final RecordSchema recordSchema;
 
     private final InputStream inputStream;
-    private final InputFile inputFile;
     private final ParquetReader<GenericRecord> parquetReader;
 
-    public ParquetRecordReader(final InputStream inputStream, final long inputLength, final Configuration configuration) throws IOException {
+    public ParquetRecordReader(
+            final InputStream inputStream,
+            final long inputLength,
+            final Configuration configuration,
+            final Map<String, String> variables
+    ) throws IOException {
         if (inputLength < 0) {
             throw new IllegalArgumentException("Invalid input length of '" + inputLength + "'. This record reader requires knowing " +
                     "the length of the InputStream and cannot be used in some cases where the length may not be known.");
         }
 
+        final Long offset = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_OFFSET))
+                .map(Long::parseLong)
+                .orElse(null);
+
+        final Long count = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
+                .map(Long::parseLong)
+                .orElse(null);
+
         this.inputStream = inputStream;
 
-        inputFile = new NifiParquetInputFile(inputStream, inputLength);
-        parquetReader = AvroParquetReader.<GenericRecord>builder(inputFile).withConf(configuration).build();
+        final InputFile inputFile = new NifiParquetInputFile(inputStream, inputLength);
+
+        final Builder<GenericRecord> builder = AvroParquetReader.<GenericRecord>builder(inputFile)
+                .withConf(configuration);
+
+        if ((offset != null) && (count != null)) {
+            builder.withFilter(FilterCompat.get(new AndRecordFilter(
+                    new OffsetRecordFilter(offset),
+                    new LimitRecordFilter(count)
+            )));
+        } else if ((offset == null) && (count != null)) {
+            builder.withFilter(FilterCompat.get(new LimitRecordFilter(count)));
+        } else if (offset != null) {
+            builder.withFilter(FilterCompat.get(new OffsetRecordFilter(offset)));
+        }
+
+        parquetReader = builder.build();
 
         // Read the first record so that we can extract the schema
         lastParquetRecord = parquetReader.read();

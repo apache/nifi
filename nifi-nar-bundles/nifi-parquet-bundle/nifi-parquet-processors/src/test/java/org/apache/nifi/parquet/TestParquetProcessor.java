@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.parquet;
 
-import org.apache.commons.io.IOUtils;
+import static java.util.Collections.singletonList;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -24,19 +29,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.StringUtils;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class TestParquetProcessor extends AbstractProcessor {
 
@@ -45,13 +41,6 @@ public class TestParquetProcessor extends AbstractProcessor {
             .description("reader")
             .identifiesControllerService(ParquetReader.class)
             .required(true)
-            .build();
-
-    public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
-            .name("path")
-            .description("path")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder()
@@ -66,16 +55,7 @@ public class TestParquetProcessor extends AbstractProcessor {
 
         final List<String> records = new ArrayList<>();
 
-        byte[] parquetBytes;
-
-        // read the parquet file into bytes since we can't use a FileInputStream since it doesn't support mark/reset
-        try {
-            parquetBytes = IOUtils.toByteArray(new File(context.getProperty(PATH).getValue()).toURI());
-        } catch (Exception e) {
-            throw new ProcessException(e);
-        }
-
-        try (final InputStream in = new ByteArrayInputStream(parquetBytes);
+        try (final InputStream in = session.read(flowFile);
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -92,12 +72,12 @@ public class TestParquetProcessor extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ArrayList<PropertyDescriptor>() {{ add(READER); add(PATH); }};
+        return singletonList(READER);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return new HashSet<Relationship>() {{ add(SUCCESS); }};
+        return Set.of(SUCCESS);
     }
 
 }

@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -26,6 +43,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
 import org.apache.nifi.reporting.InitializationException;
@@ -47,24 +65,6 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.when;
 
 @DisabledOnOs({ OS.WINDOWS })
 public class FetchParquetTest {
@@ -139,6 +139,94 @@ public class FetchParquetTest {
         flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
 
         verifyCSVRecords(flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithOffsetAndCount() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetDir = new File(DIRECTORY);
+        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        writeParquetUsers(parquetFile);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.RECORD_OFFSET, "3");
+        attributes.put(ParquetAttribute.RECORD_COUNT, "1");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob3,3,blue3\n", flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithOffset() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetDir = new File(DIRECTORY);
+        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        writeParquetUsers(parquetFile);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.RECORD_OFFSET, "9");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob9,9,blue9\n", flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithCount() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetDir = new File(DIRECTORY);
+        final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
+        writeParquetUsers(parquetFile);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.RECORD_COUNT, "1");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob0,0,blue0\n", flowFileContent);
     }
 
     @Test

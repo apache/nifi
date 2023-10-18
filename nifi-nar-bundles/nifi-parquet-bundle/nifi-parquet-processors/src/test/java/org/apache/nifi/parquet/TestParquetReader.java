@@ -16,6 +16,26 @@
  */
 package org.apache.nifi.parquet;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -25,9 +45,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.TestRunner;
@@ -39,19 +61,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DisabledOnOs({ OS.WINDOWS })
 public class TestParquetReader {
@@ -74,43 +83,58 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsers() throws IOException, MalformedRecordException {
-        final Schema schema = getSchema();
-        final File parquetFile = new File("target/TestParquetReader-testReadUsers-" + System.currentTimeMillis());
-
-        // write some users to the parquet file...
+    public void testReadUsers() throws IOException {
         final int numUsers = 10;
-        try (final ParquetWriter<GenericRecord> writer = createParquetWriter(schema, parquetFile)) {
-            for (int i=0; i < numUsers; i++) {
-                final GenericRecord user = new GenericData.Record(schema);
-                user.put("name", "Bob" + i);
-                user.put("favorite_number", i);
-                user.put("favorite_color", "blue" + i);
-                writer.write(user);
-            }
-        }
+        final File parquetFile = createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(parquetFile, emptyMap());
 
-        // read the parquet file into bytes since we can't use a FileInputStream since it doesn't support mark/reset
-        final byte[] parquetBytes = IOUtils.toByteArray(parquetFile.toURI());
+        assertEquals(numUsers, results.size());
+        IntStream.range(0, numUsers)
+                .forEach(i -> assertEquals(createUser(i), convertRecordToUser(results.get(i))));
+    }
 
-        // read the users in using the record reader...
-        try (final InputStream in = new ByteArrayInputStream(parquetBytes);
-             final RecordReader recordReader = parquetReaderFactory.createRecordReader(
-                     Collections.emptyMap(), in, parquetFile.length(), componentLog)) {
+    @Test
+    public void testReadUsersPartiallyWithLimitedRecordCount() throws IOException {
+        final int numUsers = 25;
+        final int expectedRecords = 3;
+        final File parquetFile = createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_COUNT, "3"));
 
-            int recordCount = 0;
-            while (recordReader.nextRecord() != null) {
-                recordCount++;
-            }
-            assertEquals(numUsers, recordCount);
-        }
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(createUser(i), convertRecordToUser(results.get(i))));
+    }
+
+    @Test
+    public void testReadUsersPartiallyWithOffset() throws IOException {
+        final int numUsers = 25;
+        final int expectedRecords = 5;
+        final File parquetFile = createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_OFFSET, "20"));
+
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(createUser(i + 20), convertRecordToUser(results.get(i))));
+    }
+
+    @Test
+    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCount() throws IOException {
+        final int numUsers = 25;
+        final int expectedRecords = 2;
+        final File parquetFile = createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(parquetFile, Map.of(
+                ParquetAttribute.RECORD_OFFSET, "20",
+                ParquetAttribute.RECORD_COUNT, "2"
+        ));
+
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(createUser(i + 20), convertRecordToUser(results.get(i))));
     }
 
     @Test
     public void testReader() throws InitializationException, IOException  {
         final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
-
-
         final ParquetReader parquetReader = new ParquetReader();
 
         runner.addControllerService("reader", parquetReader);
@@ -119,12 +143,143 @@ public class TestParquetReader {
         runner.enqueue(Paths.get(PARQUET_PATH));
 
         runner.setProperty(TestParquetProcessor.READER, "reader");
-        runner.setProperty(TestParquetProcessor.PATH, PARQUET_PATH);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
+                MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]
+                MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]
+                MapRecord[{name=Bob2, favorite_number=2, favorite_color=blue2}]
+                MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]
+                MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]
+                MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]
+                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
+                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]
+                MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]
+                MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]""");
     }
 
+    @Test
+    public void testPartialReaderWithLimitedRecordCount() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
+        final ParquetReader parquetReader = new ParquetReader();
+
+        runner.addControllerService("reader", parquetReader);
+        runner.enableControllerService(parquetReader);
+
+        runner.enqueue(Paths.get(PARQUET_PATH), singletonMap(ParquetAttribute.RECORD_COUNT, "2"));
+
+        runner.setProperty(TestParquetProcessor.READER, "reader");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
+                MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]
+                MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]""");
+    }
+
+    @Test
+    public void testPartialReaderWithOffsetAndLimitedRecordCount() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
+        final ParquetReader parquetReader = new ParquetReader();
+
+        runner.addControllerService("reader", parquetReader);
+        runner.enableControllerService(parquetReader);
+
+        runner.enqueue(Paths.get(PARQUET_PATH), Map.of(
+                ParquetAttribute.RECORD_OFFSET, "6",
+                ParquetAttribute.RECORD_COUNT, "2"
+        ));
+
+        runner.setProperty(TestParquetProcessor.READER, "reader");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
+                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
+                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]""");
+    }
+
+    @Test
+    public void testPartialReaderWithOffsetOnly() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
+        final ParquetReader parquetReader = new ParquetReader();
+
+        runner.addControllerService("reader", parquetReader);
+        runner.enableControllerService(parquetReader);
+
+        runner.enqueue(Paths.get(PARQUET_PATH), singletonMap(ParquetAttribute.RECORD_OFFSET, "3"));
+
+        runner.setProperty(TestParquetProcessor.READER, "reader");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
+                MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]
+                MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]
+                MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]
+                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
+                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]
+                MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]
+                MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]""");
+    }
+
+    private File createUsersParquetFile(int numUsers) throws IOException {
+        return createUsersParquetFile(IntStream
+                .range(0, numUsers)
+                .mapToObj(this::createUser)
+                .collect(toList())
+        );
+    }
+
+    private File createUsersParquetFile(Collection<Map<String, Object>> users) throws IOException {
+        final Schema schema = getSchema();
+        final File parquetFile = new File("target/TestParquetReader-testReadUsers-" + System.currentTimeMillis());
+
+        // write some users to the parquet file...
+        try (final ParquetWriter<GenericRecord> writer = createParquetWriter(schema, parquetFile)) {
+            users.forEach(user -> {
+                final GenericRecord record = new GenericData.Record(schema);
+                user.forEach(record::put);
+                try {
+                    writer.write(record);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+        return parquetFile;
+    }
+
+    private Map<String, Object> createUser(int i) {
+        return Map.of(
+                "name", "Bob" + i,
+                "favorite_number", i,
+                "favorite_color", "blue" + i
+        );
+    }
+
+    private List<Record> getRecords(File parquetFile, Map<String, String> variables)
+            throws IOException {
+        final List<Record> results;
+        // read the parquet file into bytes since we can't use a FileInputStream since it doesn't support mark/reset
+        final byte[] parquetBytes = IOUtils.toByteArray(parquetFile.toURI());
+
+        // read the users in using the record reader...
+        try (final InputStream in = new ByteArrayInputStream(parquetBytes);
+                final RecordReader recordReader = parquetReaderFactory.createRecordReader(
+                        variables, in, parquetFile.length(), componentLog)) {
+
+            results = Stream.generate(() -> {
+                try {
+                    return recordReader.nextRecord();
+                } catch (IOException | MalformedRecordException e) {
+                    throw new RuntimeException(e);
+                }
+            }).takeWhile(Objects::nonNull).toList();
+        }
+        return results;
+    }
 
     private Schema getSchema() throws IOException {
         final File schemaFile = new File(SCHEMA_PATH);
@@ -140,5 +295,14 @@ public class TestParquetReader {
                         .withSchema(schema)
                         .withConf(conf)
                         .build();
+    }
+
+    private Map<String, Object> convertRecordToUser(Record record) {
+        return record.getRawFieldNames()
+                .stream()
+                .collect(toMap(
+                        fieldName -> fieldName,
+                        record::getValue
+                ));
     }
 }
