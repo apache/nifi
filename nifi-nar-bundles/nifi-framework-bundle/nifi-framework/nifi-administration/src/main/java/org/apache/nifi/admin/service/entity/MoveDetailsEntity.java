@@ -14,34 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.user;
-
-import org.apache.nifi.authorization.user.NiFiUser;
-
-import java.util.Set;
+package org.apache.nifi.admin.service.entity;
 
 /**
- *
+ * Enumeration of Action Move Details properties stored as Entity objects
  */
-public class NiFiUserGroup {
+public enum MoveDetailsEntity implements EntityProperty {
+    ACTION("action"),
 
-    private String group;
-    private Set<NiFiUser> users;
+    GROUP("group"),
 
-    public String getGroup() {
-        return group;
+    GROUP_ID("groupId"),
+
+    PREVIOUS_GROUP("previousGroup"),
+
+    PREVIOUS_GROUP_ID("previousGroupId");
+
+    private final String property;
+
+    MoveDetailsEntity(final String property) {
+        this.property = property;
     }
 
-    public void setGroup(String group) {
-        this.group = group;
+    @Override
+    public String getProperty() {
+        return property;
     }
-
-    public Set<NiFiUser> getUsers() {
-        return users;
-    }
-
-    public void setUsers(Set<NiFiUser> users) {
-        this.users = users;
-    }
-
 }
