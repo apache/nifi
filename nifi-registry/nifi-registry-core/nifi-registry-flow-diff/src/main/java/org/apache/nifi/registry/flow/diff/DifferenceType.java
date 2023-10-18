@@ -206,6 +206,11 @@ public enum DifferenceType {
     POSITION_CHANGED("Position Changed"),
 
     /**
+     * The height and/or width size of the component is different in each of the flows
+     */
+    SIZE_CHANGED("Size Changed"),
+
+    /**
      * The stylistic configuration of the component is different in each of the flows
      */
     STYLE_CHANGED("Style Changed"),

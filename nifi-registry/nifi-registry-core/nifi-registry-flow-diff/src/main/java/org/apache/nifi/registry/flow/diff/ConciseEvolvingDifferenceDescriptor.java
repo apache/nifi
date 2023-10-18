@@ -71,6 +71,9 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
             case POSITION_CHANGED:
                 description = "Position was changed";
                 break;
+            case SIZE_CHANGED:
+                description = "Size was changed";
+                break;
             case BENDPOINTS_CHANGED:
                 description = "Connection Bendpoints changed";
                 break;
