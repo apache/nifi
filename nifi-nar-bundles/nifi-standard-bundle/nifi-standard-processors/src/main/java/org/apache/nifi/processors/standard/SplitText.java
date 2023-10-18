@@ -459,13 +459,6 @@ public class SplitText extends AbstractProcessor {
         while ((offsetInfo = demarcator.nextOffsetInfo()) != null) {
             lastCrlfLength = offsetInfo.getCrlfLength();
 
-            if (offsetInfo.getLength() == offsetInfo.getCrlfLength()) {
-                trailingCrlfLength += offsetInfo.getCrlfLength();
-                trailingLineCount++;
-            } else if (offsetInfo.getLength() > offsetInfo.getCrlfLength()) {
-                trailingCrlfLength = 0; // non-empty line came in, thus resetting counter
-            }
-
             if (length + offsetInfo.getLength() + startingLength > this.maxSplitSize) {
                 if (length == 0) { // single line per split
                     length += offsetInfo.getLength();
@@ -474,12 +467,19 @@ public class SplitText extends AbstractProcessor {
                     remaningOffsetInfo = offsetInfo;
                 }
                 break;
-            } else {
-                length += offsetInfo.getLength();
-                actualLineCount++;
-                if (splitMaxLineCount > 0 && actualLineCount >= splitMaxLineCount) {
-                    break;
-                }
+            }
+
+            if (offsetInfo.getLength() == offsetInfo.getCrlfLength()) {
+                trailingCrlfLength += offsetInfo.getCrlfLength();
+                trailingLineCount++;
+            } else if (offsetInfo.getLength() > offsetInfo.getCrlfLength()) {
+                trailingCrlfLength = 0; // non-empty line came in, thus resetting counter
+            }
+
+            length += offsetInfo.getLength();
+            actualLineCount++;
+            if (splitMaxLineCount > 0 && actualLineCount >= splitMaxLineCount) {
+                break;
             }
         }
 
