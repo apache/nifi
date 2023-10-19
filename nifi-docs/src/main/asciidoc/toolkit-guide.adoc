@@ -424,7 +424,7 @@ To add a NiFi Registry command, perform the same steps, but extend from `Abstrac
 == Encrypt-Config Tool
 The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a root password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
 
-The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
+The default encryption algorithm utilized is AES-GCM with 256-bit keys.
 
 === Usage
 To show help:
@@ -434,51 +434,49 @@ To show help:
 ==== NiFi
 The following are available options when targeting NiFi:
 
-* `-h`,`--help`                                 Show usage information (this message)
-* `-v`,`--verbose`                              Sets verbose mode (default false)
-* `-n`,`--niFiProperties <file>`                The _nifi.properties_ file containing unprotected config values (will be overwritten unless `-o` is specified)
-* `-o`,`--outputNiFiProperties <file>`          The destination _nifi.properties_ file containing protected config values (will not modify input _nifi.properties_)
-* `-l`,`--loginIdentityProviders <file>`        The _login-identity-providers.xml_ file containing unprotected config values (will be overwritten unless `-i` is specified)
-* `-i`,`--outputLoginIdentityProviders <file>`  The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
-* `-a`,`--authorizers <file>`                   The _authorizers.xml_ file containing unprotected config values (will be overwritten unless `-u` is specified)
-* `-u`,`--outputAuthorizers <file>`             The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
-* `-f`,`--flowXml <file>`                       The _flow.xml.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
-* `-g`,`--outputFlowXml <file>`                 The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
-* `-b`,`--bootstrapConf <file>`                 The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.
-* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AWS_SECRETSMANAGER>>, <<AZURE_KEYVAULT_KEY>>, <<AZURE_KEYVAULT_SECRET>>, <<GCP_KMS>>] (default is AES_GCM)
-* `-k`,`--key <keyhex>`                         The raw hexadecimal key to use to encrypt the sensitive properties
-* `-e`,`--oldKey <keyhex>`                      The old raw hexadecimal key to use during key migration
+* `-h`,`--help`                                   Show usage information (this message)
+* `-v`,`--verbose`                                Sets verbose mode (default false)
+* `-n`,`--niFiProperties <file>`                  The _nifi.properties_ file containing unprotected config values (will be overwritten unless `-o` is specified)
+* `-o`,`--outputNiFiProperties <file>`            The destination _nifi.properties_ file containing protected config values (will not modify input _nifi.properties_)
+* `-l`,`--loginIdentityProviders <file>`          The _login-identity-providers.xml_ file containing unprotected config values (will be overwritten unless `-i` is specified)
+* `-i`,`--outputLoginIdentityProviders <file>`    The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
+* `-a`,`--authorizers <file>`                     The _authorizers.xml_ file containing unprotected config values (will be overwritten unless `-u` is specified)
+* `-u`,`--outputAuthorizers <file>`               The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
+* `-f`,`--flowJson <file>`                        The _flow.json.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
+* `-g`,`--outputFlowJson <file>`                  The destination _flow.json.gz_ file containing protected config values (will not modify input _flow.json.gz_)
+* `-b`,`--bootstrapConf <file>`                   The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.
+* `-B`,`--outputBootstrapConf <file>`             The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
+* `-S`,`--protectionScheme <protectionScheme>`    Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AWS_SECRETSMANAGER>>, <<AZURE_KEYVAULT_KEY>>, <<AZURE_KEYVAULT_SECRET>>, <<GCP_KMS>>] (default is AES_GCM)
+* `-k`,`--key <keyhex>`                           The raw hexadecimal key to use to encrypt the sensitive properties
+* `-e`,`--oldKey <keyhex>`                        The old raw hexadecimal key to use during key migration
 * `-H`,`--oldProtectionScheme <protectionScheme>` The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM
-* `-p`,`--password <password>`                  The password from which to derive the key to use to encrypt the sensitive properties
-* `-w`,`--oldPassword <password>`            The old password from which to derive the key during migration
-* `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
-* `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with the new scheme
-* `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in _flow.xml.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
-* `-s`,`--propsKey <password|keyhex>`           The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
-* `-A`,`--newFlowAlgorithm <algorithm>`         The algorithm to use to encrypt the sensitive processor properties in _flow.xml.gz_
-* `-P`,`--newFlowProvider <algorithm>`          The security provider to use to encrypt the sensitive processor properties in _flow.xml.gz_
-* `-c`,`--translateCli`                         Translates the _nifi.properties_ file to a format suitable for the NiFi CLI tool
+* `-p`,`--password <password>`                    The password from which to derive the key to use to encrypt the sensitive properties
+* `-w`,`--oldPassword <password>`                 The old password from which to derive the key during migration
+* `-r`,`--useRawKey`                              If provided, the secure console will prompt for the raw key value in hexadecimal form
+* `-m`,`--migrate`                                If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with the new scheme
+* `-x`,`--encryptFlowJsonOnly`                    If provided, the properties in _flow.json.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
+* `-s`,`--propsKey <password|keyhex>`             The password or key to use to encrypt the sensitive processor properties in _flow.json.gz_
+* `-A`,`--newFlowAlgorithm <algorithm>`           The algorithm to use to encrypt the sensitive processor properties in _flow.json.gz_
 
 ==== NiFi Registry
 The following are available options when targeting NiFi Registry using the `--nifiRegistry` flag:
 
-* `-h`,`--help`                                 Show usage information (this message)
-* `-v`,`--verbose`                              Sets verbose mode (default false)
-* `-p`,`--password <password>`                  Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
-* `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
-* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AWS_SECRETSMANAGER>>, <<AZURE_KEYVAULT_KEY>>, <<AZURE_KEYVAULT_SECRET>>, <<GCP_KMS>>]  (default is AES_GCM)
-* `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
-* `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
-* `-H`,`--oldProtectionScheme <protectionScheme>`The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM.
-* `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key, and any other protection scheme configuration properties. If a new password or key is specified (using -p or -k) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new master key.
-* `-B`,`--outputBootstrapConf <file>`           The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
-* `-r`,`--nifiRegistryProperties <file>`        The _nifi-registry.properties_ file containing unprotected config values, overwritten if no output file specified.
-* `-R`,`--outputNifiRegistryProperties <file>`  The destination _nifi-registry.properties_ file containing protected config values.
-* `-a`,`--authorizersXml <file>`                The _authorizers.xml_ file containing unprotected config values, overwritten if no output file specified.
-* `-A`,`--outputAuthorizersXml <file>`          The destination _authorizers.xml_ file containing protected config values.
-* `-i`,`--identityProvidersXml <file>`          The _identity-providers.xml_ file containing unprotected config values, overwritten if no output file specified.
-* `-I`,`--outputIdentityProvidersXml <file>`    The destination _identity-providers.xml_ file containing protected config values.
-* `--decrypt`                                    Can be used with `-r` to decrypt a previously encrypted NiFi Registry Properties file. Decrypted content is printed to STDOUT.
+* `-h`,`--help`                                   Show usage information (this message)
+* `-v`,`--verbose`                                Sets verbose mode (default false)
+* `-p`,`--password <password>`                    Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
+* `-k`,`--key <keyhex>`                           Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
+* `-S`,`--protectionScheme <protectionScheme>`    Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AWS_SECRETSMANAGER>>, <<AZURE_KEYVAULT_KEY>>, <<AZURE_KEYVAULT_SECRET>>, <<GCP_KMS>>]  (default is AES_GCM)
+* `-w`,`--oldPassword <password>`                 If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
+* `-e`,`--oldKey <keyhex>`                        If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
+* `-H`,`--oldProtectionScheme <protectionScheme>` The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM.
+* `-b`,`--bootstrapConf <file>`                   The _bootstrap.conf_ file containing no root key or an existing root key, and any other protection scheme configuration properties. If a new password or key is specified (using -p or -k) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new master key.
+* `-B`,`--outputBootstrapConf <file>`             The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
+* `-r`,`--nifiRegistryProperties <file>`          The _nifi-registry.properties_ file containing unprotected config values, overwritten if no output file specified.
+* `-R`,`--outputNifiRegistryProperties <file>`    The destination _nifi-registry.properties_ file containing protected config values.
+* `-a`,`--authorizersXml <file>`                  The _authorizers.xml_ file containing unprotected config values, overwritten if no output file specified.
+* `-u`,`--outputAuthorizersXml <file>`            The destination _authorizers.xml_ file containing protected config values.
+* `-i`,`--identityProvidersXml <file>`            The _identity-providers.xml_ file containing unprotected config values, overwritten if no output file specified.
+* `-I`,`--outputIdentityProvidersXml <file>`      The destination _identity-providers.xml_ file containing protected config values.
 
 === Protection Schemes
 The protection scheme can be selected during encryption using the `--protectionScheme` flag.  During migration, the former protection scheme is specified using the `--oldProtectionScheme` flag.  This distinction allows a set of protected configuration files to be migrated not only to a new key, but to a completely different protection scheme.
