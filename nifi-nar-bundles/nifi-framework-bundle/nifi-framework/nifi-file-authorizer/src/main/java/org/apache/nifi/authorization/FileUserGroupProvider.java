@@ -80,19 +80,14 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     private static final String TENANTS_XSD = "/tenants.xsd";
     private static final String JAXB_TENANTS_PATH = "org.apache.nifi.authorization.file.tenants.generated";
-
-    private static final String USERS_XSD = "/legacy-users.xsd";
-    private static final String JAXB_USERS_PATH = "org.apache.nifi.user.generated";
-
-    private static final JAXBContext JAXB_TENANTS_CONTEXT = initializeJaxbContext(JAXB_TENANTS_PATH);
-    private static final JAXBContext JAXB_USERS_CONTEXT = initializeJaxbContext(JAXB_USERS_PATH);
+    private static final JAXBContext JAXB_TENANTS_CONTEXT = initializeJaxbContext();
 
     /**
      * Load the JAXBContext.
      */
-    private static JAXBContext initializeJaxbContext(final String contextPath) {
+    private static JAXBContext initializeJaxbContext() {
         try {
-            return JAXBContext.newInstance(contextPath, FileAuthorizer.class.getClassLoader());
+            return JAXBContext.newInstance(JAXB_TENANTS_PATH, FileUserGroupProvider.class.getClassLoader());
         } catch (JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
@@ -111,14 +106,11 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     static final String PROP_TENANTS_FILE = "Users File";
     static final Pattern INITIAL_USER_IDENTITY_PATTERN = Pattern.compile(PROP_INITIAL_USER_IDENTITY_PREFIX + "\\S+");
 
-    private Schema usersSchema;
     private Schema tenantsSchema;
     private NiFiProperties properties;
     private File tenantsFile;
     private File restoreTenantsFile;
     private Set<String> initialUserIdentities;
-    private List<IdentityMapping> identityMappings;
-    private List<IdentityMapping> groupMappings;
 
     private final AtomicReference<UserGroupHolder> userGroupHolder = new AtomicReference<>();
 
@@ -126,8 +118,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
         try {
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            tenantsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(TENANTS_XSD));
-            usersSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(USERS_XSD));
+            tenantsSchema = schemaFactory.newSchema(FileUserGroupProvider.class.getResource(TENANTS_XSD));
         } catch (Exception e) {
             throw new AuthorizerCreationException(e);
         }
@@ -144,7 +135,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             // get the tenants file and ensure it exists
             tenantsFile = new File(tenantsPath.getValue());
             if (!tenantsFile.exists()) {
-                logger.info("Creating new users file at {}", new Object[] {tenantsFile.getAbsolutePath()});
+                logger.info("Creating new users file at {}", tenantsFile.getAbsolutePath());
                 saveTenants(new Tenants());
             }
 
@@ -174,8 +165,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             }
 
             // extract the identity and group mappings from nifi.properties if any are provided
-            identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
-            groupMappings = Collections.unmodifiableList(IdentityMappingUtil.getGroupMappings(properties));
+            List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
 
             // extract any node identities
             initialUserIdentities = new HashSet<>();
@@ -193,7 +183,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
                 FileUtils.copyFile(tenantsFile, restoreTenantsFile, false, false, logger);
             }
 
-            logger.info(String.format("Users/Groups file loaded at %s", new Date().toString()));
+            logger.debug("Users/Groups file loaded");
         } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
         }
@@ -487,7 +477,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
 
-        if (isInheritable(usersAndGroups)) {
+        if (isInheritable()) {
             logger.debug("Inheriting cluster's Users & Groups");
             inherit(usersAndGroups);
         } else {
@@ -526,21 +516,13 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
-        final UsersAndGroups proposedUsersAndGroups;
-        try {
-            // ensure we understand the proposed fingerprint
-            proposedUsersAndGroups = parseUsersAndGroups(proposedFingerprint);
-        } catch (final AuthorizationAccessException e) {
-            throw new UninheritableAuthorizationsException("Unable to parse the proposed fingerprint: " + e);
-        }
-
         // ensure we are in a proper state to inherit the fingerprint
-        if (!isInheritable(proposedUsersAndGroups)) {
+        if (!isInheritable()) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current users and groups is not empty.");
         }
     }
 
-    private boolean isInheritable(final UsersAndGroups proposedUsersAndGroups) {
+    private boolean isInheritable() {
         final UserGroupHolder usersAndGroups = userGroupHolder.get();
         return usersAndGroups.getAllUsers().isEmpty() && usersAndGroups.getAllGroups().isEmpty();
     }
@@ -725,7 +707,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     private void populateInitialUsers(final Tenants tenants) {
         for (String initialUserIdentity : initialUserIdentities) {
-            getOrCreateUser(tenants, initialUserIdentity);
+            createUser(tenants, initialUserIdentity);
         }
     }
 
@@ -734,11 +716,10 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
      *
      * @param tenants the Tenants reference
      * @param userIdentity the user identity to find or create
-     * @return the User from Tenants with the given identity, or a new instance that was added to Tenants
      */
-    private org.apache.nifi.authorization.file.tenants.generated.User getOrCreateUser(final Tenants tenants, final String userIdentity) {
+    private void createUser(final Tenants tenants, final String userIdentity) {
         if (StringUtils.isBlank(userIdentity)) {
-            return null;
+            return;
         }
 
         org.apache.nifi.authorization.file.tenants.generated.User foundUser = null;
@@ -756,45 +737,11 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             foundUser.setIdentity(userIdentity);
             tenants.getUsers().getUser().add(foundUser);
         }
-
-        return foundUser;
-    }
-
-    /**
-     * Finds the Group with the given name, or creates a new one and adds it to Tenants.
-     *
-     * @param tenants the Tenants reference
-     * @param groupName the name of the group to look for
-     * @return the Group from Tenants with the given name, or a new instance that was added to Tenants
-     */
-    private org.apache.nifi.authorization.file.tenants.generated.Group getOrCreateGroup(final Tenants tenants, final String groupName) {
-        if (StringUtils.isBlank(groupName)) {
-            return null;
-        }
-
-        org.apache.nifi.authorization.file.tenants.generated.Group foundGroup = null;
-        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
-            if (group.getName().equals(groupName)) {
-                foundGroup = group;
-                break;
-            }
-        }
-
-        if (foundGroup == null) {
-            final String newGroupIdentifier = IdentifierUtil.getIdentifier(groupName);
-            foundGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
-            foundGroup.setIdentifier(newGroupIdentifier);
-            foundGroup.setName(groupName);
-            tenants.getGroups().getGroup().add(foundGroup);
-        }
-
-        return foundGroup;
     }
 
     /**
      * Saves the Authorizations instance by marshalling to a file, then re-populates the
      * in-memory data structures and sets the new holder.
-     *
      * Synchronized to ensure only one thread writes the file at a time.
      *
      * @param tenants the tenants to save and populate from
