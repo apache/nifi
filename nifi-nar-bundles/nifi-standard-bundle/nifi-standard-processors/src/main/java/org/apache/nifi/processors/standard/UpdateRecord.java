@@ -172,6 +172,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty("replacement-value-strategy", REPLACEMENT_VALUE_STRATEGY.getName());
     }
 
