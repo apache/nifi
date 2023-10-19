@@ -255,7 +255,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes) {
-        waitForAllNodesConnected(expectedNumberOfNodes, 1000L);
+        waitForAllNodesConnected(expectedNumberOfNodes, 500L);
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes, final long sleepMillis) {

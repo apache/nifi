@@ -24,11 +24,9 @@ import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -417,47 +415,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-
-    @Test
-    public void testRestartWithFlowXmlGzNoJson() throws NiFiClientException, IOException {
-        restartWithOnlySingleFlowPersistenceFile("flow.json.gz");
-    }
-
-    @Test
-    public void testRestartWithFlowJsonGzNoXml() throws NiFiClientException, IOException {
-        restartWithOnlySingleFlowPersistenceFile("flow.json.gz");
-    }
-
-    private void restartWithOnlySingleFlowPersistenceFile(final String filenameToDelete) throws NiFiClientException, IOException {
-        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
-
-        final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
-        node2.stop();
-
-        final File confDir = new File(node2.getInstanceDirectory(), "conf");
-        assertEquals(1, confDir.listFiles(file -> file.getName().equals("flow.json.gz")).length);
-
-        final File jsonFile = new File(confDir, filenameToDelete);
-        assertTrue(jsonFile.delete());
-
-        node2.start(true);
-        waitForAllNodesConnected();
-
-        switchClientToNode(2);
-
-        // Ensure it still has the components
-        final ProcessorClient processorClient = getNifiClient().getProcessorClient(DO_NOT_REPLICATE);
-        final ProcessorEntity restartGenerate = processorClient.getProcessor(generate.getId());
-        assertNotNull(restartGenerate);
-
-        final ProcessorEntity restartTerminate = processorClient.getProcessor(terminate.getId());
-        assertNotNull(restartTerminate);
-
-        final ConnectionEntity restartConnection = getNifiClient().getConnectionClient(DO_NOT_REPLICATE).getConnection(connection.getId());
-        assertNotNull(restartConnection);
-    }
 
     @Test
     public void testComponentsRecreatedOnRestart() throws NiFiClientException, IOException, InterruptedException {

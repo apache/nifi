@@ -19,7 +19,12 @@ package org.apache.nifi.controller.inheritance;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,7 +38,13 @@ public class MissingComponentsCheck implements FlowInheritabilityCheck {
         final Set<String> existingMissingComponents = new HashSet<>(existingFlow.getMissingComponents());
         existingMissingComponents.removeAll(proposedFlow.getMissingComponents());
 
-        if (existingMissingComponents.size() > 0) {
+        if (!existingMissingComponents.isEmpty()) {
+            // Do not consider any components that are not present in the proposed flow.
+            final Set<String> versionedComponentIds = getAllComponentIds(proposedFlow.getVersionedDataflow());
+            existingMissingComponents.retainAll(versionedComponentIds);
+        }
+
+        if (!existingMissingComponents.isEmpty()) {
             final String missingIds = StringUtils.join(existingMissingComponents, ",");
             return FlowInheritability.notInheritable("Current flow has missing components that are not considered missing in the proposed flow (" + missingIds + ")");
         }
@@ -41,11 +52,55 @@ public class MissingComponentsCheck implements FlowInheritabilityCheck {
         final Set<String> proposedMissingComponents = new HashSet<>(proposedFlow.getMissingComponents());
         proposedMissingComponents.removeAll(existingFlow.getMissingComponents());
 
-        if (proposedMissingComponents.size() > 0) {
+        if (!proposedMissingComponents.isEmpty()) {
+            // Do not consider any components that are not present in the current flow.
+            final Set<String> versionedComponentIds = getAllComponentIds(existingFlow.getVersionedDataflow());
+            proposedMissingComponents.retainAll(versionedComponentIds);
+        }
+        if (!proposedMissingComponents.isEmpty()) {
             final String missingIds = StringUtils.join(proposedMissingComponents, ",");
             return FlowInheritability.notInheritable("Proposed flow has missing components that are not considered missing in the current flow (" + missingIds + ")");
         }
 
         return FlowInheritability.inheritable();
     }
+
+    private Set<String> getAllComponentIds(final VersionedDataflow dataflow) {
+        if (dataflow == null) {
+            return Collections.emptySet();
+        }
+
+        final Set<String> ids = new HashSet<>();
+        findAllComponentIds(dataflow, ids);
+        return ids;
+    }
+
+    private void findAllComponentIds(final VersionedDataflow dataflow, final Set<String> ids) {
+        addAllIds(dataflow.getControllerServices(), ids);
+        addAllIds(dataflow.getRegistries(), ids);
+        addAllIds(dataflow.getFlowAnalysisRules(), ids);
+        addAllIds(dataflow.getParameterContexts(), ids);
+        addAllIds(dataflow.getParameterProviders(), ids);
+        addAllIds(dataflow.getReportingTasks(), ids);
+
+        findAllComponentIds(dataflow.getRootGroup(), ids);
+    }
+
+    private void findAllComponentIds(final VersionedProcessGroup group, final Set<String> ids) {
+        if (group == null) {
+            return;
+        }
+
+        addAllIds(group.getControllerServices(), ids);
+        addAllIds(group.getProcessors(), ids);
+
+        group.getProcessGroups().forEach(child -> findAllComponentIds(child, ids));
+    }
+
+    private void addAllIds(final Collection<? extends VersionedComponent> components, final Set<String> ids) {
+        if (components != null) {
+            components.forEach(component -> ids.add(component.getInstanceIdentifier()));
+        }
+    }
+
 }

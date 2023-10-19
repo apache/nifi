@@ -36,9 +36,9 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -331,7 +331,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     FlowRegistryClientNode getFlowRegistryClient(String id);
 
-    void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode);
+    void removeFlowRegistryClient(FlowRegistryClientNode clientNode);
 
     Set<FlowRegistryClientNode> getAllFlowRegistryClients();
 
