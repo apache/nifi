@@ -79,6 +79,7 @@ public enum CommandOption {
     REGISTRY_CLIENT_NAME("rcn", "registryClientName", "The name of the registry client", true),
     REGISTRY_CLIENT_URL("rcu", "registryClientUrl", "The url of the registry client", true),
     REGISTRY_CLIENT_DESC("rcd", "registryClientDesc", "The description of the registry client", true),
+    REGISTRY_CLIENT_TYPE("rct", "registryClientType", "The type of the registry client", true),
 
     // NiFi - PGs
     PG_ID("pgid", "processGroupId", "The id of a process group", true),

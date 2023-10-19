@@ -19,9 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
-import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedPort;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -81,51 +79,6 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
-    @Test
-    public void testFilterIgnorableVersionedCoordinateDifferencesWithIgnorableDifference() {
-        VersionedFlowCoordinates coordinatesA = new VersionedFlowCoordinates();
-        coordinatesA.setRegistryUrl("http://localhost:18080");
-
-        VersionedProcessGroup processGroupA = new VersionedProcessGroup();
-        processGroupA.setVersionedFlowCoordinates(coordinatesA);
-
-        VersionedFlowCoordinates coordinatesB = new VersionedFlowCoordinates();
-        coordinatesB.setRegistryUrl("http://localhost:18080/");
-
-        VersionedProcessGroup processGroupB = new VersionedProcessGroup();
-        processGroupB.setVersionedFlowCoordinates(coordinatesB);
-
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
-                DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED,
-                processGroupA, processGroupB,
-                coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
-                "");
-
-        assertFalse(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
-    }
-
-    @Test
-    public void testFilterIgnorableVersionedCoordinateDifferencesWithNonIgnorableDifference() {
-        VersionedFlowCoordinates coordinatesA = new VersionedFlowCoordinates();
-        coordinatesA.setRegistryUrl("http://localhost:18080");
-
-        VersionedProcessGroup processGroupA = new VersionedProcessGroup();
-        processGroupA.setVersionedFlowCoordinates(coordinatesA);
-
-        VersionedFlowCoordinates coordinatesB = new VersionedFlowCoordinates();
-        coordinatesB.setRegistryUrl("http://localhost:18080");
-
-        VersionedProcessGroup processGroupB = new VersionedProcessGroup();
-        processGroupB.setVersionedFlowCoordinates(coordinatesB);
-
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
-                DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED,
-                processGroupA, processGroupB,
-                coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
-                "");
-
-        assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
-    }
 
     @Test
     public void testFilterPublicPortNameChangeWhenNotNameChange() {

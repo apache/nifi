@@ -18,6 +18,8 @@ package org.apache.nifi.registry.service;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.db.entity.BucketEntity;
@@ -32,11 +34,9 @@ import org.apache.nifi.registry.extension.BundleCoordinate;
 import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
-import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -49,7 +49,6 @@ import org.apache.nifi.registry.provider.extension.StandardBundleCoordinate;
 import org.apache.nifi.registry.provider.flow.StandardFlowSnapshotContext;
 import org.apache.nifi.registry.serialization.FlowContent;
 import org.apache.nifi.registry.serialization.FlowContentSerializer;
-import org.apache.nifi.registry.service.alias.RegistryUrlAliasService;
 import org.apache.nifi.registry.service.mapper.BucketMappings;
 import org.apache.nifi.registry.service.mapper.ExtensionMappings;
 import org.apache.nifi.registry.service.mapper.FlowMappings;
@@ -89,21 +88,18 @@ public class RegistryService {
     private final BundlePersistenceProvider bundlePersistenceProvider;
     private final FlowContentSerializer flowContentSerializer;
     private final Validator validator;
-    private final RegistryUrlAliasService registryUrlAliasService;
 
     @Autowired
     public RegistryService(final MetadataService metadataService,
                            final FlowPersistenceProvider flowPersistenceProvider,
                            final BundlePersistenceProvider bundlePersistenceProvider,
                            final FlowContentSerializer flowContentSerializer,
-                           final Validator validator,
-                           final RegistryUrlAliasService registryUrlAliasService) {
+                           final Validator validator) {
         this.metadataService = Objects.requireNonNull(metadataService);
         this.flowPersistenceProvider = Objects.requireNonNull(flowPersistenceProvider);
         this.bundlePersistenceProvider = Objects.requireNonNull(bundlePersistenceProvider);
         this.flowContentSerializer = Objects.requireNonNull(flowContentSerializer);
         this.validator = Objects.requireNonNull(validator);
-        this.registryUrlAliasService = Objects.requireNonNull(registryUrlAliasService);
     }
 
     private <T> void validate(T t, String invalidMessage) {
@@ -608,7 +604,6 @@ public class RegistryService {
 
         // serialize the snapshot
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        registryUrlAliasService.setInternal(flowSnapshot.getFlowContents());
 
         final FlowContent flowContent = new FlowContent();
         flowContent.setFlowSnapshot(flowSnapshot);
@@ -639,7 +634,6 @@ public class RegistryService {
 
         flowSnapshot.setBucket(bucket);
         flowSnapshot.setFlow(updatedVersionedFlow);
-        registryUrlAliasService.setExternal(flowSnapshot.getFlowContents());
         return flowSnapshot;
     }
 
@@ -702,7 +696,6 @@ public class RegistryService {
         final VersionedFlowSnapshotMetadata snapshotMetadata = FlowMappings.map(bucketEntity, snapshotEntity);
 
         // create the snapshot to return
-        registryUrlAliasService.setExternal(snapshot.getFlowContents());
         snapshot.setSnapshotMetadata(snapshotMetadata);
         snapshot.setFlow(versionedFlow);
         snapshot.setBucket(bucket);

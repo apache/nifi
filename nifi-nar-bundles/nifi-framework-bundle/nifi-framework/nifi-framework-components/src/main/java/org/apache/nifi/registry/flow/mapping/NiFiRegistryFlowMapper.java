@@ -18,7 +18,6 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -105,7 +104,6 @@ import java.util.stream.Collectors;
 public class NiFiRegistryFlowMapper {
     private static final String ENCRYPTED_PREFIX = "enc{";
     private static final String ENCRYPTED_SUFFIX = "}";
-    private static final String REGISTRY_URL_DESCRIPTOR_NAME = "url";
 
     private final ExtensionManager extensionManager;
     private final FlowMappingOptions flowMappingOptions;
@@ -114,7 +112,7 @@ public class NiFiRegistryFlowMapper {
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
     // identifier based on the component's actual id. We do connections last, so that all components will already have been
     // created before attempting to create the connection, where the ConnectableDTO is converted.
-    private Map<String, String> versionedComponentIds = new HashMap<>();
+    private final Map<String, String> versionedComponentIds = new HashMap<>();
 
     public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
         this(extensionManager, FlowMappingOptions.DEFAULT_OPTIONS);
@@ -156,73 +154,50 @@ public class NiFiRegistryFlowMapper {
 
         // apply registry versioning according to the lambda below
         // NOTE: lambda refers to registry client and map descendant boolean which will not change during recursion
-        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> {
-            final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
-            if (versionControlInfo != null) {
-                final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
-                final String registryId = versionControlInfo.getRegistryIdentifier();
-                final FlowRegistryClientNode registry = flowManager.getFlowRegistryClient(registryId);
-                if (registry == null) {
-                    throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
-                }
+        final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo =
+            (processGroup, versionedGroup) -> applyVersionControlInformation(processGroup, versionedGroup, flowManager, mapDescendantVersionedFlows);
 
-                if (flowMappingOptions.isMapFlowRegistryClientId()) {
-                    coordinates.setRegistryId(registryId);
-                }
+        return mapGroup(group, serviceProvider, applyVersionControlInfo);
+    }
 
-                coordinates.setRegistryUrl(getRegistryUrl(registry));
-
-                final String storageLocation = determineStorageLocation(registry, versionControlInfo);
-                coordinates.setStorageLocation(storageLocation);
-                coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
-                coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
-                coordinates.setVersion(versionControlInfo.getVersion());
-                versionedGroup.setVersionedFlowCoordinates(coordinates);
-
-                // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
-                // Otherwise, we will not be able to lookup the port when connecting to it.
-                for (final Port port : processGroup.getInputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-                for (final Port port : processGroup.getOutputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-
-                // If the Process Group itself is remotely versioned, then we don't want to include its contents
-                // because the contents are remotely managed and not part of the versioning of this Process Group
-                return mapDescendantVersionedFlows;
-            }
+    private boolean applyVersionControlInformation(final ProcessGroup processGroup, final VersionedProcessGroup versionedGroup, final FlowManager flowManager,
+                                                   final boolean mapDescendantVersionedFlows) {
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
             return true;
-        });
-    }
-
-
-    private boolean isNiFiRegistryClient(final FlowRegistryClientNode clientNode) {
-        return clientNode.getComponentType().endsWith("NifiRegistryFlowRegistryClient");
-    }
-
-    // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
-    private String getRegistryUrl(final FlowRegistryClientNode registry) {
-        return isNiFiRegistryClient(registry) ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
-    }
-
-    private String determineStorageLocation(final FlowRegistryClientNode registryClient, final VersionControlInformation versionControlInformation) {
-        final String explicitStorageLocation = versionControlInformation.getStorageLocation();
-        if (!StringUtils.isEmpty(explicitStorageLocation)) {
-            return explicitStorageLocation;
         }
 
-        final String registryUrl = getRegistryUrl(registryClient);
-        if (StringUtils.isEmpty(registryUrl)) {
-            return "";
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        final String registryId = versionControlInfo.getRegistryIdentifier();
+        final FlowRegistryClientNode registry = flowManager.getFlowRegistryClient(registryId);
+        if (registry == null) {
+            throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
         }
 
-        final String bucketId = versionControlInformation.getBucketIdentifier();
-        final String flowId = versionControlInformation.getFlowIdentifier();
-        final int version = versionControlInformation.getVersion();
-        return String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, bucketId, flowId, version);
-    }
+        if (flowMappingOptions.isMapFlowRegistryClientId()) {
+            coordinates.setRegistryId(registryId);
+        }
 
+        final String storageLocation = versionControlInfo.getStorageLocation();
+        coordinates.setStorageLocation(storageLocation);
+        coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
+        coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
+        coordinates.setVersion(versionControlInfo.getVersion());
+        versionedGroup.setVersionedFlowCoordinates(coordinates);
+
+        // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
+        // Otherwise, we will not be able to lookup the port when connecting to it.
+        for (final Port port : processGroup.getInputPorts()) {
+            getId(port.getVersionedComponentId(), port.getIdentifier());
+        }
+        for (final Port port : processGroup.getOutputPorts()) {
+            getId(port.getVersionedComponentId(), port.getIdentifier());
+        }
+
+        // If the Process Group itself is remotely versioned, then we don't want to include its contents
+        // because the contents are remotely managed and not part of the versioning of this Process Group
+        return mapDescendantVersionedFlows;
+    }
 
     private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
                                                        final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo) {
@@ -399,8 +374,7 @@ public class NiFiRegistryFlowMapper {
         component.setComments(connectable.getComments());
 
         final String groupId;
-        if (connectable instanceof RemoteGroupPort) {
-            final RemoteGroupPort port = (RemoteGroupPort) connectable;
+        if (connectable instanceof final RemoteGroupPort port) {
             final RemoteProcessGroup rpg = port.getRemoteProcessGroup();
             groupId = getIdOrThrow(rpg.getIdentifier(),
                 () -> new IllegalArgumentException("Unable to find the Versioned Component ID for Remote Process Group that " + connectable + " belongs to"));

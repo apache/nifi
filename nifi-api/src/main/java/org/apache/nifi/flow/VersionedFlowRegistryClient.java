@@ -20,40 +20,12 @@ package org.apache.nifi.flow;
 import io.swagger.annotations.ApiModelProperty;
 
 public class VersionedFlowRegistryClient extends VersionedConfigurableExtension {
-    @Deprecated
-    private String id;
-    @Deprecated
-    private String url;
     private String description;
     private String annotationData;
 
     @Override
     public ComponentType getComponentType() {
         return ComponentType.FLOW_REGISTRY_CLIENT;
-    }
-
-    /**
-     * @deprecated use {@link #getIdentifier()} instead.
-     */
-    @Deprecated
-    @ApiModelProperty("The ID of the Registry. This method is deprecated. Use #getIdentifier instead.")
-    public String getId() {
-        return id;
-    }
-
-    public void setId(final String id) {
-        this.id = id;
-    }
-
-    @Deprecated
-    @ApiModelProperty("The URL for interacting with the registry")
-    public String getUrl() {
-        return url;
-    }
-
-    @Deprecated
-    public void setUrl(final String url) {
-        this.url = url;
     }
 
     @ApiModelProperty("The description of the registry")

@@ -77,7 +77,7 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
                     final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) valueB;
 
                     // If the two vary only by version, then use a more concise message. If anything else is different, then use a fully explanation.
-                    if (FlowDifferenceUtil.areRegistryUrlsEqual(coordinatesA, coordinatesB) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
+                    if (Objects.equals(coordinatesA.getStorageLocation(), coordinatesB.getStorageLocation()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
                             && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId()) && coordinatesA.getVersion() != coordinatesB.getVersion()) {
 
                         description = String.format("Flow Version changed from %s to %s", coordinatesA.getVersion(), coordinatesB.getVersion());

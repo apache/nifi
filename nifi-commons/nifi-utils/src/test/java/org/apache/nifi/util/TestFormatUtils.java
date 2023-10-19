@@ -46,7 +46,6 @@ public class TestFormatUtils {
     private static final String KIEV_TIME_ZONE_ID = "Europe/Kiev";
     private static final String UTC_TIME_ZONE_ID = ZoneOffset.UTC.getId();
 
-    @SuppressWarnings("deprecation")
     @ParameterizedTest
     @MethodSource("getParse")
     public void testParse(String value, TimeUnit desiredUnit, Long expected) {
@@ -63,14 +62,13 @@ public class TestFormatUtils {
                 Arguments.of("1 Hrs", TimeUnit.MINUTES, 60L));
     }
 
-    @SuppressWarnings("deprecation")
     @ParameterizedTest
     @ValueSource(strings = {"1 week", "1 wk", "1 w", "1 wks", "1 weeks"})
     public void testGetTimeDurationShouldConvertWeeks(String week) {
         assertEquals(7L, FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
     }
 
-    @SuppressWarnings("deprecation")
+
     @ParameterizedTest
     @ValueSource(strings = {"-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week"})
     public void testGetTimeDurationShouldHandleNegativeWeeks(String week) {
@@ -82,7 +80,7 @@ public class TestFormatUtils {
     /**
      * Regression test
      */
-    @SuppressWarnings("deprecation")
+
     @ParameterizedTest
     @ValueSource(strings = {"1 work", "1 wek", "1 k"})
     public void testGetTimeDurationShouldHandleInvalidAbbreviations(String week) {
@@ -94,7 +92,7 @@ public class TestFormatUtils {
     /**
      * New feature test
      */
-    @SuppressWarnings("deprecation")
+
     @ParameterizedTest
     @ValueSource(strings={"1week", "1wk", "1w", "1wks", "1weeks"})
     public void testGetTimeDurationShouldHandleNoSpaceInInput(String week) {
@@ -104,7 +102,7 @@ public class TestFormatUtils {
     /**
      * New feature test
      */
-    @SuppressWarnings("deprecation")
+
     @ParameterizedTest
     @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
     public void testGetTimeDurationWithWholeNumbers(String whole){
@@ -114,7 +112,7 @@ public class TestFormatUtils {
     /**
      * New feature test
      */
-    @SuppressWarnings("deprecation")
+
     @ParameterizedTest
     @ValueSource(strings={"0.010 s", "0.010 seconds"})
     public void testGetTimeDurationWithDecimalNumbers(String decimal){

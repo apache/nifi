@@ -24,7 +24,6 @@ import java.util.Objects;
 public class VersionedFlowCoordinates {
     private String registryId;
     private String storageLocation;
-    private String registryUrl;
     private String bucketId;
     private String flowId;
     private int version;
@@ -46,17 +45,6 @@ public class VersionedFlowCoordinates {
 
     public void setStorageLocation(String storageLocation) {
         this.storageLocation = storageLocation;
-    }
-
-    @Deprecated
-    @ApiModelProperty("The URL of the Flow Registry that contains the flow")
-    public String getRegistryUrl() {
-        return registryUrl;
-    }
-
-    @Deprecated
-    public void setRegistryUrl(String registryUrl) {
-        this.registryUrl = registryUrl;
     }
 
     @ApiModelProperty("The UUID of the bucket that the flow resides in")
@@ -97,7 +85,7 @@ public class VersionedFlowCoordinates {
 
     @Override
     public int hashCode() {
-        return Objects.hash(registryId, storageLocation, registryUrl, bucketId, flowId, version);
+        return Objects.hash(registryId, storageLocation, bucketId, flowId, version);
     }
 
     @Override
@@ -108,16 +96,15 @@ public class VersionedFlowCoordinates {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof VersionedFlowCoordinates)) {
+        if (!(obj instanceof final VersionedFlowCoordinates other)) {
             return false;
         }
 
-        final VersionedFlowCoordinates other = (VersionedFlowCoordinates) obj;
-        return Objects.equals(registryUrl, other.registryUrl) && Objects.equals(bucketId, other.bucketId) && Objects.equals(flowId, other.flowId) && Objects.equals(version, other.version);
+        return Objects.equals(storageLocation, other.storageLocation) && Objects.equals(bucketId, other.bucketId) && Objects.equals(flowId, other.flowId) && Objects.equals(version, other.version);
     }
 
     @Override
     public String toString() {
-        return "VersionedFlowCoordinates[bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version + ", registryUrl=" + registryUrl + "]";
+        return "VersionedFlowCoordinates[bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version + ", storageLocation=" + storageLocation + "]";
     }
 }

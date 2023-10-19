@@ -502,7 +502,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
-        final String location = coordinates.getStorageLocation() == null ? coordinates.getRegistryUrl() : coordinates.getStorageLocation();
+        final String location = coordinates.getStorageLocation();
         if (location == null) {
             return null;
         }

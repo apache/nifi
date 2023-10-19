@@ -599,14 +599,6 @@ public class StandardFlowComparator implements FlowComparator {
             return;
         }
 
-        // If Registry URL is specified for both coordinates, compare them
-        final String registryUrlA = coordinatesA.getRegistryUrl();
-        final String registryUrlB = coordinatesB.getRegistryUrl();
-        if (registryUrlA != null && registryUrlB != null && !registryUrlA.equals(registryUrlB)) {
-            differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
-            return;
-        }
-
         // If Storage Location is specified for both coordinates, compare them
         final String storageLocationA = coordinatesA.getStorageLocation();
         final String storageLocationB = coordinatesB.getStorageLocation();
