@@ -86,7 +86,9 @@ import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
-@CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
+@CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries. " +
+        "Each Record within the FlowFile is converted into a document to be sent to the Elasticsearch _bulk APi. " +
+        "Multiple documents can be batched into each Request sent to Elasticsearch. Each document's Bulk operation can be configured using Record Path expressions.")
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.put.error",
                 description = "The error message if there is an issue parsing the FlowFile records, sending the parsed documents to Elasticsearch or parsing the Elasticsearch response."),
@@ -98,10 +100,11 @@ import java.util.stream.Collectors;
 @DynamicProperties({
         @DynamicProperty(
                 name = "The name of the Bulk request header",
-                value = "The value of the Bulk request header",
+                value = "A Record Path expression to retrieve the Bulk request header value",
                 expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
                 description = "Prefix: " + AbstractPutElasticsearch.BULK_HEADER_PREFIX +
                         " - adds the specified property name/value as a Bulk request header in the Elasticsearch Bulk API body used for processing. " +
+                        "If the Record Path expression results in a null or blank value, the Bulk header will be omitted for the document operation. " +
                         "These parameters will override any matching parameters in the _bulk request body."),
         @DynamicProperty(
                 name = "The name of a URL query parameter to add",
