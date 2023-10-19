@@ -768,8 +768,8 @@
                 if (parametersSupported && _.isUndefined(selectedValue)) {
                     selectedOption = parameterCombo.combo('getSelectedOption');
 
-                    // if the parameters are still loading, revert to the initial value, otherwise use the selected parameter
-                    if (selectedOption === LOADING_PARAMETERS_OPTION) {
+                    // if there are no parameters, or they are still loading, revert to the initial value otherwise use the selected parameter
+                    if (_.isUndefined(selectedOption) || selectedOption === LOADING_PARAMETERS_OPTION) {
                         selectedValue = initialValue;
                     } else {
                         selectedValue = selectedOption.value;
