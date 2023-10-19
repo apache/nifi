@@ -1174,19 +1174,6 @@
                 }
             }
         });
-
-        // initialize the registry configuration dialog
-        $('#registry-configuration-dialog').modal({
-            scrollableContentStyle: 'scrollable',
-            handler: {
-                close: function () {
-                    $('#registry-id-config').text('');
-                    $('#registry-name-config').val('');
-                    $('#registry-type-config').val('');
-                    $('#registry-description-config').val('');
-                }
-            }
-        });
     };
 
     /**
@@ -2483,19 +2470,6 @@
                         .width($('#flow-analysis-rule-description-container').innerWidth() - 1)
                         .text($('#flow-analysis-rule-type-description').attr('title'))
                         .ellipsis();
-                }
-            }
-        });
-
-        // initialize the registry configuration dialog
-        $('#registry-configuration-dialog').modal({
-            scrollableContentStyle: 'scrollable',
-            handler: {
-                close: function () {
-                    $('#registry-id').text('');
-                    $('#registry-name').val('');
-                    $('#registry-location').val('');
-                    $('#registry-description').val('');
                 }
             }
         });
@@ -3874,6 +3848,19 @@
                     var tab = $(this).text();
                     if (tab === 'Properties') {
                         $('#registry-properties').propertytable('resetTableSize');
+                    }
+                }
+            });
+
+            // initialize the registry configuration dialog
+            $('#registry-configuration-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                handler: {
+                    close: function () {
+                        $('#registry-id-config').text('');
+                        $('#registry-name-config').val('');
+                        $('#registry-type-config').val('');
+                        $('#registry-description-config').val('');
                     }
                 }
             });
