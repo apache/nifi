@@ -20,7 +20,7 @@ import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class SimpleNodeRestartIT extends NiFiSystemIT {
         secondNode.start();
         waitForAllNodesConnected();
 
-        final ClusteSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
+        final ClusterSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
         assertEquals("2 / 2", clusterSummary.getClusterSummary().getConnectedNodes());
     }
 }
