@@ -33,7 +33,6 @@ import org.apache.nifi.util.FlowInfo;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
@@ -86,18 +85,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private static final String AUTHORIZATIONS_XSD = "/authorizations.xsd";
     private static final String JAXB_AUTHORIZATIONS_PATH = "org.apache.nifi.authorization.file.generated";
 
-    private static final String USERS_XSD = "/legacy-users.xsd";
-    private static final String JAXB_USERS_PATH = "org.apache.nifi.user.generated";
-
-    private static final JAXBContext JAXB_AUTHORIZATIONS_CONTEXT = initializeJaxbContext(JAXB_AUTHORIZATIONS_PATH);
-    private static final JAXBContext JAXB_USERS_CONTEXT = initializeJaxbContext(JAXB_USERS_PATH);
+    private static final JAXBContext JAXB_AUTHORIZATIONS_CONTEXT = initializeJaxbContext();
 
     /**
      * Load the JAXBContext.
      */
-    private static JAXBContext initializeJaxbContext(final String contextPath) {
+    private static JAXBContext initializeJaxbContext() {
         try {
-            return JAXBContext.newInstance(contextPath, FileAuthorizer.class.getClassLoader());
+            return JAXBContext.newInstance(JAXB_AUTHORIZATIONS_PATH, FileAccessPolicyProvider.class.getClassLoader());
         } catch (JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.");
         }
@@ -122,7 +117,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
     static final Pattern NODE_IDENTITY_PATTERN = Pattern.compile(PROP_NODE_IDENTITY_PREFIX + "\\S+");
 
-    private Schema usersSchema;
     private Schema authorizationsSchema;
     private NiFiProperties properties;
     private File authorizationsFile;
@@ -131,9 +125,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private String initialAdminIdentity;
     private Set<String> nodeIdentities;
     private String nodeGroupIdentifier;
-    private List<PortDTO> ports = new ArrayList<>();
-    private List<IdentityMapping> identityMappings;
-    private List<IdentityMapping> groupMappings;
 
     private UserGroupProvider userGroupProvider;
     private UserGroupProviderLookup userGroupProviderLookup;
@@ -145,8 +136,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         try {
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            authorizationsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(AUTHORIZATIONS_XSD));
-            usersSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(USERS_XSD));
+            authorizationsSchema = schemaFactory.newSchema(FileAccessPolicyProvider.class.getResource(AUTHORIZATIONS_XSD));
         } catch (Exception e) {
             throw new AuthorizerCreationException(e);
         }
@@ -173,7 +163,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             // get the authorizations file and ensure it exists
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
-                logger.info("Creating new authorizations file at {}", new Object[] {authorizationsFile.getAbsolutePath()});
+                logger.info("Creating new authorizations file at {}", authorizationsFile.getAbsolutePath());
                 saveAuthorizations(new Authorizations());
             }
 
@@ -203,8 +193,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             }
 
             // extract the identity mappings from nifi.properties if any are provided
-            identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
-            groupMappings = Collections.unmodifiableList(IdentityMappingUtil.getGroupMappings(properties));
+            List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
 
             // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
@@ -217,7 +206,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                     final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
                     nodeIdentities.add(mappedNodeIdentity);
-                    logger.info("Added mapped node {} (raw node identity {})", new Object[]{mappedNodeIdentity, entry.getValue()});
+                    logger.info("Added mapped node {} (raw node identity {})", mappedNodeIdentity, entry.getValue());
                 }
             }
 
@@ -255,7 +244,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 FileUtils.copyFile(authorizationsFile, restoreAuthorizationsFile, false, false, logger);
             }
 
-            logger.info(String.format("Authorizations file loaded at %s", new Date().toString()));
+            logger.debug("Authorizations file loaded");
         } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException | SAXException e) {
             throw new AuthorizerCreationException(e);
         }
@@ -419,7 +408,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final List<AccessPolicy> accessPolicies = parsePolicies(fingerprint);
 
-        if (isInheritable(accessPolicies)) {
+        if (isInheritable()) {
             logger.debug("Inheriting cluster's Access Policies");
             inheritAccessPolicies(accessPolicies);
         } else {
@@ -438,28 +427,20 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
-        final List<AccessPolicy> accessPolicies;
-        try {
-            // ensure we can understand the proposed fingerprint
-            accessPolicies = parsePolicies(proposedFingerprint);
-        } catch (final AuthorizationAccessException e) {
-            throw new UninheritableAuthorizationsException("Unable to parse the proposed fingerprint: " + e);
-        }
-
         // ensure we are in a proper state to inherit the fingerprint
-        if (!isInheritable(accessPolicies)) {
+        if (!isInheritable()) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current access policies is not empty.");
         }
     }
 
-    private boolean isInheritable(final List<AccessPolicy> accessPolicies) {
+    private boolean isInheritable() {
         return getAccessPolicies().isEmpty();
     }
 
     @Override
     public String getFingerprint() throws AuthorizationAccessException {
         final List<AccessPolicy> policies = new ArrayList<>(getAccessPolicies());
-        Collections.sort(policies, Comparator.comparing(AccessPolicy::getIdentifier));
+        policies.sort(Comparator.comparing(AccessPolicy::getIdentifier));
 
         XMLStreamWriter writer = null;
         final StringWriter out = new StringWriter();
@@ -634,17 +615,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     /**
      * Try to parse the flow configuration file to extract the root group id and port information.
-     *
-     * @throws SAXException if an error occurs creating the schema
      */
-    private void parseFlow() throws SAXException {
+    private void parseFlow() {
         final FlowParser flowParser = new FlowParser();
         final File flowConfigurationFile = properties.getFlowConfigurationFile();
         final FlowInfo flowInfo = flowParser.parse(flowConfigurationFile);
 
         if (flowInfo != null) {
             rootGroupId = flowInfo.getRootGroupId();
-            ports = flowInfo.getPorts() == null ? new ArrayList<>() : flowInfo.getPorts();
         }
     }
 
@@ -835,7 +813,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     /**
      * Sets the given Policy to the state of the provided AccessPolicy. Users and Groups will be cleared and
      * set to match the AccessPolicy, the resource and action will be set to match the AccessPolicy.
-     *
      * Does not set the identifier.
      *
      * @param accessPolicy the AccessPolicy to transfer state from
@@ -860,93 +837,8 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     /**
-     * Adds the given user identifier to the policy if it doesn't already exist.
-     *
-     * @param userIdentifier a user identifier
-     * @param policy a policy to add the user to
-     */
-    private void addUserToPolicy(final String userIdentifier, final Policy policy) {
-        // determine if the user already exists in the policy
-        boolean userExists = false;
-        for (Policy.User policyUser : policy.getUser()) {
-            if (policyUser.getIdentifier().equals(userIdentifier)) {
-                userExists = true;
-                break;
-            }
-        }
-
-        // add the user to the policy if doesn't already exist
-        if (!userExists) {
-            Policy.User policyUser = new Policy.User();
-            policyUser.setIdentifier(userIdentifier);
-            policy.getUser().add(policyUser);
-        }
-    }
-
-    /**
-     * Adds the given group identifier to the policy if it doesn't already exist.
-     *
-     * @param groupIdentifier a group identifier
-     * @param policy a policy to add the user to
-     */
-    private void addGroupToPolicy(final String groupIdentifier, final Policy policy) {
-        // determine if the group already exists in the policy
-        boolean groupExists = false;
-        for (Policy.Group policyGroup : policy.getGroup()) {
-            if (policyGroup.getIdentifier().equals(groupIdentifier)) {
-                groupExists = true;
-                break;
-            }
-        }
-
-        // add the group to the policy if doesn't already exist
-        if (!groupExists) {
-            Policy.Group policyGroup = new Policy.Group();
-            policyGroup.setIdentifier(groupIdentifier);
-            policy.getGroup().add(policyGroup);
-        }
-    }
-
-    /**
-     * Finds the Policy matching the resource and action, or creates a new one and adds it to the list of policies.
-     *
-     * @param policies the policies to search through
-     * @param seedIdentity the seedIdentity to use when creating identifiers for new policies
-     * @param resource the resource for the policy
-     * @param action the action string for the police (R or RW)
-     * @return the matching policy or a new policy
-     */
-    private Policy getOrCreatePolicy(final List<Policy> policies, final String seedIdentity, final String resource, final String action) {
-        Policy foundPolicy = null;
-
-        // try to find a policy with the same resource and actions
-        for (Policy policy : policies) {
-            if (policy.getResource().equals(resource) && policy.getAction().equals(action)) {
-                foundPolicy = policy;
-                break;
-            }
-        }
-
-        // if a matching policy wasn't found then create one
-        if (foundPolicy == null) {
-            final String uuidSeed = resource + action + seedIdentity;
-            final String policyIdentifier = IdentifierUtil.getIdentifier(uuidSeed);
-
-            foundPolicy = new Policy();
-            foundPolicy.setIdentifier(policyIdentifier);
-            foundPolicy.setResource(resource);
-            foundPolicy.setAction(action);
-
-            policies.add(foundPolicy);
-        }
-
-        return foundPolicy;
-    }
-
-    /**
      * Saves the Authorizations instance by marshalling to a file, then re-populates the
      * in-memory data structures and sets the new holder.
-     *
      * Synchronized to ensure only one thread writes the file at a time.
      *
      * @param authorizations the authorizations to save and populate from
