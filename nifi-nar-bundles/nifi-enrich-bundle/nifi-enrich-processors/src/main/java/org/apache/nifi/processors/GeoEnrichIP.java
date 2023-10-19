@@ -18,6 +18,7 @@ package org.apache.nifi.processors;
 
 import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.record.Subdivision;
@@ -95,6 +96,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         }
 
         DatabaseReader dbReader = databaseReaderRef.get();
+        final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(flowFile).getValue().toUpperCase());
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
 
@@ -132,6 +134,26 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             getLogger().warn("Failure while trying to load enrichment data for {} due to {}, rolling back session "
                     + "and will reload the database on the next run", flowFile, idbe.getMessage());
             session.rollback();
+            return;
+        } catch (AddressNotFoundException anfe) {
+            session.transfer(flowFile, REL_NOT_FOUND);
+
+            switch (logLevel) {
+                case INFO:
+                    getLogger().info("Address not found in the database", anfe);
+                    break;
+                case WARN:
+                    getLogger().warn("Address not found in the database", anfe);
+                    break;
+                case ERROR:
+                    getLogger().error("Address not found in the database", anfe);
+                    break;
+                case DEBUG:
+                default:
+                    getLogger().debug("Address not found in the database", anfe);
+                    break;
+            }
+
             return;
         } catch (GeoIp2Exception | IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.

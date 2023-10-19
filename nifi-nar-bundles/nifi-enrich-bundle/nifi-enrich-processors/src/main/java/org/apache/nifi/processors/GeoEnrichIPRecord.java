@@ -18,6 +18,7 @@ package org.apache.nifi.processors;
 
 import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -160,7 +161,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             GEO_DATABASE_FILE, READER, WRITER, SPLIT_FOUND_NOT_FOUND, IP_RECORD_PATH, GEO_CITY, GEO_LATITUDE,
-            GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
+            GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE, LOG_LEVEL
     ));
 
     @Override
@@ -231,6 +232,8 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             }
 
             String rawIpPath = context.getProperty(IP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+            final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(input).getValue().toUpperCase());
+
             RecordPath ipPath = cache.getCompiled(rawIpPath);
 
             RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
@@ -249,7 +252,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
                 CityResponse response;
-                response = geocode(ipPath, record, dbReader);
+                response = geocode(ipPath, record, dbReader, logLevel);
                 boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
                     targetRelationship = REL_FOUND;
@@ -314,7 +317,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
         return retVal;
     }
 
-    private CityResponse geocode(RecordPath ipPath, Record record, DatabaseReader reader) throws Exception {
+    private CityResponse geocode(RecordPath ipPath, Record record, DatabaseReader reader, MessageLogLevel logLevel) throws Exception {
         RecordPathResult result = ipPath.evaluate(record);
         Optional<FieldValue> ipField = result.getSelectedFields().findFirst();
         if (ipField.isPresent()) {
@@ -326,7 +329,28 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             String realValue = val.toString();
             InetAddress address = InetAddress.getByName(realValue);
 
-            return reader.city(address);
+            try {
+                return reader.city(address);
+            } catch (AddressNotFoundException anfe) {
+
+                switch (logLevel) {
+                    case INFO:
+                        getLogger().info("Address not found in the database", anfe);
+                        break;
+                    case WARN:
+                        getLogger().warn("Address not found in the database", anfe);
+                        break;
+                    case ERROR:
+                        getLogger().error("Address not found in the database", anfe);
+                        break;
+                    case DEBUG:
+                    default:
+                        getLogger().debug("Address not found in the database", anfe);
+                        break;
+                }
+
+                return null;
+            }
         } else {
             return null;
         }

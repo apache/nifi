@@ -70,6 +70,16 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
+    public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
+            .name("Log Level")
+            .displayName("Log Level")
+            .required(true)
+            .description("The Log Level to use when an IP is not found in the database. Accepted values: INFO, DEBUG, WARN, ERROR.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(MessageLogLevel.WARN.toString())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final Relationship REL_FOUND = new Relationship.Builder()
             .name("found")
             .description("Where to route flow files after successfully enriching attributes with data provided by database")
@@ -79,6 +89,10 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .name("not found")
             .description("Where to route flow files after unsuccessfully enriching attributes because no data was found")
             .build();
+
+    enum MessageLogLevel {
+        DEBUG, INFO, WARN, ERROR
+    }
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;
@@ -134,6 +148,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(GEO_DATABASE_FILE);
         props.add(IP_ADDRESS_ATTRIBUTE);
+        props.add(LOG_LEVEL);
         this.propertyDescriptors = Collections.unmodifiableList(props);
     }
 
