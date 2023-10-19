@@ -20,23 +20,23 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
-                'Slick',
-                'd3',
-                'nf.Client',
-                'nf.Dialog',
-                'nf.Storage',
-                'nf.Common',
-                'nf.CanvasUtils',
-                'nf.ControllerServices',
-                'nf.ErrorHandler',
-                'nf.FilteredDialogCommon',
-                'nf.ReportingTask',
-                'nf.FlowAnalysisRule',
-                'nf.Shell',
-                'nf.ComponentState',
-                'nf.ComponentVersion',
-                'nf.PolicyManagement',
-                'nf.ParameterProvider'],
+            'Slick',
+            'd3',
+            'nf.Client',
+            'nf.Dialog',
+            'nf.Storage',
+            'nf.Common',
+            'nf.CanvasUtils',
+            'nf.ControllerServices',
+            'nf.ErrorHandler',
+            'nf.FilteredDialogCommon',
+            'nf.ReportingTask',
+            'nf.FlowAnalysisRule',
+            'nf.Shell',
+            'nf.ComponentState',
+            'nf.ComponentVersion',
+            'nf.PolicyManagement',
+            'nf.ParameterProvider'],
             function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfFlowAnalysisRule, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
                 return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfFlowAnalysisRule, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider));
             });
@@ -98,7 +98,8 @@
             createParameterProvider: '../nifi-api/controller/parameter-providers',
             parameterProviderTypes: '../nifi-api/flow/parameter-provider-types',
             parameterProviders: '../nifi-api/flow/parameter-providers',
-            registryTypes: '../nifi-api/controller/registry-types'
+            registryTypes: '../nifi-api/controller/registry-types',
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -637,6 +638,19 @@
     };
 
     /**
+     * Loads the current users.
+     */
+    var loadCurrentUser = function () {
+        $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nfCommon.setCurrentUser(currentUser);
+        });
+    };
+
+    /**
      * Adds the specified registry entity.
      */
     var addRegistry = function () {
@@ -678,6 +692,10 @@
             var row = registriesData.getRowById(registryEntity.id);
             nfFilteredDialogCommon.choseRow(registriesGrid, row);
             registriesGrid.scrollRowIntoView(row);
+
+            // refresh the current-user after configuring or deleting a registry client
+            // 'canVersionFlows' property determines if we show the No Registry Client available dialog or the Import Version dialog
+            loadCurrentUser();
 
             // hide the dialog
             $('#registry-configuration-dialog').modal('hide');
@@ -1021,7 +1039,7 @@
                     type: documentedType.type,
                     bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
-                    restricted:  documentedType.restricted,
+                    restricted: documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
@@ -1129,19 +1147,19 @@
                     }
                 }
             },
-                {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -1423,7 +1441,7 @@
                     type: documentedType.type,
                     bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
-                    restricted:  documentedType.restricted,
+                    restricted: documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
@@ -1531,19 +1549,19 @@
                     }
                 }
             },
-                {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
                 }
+            }
             ],
             handler: {
                 close: function () {
@@ -1601,7 +1619,7 @@
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
 
             if (hasComments) {
-            	markup += '<div class="pointer has-comments fa fa-comment"></div>';
+                markup += '<div class="pointer has-comments fa fa-comment"></div>';
             }
 
             if (hasErrors) {
@@ -1838,7 +1856,7 @@
         $('#reporting-tasks-table').data('gridInstance', reportingTasksGrid).on('mouseenter', 'div.slick-cell', function (e) {
             var commentsIcon = $(this).find('div.has-comments');
             if (commentsIcon.length && !commentsIcon.data('qtip')) {
-                 var taskId = $(this).find('span.row-id').text();
+                var taskId = $(this).find('span.row-id').text();
 
                 // get the task item
                 var reportingTaskEntity = reportingTasksData.getItemById(taskId);
@@ -2333,7 +2351,7 @@
                     type: documentedType.type,
                     bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
-                    restricted:  documentedType.restricted,
+                    restricted: documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
@@ -2441,19 +2459,19 @@
                     }
                 }
             },
-                {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -3328,6 +3346,10 @@
             var registryGrid = $('#registries-table').data('gridInstance');
             var registryData = registryGrid.getData();
             registryData.deleteItem(registryEntity.id);
+
+            // refresh the current-user after configuring or deleting a registry client
+            // 'canVersionFlows' property determines if we show the No Registry Client available dialog or the Import Version dialog
+            loadCurrentUser();
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -3562,7 +3584,7 @@
      * Determines whether the user has made any changes to the registry configuration
      * that needs to be saved.
      */
-     var isSaveRequired = function () {
+    var isSaveRequired = function () {
         var entity = $('#registry-configuration-dialog').data('registryDetails');
         // determine if any registry settings have changed
 
@@ -3579,7 +3601,7 @@
     /**
      * Goes to a service configuration from the property table.
      */
-     var goToServiceFromProperty = function () {
+    var goToServiceFromProperty = function () {
         return $.Deferred(function (deferred) {
             // close all fields currently being edited
             $('#registry-properties').propertytable('saveRow');
@@ -3614,7 +3636,7 @@
      * @param {type} propertyName
      * @param {type} sensitive Requested sensitive status
      */
-     var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
+    var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
         var details = $('#registry-configuration-dialog').data('registryDetails');
         return $.ajax({
             type: 'GET',
@@ -3629,15 +3651,17 @@
 
     /**
      * Shows the process group configuration.
+     *
+     * @param {string} tabName
      */
-    var showSettings = function () {
+    var showSettings = function (tabName) {
         // show the settings dialog
         nfShell.showContent('#settings').done(function () {
             reset();
         });
 
         //reset content to account for possible policy changes
-        $('#settings-tabs').find('.selected-tab').click();
+        $('#settings-tabs').find(tabName ? '[name="' + tabName + '"]' : '.selected-tab').click();
 
         // adjust the table size
         nfSettings.resetTableSize();
@@ -3656,7 +3680,7 @@
      *
      * @param {object} reportingTask
      */
-     var renderRegistry = function (registryEntity) {
+    var renderRegistry = function (registryEntity) {
         // get the table and update the row accordingly
         var registryGrid = $('#registries-table').data('gridInstance');
         var registryData = registryGrid.getData();
@@ -3670,7 +3694,7 @@
          *
          * @param {string} id
          */
-     var reloadRegistryInfo = function (id) {
+    var reloadRegistryInfo = function (id) {
         var registryGrid = $('#registries-table').data('gridInstance');
         var registryData = registryGrid.getData();
         var registryEntity = registryData.getItemById(id);
@@ -3704,9 +3728,9 @@
                     name: 'Reporting Tasks',
                     tabContentId: 'reporting-tasks-tab-content'
                 }, {
-                     name: 'Flow Analysis Rules',
-                     tabContentId: 'flow-analysis-rules-tab-content'
-                 }, {
+                    name: 'Flow Analysis Rules',
+                    tabContentId: 'flow-analysis-rules-tab-content'
+                }, {
                     name: 'Registry Clients',
                     tabContentId: 'registries-tab-content'
                 }, {
@@ -3921,9 +3945,13 @@
 
         /**
          * Shows the settings dialog.
+         *
+         * @param {string} tabName
          */
-        showSettings: function () {
-            return loadSettings().done(showSettings);
+        showSettings: function (tabName) {
+            return loadSettings().done(function () {
+                showSettings(tabName)
+            });
         },
 
         /**
@@ -4005,7 +4033,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
-                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
+                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function (d) { return [d.sourceId, d]; }));
 
                 reportingTaskBulletinsBySource.forEach(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);

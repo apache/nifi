@@ -753,9 +753,10 @@
 
     /**
      * Shows the import flow version dialog.
+     *
+     * @param pt
      */
-    var showImportFlowVersionDialog = function () {
-        var pt = $('#new-process-group-dialog').data('pt');
+    var showImportFlowVersionDialog = function (pt) {
         $('#import-flow-version-dialog').data('pt', pt);
 
         // update the registry and bucket visibility
@@ -1793,8 +1794,8 @@
         /**
          * Shows the import flow dialog.
          */
-        showImportFlowDialog: function () {
-            showImportFlowVersionDialog();
+        showImportFlowDialog: function (pt) {
+            showImportFlowVersionDialog(pt);
         },
 
         /**

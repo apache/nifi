@@ -65,7 +65,7 @@
                 $('#' + tabDefinition.tabContentId).addClass(tabContentStyle).hide();
 
                 // prep the tab itself
-                var tab = $('<li></li>').addClass(options.tabStyle).append('<button>' + tabDefinition.name + '</button>').click(function () {
+                var tab = $('<li></li>').addClass(options.tabStyle).attr('name', tabDefinition.name ).append('<button>' + tabDefinition.name + '</button>').click(function () {
                     // hide all tab content
                     $('.' + tabContentStyle).hide();
 
