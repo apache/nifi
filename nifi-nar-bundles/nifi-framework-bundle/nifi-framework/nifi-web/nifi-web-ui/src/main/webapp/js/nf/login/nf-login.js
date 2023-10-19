@@ -127,6 +127,9 @@
                     $('#login-message-title').text('Unable to log in');
                     $('#login-message').text(accessStatus.message);
 
+                    // clear the password
+                    $('#password').val('');
+
                     // update visibility
                     $('#login-container').hide();
                     $('#login-submission-container').hide();
@@ -136,6 +139,9 @@
             }).fail(function (xhr, status, error) {
                 $('#login-message-title').text('Unable to log in');
                 $('#login-message').text(xhr.responseText);
+
+                // clear the password
+                $('#password').val('');
 
                 // update visibility
                 $('#login-container').hide();
@@ -148,6 +154,9 @@
                 headerText: 'Login',
                 dialogContent: nfCommon.escapeHtml(xhr.responseText)
             });
+
+            // clear the password
+            $('#password').val('');
 
             // update the form visibility
             $('#login-submission-container').show();
