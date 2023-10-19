@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
@@ -36,15 +29,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException;
+import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.io.FileInputStream;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,6 +54,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class PutDynamoDBRecordTest {
@@ -61,29 +70,29 @@ public class PutDynamoDBRecordTest {
     private static final String TABLE_NAME = "table";
 
     @Mock
-    private DynamoDB mockDynamoDB;
+    private DynamoDbClient client;
 
     @Mock
     private AWSCredentialsProviderService credentialsProviderService;
 
-    private ArgumentCaptor<TableWriteItems> captor;
+    private ArgumentCaptor<BatchWriteItemRequest> captor;
 
     private PutDynamoDBRecord testSubject;
 
     @BeforeEach
     public void setUp() {
-        captor = ArgumentCaptor.forClass(TableWriteItems.class);
-        Mockito.when(credentialsProviderService.getIdentifier()).thenReturn("credentialProviderService");
+        captor = ArgumentCaptor.forClass(BatchWriteItemRequest.class);
+        when(credentialsProviderService.getIdentifier()).thenReturn("credentialProviderService");
 
-        final BatchWriteItemOutcome outcome = Mockito.mock(BatchWriteItemOutcome.class);
+        final BatchWriteItemResponse response = mock(BatchWriteItemResponse.class);
         final Map<String, List<WriteRequest>> unprocessedItems = new HashMap<>();
-        Mockito.when(outcome.getUnprocessedItems()).thenReturn(unprocessedItems);
-        Mockito.when(mockDynamoDB.batchWriteItem(captor.capture())).thenReturn(outcome);
+        when(response.unprocessedItems()).thenReturn(unprocessedItems);
+        when(client.batchWriteItem(captor.capture())).thenReturn(response);
 
         testSubject = new PutDynamoDBRecord() {
             @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
+            protected DynamoDbClient getClient(final ProcessContext context) {
+                return client;
             }
         };
     }
@@ -94,7 +103,7 @@ public class PutDynamoDBRecordTest {
 
         runner.run();
 
-        Assertions.assertTrue(captor.getAllValues().isEmpty());
+        assertTrue(captor.getAllValues().isEmpty());
     }
 
     @Test
@@ -104,9 +113,10 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
 
-        final TableWriteItems result = captor.getValue();
-        Assertions.assertEquals(TABLE_NAME, result.getTableName());
-        assertItemsConvertedProperly(result.getItemsToPut(), 1);
+        final BatchWriteItemRequest result = captor.getValue();
+        assertTrue(result.hasRequestItems());
+        assertNotNull(result.requestItems().get(TABLE_NAME));
+        assertItemsConvertedProperly(result.requestItems().get(TABLE_NAME), 1);
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
     }
 
@@ -117,9 +127,10 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleInputs.json"));
         runner.run();
 
-        final TableWriteItems result = captor.getValue();
-        Assertions.assertEquals(TABLE_NAME, result.getTableName());
-        assertItemsConvertedProperly(result.getItemsToPut(), 3);
+        final BatchWriteItemRequest result = captor.getValue();
+        assertTrue(result.hasRequestItems());
+        assertNotNull(result.requestItems().get(TABLE_NAME));
+        assertItemsConvertedProperly(result.requestItems().get(TABLE_NAME), 3);
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
     }
 
@@ -130,16 +141,18 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"));
         runner.run();
 
-        final List<TableWriteItems> results = captor.getAllValues();
+        final List<BatchWriteItemRequest> results = captor.getAllValues();
         Assertions.assertEquals(2, results.size());
 
-        final TableWriteItems result1 = results.get(0);
-        Assertions.assertEquals(TABLE_NAME, result1.getTableName());
-        assertItemsConvertedProperly(result1.getItemsToPut(), 25);
+        final BatchWriteItemRequest result1 = results.get(0);
+        assertTrue(result1.hasRequestItems());
+        assertNotNull(result1.requestItems().get(TABLE_NAME));
+        assertItemsConvertedProperly(result1.requestItems().get(TABLE_NAME), 25);
 
-        final TableWriteItems result2 = results.get(1);
-        Assertions.assertEquals(TABLE_NAME, result2.getTableName());
-        assertItemsConvertedProperly(result2.getItemsToPut(), 4);
+        final BatchWriteItemRequest result2 = results.get(1);
+        assertTrue(result2.hasRequestItems());
+        assertNotNull(result2.requestItems().get(TABLE_NAME));
+        assertItemsConvertedProperly(result2.requestItems().get(TABLE_NAME), 4);
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
@@ -167,7 +180,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         Assertions.assertEquals(1, captor.getAllValues().size());
-        Assertions.assertEquals(4, captor.getValue().getItemsToPut().size());
+        Assertions.assertEquals(4, captor.getValue().requestItems().get(TABLE_NAME).size());
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
@@ -196,13 +209,13 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
 
-        final TableWriteItems result = captor.getValue();
-        Assertions.assertEquals(1, result.getItemsToPut().size());
+        final BatchWriteItemRequest result = captor.getValue();
+        Assertions.assertEquals(1, result.requestItems().get(TABLE_NAME).size());
 
-        final Item item = result.getItemsToPut().iterator().next();
-        Assertions.assertEquals(4, item.asMap().size());
-        Assertions.assertEquals("P0", item.get("partition"));
-        Assertions.assertTrue(item.hasAttribute("generated"));
+        final Map<String, AttributeValue> item = result.requestItems().get(TABLE_NAME).iterator().next().putRequest().item();
+        Assertions.assertEquals(4, item.size());
+        Assertions.assertEquals(string("P0"), item.get("partition"));
+        assertTrue(item.containsKey("generated"));
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
     }
@@ -216,13 +229,17 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"));
         runner.run();
 
-        final List<Item> items = new ArrayList<>();
-        captor.getAllValues().forEach(capture -> items.addAll(capture.getItemsToPut()));
+        final List<Map<String, AttributeValue>> items = new ArrayList<>();
+        captor.getAllValues().forEach(capture -> capture.requestItems().get(TABLE_NAME).stream()
+                .map(WriteRequest::putRequest)
+                .map(PutRequest::item)
+                .forEach(items::add));
 
         Assertions.assertEquals(29, items.size());
 
         for (int sortKeyValue = 0; sortKeyValue < 29; sortKeyValue++) {
-            Assertions.assertEquals(new BigDecimal(sortKeyValue + 1), items.get(sortKeyValue).get("sort"));
+            final AttributeValue expectedValue = AttributeValue.builder().n(String.valueOf(sortKeyValue + 1)).build();
+            Assertions.assertEquals(expectedValue, items.get(sortKeyValue).get("sort"));
         }
     }
 
@@ -234,7 +251,7 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
 
-        Mockito.verify(mockDynamoDB, Mockito.never()).batchWriteItem(Mockito.any(TableWriteItems.class));
+        verify(client, never()).batchWriteItem(any(BatchWriteItemRequest.class));
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
     }
 
@@ -246,7 +263,7 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleInputs.json"));
         runner.run();
 
-        Mockito.verify(mockDynamoDB, Mockito.times(1)).batchWriteItem(Mockito.any(TableWriteItems.class));
+        verify(client, times(1)).batchWriteItem(any(BatchWriteItemRequest.class));
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
     }
 
@@ -258,7 +275,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
 
-        Assertions.assertTrue(captor.getAllValues().isEmpty());
+        assertTrue(captor.getAllValues().isEmpty());
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
     }
 
@@ -280,47 +297,61 @@ public class PutDynamoDBRecordTest {
         return runner;
     }
 
-    private void assertItemsConvertedProperly(final Collection<Item> items, final int expectedNumberOfItems) {
-        Assertions.assertEquals(expectedNumberOfItems, items.size());
+    private void assertItemsConvertedProperly(final Collection<WriteRequest> writeRequests, final int expectedNumberOfItems) {
+        Assertions.assertEquals(expectedNumberOfItems, writeRequests.size());
         int index = 0;
 
-        for (final Item item : items) {
-            Assertions.assertEquals(3, item.asMap().size());
-            Assertions.assertEquals("new", item.get("value"));
+        for (final WriteRequest writeRequest : writeRequests) {
+            final PutRequest putRequest = writeRequest.putRequest();
+            assertNotNull(putRequest);
+            final Map<String, AttributeValue> item = putRequest.item();
+            Assertions.assertEquals(3, item.size());
+            Assertions.assertEquals(string("new"), item.get("value"));
 
-            Assertions.assertEquals(new BigDecimal(index), item.get("size"));
-            Assertions.assertEquals("P" + index, item.get("partition"));
+            Assertions.assertEquals(number(index), item.get("size"));
+            Assertions.assertEquals(string("P" + index), item.get("partition"));
             index++;
         }
     }
 
     private void setInsertionError() {
-        final BatchWriteItemOutcome outcome = Mockito.mock(BatchWriteItemOutcome.class);
+        final BatchWriteItemResponse outcome = mock(BatchWriteItemResponse.class);
         final Map<String, List<WriteRequest>> unprocessedItems = new HashMap<>();
-        final List<WriteRequest> writeResults = Arrays.asList(Mockito.mock(WriteRequest.class));
+        final List<WriteRequest> writeResults = Arrays.asList(mock(WriteRequest.class));
         unprocessedItems.put("test", writeResults);
-        Mockito.when(outcome.getUnprocessedItems()).thenReturn(unprocessedItems);
-        Mockito.when(mockDynamoDB.batchWriteItem(captor.capture())).thenReturn(outcome);
+        when(outcome.unprocessedItems()).thenReturn(unprocessedItems);
+        when(outcome.hasUnprocessedItems()).thenReturn(true);
+        when(client.batchWriteItem(captor.capture())).thenReturn(outcome);
     }
 
     private void setServerError() {
-        Mockito.when(mockDynamoDB.batchWriteItem(captor.capture())).thenThrow(new AmazonServiceException("Error"));
+        when(client.batchWriteItem(captor.capture())).thenThrow(AwsServiceException.builder().message("Error")
+                .awsErrorDetails(AwsErrorDetails.builder().errorMessage("Error").errorCode("Code").build()).build());
     }
 
     private void setExceedThroughputAtGivenChunk(final int chunkToFail) {
         final AtomicInteger numberOfCalls = new AtomicInteger(0);
 
-        Mockito.when(mockDynamoDB.batchWriteItem(captor.capture())).then(new Answer<Object>() {
+        when(client.batchWriteItem(captor.capture())).then(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 final int calls = numberOfCalls.incrementAndGet();
 
                 if (calls >= chunkToFail) {
-                    throw new ProvisionedThroughputExceededException("Throughput exceeded");
+                    throw ProvisionedThroughputExceededException.builder().message("Throughput exceeded")
+                            .awsErrorDetails(AwsErrorDetails.builder().errorCode("error code").errorMessage("error message").build()).build();
                 } else {
-                    return Mockito.mock(BatchWriteItemOutcome.class);
+                    return mock(BatchWriteItemResponse.class);
                 }
             }
         });
+    }
+
+    protected static AttributeValue string(final String s) {
+        return AttributeValue.builder().s(s).build();
+    }
+
+    protected static AttributeValue number(final Number number) {
+        return AttributeValue.builder().n(String.valueOf(number)).build();
     }
 }
