@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 final class RecordToItemConverter {
@@ -38,82 +37,76 @@ final class RecordToItemConverter {
     /*
      * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.ArbitraryDataMapping.html
      */
-    public static void addField(final Record record, final Item item, final RecordFieldType fieldType, final String fieldName) {
+    public static void addField(final Record record, final Map<String, AttributeValue> item, final RecordFieldType fieldType, final String fieldName) {
+        item.put(fieldName, toAttributeValue(record.getValue(fieldName), fieldType));
+    }
+
+    static AttributeValue toAttributeValue(final Object object) {
+        final DataType dataType = DataTypeUtils.inferDataType(object, RecordFieldType.STRING.getDataType());
+        return toAttributeValue(object, dataType.getFieldType());
+    }
+
+    private static AttributeValue toAttributeValue(final Object object, final RecordFieldType fieldType) {
+        if (object == null) {
+            return null;
+        }
+
+        final AttributeValue.Builder builder = AttributeValue.builder();
         switch (fieldType) {
             case BOOLEAN:
+                builder.bool(DataTypeUtils.toBoolean(object, null));
+                break;
             case SHORT:
             case INT:
             case LONG:
             case FLOAT:
             case BYTE:
             case DOUBLE:
-            case STRING:
-                item.with(fieldName, record.getValue(fieldName));
-                break;
             case BIGINT:
-                item.withBigInteger(fieldName, new BigInteger(record.getAsString(fieldName)));
-                break;
             case DECIMAL:
-                item.withNumber(fieldName, new BigDecimal(record.getAsString(fieldName)));
-                break;
-            case TIMESTAMP:
-            case DATE:
-            case TIME:
-                // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html#HowItWorks.DataTypes.String
-                item.withString(fieldName, record.getAsString(fieldName));
-            case CHAR:
-                item.withString(fieldName, record.getAsString(fieldName));
-                break;
-            case ENUM:
-                item.withString(fieldName, record.getAsString(fieldName));
+                builder.n(DataTypeUtils.toString(object, (String) null));
                 break;
             case ARRAY:
-                item.withList(fieldName, record.getAsArray(fieldName));
+                final List<AttributeValue> list = Arrays.stream(DataTypeUtils.toArray(object, null, null))
+                        .map(RecordToItemConverter::toAttributeValue)
+                        .toList();
+                builder.l(list);
                 break;
             case RECORD:
                 // In case of the underlying field is really a record (and not a map for example), schema argument is not used
-                item.withMap(fieldName, getRecordFieldAsMap(record.getAsRecord(fieldName, null)));
+                builder.m(getRecordFieldAsMap(DataTypeUtils.toRecord(object, null)));
                 break;
             case MAP:
-                item.withMap(fieldName, getMapFieldAsMap(record.getValue(fieldName)));
+                builder.m(getMapFieldAsMap(DataTypeUtils.toMap(object, null)));
                 break;
+            // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html#HowItWorks.DataTypes.String
+            case TIMESTAMP:
+            case DATE:
+            case TIME:
+            case CHAR:
+            case ENUM:
+            case STRING:
             case CHOICE: // No similar data type is supported by DynamoDB
             default:
-                item.withString(fieldName, record.getAsString(fieldName));
+                builder.s(DataTypeUtils.toString(object, (String) null));
         }
+        return builder.build();
     }
 
-    private static Map<String, Object> getRecordFieldAsMap(final Record recordField) {
-        final Map<String, Object> result = new HashMap<>();
+    private static Map<String, AttributeValue> getRecordFieldAsMap(final Record recordField) {
+        final Map<String, AttributeValue> result = new HashMap<>();
 
         for (final RecordField field : recordField.getSchema().getFields()) {
-            result.put(field.getFieldName(), convertToSupportedType(recordField.getValue(field)));
+            result.put(field.getFieldName(), toAttributeValue(recordField.getValue(field)));
         }
 
         return result;
     }
 
-    private static Map<String, Object> getMapFieldAsMap(final Object recordField) {
-        if (!(recordField instanceof Map)) {
-            throw new IllegalArgumentException("Map type is expected");
-        }
+    private static Map<String, AttributeValue> getMapFieldAsMap(final Map<String, Object> mapField) {
+        final Map<String, AttributeValue> result = new HashMap<>();
 
-        final Map<String, Object> result = new HashMap<>();
-        ((Map<String, Object>) recordField).forEach((name, value) -> result.put(name, convertToSupportedType(value)));
+        mapField.forEach((name, value) -> result.put(name, toAttributeValue(value)));
         return result;
-    }
-
-    private static Object convertToSupportedType(Object value) {
-        if (value instanceof Record) {
-            return getRecordFieldAsMap((Record) value);
-        } else if (value instanceof Map) {
-            return getMapFieldAsMap(value);
-        } else if (value instanceof Character || value instanceof Timestamp || value instanceof Date || value instanceof Time) {
-            return value.toString();
-        } else if (value instanceof Enum) {
-            return ((Enum) value).name();
-        } else {
-            return value;
-        }
     }
 }

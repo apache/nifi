@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.dynamodbv2.document.BatchGetItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.TableKeysAndAttributes;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -43,10 +34,20 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchGetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchGetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.KeysAndAttributes;
+import software.amazon.awssdk.utils.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,7 +70,6 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "DynamoDB exception message"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "DynamoDB error code"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "DynamoDB error message"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "DynamoDB error type"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "DynamoDB error service"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "DynamoDB error is retryable"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "DynamoDB error request id"),
@@ -80,6 +80,10 @@ import java.util.stream.Collectors;
     @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
     })
 public class GetDynamoDB extends AbstractDynamoDBProcessor {
+    private static final PropertyDescriptor DOCUMENT_CHARSET = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractDynamoDBProcessor.DOCUMENT_CHARSET)
+            .required(false)
+            .build();
 
     public static final List<PropertyDescriptor> properties = List.of(
         TABLE,
@@ -94,6 +98,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         RANGE_KEY_VALUE_TYPE,
         BATCH_SIZE,
         TIMEOUT,
+        ENDPOINT_OVERRIDE,
         SSL_CONTEXT_SERVICE,
         PROXY_CONFIGURATION_SERVICE);
 
@@ -120,10 +125,10 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
 
-        TableKeysAndAttributes tableKeysAndAttributes;
+        BatchGetItemRequest batchGetItemRequest;
 
         try {
-            tableKeysAndAttributes = getTableKeysAndAttributes(context, attributes);
+            batchGetItemRequest = getBatchGetItemRequest(context, attributes);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Configure DynamoDB BatchGetItems Request")
@@ -139,7 +144,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             return results;
         }
 
-        if (tableKeysAndAttributes.getPrimaryKeys() == null || tableKeysAndAttributes.getPrimaryKeys().isEmpty()) {
+        if (!batchGetItemRequest.hasRequestItems()) {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SKIPPED)
                     .verificationStepName("Get DynamoDB Items")
@@ -147,27 +152,36 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                     .build());
         } else {
             try {
-                final DynamoDB dynamoDB = getDynamoDB(getClient(context));
+                final DynamoDbClient client = getClient(context);
                 int totalCount = 0;
                 int jsonDocumentCount = 0;
 
-                BatchGetItemOutcome result = dynamoDB.batchGetItem(tableKeysAndAttributes);
+                final BatchGetItemResponse response = client.batchGetItem(batchGetItemRequest);
 
-                // Handle processed items and get the json document
-                final List<Item> items = result.getTableItems().get(table);
-                for (final Item item : items) {
-                    totalCount++;
-                    if (item.get(jsonDocument) != null) {
-                        jsonDocumentCount++;
+                if (!response.hasResponses()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .outcome(Outcome.SUCCESSFUL)
+                            .verificationStepName("Get DynamoDB Items")
+                            .explanation(String.format("Successfully issued request, although no items were returned from DynamoDB"))
+                            .build());
+                } else {
+                    // Handle processed items and get the json document
+                    final List<Map<String, AttributeValue>> items = response.responses().get(table);
+                    if (items != null) {
+                        for (final Map<String, AttributeValue> item : items) {
+                            totalCount++;
+                            if (item.get(jsonDocument) != null && item.get(jsonDocument).s() != null) {
+                                jsonDocumentCount++;
+                            }
+                        }
                     }
+
+                    results.add(new ConfigVerificationResult.Builder()
+                            .outcome(Outcome.SUCCESSFUL)
+                            .verificationStepName("Get DynamoDB Items")
+                            .explanation(String.format("Successfully retrieved %s items, including %s JSON documents, from DynamoDB", totalCount, jsonDocumentCount))
+                            .build());
                 }
-
-                results.add(new ConfigVerificationResult.Builder()
-                        .outcome(Outcome.SUCCESSFUL)
-                        .verificationStepName("Get DynamoDB Items")
-                        .explanation(String.format("Successfully retrieved %s items, including %s JSON documents, from DynamoDB", totalCount, jsonDocumentCount))
-                        .build());
-
             } catch (final Exception e) {
                 verificationLogger.error("Failed to retrieve items from DynamoDB", e);
 
@@ -189,11 +203,11 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final Map<ItemKeys,FlowFile> keysToFlowFileMap = getKeysToFlowFileMap(context, session, flowFiles);
+        final Map<ItemKeys, FlowFile> keysToFlowFileMap = getKeysToFlowFileMap(context, session, flowFiles);
 
-        final TableKeysAndAttributes tableKeysAndAttributes;
+        final BatchGetItemRequest request;
         try {
-            tableKeysAndAttributes = getTableKeysAndAttributes(context, flowFiles.stream()
+            request = getBatchGetItemRequest(context, flowFiles.stream()
                     .map(FlowFile::getAttributes).collect(Collectors.toList()).toArray(new Map[0]));
         } catch (final IllegalArgumentException e) {
             getLogger().error(e.getMessage(), e);
@@ -209,35 +223,39 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final DynamoDB dynamoDB = getDynamoDB(context);
+        final DynamoDbClient client = getClient(context);
 
         try {
-            BatchGetItemOutcome result = dynamoDB.batchGetItem(tableKeysAndAttributes);
+            final BatchGetItemResponse response = client.batchGetItem(request);
 
-            // Handle processed items and get the json document
-            final List<Item> items = result.getTableItems().get(table);
-            for (final Item item : items) {
-                final ItemKeys itemKeys = new ItemKeys(item.get(hashKeyName), item.get(rangeKeyName));
-                FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
+            if (CollectionUtils.isNotEmpty(response.responses())) {
+                // Handle processed items and get the json document
+                final List<Map<String, AttributeValue>> items = response.responses().get(table);
+                for (final Map<String, AttributeValue> item : items) {
+                    final ItemKeys itemKeys = new ItemKeys(item.get(hashKeyName), item.get(rangeKeyName));
+                    FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
 
-                if (item.get(jsonDocument) != null) {
-                    ByteArrayInputStream bais = new ByteArrayInputStream(item.getJSON(jsonDocument).getBytes());
-                    flowFile = session.importFrom(bais, flowFile);
+                    if (item.get(jsonDocument) != null && item.get(jsonDocument).s() != null) {
+                        final String charsetPropertyValue = context.getProperty(DOCUMENT_CHARSET).getValue();
+                        final String charset = charsetPropertyValue == null ? Charset.defaultCharset().name() : charsetPropertyValue;
+                        final ByteArrayInputStream bais = new ByteArrayInputStream(item.get(jsonDocument).s().getBytes(charset));
+                        flowFile = session.importFrom(bais, flowFile);
+                    }
+
+                    session.transfer(flowFile, REL_SUCCESS);
+                    keysToFlowFileMap.remove(itemKeys);
                 }
-
-                session.transfer(flowFile,REL_SUCCESS);
-                keysToFlowFileMap.remove(itemKeys);
             }
 
             // Handle unprocessed keys
-            final Map<String, KeysAndAttributes> unprocessedKeys = result.getUnprocessedKeys();
-            if ( unprocessedKeys != null && unprocessedKeys.size() > 0) {
+            final Map<String, KeysAndAttributes> unprocessedKeys = response.unprocessedKeys();
+            if (CollectionUtils.isNotEmpty(unprocessedKeys)) {
                 final KeysAndAttributes keysAndAttributes = unprocessedKeys.get(table);
-                final List<Map<String, AttributeValue>> keys = keysAndAttributes.getKeys();
+                final List<Map<String, AttributeValue>> keys = keysAndAttributes.keys();
 
-                for (final Map<String,AttributeValue> unprocessedKey : keys) {
-                    final Object hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, unprocessedKey.get(hashKeyName));
-                    final Object rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, unprocessedKey.get(rangeKeyName));
+                for (final Map<String, AttributeValue> unprocessedKey : keys) {
+                    final AttributeValue hashKeyValue = unprocessedKey.get(hashKeyName);
+                    final AttributeValue rangeKeyValue = unprocessedKey.get(rangeKeyName);
                     sendUnprocessedToUnprocessedRelationship(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
                 }
             }
@@ -246,17 +264,17 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             for (final ItemKeys key : keysToFlowFileMap.keySet()) {
                 FlowFile flowFile = keysToFlowFileMap.get(key);
                 flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE + key.toString() );
-                session.transfer(flowFile,REL_NOT_FOUND);
+                session.transfer(flowFile, REL_NOT_FOUND);
                 keysToFlowFileMap.remove(key);
             }
 
-        } catch(final AmazonServiceException exception) {
+        } catch (final AwsServiceException exception) {
             getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        } catch(final AmazonClientException exception) {
-            getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
-            List<FlowFile> failedFlowFiles = processClientException(session, flowFiles, exception);
+        } catch (final SdkException exception) {
+            getLogger().error("Could not process flowFiles due to SDK exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch(final Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
@@ -272,8 +290,8 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
 
         for (final FlowFile flowFile : flowFiles) {
-            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
-            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
+            final AttributeValue hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
+            final AttributeValue rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
 
             if (!isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
                 continue;
@@ -288,27 +306,30 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         return keysToFlowFileMap;
     }
 
-    private TableKeysAndAttributes getTableKeysAndAttributes(final ProcessContext context, final Map<String, String>... attributes) {
+    private BatchGetItemRequest getBatchGetItemRequest(final ProcessContext context, final Map<String, String>... attributes) {
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
-        final TableKeysAndAttributes tableKeysAndAttributes = new TableKeysAndAttributes(table);
+        final Collection<Map<String, AttributeValue>> keys = new HashSet<>();
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
 
         for (final Map<String, String> attributeMap : attributes) {
-            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, attributeMap);
-            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, attributeMap);
+            final Map<String, AttributeValue> keyMap = new HashMap<>();
+            final AttributeValue hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, attributeMap);
+            final AttributeValue rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, attributeMap);
 
             validateHashKeyValue(hashKeyValue);
             validateRangeKeyValue(rangeKeyName, rangeKeyValue);
 
-            if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
-                tableKeysAndAttributes.addHashOnlyPrimaryKey(hashKeyName, hashKeyValue);
-            } else {
-                tableKeysAndAttributes.addHashAndRangePrimaryKey(hashKeyName, hashKeyValue, rangeKeyName, rangeKeyValue);
+            keyMap.put(hashKeyName, hashKeyValue);
+            if (!isBlank(rangeKeyValue)) {
+                keyMap.put(rangeKeyName, rangeKeyValue);
             }
+            keys.add(keyMap);
         }
-        return tableKeysAndAttributes;
+        return BatchGetItemRequest.builder()
+                .requestItems(Map.of(table, KeysAndAttributes.builder().keys(keys).build()))
+                .build();
     }
 
 }

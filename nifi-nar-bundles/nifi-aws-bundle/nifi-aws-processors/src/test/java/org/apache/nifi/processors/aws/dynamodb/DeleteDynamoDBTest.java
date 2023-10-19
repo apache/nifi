@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
-import com.amazonaws.services.dynamodbv2.model.DeleteRequest;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -34,8 +24,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.DeleteRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,31 +38,26 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     protected DeleteDynamoDB deleteDynamoDB;
-    protected BatchWriteItemResult result = new BatchWriteItemResult();
-    BatchWriteItemOutcome outcome;
 
     @BeforeEach
     public void setUp() {
-        outcome = new BatchWriteItemOutcome(result);
-        result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                return outcome;
-            }
-        };
+        client = mock(DynamoDbClient.class);
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
+            protected DynamoDbClient getClient(final ProcessContext context) {
+                return client;
             }
         };
 
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(BatchWriteItemResponse.builder().build());
     }
 
     private TestRunner createRunner() throws InitializationException {
@@ -89,17 +78,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteOnlyHashFailure() throws InitializationException {
-        // Inject a mock DynamoDB to create the exception condition
-        final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
         // When writing, mock thrown service exception from AWS
-        Mockito.when(mockDynamoDb.batchWriteItem(ArgumentMatchers.<TableWriteItems>any())).thenThrow(getSampleAwsServiceException());
-
-        deleteDynamoDB = new DeleteDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDb;
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
         final TestRunner deleteRunner = createRunner();
 
@@ -109,8 +89,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             validateServiceExceptionAttributes(flowFile);
         }
 
@@ -131,16 +111,18 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() throws InitializationException {
-        Map<String, List<WriteRequest>> unprocessed =
-                new HashMap<String, List<WriteRequest>>();
-        DeleteRequest delete = new DeleteRequest();
-        delete.addKeyEntry("hashS", new AttributeValue("h1"));
-        delete.addKeyEntry("rangeS", new AttributeValue("r1"));
-        WriteRequest write = new WriteRequest(delete);
-        List<WriteRequest> writes = new ArrayList<>();
+        final Map<String, List<WriteRequest>> unprocessed = new HashMap<>();
+        final DeleteRequest delete = DeleteRequest.builder().key(Map
+                .of(
+                        "hashS", string("h1"),
+                        "rangeS", string("r1")
+                )).build();
+        final WriteRequest write = WriteRequest.builder().deleteRequest(delete).build();
+        final List<WriteRequest> writes = new ArrayList<>();
         writes.add(write);
         unprocessed.put(stringHashStringRangeTableName, writes);
-        result.setUnprocessedItems(unprocessed);
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().unprocessedItems(unprocessed).build();
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
         final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -166,8 +148,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
         }
 
@@ -184,8 +166,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
 
@@ -201,8 +183,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
@@ -235,20 +217,9 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteThrowsServiceException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new AmazonServiceException("serviceException");
-            }
-        };
 
-        deleteDynamoDB = new DeleteDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
-
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
+                .thenThrow(getSampleAwsServiceException());
         final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -258,9 +229,9 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null; Proxy: null)",
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
+            assertEquals("Test AWS Service Exception (Service: Dynamo DB, Status Code: 0, Request ID: TestRequestId-1234567890)",
                     flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
@@ -268,19 +239,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangeDeleteThrowsClientException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new AmazonClientException("clientException");
-            }
-        };
-
-        deleteDynamoDB = new DeleteDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
+                .thenThrow(SdkException.builder().message("sdkException").build());
 
         final TestRunner deleteRunner = createRunner(deleteDynamoDB);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -291,31 +251,19 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
+            assertEquals("sdkException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }
 
     @Test
     public void testStringHashStringRangeDeleteThrowsRuntimeException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new RuntimeException("runtimeException");
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
+                .thenThrow(new RuntimeException("runtimeException"));
 
-        deleteDynamoDB = new DeleteDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
-        final TestRunner deleteRunner = createRunner(deleteDynamoDB);
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
+        final TestRunner deleteRunner = createRunner();
 
         deleteRunner.enqueue(new byte[] {});
 

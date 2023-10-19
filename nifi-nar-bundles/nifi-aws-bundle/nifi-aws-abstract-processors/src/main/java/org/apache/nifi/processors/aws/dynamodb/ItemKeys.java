@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+
 import java.util.Objects;
 
 /**
@@ -23,10 +25,10 @@ import java.util.Objects;
  */
 class ItemKeys {
 
-    protected Object hashKey = "";
-    protected Object rangeKey = "";
+    protected AttributeValue hashKey = AttributeValue.fromS("");
+    protected AttributeValue rangeKey = AttributeValue.fromS("");
 
-    public ItemKeys(final Object hashKey, final Object rangeKey) {
+    public ItemKeys(final AttributeValue hashKey, final AttributeValue rangeKey) {
         if (hashKey != null) {
             this.hashKey = hashKey;
         }

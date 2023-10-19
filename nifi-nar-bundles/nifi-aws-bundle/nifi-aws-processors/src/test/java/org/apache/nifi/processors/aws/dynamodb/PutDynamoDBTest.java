@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
-import com.amazonaws.services.dynamodbv2.model.PutRequest;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -34,40 +24,46 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PutDynamoDBTest extends AbstractDynamoDBTest {
     private static final byte[] HELLO_2_BYTES = "{\"hell\": 2}".getBytes(StandardCharsets.UTF_8);
     protected PutDynamoDB putDynamoDB;
-    protected BatchWriteItemResult result = new BatchWriteItemResult();
-    BatchWriteItemOutcome outcome;
 
     @BeforeEach
     public void setUp() {
-        outcome = new BatchWriteItemOutcome(result);
-        result.setUnprocessedItems(new HashMap<>());
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                return outcome;
-            }
-        };
+        final Map<String, Collection<Map<String, AttributeValue>>> responses = new HashMap<>();
+        responses.put(stringHashStringRangeTableName, Collections.emptyList());
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
+
+        client = mock(DynamoDbClient.class);
+
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
+            protected DynamoDbClient getClient(final ProcessContext context) {
+                return client;
             }
         };
     }
@@ -90,17 +86,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangePutOnlyHashFailure() throws InitializationException {
-        // Inject a mock DynamoDB to create the exception condition
-        final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
-        // When writing, mock thrown service exception from AWS
-        Mockito.when(mockDynamoDb.batchWriteItem(ArgumentMatchers.<TableWriteItems>any())).thenThrow(getSampleAwsServiceException());
-
-        putDynamoDB = new PutDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDb;
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
         final TestRunner putRunner = createRunner();
         putRunner.enqueue(HELLO_2_BYTES);
@@ -109,8 +95,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             validateServiceExceptionAttributes(flowFile);
         }
 
@@ -128,8 +114,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
         }
     }
@@ -144,8 +130,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
@@ -163,8 +149,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
@@ -181,8 +167,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_SUCCESS, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
+        for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
@@ -203,15 +189,15 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.run(2,true,true);
 
-        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFilesFailed) {
+        final List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
         }
 
-        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
-        for (MockFlowFile flowFile : flowFilesSuccessful) {
+        final List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
+        for (final MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
@@ -233,15 +219,15 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.run(1);
 
-        List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFilesFailed) {
+        final List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
         }
 
-        List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
-        for (MockFlowFile flowFile : flowFilesSuccessful) {
+        final List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
+        for (final MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
@@ -261,9 +247,9 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         assertEquals(1,flowFiles.size());
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length,flowFile.getSize());
@@ -272,19 +258,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangePutThrowsServiceException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new AmazonServiceException("serviceException");
-            }
-        };
-
-        putDynamoDB = new PutDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -295,30 +269,18 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.run(1);
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null; Proxy: null)",
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
+            assertEquals("Test AWS Service Exception (Service: Dynamo DB, Status Code: 0, Request ID: TestRequestId-1234567890)",
                     flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsClientException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new AmazonClientException("clientException");
-            }
-        };
-
-        putDynamoDB = new PutDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
-
+    public void testStringHashStringRangePutThrowsSdkException() throws InitializationException {
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
+                .thenThrow(SdkException.builder().message("sdkException").build());
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -328,28 +290,16 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.run(1);
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
+            assertEquals("sdkException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }
 
     @Test
     public void testStringHashStringRangePutThrowsRuntimeException() throws InitializationException {
-        final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-            @Override
-            public BatchWriteItemOutcome batchWriteItem(TableWriteItems... tableWriteItems) {
-                throw new RuntimeException("runtimeException");
-            }
-        };
-
-        putDynamoDB = new PutDynamoDB() {
-            @Override
-            protected DynamoDB getDynamoDB(ProcessContext context) {
-                return mockDynamoDB;
-            }
-        };
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(new RuntimeException("runtimeException"));
         final TestRunner putRunner = createRunner();
 
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -360,8 +310,8 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.run(1);
 
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
@@ -369,15 +319,19 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
     @Test
     public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() throws InitializationException {
-        final Map<String, List<WriteRequest>> unprocessed = new HashMap<>();
-        final PutRequest put = new PutRequest();
-        put.addItemEntry("hashS", new AttributeValue("h1"));
-        put.addItemEntry("rangeS", new AttributeValue("r1"));
-        WriteRequest write = new WriteRequest(put);
-        List<WriteRequest> writes = new ArrayList<>();
-        writes.add(write);
-        unprocessed.put(stringHashStringRangeTableName, writes);
-        result.setUnprocessedItems(unprocessed);
+        final Map<String, Collection<WriteRequest>> unprocessedTableToKeysMap = new HashMap<>();
+        final Map<String, AttributeValue> keyMap = new HashMap<>();
+        keyMap.put("hashS", string("h1"));
+        keyMap.put("rangeS", string("r1"));
+        final WriteRequest writeRequest = WriteRequest.builder().putRequest(PutRequest.builder().item(keyMap).build()).build();
+
+        unprocessedTableToKeysMap.put(stringHashStringRangeTableName, Collections.singletonList(writeRequest));
+
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder()
+                .unprocessedItems(unprocessedTableToKeysMap)
+                .build();
+
+        when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
