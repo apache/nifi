@@ -843,7 +843,7 @@
         {id: 'show-stats-menu-item', condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'View status history', action: 'showStats'}},
         {id: 'view-state-menu-item', condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
         {id: 'list-queue-menu-item', condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
-        {id: 'show-usage-menu-item', condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'View usage', action: 'showUsage'}},
+        {id: 'show-usage-menu-item', condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'View documentation', action: 'showUsage'}},
         {id: 'view-menu-item', groupMenuItem: {clazz: 'icon icon-connect', text: 'View connections'}, menuItems: [
             {id: 'show-upstream-menu-item', condition: hasUpstream, menuItem: {clazz: 'icon', text: 'Upstream', action: 'showUpstream'}},
             {id: 'show-downstream-menu-item', condition: hasDownstream, menuItem: {clazz: 'icon', text: 'Downstream', action: 'showDownstream'}}
