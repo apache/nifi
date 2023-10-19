@@ -21,7 +21,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ClusterSummaryEntityResult;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -41,7 +41,7 @@ public class ClusterSummary extends AbstractNiFiCommand<ClusterSummaryEntityResu
     public ClusterSummaryEntityResult doExecute(NiFiClient client, Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
-        final ClusteSummaryEntity clusterSummary = flowClient.getClusterSummary();
+        final ClusterSummaryEntity clusterSummary = flowClient.getClusterSummary();
         return new ClusterSummaryEntityResult(getResultType(properties), clusterSummary);
     }
 }
