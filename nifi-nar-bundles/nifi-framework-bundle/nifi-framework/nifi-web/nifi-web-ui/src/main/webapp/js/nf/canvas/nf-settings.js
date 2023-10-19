@@ -1599,7 +1599,7 @@
             var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book"></div>';
+            markup += '<div title="View Documentation" class="pointer reporting-task-usage fa fa-book"></div>';
 
             var hasComments = !nfCommon.isBlank(dataContext.component.comments);
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
@@ -2508,7 +2508,7 @@
             var markup = '<div title="View Details" class="pointer view-flow-analysis-rule fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer flow-analysis-rule-usage fa fa-book"></div>';
+            markup += '<div title="View Documentation" class="pointer flow-analysis-rule-usage fa fa-book"></div>';
 
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
 
@@ -2993,7 +2993,7 @@
             var markup = '<div title="View Details" class="pointer view-parameter-provider fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer parameter-provider-usage fa fa-book"></div>';
+            markup += '<div title="View Documentation" class="pointer parameter-provider-usage fa fa-book"></div>';
 
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);

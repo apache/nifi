@@ -866,7 +866,7 @@
             }
 
             // always include a button to view the usage
-            var markup = '<div title="Usage" class="pointer controller-service-usage fa fa-book"></div>';
+            var markup = '<div title="View Documentation" class="pointer controller-service-usage fa fa-book"></div>';
 
             var hasComments = !nfCommon.isBlank(dataContext.component.comments);
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
