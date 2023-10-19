@@ -177,7 +177,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
             throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
         }
 
-        flowController.getFlowManager().removeFlowRegistryClientNode(flowRegistry);
+        flowController.getFlowManager().removeFlowRegistryClient(flowRegistry);
 
         return flowRegistry;
     }

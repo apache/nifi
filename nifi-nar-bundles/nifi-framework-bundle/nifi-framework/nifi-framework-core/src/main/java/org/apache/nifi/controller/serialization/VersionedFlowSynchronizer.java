@@ -119,7 +119,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -419,7 +418,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
                 inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
-                inheritRegistries(controller, versionedFlow, affectedComponentSet);
+                inheritRegistryClients(controller, versionedFlow, affectedComponentSet);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
 
@@ -467,6 +466,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             inheritSnippets(controller, proposedFlow);
             inheritAuthorizations(existingFlow, proposedFlow, controller);
+
+            removeMissingParameterContexts(controller, versionedFlow);
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
         }
@@ -548,16 +549,24 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return affectedComponentSet;
     }
 
-    private void inheritRegistries(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
-        final FlowManager flowManger = controller.getFlowManager();
+    private void inheritRegistryClients(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
+        final FlowManager flowManager = controller.getFlowManager();
 
+        final Set<String> versionedClientIds = new HashSet<>();
         for (final VersionedFlowRegistryClient versionedFlowRegistryClient : dataflow.getRegistries()) {
-            final FlowRegistryClientNode existing = flowManger.getFlowRegistryClient(versionedFlowRegistryClient.getIdentifier());
+            versionedClientIds.add(versionedFlowRegistryClient.getInstanceIdentifier());
+            final FlowRegistryClientNode existing = flowManager.getFlowRegistryClient(versionedFlowRegistryClient.getIdentifier());
 
             if (existing == null) {
                 addFlowRegistryClient(controller, versionedFlowRegistryClient);
             } else if (affectedComponentSet.isFlowRegistryClientAffected(existing.getIdentifier())) {
                 updateRegistry(existing, versionedFlowRegistryClient, controller);
+            }
+        }
+
+        for (final FlowRegistryClientNode clientNode : flowManager.getAllFlowRegistryClients()) {
+            if (!versionedClientIds.contains(clientNode.getIdentifier())) {
+                flowManager.removeFlowRegistryClient(clientNode);
             }
         }
     }
@@ -581,12 +590,20 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void inheritReportingTasks(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) throws ReportingTaskInstantiationException {
+        final Set<String> versionedTaskIds = new HashSet<>();
         for (final VersionedReportingTask versionedReportingTask : dataflow.getReportingTasks()) {
+            versionedTaskIds.add(versionedReportingTask.getInstanceIdentifier());
             final ReportingTaskNode existing = controller.getReportingTaskNode(versionedReportingTask.getInstanceIdentifier());
             if (existing == null) {
                 addReportingTask(controller, versionedReportingTask);
             } else if (affectedComponentSet.isReportingTaskAffected(existing.getIdentifier())) {
                 updateReportingTask(existing, versionedReportingTask, controller);
+            }
+        }
+
+        for (final ReportingTaskNode reportingTask : controller.getAllReportingTasks()) {
+            if (!versionedTaskIds.contains(reportingTask.getIdentifier())) {
+                controller.removeReportingTask(reportingTask);
             }
         }
     }
@@ -647,12 +664,21 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return;
         }
 
+        final Set<String> versionedAnalysisRuleIds = new HashSet<>();
         for (final VersionedFlowAnalysisRule versionedFlowAnalysisRule : dataflow.getFlowAnalysisRules()) {
+            versionedAnalysisRuleIds.add(versionedFlowAnalysisRule.getInstanceIdentifier());
+
             final FlowAnalysisRuleNode existing = controller.getFlowAnalysisRuleNode(versionedFlowAnalysisRule.getInstanceIdentifier());
             if (existing == null) {
                 addFlowAnalysisRule(controller, versionedFlowAnalysisRule);
             } else if (affectedComponentSet.isFlowAnalysisRuleAffected(existing.getIdentifier())) {
                 updateFlowAnalysisRule(existing, versionedFlowAnalysisRule, controller);
+            }
+        }
+
+        for (final FlowAnalysisRuleNode ruleNode : controller.getAllFlowAnalysisRules()) {
+            if (!versionedAnalysisRuleIds.contains(ruleNode.getIdentifier())) {
+                controller.removeFlowAnalysisRule(ruleNode);
             }
         }
     }
@@ -692,8 +718,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return;
         }
 
+        final FlowManager flowManager = controller.getFlowManager();
+
+        final Set<String> versionedProviderIds = new HashSet<>();
         for (final VersionedParameterProvider versionedParameterProvider : dataflow.getParameterProviders()) {
-            final ParameterProviderNode existing = controller.getFlowManager().getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
+            versionedProviderIds.add(versionedParameterProvider.getInstanceIdentifier());
+
+            final ParameterProviderNode existing = flowManager.getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
             if (existing == null) {
                 addParameterProvider(controller, versionedParameterProvider, controller.getEncryptor());
             } else if (affectedComponentSet.isParameterProviderAffected(existing.getIdentifier())) {
@@ -701,6 +732,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        for (final ParameterProviderNode parameterProvider : flowManager.getAllParameterProviders()) {
+            if (!versionedProviderIds.contains(parameterProvider.getIdentifier())) {
+                flowManager.removeParameterProvider(parameterProvider);
+            }
+        }
     }
 
     private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider, final PropertyEncryptor encryptor) {
@@ -721,15 +757,40 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         parameterProviderNode.setProperties(decryptedProperties);
     }
 
+    private void removeMissingParameterContexts(final FlowController controller, final VersionedDataflow dataflow) {
+        controller.getFlowManager().withParameterContextResolution(() -> {
+            final ParameterContextManager contextManager = controller.getFlowManager().getParameterContextManager();
+            removeMissingParameterContexts(contextManager, dataflow);
+        });
+    }
+
+    private void removeMissingParameterContexts(final ParameterContextManager contextManager, final VersionedDataflow dataflow) {
+        if (dataflow == null) {
+            return;
+        }
+
+        // Build mapping of name to context for resolution of inherited contexts
+        final List<VersionedParameterContext> proposedParameterContexts = dataflow.getParameterContexts();
+        final Set<String> proposedContextNames = proposedParameterContexts.stream()
+            .map(VersionedParameterContext::getName)
+            .collect(Collectors.toSet());
+
+        final Map<String, ParameterContext> existingContextsByName = contextManager.getParameterContextNameMapping();
+        for (final Map.Entry<String, ParameterContext> entry : existingContextsByName.entrySet()) {
+            if (!proposedContextNames.contains(entry.getKey())) {
+                contextManager.removeParameterContext(entry.getValue().getIdentifier());
+            }
+        }
+    }
+
     private void inheritParameterContexts(final FlowController controller, final VersionedDataflow dataflow) {
         controller.getFlowManager().withParameterContextResolution(() -> {
             final List<VersionedParameterContext> parameterContexts = dataflow.getParameterContexts();
 
             // Build mapping of name to context for resolution of inherited contexts
-            final Map<String, VersionedParameterContext> namedParameterContexts = parameterContexts.stream()
-                    .collect(
-                            Collectors.toMap(VersionedParameterContext::getName, Function.identity())
-                    );
+            final Map<String, VersionedParameterContext> namedParameterContexts = new HashMap<>();
+            parameterContexts.forEach(context -> namedParameterContexts.put(context.getName(), context));
+
             for (final VersionedParameterContext versionedParameterContext : parameterContexts) {
                 inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getEncryptor());
             }
@@ -936,6 +997,30 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // Disable any Controller-level services that are intended to be disabled.
         if (!toDisable.isEmpty()) {
             controller.getControllerServiceProvider().disableControllerServicesAsync(toDisable);
+        }
+
+        removeMissingServices(controller, dataflow);
+    }
+
+    private void removeMissingServices(final FlowController controller, final VersionedDataflow dataflow) {
+        if (dataflow == null) {
+            return;
+        }
+
+        final Set<String> retainedServiceIds = dataflow.getControllerServices().stream()
+            .map(VersionedControllerService::getInstanceIdentifier)
+            .collect(Collectors.toSet());
+
+        final List<ControllerServiceNode> toRemove = controller.getFlowManager().getRootControllerServices().stream()
+            .filter(service -> !retainedServiceIds.contains(service.getIdentifier()))
+            .toList();
+
+        for (final ControllerServiceNode serviceToRemove : toRemove) {
+            try {
+                controller.getFlowManager().removeRootControllerService(serviceToRemove);
+            } catch (final Exception e) {
+                throw new IllegalStateException("Inherited Dataflow does not have Controller-Level Controller Service %s but failed to remove it from flow".formatted(serviceToRemove), e);
+            }
         }
     }
 

@@ -34,7 +34,6 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
@@ -103,7 +102,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -609,63 +607,6 @@ public class TestFlowController {
                 auditService, encryptor, bulletinRepo, extensionManager, statusHistoryRepository, null);
         controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertEquals(authFingerprint, authorizer.getFingerprint());
-    }
-
-    @Test
-    public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final Set<String> missingComponents = new HashSet<>();
-        missingComponents.add("1");
-        missingComponents.add("2");
-
-        final DataFlow proposedDataFlow = mock(DataFlow.class);
-        when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
-
-        UninheritableFlowException uninheritableFlowException =
-                assertThrows(UninheritableFlowException.class,
-                        () -> controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
-        assertTrue(uninheritableFlowException.getMessage().contains("Proposed flow has missing components " +
-                "that are not considered missing in the current flow (1,2)"), uninheritableFlowException.getMessage());
-    }
-
-    @Test
-    public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
-        final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
-        when(mockProcessorNode.getIdentifier()).thenReturn("1");
-        when(mockProcessorNode.isExtensionMissing()).thenReturn(true);
-
-        final ControllerServiceNode mockControllerServiceNode = mock(ControllerServiceNode.class);
-        when(mockControllerServiceNode.getIdentifier()).thenReturn("2");
-        when(mockControllerServiceNode.isExtensionMissing()).thenReturn(true);
-
-        final ReportingTaskNode mockReportingTaskNode = mock(ReportingTaskNode.class);
-        when(mockReportingTaskNode.getIdentifier()).thenReturn("3");
-        when(mockReportingTaskNode.isExtensionMissing()).thenReturn(true);
-
-        final ProcessGroup mockRootGroup = mock(ProcessGroup.class);
-        when(mockRootGroup.findAllProcessors()).thenReturn(Collections.singletonList(mockProcessorNode));
-
-        final SnippetManager mockSnippetManager = mock(SnippetManager.class);
-        when(mockSnippetManager.export()).thenReturn(new byte[0]);
-
-        final FlowManager flowManager = mock(FlowManager.class);
-
-        final FlowController mockFlowController = mock(FlowController.class);
-        when(mockFlowController.getFlowManager()).thenReturn(flowManager);
-
-        when(flowManager.getRootGroup()).thenReturn(mockRootGroup);
-        when(flowManager.getAllControllerServices()).thenReturn(new HashSet<>(Arrays.asList(mockControllerServiceNode)));
-        when(flowManager.getAllReportingTasks()).thenReturn(new HashSet<>(Arrays.asList(mockReportingTaskNode)));
-        when(mockFlowController.getAuthorizer()).thenReturn(authorizer);
-        when(mockFlowController.getSnippetManager()).thenReturn(mockSnippetManager);
-
-        final DataFlow proposedDataFlow = mock(DataFlow.class);
-        when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
-        UninheritableFlowException uninheritableFlowException =
-                assertThrows(UninheritableFlowException.class,
-                        () -> flowSynchronizer.sync(mockFlowController, proposedDataFlow,
-                                mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
-        assertTrue(uninheritableFlowException.getMessage().contains("Current flow has missing components that are not" +
-                        " considered missing in the proposed flow (1,2,3)"), uninheritableFlowException.getMessage());
     }
 
     @Test

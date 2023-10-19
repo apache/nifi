@@ -27,7 +27,9 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -37,7 +39,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.jupiter.api.Disabled;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -48,7 +50,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -58,9 +59,10 @@ import java.util.zip.GZIPInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@Disabled("https://issues.apache.org/jira/browse/NIFI-12203")
-public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
+public class JoinClusterWithDifferentFlowIT extends NiFiSystemIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         final Map<String, String> propertyOverrides = Collections.singletonMap("nifi.cluster.flow.serialization.format", "JSON");
@@ -83,6 +85,12 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
     @Test
     public void testStartupWithDifferentFlow() throws IOException, NiFiClientException, InterruptedException {
+        // Ensure that the root-level controller service is enabled
+        waitFor(() -> {
+            final ControllerServiceDTO rootService = getNifiClient().getControllerServicesClient().getControllerService("65b6f2b0-016e-1000-1bfa-6bc482d8cd2b").getComponent();
+            return "ENABLED".equals(rootService.getState());
+        });
+
         // Once we've started up, we want to have node 2 startup with a different flow. We cannot simply startup both nodes at the same time with
         // different flows because then either flow could be elected the "correct flow" and as a result, we don't know which node to look at to ensure
         // that the proper flow resolution occurred.
@@ -108,7 +116,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
     private List<File> getFlowJsonFiles(final File confDir) {
         final File[] flowJsonFileArray = confDir.listFiles(file -> file.getName().startsWith("flow") && file.getName().endsWith(".json.gz"));
-        final List<File> flowJsonFiles = new ArrayList<>(Arrays.asList(flowJsonFileArray));
+        assertNotNull(flowJsonFileArray);
+        final List<File> flowJsonFiles = Arrays.asList(flowJsonFileArray);
         return flowJsonFiles;
     }
 
@@ -118,7 +127,7 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         final List<File> flowJsonFiles = getFlowJsonFiles(confDir);
         assertEquals(1, flowJsonFiles.size());
 
-        return flowJsonFiles.iterator().next();
+        return flowJsonFiles.get(0);
     }
 
     private void verifyFlowContentsOnDisk(final File backupFile) throws IOException {
@@ -157,7 +166,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         assertEquals("1", generateProperties.get("Batch Size"));
         assertEquals("1 hour", generateFlowFileEntity.getComponent().getConfig().getSchedulingPeriod());
 
-        final ParameterContextDTO contextDto = getNifiClient().getParamContextClient().getParamContext(paramContextReference.getId(), false).getComponent();
+        assertEquals(1, getNifiClient().getParamContextClient(DO_NOT_REPLICATE).getParamContexts().getParameterContexts().size());
+        final ParameterContextDTO contextDto = getNifiClient().getParamContextClient(DO_NOT_REPLICATE).getParamContext(paramContextReference.getId(), false).getComponent();
         assertEquals(2, contextDto.getBoundProcessGroups().size());
         assertEquals(1, contextDto.getParameters().size());
         final ParameterEntity parameterEntity = contextDto.getParameters().iterator().next();
@@ -176,12 +186,18 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
         final ControllerServiceEntity firstService = controllerLevelServices.getControllerServices().iterator().next();
         assertFalse(firstService.getId().endsWith("00"));
+
+        final ReportingTasksClient reportingTasksClient = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE);
+        final ReportingTaskEntity taskEntity = reportingTasksClient.getReportingTask("65b75baf-016e-1000-13f9-cbcfa0a26576");
+        assertNotNull(taskEntity);
+
+        // Service with ID ending in 00 should no longer exist
+        assertThrows(NiFiClientException.class, () -> reportingTasksClient.getReportingTask("65b75baf-016e-1000-13f9-cbcfa0a2657600"));
     }
 
     private String readFlow(final File file) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        try (final InputStream fis = new FileInputStream(file);
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             final InputStream fis = new FileInputStream(file);
              final InputStream gzipIn = new GZIPInputStream(fis)) {
 
             final byte[] buffer = new byte[4096];
@@ -189,9 +205,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
             while ((len = gzipIn.read(buffer)) > 0) {
                 baos.write(buffer, 0, len);
             }
-        }
 
-        final byte[] bytes = baos.toByteArray();
-        return new String(bytes, StandardCharsets.UTF_8);
+            return baos.toString(StandardCharsets.UTF_8);
+        }
     }
 }

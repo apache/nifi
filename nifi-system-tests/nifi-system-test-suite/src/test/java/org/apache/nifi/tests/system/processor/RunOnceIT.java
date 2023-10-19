@@ -21,7 +21,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 
@@ -29,24 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RunOnceIT extends NiFiSystemIT {
 
-    @Timeout(10)
     @Test
     public void testRunOnce() throws NiFiClientException, IOException, InterruptedException {
-        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        getClientUtil().updateProcessorSchedulingPeriod(generate, "1 sec");
-
-        ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-
-        ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, "success");
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, "success");
 
         getNifiClient().getProcessorClient().runProcessorOnce(generate);
-
         waitForQueueCount(generateToTerminate.getId(), 1);
 
-        ProcessorEntity actualGenerate = getNifiClient().getProcessorClient().getProcessor(generate.getId());
-        String actualRunStatus = actualGenerate.getStatus().getRunStatus();
-
-        assertEquals("Stopped", actualRunStatus);
+        getClientUtil().waitForStoppedProcessor(generate.getId());
         assertEquals(1, getConnectionQueueSize(generateToTerminate.getId()));
 
         // Test CRON_DRIVEN Strategy
@@ -54,12 +45,9 @@ public class RunOnceIT extends NiFiSystemIT {
         getClientUtil().updateProcessorSchedulingPeriod(generate, "* * * * * ?");
 
         getNifiClient().getProcessorClient().runProcessorOnce(generate);
-
         waitForQueueCount(generateToTerminate.getId(), 2);
 
-        actualRunStatus = actualGenerate.getStatus().getRunStatus();
-
-        assertEquals("Stopped", actualRunStatus);
+        getClientUtil().waitForStoppedProcessor(generate.getId());
         assertEquals(2, getConnectionQueueSize(generateToTerminate.getId()));
     }
 }
