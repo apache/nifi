@@ -36,9 +36,6 @@ public class FlowRegistryClientDTO {
     private String name;
     private String description;
 
-    @Deprecated // URI is kept for handling legacy calls, but FlowRegistryClient implementations should depend on the properties.
-    private String uri;
-
     private String type;
     private BundleDTO bundle;
 
@@ -83,17 +80,7 @@ public class FlowRegistryClientDTO {
         this.description = description;
     }
 
-    @Deprecated
-    public String getUri() {
-        return uri;
-    }
-
-    @Deprecated
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
-
-    @ApiModelProperty(value = "The type of the controller service.")
+    @ApiModelProperty(value = "The type of the registry client.")
     public String getType() {
         return type;
     }
@@ -102,7 +89,7 @@ public class FlowRegistryClientDTO {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "The details of the artifact that bundled this processor type.")
+    @ApiModelProperty(value = "The details of the artifact that bundled this registry client type.")
     public BundleDTO getBundle() {
         return bundle;
     }
@@ -111,7 +98,7 @@ public class FlowRegistryClientDTO {
         this.bundle = bundle;
     }
 
-    @ApiModelProperty(value = "The properties of the controller service.")
+    @ApiModelProperty(value = "The properties of the registry client.")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -120,7 +107,7 @@ public class FlowRegistryClientDTO {
         this.properties = properties;
     }
 
-    @ApiModelProperty(value = "The descriptors for the controller service properties.")
+    @ApiModelProperty(value = "The descriptors for the registry client properties.")
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -138,11 +125,8 @@ public class FlowRegistryClientDTO {
         this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
-    /**
-     * @return whether this reporting task supports sensitive dynamic properties
-     */
     @ApiModelProperty(
-            value = "Whether the reporting task supports sensitive dynamic properties."
+        value = "Whether the registry client supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -152,11 +136,8 @@ public class FlowRegistryClientDTO {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
-    /**
-     * @return whether this reporting task requires elevated privileges
-     */
     @ApiModelProperty(
-            value = "Whether the reporting task requires elevated privileges."
+        value = "Whether the registry client requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -166,11 +147,8 @@ public class FlowRegistryClientDTO {
         this.restricted = restricted;
     }
 
-    /**
-     * @return Whether the reporting task has been deprecated.
-     */
     @ApiModelProperty(
-            value = "Whether the reporting task has been deprecated."
+        value = "Whether the registry client has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -208,11 +186,8 @@ public class FlowRegistryClientDTO {
         this.setMultipleVersionsAvailable = setMultipleVersionsAvailable;
     }
 
-    /**
-     * @return currently configured annotation data for the reporting task
-     */
     @ApiModelProperty(
-            value = "The annotation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
+        value = "The annotation data for the registry client. This is how the custom UI relays configuration to the registry client."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -222,14 +197,9 @@ public class FlowRegistryClientDTO {
         this.annotationData = annotationData;
     }
 
-    /**
-     * Gets the validation errors from this reporting task. These validation errors represent the problems with the reporting task that must be resolved before it can be scheduled to run.
-     *
-     * @return The validation errors
-     */
     @ApiModelProperty(
-            value = "Gets the validation errors from the reporting task. These validation errors represent the problems with the reporting task that must be resolved before "
-                    + "it can be scheduled to run."
+        value = "Gets the validation errors from the registry client. These validation errors represent the problems with the registry client that must be resolved before "
+            + "it can be used for interacting with the flow registry."
     )
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -239,7 +209,7 @@ public class FlowRegistryClientDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+    @ApiModelProperty(value = "Indicates whether the Registry Client is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Registry Client is valid)",
             accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {

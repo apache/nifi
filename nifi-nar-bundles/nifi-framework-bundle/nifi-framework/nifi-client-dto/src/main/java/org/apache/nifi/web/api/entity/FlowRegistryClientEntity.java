@@ -34,12 +34,6 @@ public class FlowRegistryClientEntity extends ComponentEntity implements Permiss
         return registry;
     }
 
-    // Note: this duplication is needed for the {@code org.apache.nifi.web.api.FlowResource} to maintain backward compatibility}
-    @Deprecated
-    public FlowRegistryClientDTO getRegistry() {
-        return registry;
-    }
-
     public void setComponent(FlowRegistryClientDTO component) {
         this.registry = component;
     }

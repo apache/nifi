@@ -367,7 +367,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     private RegisteredFlowSnapshot fetchFlowContents(final FlowRegistryClientUserContext context, final VersionedFlowCoordinates coordinates,
                                                      final boolean fetchRemoteFlows) throws FlowRegistryException {
 
-        final String storageLocation = coordinates.getStorageLocation() == null ? coordinates.getRegistryUrl() : coordinates.getStorageLocation();
+        final String storageLocation = coordinates.getStorageLocation();
         final String bucketId = coordinates.getBucketId();
         final String flowId = coordinates.getFlowId();
         final int version = coordinates.getVersion();

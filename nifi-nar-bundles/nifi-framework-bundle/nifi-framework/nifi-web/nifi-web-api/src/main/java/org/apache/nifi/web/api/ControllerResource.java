@@ -52,7 +52,6 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
@@ -106,9 +105,7 @@ import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -1526,8 +1523,6 @@ public class ControllerResource extends ApplicationResource {
         // authorize access
         authorizeController(RequestAction.READ);
 
-        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
-
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
             throw new IllegalArgumentException("Flow Registry client details must be specified.");
         }
@@ -1545,6 +1540,10 @@ public class ControllerResource extends ApplicationResource {
 
         if (StringUtils.isBlank(requestRegistryClient.getName())) {
             throw new IllegalArgumentException("Flow Registry name must be specified.");
+        }
+
+        if (requestRegistryClient.getType() == null) {
+            throw new IllegalArgumentException("The flow registry client type must be specified.");
         }
 
         if (serviceFacade.getRegistryClients().stream().anyMatch(rce -> requestRegistryClient.getName().equals(rce.getComponent().getName()))) {
@@ -1665,8 +1664,6 @@ public class ControllerResource extends ApplicationResource {
                     value = "The flow registry client configuration details.",
                     required = true
             ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
-
-        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
 
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
             throw new IllegalArgumentException("Flow registry client details must be specified.");
@@ -1874,7 +1871,6 @@ public class ControllerResource extends ApplicationResource {
      * Retrieves the types of flow registry clients that this NiFi supports.
      *
      * @return A flowRegistryTypesEntity.
-     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1911,25 +1907,6 @@ public class ControllerResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    private void preprocessObsoleteRequest(final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
-        final FlowRegistryClientDTO dto = requestFlowRegistryClientEntity.getComponent();
-
-        if (dto.getType() == null && dto.getBundle() == null && dto.getUri() != null) {
-            LOGGER.warn("The flow registry client operation request is considered legacy, will be populated using defaults!");
-
-            final Optional<DocumentedTypeDTO> nifiRegistryBundle = serviceFacade.getFlowRegistryTypes().stream().filter(b -> NIFI_REGISTRY_TYPE.equals(b.getType())).findFirst();
-
-            if (nifiRegistryBundle.isEmpty()) {
-                throw new IllegalStateException("NiFi instance cannot find a NifiRegistryFlowRegistryClient implementation!");
-            }
-
-            dto.setType(NIFI_REGISTRY_TYPE);
-            dto.setBundle(nifiRegistryBundle.get().getBundle());
-            dto.setProperties(new HashMap<>(Collections.singletonMap("url", dto.getUri())));
-            dto.setUri(null);
-        }
-    }
-
     /**
      * Populate the uri's for the specified flow registry client and also extend the result to make it backward compatible.
      *
@@ -1938,11 +1915,6 @@ public class ControllerResource extends ApplicationResource {
      */
     private FlowRegistryClientEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientEntity flowRegistryClientEntity) {
         flowRegistryClientEntity.setUri(generateResourceUri("controller", "registry-clients", flowRegistryClientEntity.getId()));
-
-        if (flowRegistryClientEntity.getComponent().getType().equals(NIFI_REGISTRY_TYPE)) {
-            flowRegistryClientEntity.getComponent().setUri(flowRegistryClientEntity.getComponent().getProperties().get("url"));
-        }
-
         return flowRegistryClientEntity;
     }
 

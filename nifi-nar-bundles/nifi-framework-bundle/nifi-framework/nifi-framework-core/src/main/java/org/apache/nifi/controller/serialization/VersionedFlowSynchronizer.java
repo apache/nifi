@@ -130,11 +130,6 @@ import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
-    /**
-     * The Registry Client Type to use for registry clients that are configured using the deprecated style
-     */
-    private static final String DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
-    private static final BundleCoordinate DEPRECATED_FLOW_REGISTRY_BUNDLE = new BundleCoordinate("org.apache.nifi", "nifi-flow-registry-client-nar", "1.18.0");
 
     private final ExtensionManager extensionManager;
     private final File flowStorageFile;
@@ -293,10 +288,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         if (dataflow.getRegistries() == null) {
             dataflow.setRegistries(new ArrayList<>());
         }
+
         for (final VersionedFlowRegistryClient registry : dataflow.getRegistries()) {
-            if (isOldStyleRegistryClient(registry)) {
-                continue;
-            }
             if (missingComponentIds.contains(registry.getInstanceIdentifier())) {
                 continue;
             }
@@ -570,50 +563,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addFlowRegistryClient(final FlowController flowController, final VersionedFlowRegistryClient versionedFlowRegistryClient) {
-        if (isOldStyleRegistryClient(versionedFlowRegistryClient)) {
-            addOldStyleRegistryClient(flowController.getFlowManager(), versionedFlowRegistryClient);
-            return;
-        }
-
         final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedFlowRegistryClient.getBundle(), versionedFlowRegistryClient.getType());
 
         final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
                 versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet() , false, true, null);
         updateRegistry(flowRegistryClient, versionedFlowRegistryClient, flowController);
-    }
-
-    /**
-     * Checks if hte given VersionedFlowRegistryClient matches the old configuration style, which was used before Registry Clients
-     * were made into an extension point
-     * @param client the client to check
-     * @return <code>true</code> if the client is from an older configuration, <code>false</code> otherwise.
-     */
-    private boolean isOldStyleRegistryClient(final VersionedFlowRegistryClient client) {
-        return client.getIdentifier() != null && client.getIdentifier() == null && client.getBundle() == null;
-    }
-
-    /**
-     * Creates and adds to the flow a Flow Registry Client using the old style configuration for the VersionedFlowRegistryClient
-     * @param flowManager the flow manager
-     * @param client the versioned client
-     */
-    private void addOldStyleRegistryClient(final FlowManager flowManager, final VersionedFlowRegistryClient client) {
-        BundleCoordinate chosenCoordinate = getCompatibleBundle(DEPRECATED_FLOW_REGISTRY_BUNDLE, extensionManager, DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE);
-        if (chosenCoordinate == null) {
-            // If unable to find a compatible bundle coordinate just use the deprecated coordinates, which can create a Ghosted component
-            chosenCoordinate = DEPRECATED_FLOW_REGISTRY_BUNDLE;
-        }
-
-        final FlowRegistryClientNode flowRegistryClient = flowManager.createFlowRegistryClient(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE, client.getIdentifier(),
-            chosenCoordinate, Collections.emptySet(), false,true, null);
-
-        flowRegistryClient.setName(client.getName());
-        flowRegistryClient.setDescription(client.getDescription());
-        flowRegistryClient.setAnnotationData(null);
-
-        final Map<String, String> properties = new HashMap<>();
-        properties.put("url", client.getUrl());
-        flowRegistryClient.setProperties(properties, false, Collections.emptySet());
     }
 
     private void updateRegistry(final FlowRegistryClientNode flowRegistryClient, final VersionedFlowRegistryClient versionedFlowRegistryClient, final FlowController flowController) {

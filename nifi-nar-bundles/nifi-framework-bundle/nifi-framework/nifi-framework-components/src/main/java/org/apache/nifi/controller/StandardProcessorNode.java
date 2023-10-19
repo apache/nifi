@@ -355,7 +355,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public boolean isIsolated() {
         return executionNode == ExecutionNode.PRIMARY;
     }

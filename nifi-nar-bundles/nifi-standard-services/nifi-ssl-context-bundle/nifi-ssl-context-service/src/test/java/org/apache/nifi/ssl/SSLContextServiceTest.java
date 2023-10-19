@@ -253,22 +253,4 @@ public class SSLContextServiceTest {
         assertNotNull(service);
         service.createContext();
     }
-
-    @Test
-    @Deprecated
-    public void testGoodKeyOnly() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        SSLContextService service = new StandardSSLContextService();
-        HashMap<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), tlsConfiguration.getKeystorePath());
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().getType());
-        runner.addControllerService("test-good3", service, properties);
-        runner.enableControllerService(service);
-
-        runner.setProperty("SSL Context Svc ID", "test-good3");
-        runner.assertValid();
-        assertNotNull(service);
-        service.createContext();
-    }
 }

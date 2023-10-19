@@ -269,9 +269,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
 
-    // default properties for scaling the positions of components from pre-1.0 flow encoding versions.
-    public static final double DEFAULT_POSITION_SCALE_FACTOR_X = 1.5;
-    public static final double DEFAULT_POSITION_SCALE_FACTOR_Y = 1.34;
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
@@ -465,7 +462,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return flowController;
     }
 
-    @SuppressWarnings("deprecation")
     private FlowController(
             final FlowFileEventRepository flowFileEventRepo,
             final NiFiProperties nifiProperties,

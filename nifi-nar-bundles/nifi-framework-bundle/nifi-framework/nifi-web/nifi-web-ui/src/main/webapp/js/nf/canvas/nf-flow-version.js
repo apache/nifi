@@ -204,7 +204,7 @@
                 });
 
                 $.each(registriesResponse.registries, function (_, registryEntity) {
-                    var registry = registryEntity.registry;
+                    var registry = registryEntity.component;
                     registries.push({
                         text: registry.name,
                         value: registry.id,

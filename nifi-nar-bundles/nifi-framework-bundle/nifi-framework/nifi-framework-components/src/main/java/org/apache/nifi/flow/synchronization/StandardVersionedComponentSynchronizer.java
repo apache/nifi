@@ -502,11 +502,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
-        final String location = coordinates.getStorageLocation() == null ? coordinates.getRegistryUrl() : coordinates.getStorageLocation();
-        if (location == null) {
-            return null;
-        }
-
+        final String location = coordinates.getStorageLocation();
         for (final FlowRegistryClientNode flowRegistryClientNode : context.getFlowManager().getAllFlowRegistryClients()) {
             final boolean locationApplicable;
             try {

@@ -5442,7 +5442,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
-            .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
             .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, proposedFlow.getContents(), flowManager))
             .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
@@ -5523,10 +5522,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // Ignore name changes to public ports
             if (FlowDifferenceFilters.isPublicPortNameChange(difference)) {
-                continue;
-            }
-
-            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
                 continue;
             }
 

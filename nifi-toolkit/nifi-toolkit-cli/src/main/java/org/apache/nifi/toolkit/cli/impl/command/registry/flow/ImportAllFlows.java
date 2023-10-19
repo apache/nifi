@@ -272,8 +272,8 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
                     flowCoordinates.getFlowId(), flowCoordinates.getVersion());
 
             flowCoordinates.setStorageLocation(updatedStorageLocation);
-            flowCoordinates.setRegistryUrl(registryUrl);
         }
+
         for (VersionedProcessGroup processGroup : group.getProcessGroups()) {
             updateStorageLocation(processGroup, registryUrl);
         }
