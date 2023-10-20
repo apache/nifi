@@ -24,9 +24,15 @@
     <div class="flow-analysis-flow-guide-container">
         <div class="flow-analysis-flow-guide">
             <div class="flow-analysis-flow-guide-title">Flow Guide</div>
-            <div class="flow-analysis-violations-options">
-                <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
-                <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
+            <div>
+                <div class="flow-analysis-violations-options">
+                    <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
+                    <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
+                </div>
+                <div class="flow-analysis-warnings-options">
+                    <div class="nf-checkbox checkbox-unchecked" id="show-only-warnings"></div>
+                    <span class="nf-checkbox-label show-only-warnings-label">Only show warnings</span>
+                </div>
             </div>
         </div>
         <div class="flow-analysis-flow-guide-breadcrumb">NiFi Flow</div>
@@ -53,6 +59,13 @@
                 <div>Rule Violations <span id="rule-violation-count" class="rule-violation-count"></span></div>
             </div>
             <ul id="rule-violations-list" class="rule-violations-list"></ul>
+        </div>
+
+        <div id="rule-warnings" class="rule-warnings">
+            <div class="rules-warnings-header">
+                <div>Rule Warnings <span id="rule-warning-count" class="rule-warning-count"></span></div>
+            </div>
+            <ul id="rule-warnings-list" class="rule-warnings-list"></ul>
         </div>
 
         <div class="rule-menu" id="rule-menu">
