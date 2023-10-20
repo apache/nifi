@@ -188,14 +188,14 @@ public class IdentifyMimeType extends AbstractProcessor {
         String configBody = context.getProperty(MIME_CONFIG_BODY).getValue();
         String configFile = context.getProperty(MIME_CONFIG_FILE).evaluateAttributeExpressions().getValue();
 
-        try (final InputStream customInputStream = configBody != null ? new ByteArrayInputStream(configBody.getBytes()) : new FileInputStream(configFile);
-             final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("org/apache/tika/mime/custom-mimetypes.xml");
-             final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream("org/apache/tika/mime/tika-mimetypes.xml")) {
-
+        try (final InputStream customInputStream = configBody != null ? new ByteArrayInputStream(configBody.getBytes()) : new FileInputStream(configFile)) {
             if (configStrategy.equals(REPLACE.getValue())) {
                 this.detector = MimeTypesFactory.create(customInputStream);
             } else {
-                this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
+                try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("org/apache/tika/mime/custom-mimetypes.xml");
+                     final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream("org/apache/tika/mime/tika-mimetypes.xml")) {
+                    this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
+                }
             }
             this.mimeTypes = (MimeTypes) this.detector;
         } catch (Exception e) {
@@ -250,7 +250,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             mimetype = mimeTypes.forName(mimeType);
             extension = mimetype.getExtension();
         } catch (MimeTypeException e) {
-            logger.warn("MIME type extension lookup failed: ", e);
+            logger.warn("MIME type extension lookup failed", e);
         }
 
         // Workaround for bug in Tika - https://issues.apache.org/jira/browse/TIKA-1563
@@ -277,19 +277,19 @@ public class IdentifyMimeType extends AbstractProcessor {
         Set<ValidationResult> results = new HashSet<>();
         String body = validationContext.getProperty(MIME_CONFIG_BODY).getValue();
         String file = validationContext.getProperty(MIME_CONFIG_FILE).getValue();
-        if(!validationContext.getProperty(CONFIG_STRATEGY).getValue().equals(PRESET.getValue())) {
+        if (!validationContext.getProperty(CONFIG_STRATEGY).getValue().equals(PRESET.getValue())) {
             if (body != null && file != null) {
                 results.add(new ValidationResult.Builder()
                         .subject(MIME_CONFIG_FILE.getDisplayName())
                         .input(file)
                         .valid(false)
-                        .explanation("Can only specify Config Body or Config File.  Not both.")
+                        .explanation("Either [Config Body] or [Config File] can be specified, but not both properties.")
                         .build());
             } else if (body == null && file == null) {
                 results.add(new ValidationResult.Builder()
                         .subject(MIME_CONFIG_FILE.getDisplayName())
                         .valid(false)
-                        .explanation("Either Config Body or Config File must be set.")
+                        .explanation("Either [Config Body] or [Config File] must be specified")
                         .build());
             }
         }
