@@ -73,10 +73,10 @@ import java.util.regex.Pattern;
         Set the "Time Duration" property to `1 sec`.
         Configure the "Maximum Rate" property to specify how much data should be allowed through each second.
 
-        For example, to allow through 8 MB per second, "Maximum Rate" to `8 MB`.
+        For example, to allow through 8 MB per second, set "Maximum Rate" to `8 MB`.
         """
 )
-@UseCase(description = "Limit the rate at which requests are sent to a downstream system with little to no bursts",
+@UseCase(description = "Limit the rate at which FlowFiles are sent to a downstream system with little to no bursts",
     keywords = {"throttle", "limit", "slow down", "request rate"},
     configuration = """
         Set the "Rate Control Criteria" to `flowfile count`.
@@ -94,7 +94,7 @@ import java.util.regex.Pattern;
         Set the "Rate Exceeded Strategy" property to `Route to 'rate exceeded'`.
         Configure the "Maximum Rate" property to specify how many requests should be allowed through each second.
 
-        For example, to allow through 100 requests per second, "Maximum Rate" to `100`.
+        For example, to allow through 100 requests per second, set "Maximum Rate" to `100`.
         If more than 100 requests come in during any one second, the additional requests will be routed to `rate exceeded` instead of `success`.
         """
 )
@@ -106,7 +106,7 @@ import java.util.regex.Pattern;
         Set the "Rate Exceeded Strategy" property to `Route to 'rate exceeded'`.
         Configure the "Maximum Rate" property to specify how many requests should be allowed through each minute.
 
-        For example, to allow through 100 requests per second, "Maximum Rate" to `6000`.
+        For example, to allow through 100 requests per second, set "Maximum Rate" to `6000`.
         This will allow through 6,000 FlowFiles per minute, which averages to 100 FlowFiles per second. However, those 6,000 FlowFiles may come all within the first couple of
         seconds, or they may come in over a period of 60 seconds. As a result, this gives us an average rate of 100 FlowFiles per second but allows for bursts of data.
         If more than 6,000 requests come in during any one minute, the additional requests will be routed to `rate exceeded` instead of `success`.
