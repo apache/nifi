@@ -431,8 +431,13 @@
                 buildRuleViolationsList: function(rules, violationsAndRecs) {
                     var ruleViolationCountEl = $('#rule-violation-count');
                     var ruleViolationListEl = $('#rule-violations-list');
+                    // var ruleWarningCountEl = $('#rule-warning-count');
+                    var ruleWarningListEl = $('#rule-warnings-list');
                     var violations = violationsAndRecs.filter(function (violation) {
                         return violation.enforcementPolicy === 'ENFORCE'
+                    });
+                    var warnings = violationsAndRecs.filter(function (violation) {
+                        return violation.enforcementPolicy === 'WARN'
                     });
                     ruleViolationCountEl.empty().text('(' + violations.length + ')');
                     ruleViolationListEl.empty();
@@ -461,6 +466,33 @@
                         violationEl.append(violationListItemWrapperEl).append(violationInfoButtonEl);
                         violationListItemEl.append(violationRuleEl).append(violationEl)
                         ruleViolationListEl.append(violationListItemEl);
+                    });
+
+                    warnings.forEach(function(warning) {
+                        var rule = rules.find(function(rule) {
+                            return rule.id === warning.ruleId;
+                        });
+                        // create DOM elements
+                        var warningListItemEl = $('<li></li>');
+                        var warningEl = $('<div class="warning-list-item"></div>');
+                        var warningListItemWrapperEl = $('<div class="warning-list-item-wrapper"></div>');
+                        var warningRuleEl = $('<div class="rule-warnings-list-item-name"></div>');
+                        var warningListItemNameEl = $('<div class="warning-list-item-name"></div>');
+                        var warningListItemIdEl = $('<span class="warning-list-item-id"></span>');
+                        var warningInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                        // add text content and button data
+                        $(warningRuleEl).text(rule.name);
+                        $(warningListItemNameEl).text(warning.subjectDisplayName);
+                        $(warningListItemIdEl).text(warning.subjectId);
+                        $(warningListItemEl).append(warningRuleEl).append(warningListItemWrapperEl);
+                        $(warningInfoButtonEl).data('violationInfo', warning);
+
+                        // build list DOM structure
+                        warningListItemWrapperEl.append(warningListItemNameEl).append(warningListItemIdEl);
+                        warningEl.append(warningListItemWrapperEl).append(warningInfoButtonEl);
+                        warningListItemEl.append(warningRuleEl).append(warningEl)
+                        ruleWarningListEl.append(warningListItemEl);
                     });
                 },
 
@@ -843,32 +875,67 @@
                     newFlowAnalsysisBtnEl.on('click', this.createNewFlowAnalysisRequest);
                     
                     this.toggleOnlyViolations(false);
+                    this.toggleOnlyWarnings(false);
                     // handle show only violations checkbox
                     $('#show-only-violations').on('change', function(event) {
                         var isChecked = $(this).hasClass('checkbox-checked');
                         flowAnalysisCtrl.toggleOnlyViolations(isChecked);
+                    });
+
+                    $('#show-only-warnings').on('change', function(event) {
+                        var isChecked = $(this).hasClass('checkbox-checked');
+                        flowAnalysisCtrl.toggleOnlyWarnings(isChecked);
                     });
                 },
 
                 /**
                  * Show/hide violations menu
                  */
-                toggleOnlyViolations: function(isChecked) {
+                toggleOnlyViolations: function(isViolationsChecked) {
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
                     var ruleViolationsEl = $('#rule-violations');
-                    if (isChecked) {
-                        requiredRulesEl.hide();
-                        recommendedRulesEl.hide();
-                        ruleViolationsEl.show();
-                        this.loadFlowPolicies();
+
+                    var isWarningsChecked = $('#show-only-warnings').hasClass(
+                      'checkbox-checked'
+                    );
+
+                    isViolationsChecked
+                      ? ruleViolationsEl.show()
+                      : ruleViolationsEl.hide();
+                    if (isViolationsChecked || isWarningsChecked) {
+                      requiredRulesEl.hide();
+                      recommendedRulesEl.hide();
                     } else {
-                        requiredRulesEl.show();
-                        recommendedRulesEl.show();
-                        ruleViolationsEl.hide();
-                        this.loadFlowPolicies();
+                      requiredRulesEl.show();
+                      recommendedRulesEl.show();
                     }
+                    this.loadFlowPolicies();
                 },
+
+                /**
+                 * Show/hide warnings menu
+                 */
+                toggleOnlyWarnings: function (isWarningsChecked) {
+                    var requiredRulesEl = $('#required-rules');
+                    var recommendedRulesEl = $('#recommended-rules');
+                    var ruleWarningsEl = $('#rule-warnings');
+                    var isViolationsChecked = $('#show-only-violations').hasClass(
+                      'checkbox-checked'
+                    );
+    
+                    isWarningsChecked
+                      ? ruleWarningsEl.show()
+                      : ruleWarningsEl.hide();
+                    if (isWarningsChecked || isViolationsChecked) {
+                      requiredRulesEl.hide();
+                      recommendedRulesEl.hide();
+                    } else {
+                      requiredRulesEl.show();
+                      recommendedRulesEl.show();
+                    }
+                    this.loadFlowPolicies();
+                  },
 
                 /**
                  * Submit a request for a new flow analysis report

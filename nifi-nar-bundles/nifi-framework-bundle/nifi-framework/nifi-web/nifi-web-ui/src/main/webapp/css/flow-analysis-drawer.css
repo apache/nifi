@@ -108,7 +108,8 @@
 #flow-analysis-drawer
   .flow-analysis-rules-accordion
   .ui-accordion-header,
-#flow-analysis-drawer .rules-violations-header {
+#flow-analysis-drawer .rules-violations-header,
+#flow-analysis-drawer .rules-warnings-header {
   background-color: transparent;
   border: 0;
   color: black;
@@ -136,7 +137,8 @@
 }
 
 #flow-analysis-drawer .recommended-rules-list,
-#flow-analysis-drawer .required-rules-list {
+#flow-analysis-drawer .required-rules-list,
+#flow-analysis-drawer .rule-warnings-list {
   padding: 0;
   background-color: transparent;
   border: 0;
@@ -149,7 +151,8 @@
 
 .required-rule-count,
 .recommended-rule-count,
-.rule-violation-count {
+.rule-violation-count,
+.rule-warnings-count {
   font-family: Roboto;
   font-size: 14px;
   font-weight: 400;
@@ -175,7 +178,8 @@
   color: #262626;
 }
 
-#flow-analysis-drawer .show-only-violations-label {
+#flow-analysis-drawer .show-only-violations-label,
+#flow-analysis-drawer .show-only-warnings-label {
   font-family: Roboto;
   font-size: 13px;
   font-weight: normal;
@@ -193,7 +197,8 @@
 }
 
 #flow-analysis-drawer .rule-menu-btn,
-#flow-analysis-drawer .violation-menu-btn {
+#flow-analysis-drawer .violation-menu-btn,
+#flow-analysis-drawer .warning-menu-btn {
   border: 0;
 }
 
@@ -206,7 +211,8 @@
 }
 
 #flow-analysis-drawer .rule-menu-option,
-#flow-analysis-drawer .violation-menu-option {
+#flow-analysis-drawer .violation-menu-option,
+#flow-analysis-drawer .warning-menu {
   padding: 3px 0 3px 10px;
   background-color: #fff;
   font-family: Roboto;
@@ -224,14 +230,16 @@
 }
 
 #flow-analysis-drawer .rule-menu-option:hover,
-#flow-analysis-drawer .violation-menu-option:hover {
+#flow-analysis-drawer .violation-menu-option:hover,
+#flow-analysis-drawer .warning-menu-option:hover {
   background-color: #dce3e6;
   color: #262626;
   cursor: pointer;
 }
 
 #flow-analysis-drawer .rule-menu-option-icon,
-#flow-analysis-drawer .violation-menu-option-icon {
+#flow-analysis-drawer .violation-menu-option-icon,
+#flow-analysis-drawer .warning-menu-option-icon {
   color: #004849;
   font-size: 18px;
   margin-right: 10px;
@@ -336,11 +344,13 @@
 }
 
 .rule-violations-list,
+.rule-warnings-list,
 .rule-recommendations-list {
   list-style: none;
 }
 
 .rule-violations-list li,
+.rule-warnings-list li,
 .rule-recommendations-list li {
   border-bottom: 1px solid #ddd;
 }
@@ -353,7 +363,8 @@
 
 .violation-list-item,
 .recommendation-list-item,
-.rule-violations-list-item-wrapper {
+.rule-violations-list-item-wrapper,
+.warning-list-item {
   padding: 10px 0 10px 15px;
   display: flex;
   align-items: center;
@@ -361,7 +372,7 @@
 }
 
 .violation-list-item-name::before,
-.recommendation-list-item-name::before {
+.warning-list-item-name::before {
   content: '';
   position: absolute;
   left: 9px;
@@ -376,7 +387,9 @@
   background-color: #ba554a;
 }
 
-.recommendation-list-item-name::before {
+.recommendation-list-item-name::before,
+.rule-warnings-list-item-name::before,
+.warning-list-item-name::before {
   background-color: transparent;
   border: 1px solid #176e83;
 }
@@ -391,18 +404,27 @@
 }
 
 .violation-list-item-name,
-.recommendation-list-item-name {
+.recommendation-list-item-name,
+.warning-list-item-name {
   font-family: Roboto;
   font-size: 11px;
   font-weight: 500;
 }
 
-.rule-violations-list-item-name {
+.rule-violations-list-item-name,
+.rule-warnings-list-item-name {
   font-family: Roboto;
   font-size: 12px;
   font-weight: 500;
-  color: #ba554a;
   margin-top: 11px;
+}
+
+.rule-violations-list-item-name {
+  color: #ba554a;
+}
+
+.rule-warnings-list-item-name {
+  color: #176e83;
 }
 
 .violation-list-item-id,
