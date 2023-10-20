@@ -18,8 +18,6 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.flowanalysis.StandardFlowAnalyzer;
-import org.apache.nifi.flowanalysis.TriggerFlowAnalysisTask;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Authorizer;
@@ -81,7 +79,6 @@ import org.apache.nifi.controller.queue.clustered.server.ConnectionLoadBalanceSe
 import org.apache.nifi.controller.queue.clustered.server.LoadBalanceAuthorizer;
 import org.apache.nifi.controller.queue.clustered.server.LoadBalanceProtocol;
 import org.apache.nifi.controller.queue.clustered.server.StandardLoadBalanceProtocol;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -148,6 +145,8 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.StandardFlowAnalyzer;
+import org.apache.nifi.flowanalysis.TriggerFlowAnalysisTask;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.BundleUpdateStrategy;
@@ -180,9 +179,9 @@ import org.apache.nifi.python.DisabledPythonBridge;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
@@ -2296,7 +2295,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     @Override
-    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
         return flowManager.createReportingTask(type, id, bundleCoordinate, firstTimeAdded);
     }
 

@@ -24,7 +24,6 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -51,13 +50,11 @@ import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -67,7 +64,6 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.AbstractComponentScheduler;
 import org.apache.nifi.groups.BundleUpdateStrategy;
@@ -117,7 +113,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -127,6 +122,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
+
+import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.createBundleCoordinate;
+import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.decrypt;
+import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.decryptProperties;
+import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.getSensitiveDynamicPropertyNames;
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
@@ -575,7 +575,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return;
         }
 
-        final BundleCoordinate coordinate = createBundleCoordinate(versionedFlowRegistryClient.getBundle(), versionedFlowRegistryClient.getType());
+        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedFlowRegistryClient.getBundle(), versionedFlowRegistryClient.getType());
 
         final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
                 versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet() , false, true, null);
@@ -638,7 +638,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addReportingTask(final FlowController controller, final VersionedReportingTask reportingTask) throws ReportingTaskInstantiationException {
-        final BundleCoordinate coordinate = createBundleCoordinate(reportingTask.getBundle(), reportingTask.getType());
+        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, reportingTask.getBundle(), reportingTask.getType());
 
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask, controller);
@@ -706,7 +706,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addFlowAnalysisRule(final FlowController controller, final VersionedFlowAnalysisRule flowAnalysisRule) throws FlowAnalysisRuleInstantiationException {
-        final BundleCoordinate coordinate = createBundleCoordinate(flowAnalysisRule.getBundle(), flowAnalysisRule.getType());
+        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, flowAnalysisRule.getBundle(), flowAnalysisRule.getType());
 
         final FlowAnalysisRuleNode ruleNode = controller.createFlowAnalysisRule(flowAnalysisRule.getType(), flowAnalysisRule.getInstanceIdentifier(), coordinate, false);
         updateFlowAnalysisRule(ruleNode, flowAnalysisRule, controller);
@@ -752,7 +752,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider, final PropertyEncryptor encryptor) {
-        final BundleCoordinate coordinate = createBundleCoordinate(parameterProvider.getBundle(), parameterProvider.getType());
+        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, parameterProvider.getBundle(), parameterProvider.getType());
 
         final ParameterProviderNode parameterProviderNode = controller.getFlowManager()
                 .createParameterProvider(parameterProvider.getType(), parameterProvider.getInstanceIdentifier(), coordinate, false);
@@ -987,7 +987,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ControllerServiceNode addRootControllerService(final FlowController controller, final VersionedControllerService versionedControllerService) {
-        final BundleCoordinate bundleCoordinate = createBundleCoordinate(versionedControllerService.getBundle(), versionedControllerService.getType());
+        final BundleCoordinate bundleCoordinate = createBundleCoordinate(extensionManager, versionedControllerService.getBundle(), versionedControllerService.getType());
         final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService(versionedControllerService.getType(),
             versionedControllerService.getInstanceIdentifier(), bundleCoordinate,Collections.emptySet(), true, true, null);
 
@@ -1017,70 +1017,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         } finally {
             serviceNode.resumeValidationTrigger();
         }
-    }
-
-    private Set<String> getSensitiveDynamicPropertyNames(final ComponentNode componentNode, final VersionedConfigurableExtension extension) {
-        final Set<String> versionedSensitivePropertyNames = new LinkedHashSet<>();
-
-        // Get Sensitive Property Names based on encrypted values including both supported and dynamic properties
-        extension.getProperties()
-                .entrySet()
-                .stream()
-                .filter(entry -> isValueSensitive(entry.getValue()))
-                .map(Map.Entry::getKey)
-                .forEach(versionedSensitivePropertyNames::add);
-
-        // Get Sensitive Property Names based on supported and dynamic property descriptors
-        extension.getPropertyDescriptors()
-                .values()
-                .stream()
-                .filter(VersionedPropertyDescriptor::isSensitive)
-                .map(VersionedPropertyDescriptor::getName)
-                .forEach(versionedSensitivePropertyNames::add);
-
-        // Filter combined Sensitive Property Names based on Component Property Descriptor status
-        return versionedSensitivePropertyNames.stream()
-                .map(componentNode::getPropertyDescriptor)
-                .filter(PropertyDescriptor::isDynamic)
-                .map(PropertyDescriptor::getName)
-                .collect(Collectors.toSet());
-    }
-
-    private Map<String, String> decryptProperties(final Map<String, String> encrypted, final PropertyEncryptor encryptor) {
-        final Map<String, String> decrypted = new HashMap<>(encrypted.size());
-        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value, encryptor)));
-        return decrypted;
-    }
-
-    private String decrypt(final String value, final PropertyEncryptor encryptor) {
-        if (isValueSensitive(value)) {
-            try {
-                return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
-            } catch (EncryptionException e) {
-                final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
-                logger.error(moreDescriptiveMessage, e);
-                throw new EncryptionException(moreDescriptiveMessage, e);
-            }
-        } else {
-            return value;
-        }
-    }
-
-    private boolean isValueSensitive(final String value) {
-        return value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX);
-    }
-
-    private BundleCoordinate createBundleCoordinate(final Bundle bundle, final String componentType) {
-        BundleCoordinate coordinate;
-        try {
-            final BundleDTO bundleDto = new BundleDTO(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-            coordinate = BundleUtils.getCompatibleBundle(extensionManager, componentType, bundleDto);
-        } catch (final IllegalStateException e) {
-            coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-        }
-
-        return coordinate;
     }
 
     private void inheritAuthorizations(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController controller) {

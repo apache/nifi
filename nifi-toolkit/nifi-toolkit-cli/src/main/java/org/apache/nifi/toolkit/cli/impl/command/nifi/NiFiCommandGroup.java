@@ -35,6 +35,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetControllerConfigura
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetReportingTask;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetRootId;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.ImportReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.StartReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.StopReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.UpdateControllerConfiguration;
@@ -154,6 +155,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new StopReportingTasks());
         commands.add(new ExportReportingTasks());
         commands.add(new ExportReportingTask());
+        commands.add(new ImportReportingTasks());
         commands.add(new ListUsers());
         commands.add(new CreateUser());
         commands.add(new ListUserGroups());

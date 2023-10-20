@@ -22,20 +22,33 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 public class FlowRegistryUtils {
 
     public static Set<ConfigurableComponent> getRestrictedComponents(final VersionedProcessGroup group, final NiFiServiceFacade serviceFacade) {
-        final Set<ConfigurableComponent> restrictedComponents = new HashSet<>();
-
         final Set<Tuple<String, BundleCoordinate>> componentTypes = new HashSet<>();
         populateComponentTypes(group, componentTypes);
+        return getRestrictedComponents(serviceFacade, componentTypes);
+    }
+
+    public static Set<ConfigurableComponent> getRestrictedComponents(final VersionedReportingTaskSnapshot reportingTaskSnapshot, final NiFiServiceFacade serviceFacade) {
+        final Set<Tuple<String, BundleCoordinate>> componentTypes = new HashSet<>();
+        populateComponentTypes(reportingTaskSnapshot, componentTypes);
+        return getRestrictedComponents(serviceFacade, componentTypes);
+
+    }
+
+    private static Set<ConfigurableComponent> getRestrictedComponents(NiFiServiceFacade serviceFacade, Set<Tuple<String, BundleCoordinate>> componentTypes) {
+        final Set<ConfigurableComponent> restrictedComponents = new HashSet<>();
 
         for (final Tuple<String, BundleCoordinate> tuple : componentTypes) {
             final ConfigurableComponent component = serviceFacade.getTempComponent(tuple.getKey(), tuple.getValue());
@@ -64,6 +77,16 @@ public class FlowRegistryUtils {
         for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
             populateComponentTypes(childGroup, componentTypes);
         }
+    }
+
+    private static void populateComponentTypes(final VersionedReportingTaskSnapshot reportingTaskSnapshot, final Set<Tuple<String, BundleCoordinate>> componentTypes) {
+        Optional.ofNullable(reportingTaskSnapshot.getReportingTasks()).orElse(Collections.emptyList()).stream()
+                .map(versionedReportingTask -> new Tuple<>(versionedReportingTask.getType(), createBundleCoordinate(versionedReportingTask.getBundle())))
+                .forEach(componentTypes::add);
+
+        Optional.ofNullable(reportingTaskSnapshot.getControllerServices()).orElse(Collections.emptyList()).stream()
+                .map(versionedSvc -> new Tuple<>(versionedSvc.getType(), createBundleCoordinate(versionedSvc.getBundle())))
+                .forEach(componentTypes::add);
     }
 
 

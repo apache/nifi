@@ -51,6 +51,8 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.serialization.StandardVersionedReportingTaskImporter;
+import org.apache.nifi.controller.serialization.VersionedReportingTaskImporter;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceResolver;
@@ -1758,6 +1760,10 @@ public class ControllerFacade implements Authorizable {
      */
     public StorageUsage getFlowFileRepositoryStorageUsage() {
         return flowController.getEventAccess().getFlowFileRepositoryStorageUsage();
+    }
+
+    public VersionedReportingTaskImporter createReportingTaskImporter() {
+        return new StandardVersionedReportingTaskImporter(flowController);
     }
 
     /*

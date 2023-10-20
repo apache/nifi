@@ -137,6 +137,7 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 
 import java.util.Collection;
@@ -145,6 +146,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -332,6 +334,22 @@ public interface NiFiServiceFacade {
      * @return the reporting task snapshot
      */
     VersionedReportingTaskSnapshot getVersionedReportingTaskSnapshot();
+
+    /**
+     * Generates unique identifiers for all components in the snapshot so that multiple imports of the same snapshot
+     * create multiple components.
+     *
+     * @param reportingTaskSnapshot the snapshot
+     */
+    void generateIdentifiersForImport(VersionedReportingTaskSnapshot reportingTaskSnapshot, Supplier<String> idGenerator);
+
+    /**
+     * Imports the reporting tasks and controller services in the given snapshot.
+     *
+     * @param reportingTaskSnapshot the snapshot to import
+     * @return the response entity
+     */
+    VersionedReportingTaskImportResponseEntity importReportingTasks(VersionedReportingTaskSnapshot reportingTaskSnapshot);
 
     /**
      * Gets the controller level bulletins.
@@ -2595,6 +2613,13 @@ public interface NiFiServiceFacade {
      * @param versionedGroup the versioned group
      */
     void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
+
+    /**
+     * Discovers the compatible bundle details for the components in the specified snapshot and updates the snapshot to reflect the appropriate bundles.
+     *
+     * @param reportingTaskSnapshot the snapshot
+     */
+    void discoverCompatibleBundles(VersionedReportingTaskSnapshot reportingTaskSnapshot);
 
     /**
      * For any Controller Service that is found in the given Versioned Process Group, if that Controller Service is not itself included in the Versioned Process Groups,

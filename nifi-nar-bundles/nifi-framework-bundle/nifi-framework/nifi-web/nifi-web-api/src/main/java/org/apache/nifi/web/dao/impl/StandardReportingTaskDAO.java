@@ -93,23 +93,19 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             throw new IllegalArgumentException("The reporting task type must be specified.");
         }
 
-        try {
-            // create the reporting task
-            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
-            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
-                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
+        // create the reporting task
+        final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+        final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+        final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
+                reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
 
-            // ensure we can perform the update
-            verifyUpdate(reportingTask, reportingTaskDTO);
+        // ensure we can perform the update
+        verifyUpdate(reportingTask, reportingTaskDTO);
 
-            // perform the update
-            configureReportingTask(reportingTask, reportingTaskDTO);
+        // perform the update
+        configureReportingTask(reportingTask, reportingTaskDTO);
 
-            return reportingTask;
-        } catch (ReportingTaskInstantiationException rtie) {
-            throw new NiFiCoreException(rtie.getMessage(), rtie);
-        }
+        return reportingTask;
     }
 
     @Override
