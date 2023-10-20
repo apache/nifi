@@ -46,6 +46,8 @@ public class ParquetRecordReader implements RecordReader {
 
     private final InputStream inputStream;
     private final ParquetReader<GenericRecord> parquetReader;
+    private final Long count;
+    private long recordsRead = 0;
 
     public ParquetRecordReader(
             final InputStream inputStream,
@@ -62,7 +64,7 @@ public class ParquetRecordReader implements RecordReader {
                 .map(Long::parseLong)
                 .orElse(null);
 
-        final Long count = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
+        count = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
                 .map(Long::parseLong)
                 .orElse(null);
 
@@ -87,7 +89,7 @@ public class ParquetRecordReader implements RecordReader {
         parquetReader = builder.build();
 
         // Read the first record so that we can extract the schema
-        lastParquetRecord = parquetReader.read();
+        lastParquetRecord = readNextRecord();
         if (lastParquetRecord == null) {
             throw new EOFException("Unable to obtain schema because no records were available");
         }
@@ -108,7 +110,7 @@ public class ParquetRecordReader implements RecordReader {
         final Record record = new MapRecord(recordSchema, values);
 
         // Read the next record and store for next time
-        lastParquetRecord = parquetReader.read();
+        lastParquetRecord = readNextRecord();
 
         // Return the converted record
         return record;
@@ -127,5 +129,15 @@ public class ParquetRecordReader implements RecordReader {
             // ensure the input stream still gets closed
             inputStream.close();
         }
+    }
+
+    private GenericRecord readNextRecord() throws IOException {
+        // No more records are available
+        if ((count != null) && (recordsRead == count)) {
+            return null;
+        }
+        GenericRecord result = parquetReader.read();
+        recordsRead++;
+        return result;
     }
 }
