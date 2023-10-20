@@ -47,6 +47,10 @@ final class RecordToItemConverter {
     }
 
     private static AttributeValue toAttributeValue(final Object object, final RecordFieldType fieldType) {
+        if (object == null) {
+            return null;
+        }
+
         final AttributeValue.Builder builder = AttributeValue.builder();
         switch (fieldType) {
             case BOOLEAN:

@@ -91,6 +91,7 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         DOCUMENT_CHARSET,
         BATCH_SIZE,
         TIMEOUT,
+        ENDPOINT_OVERRIDE,
         SSL_CONTEXT_SERVICE,
         PROXY_CONFIGURATION_SERVICE);
 
@@ -113,9 +114,7 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
-        final String hashKeyValueType = context.getProperty(HASH_KEY_VALUE_TYPE).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
-        final String rangeKeyValueType = context.getProperty(RANGE_KEY_VALUE_TYPE).getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(DOCUMENT_CHARSET).evaluateAttributeExpressions().getValue();
 
@@ -170,20 +169,22 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             final BatchWriteItemRequest batchWriteItemRequest = BatchWriteItemRequest.builder().requestItems(tableNameRequestItemsMap).build();
             final BatchWriteItemResponse response = client.batchWriteItem(batchWriteItemRequest);
 
-            if (response.hasUnprocessedItems()) {
+            if (response.unprocessedItems() != null) {
                 // Handle unprocessed items
                 final List<WriteRequest> unprocessedItems = response.unprocessedItems().get(table);
-                for (final WriteRequest request : unprocessedItems) {
-                    final Map<String, AttributeValue> item = request.putRequest().item();
-                    final AttributeValue hashKeyValue = item.get(hashKeyName);
-                    final AttributeValue rangeKeyValue = item.get(rangeKeyName);
+                if (unprocessedItems != null) {
+                    for (final WriteRequest request : unprocessedItems) {
+                        final Map<String, AttributeValue> item = request.putRequest().item();
+                        final AttributeValue hashKeyValue = item.get(hashKeyName);
+                        final AttributeValue rangeKeyValue = item.get(rangeKeyName);
 
-                    sendUnprocessedToUnprocessedRelationship(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
+                        sendUnprocessedToUnprocessedRelationship(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
+                    }
                 }
             }
 
             // Handle any remaining flowfiles
-            for (FlowFile flowFile : keysToFlowFileMap.values()) {
+            for (final FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successful posted items to dynamodb : " + table);
                 session.transfer(flowFile, REL_SUCCESS);
             }

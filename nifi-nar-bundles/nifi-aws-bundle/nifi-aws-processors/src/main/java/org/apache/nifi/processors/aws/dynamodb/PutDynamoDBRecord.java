@@ -183,6 +183,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         SORT_KEY_STRATEGY,
         SORT_KEY_FIELD,
         TIMEOUT,
+        ENDPOINT_OVERRIDE,
         ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
         SSL_CONTEXT_SERVICE
     );

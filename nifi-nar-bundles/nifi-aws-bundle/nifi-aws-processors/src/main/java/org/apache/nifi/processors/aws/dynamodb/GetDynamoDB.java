@@ -98,6 +98,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         RANGE_KEY_VALUE_TYPE,
         BATCH_SIZE,
         TIMEOUT,
+        ENDPOINT_OVERRIDE,
         SSL_CONTEXT_SERVICE,
         PROXY_CONFIGURATION_SERVICE);
 
