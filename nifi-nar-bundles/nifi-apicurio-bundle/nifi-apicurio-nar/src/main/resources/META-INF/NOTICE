@@ -1,0 +1,101 @@
+nifi-airtable-nar
+Copyright 2014-2023 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+**************************
+Apache Software License v2
+**************************
+
+  (ASLv2) Jackson Annotations
+    The following NOTICE information applies:
+      Jackson Annotations
+      Copyright (c) 2019 Tatu Saloranta
+
+  (ASLv2) Jackson Core
+    The following NOTICE information applies:
+      Jackson Core
+      Copyright (c) Tatu Saloranta
+
+  (ASLv2) Jackson Databind
+    The following NOTICE information applies:
+      Jackson Databind
+      Copyright (c) 2007- Tatu Saloranta, tatu.saloranta@iki.fi
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+  (ASLv2) Caffeine (com.github.ben-manes.caffeine:caffeine:jar:3.1.8 - https://github.com/ben-manes/caffeine)
+    The following NOTICE information applies:
+      Caffeine (caching library)
+      Copyright Ben Manes
+
+  (ASLv2) Error Prone Annotations
+    The following NOTICE information applies:
+      Error Prone Annotations
+      Copyright 2015 The Error Prone Authors
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Avro
+    The following NOTICE information applies:
+      Apache Avro
+      Copyright 2009-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Compress
+    The following NOTICE information applies:
+      Apache Commons Compress
+      Copyright 2002-2014 The Apache Software Foundation
+
+      The files in the package org.apache.commons.compress.archivers.sevenz
+      were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
+      which has been placed in the public domain:
+
+      "LZMA SDK is placed in the public domain." (https://www.7-zip.org/sdk.html)
+
+  (ASLv2) Apache Commons CSV
+    The following NOTICE information applies:
+      Apache Commons CSV
+      Copyright 2005-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2017 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Apache Commons Text
+    The following NOTICE information applies:
+      Apache Commons Text
+      Copyright 2001-2018 The Apache Software Foundation
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+
+************************
+The MIT License
+************************
+
+The following binary components are provided under the MIT License.  See project link for details.
+
+  (MIT License) Checker Qual
+    The following NOTICE information applies:
+      Copyright (c) Copyright 2004-present by the Checker Framework developers
+      All rights reserved.
+      https://www.checkerframework.org/
