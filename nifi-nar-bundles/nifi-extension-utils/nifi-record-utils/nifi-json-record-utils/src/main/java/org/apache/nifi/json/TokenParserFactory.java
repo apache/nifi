@@ -30,7 +30,7 @@ public interface TokenParserFactory {
      * @param streamReadConstraints Stream Read Constraints applied
      * @param allowComments Whether to allow comments when parsing
      * @return JSON Parser
-     * @throws IOException Thrown on failures ot read the Input Stream
+     * @throws IOException Thrown on failures to read the Input Stream
      */
     JsonParser getJsonParser(InputStream in, StreamReadConstraints streamReadConstraints, boolean allowComments) throws IOException;
 }
