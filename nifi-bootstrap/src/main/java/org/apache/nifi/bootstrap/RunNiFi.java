@@ -56,6 +56,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,6 +71,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 /**
@@ -1168,8 +1170,8 @@ public class RunNiFi {
 
         nifiPropsFilename = nifiPropsFilename.trim();
 
-        String xmx = null;
-        String xms = null;
+        String maximumHeapSize = null;
+        String minimumHeapSize = null;
 
         final List<String> javaAdditionalArgs = new ArrayList<>();
         for (final Map.Entry<String, String> entry : props.entrySet()) {
@@ -1178,11 +1180,11 @@ public class RunNiFi {
 
             if (key.startsWith("java.arg")) {
                 javaAdditionalArgs.add(value);
-                if(value.toLowerCase().startsWith("-xms")) {
-                    xms = StringUtils.substringAfter(value.toLowerCase(), "-xms");
+                if (value.startsWith("-Xms")) {
+                    minimumHeapSize = StringUtils.substringAfter(value, "-Xms");
                 }
-                if(value.toLowerCase().startsWith("-xmx")) {
-                    xmx = StringUtils.substringAfter(value.toLowerCase(), "-xmx");
+                if (value.startsWith("-Xmx")) {
+                    maximumHeapSize = StringUtils.substringAfter(value, "-Xmx");
                 }
             }
         }
@@ -1209,7 +1211,7 @@ public class RunNiFi {
             cpFiles.add(file.getAbsolutePath());
         }
 
-        defaultLogger.info(printBasicOSJavaDetails(xms, xmx));
+        defaultLogger.info(printBasicOSJavaDetails(minimumHeapSize, maximumHeapSize));
 
         final StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
@@ -1404,29 +1406,38 @@ public class RunNiFi {
         }
     }
 
-    private String printBasicOSJavaDetails(final String xms, final String xmx) {
-        Map<String, String> details = new HashMap<String, String>(6);
+    private String printBasicOSJavaDetails(final String minimumHeapSize, final String maximumHeapSize) {
+        Map<String, String> details = new LinkedHashMap<String, String>(6);
 
         // java version
         details.put("javaVersion", System.getProperty("java.version"));
 
         // num cores
-        details.put("cores", Integer.toString(Runtime.getRuntime().availableProcessors()));
+        details.put("availableProcessors", Integer.toString(Runtime.getRuntime().availableProcessors()));
 
         // max file descriptor count + total physical memory
         try {
             final ObjectName osObjectName = ManagementFactory.getOperatingSystemMXBean().getObjectName();
-            final Object maxOpenFileCount = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "MaxFileDescriptorCount");
-            details.put("maxOpenFileDescriptors", String.valueOf(maxOpenFileCount));
-            final Object totalPhysicalMemory = ManagementFactory.getPlatformMBeanServer().getAttribute(osObjectName, "TotalPhysicalMemorySize");
-            details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
+            final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+            final Object maxOpenFileCount = mBeanServer.getAttribute(osObjectName, "MaxFileDescriptorCount");
+            if (maxOpenFileCount!= null) {
+                details.put("maxOpenFileDescriptors", String.valueOf(maxOpenFileCount));
+            }
+            final Object totalPhysicalMemory = mBeanServer.getAttribute(osObjectName, "TotalPhysicalMemorySize");
+            if (totalPhysicalMemory != null) {
+                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
+            }
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
         }
 
         // min/max heap
-        details.put("xms", xms);
-        details.put("xmx", xmx);
+        if (minimumHeapSize != null) {
+            details.put("xms", minimumHeapSize);
+        }
+        if (maximumHeapSize != null) {
+            details.put("xmx", maximumHeapSize);
+        }
 
         return details.toString();
     }
