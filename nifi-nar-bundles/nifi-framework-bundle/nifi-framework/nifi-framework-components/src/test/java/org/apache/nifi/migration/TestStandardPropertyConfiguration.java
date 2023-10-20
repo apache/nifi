@@ -44,7 +44,7 @@ public class TestStandardPropertyConfiguration {
 
         final ControllerServiceFactory controllerServiceFactory = new ControllerServiceFactory() {
             @Override
-            public ControllerServiceCreationDetails creationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
+            public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
                 return new ControllerServiceCreationDetails("id", implementationClassName, null, propertyValues, ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED);
             }
 

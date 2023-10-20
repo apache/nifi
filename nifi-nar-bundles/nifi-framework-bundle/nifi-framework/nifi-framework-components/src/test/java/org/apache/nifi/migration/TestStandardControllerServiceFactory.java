@@ -75,7 +75,7 @@ public class TestStandardControllerServiceFactory {
     @Test
     public void testBundleDetermination() {
         final Map<String, String> serviceProperties = Map.of("PropertyA", "ValueA");
-        final ControllerServiceCreationDetails details = factory.creationDetails(IMPL_CLASS, serviceProperties);
+        final ControllerServiceCreationDetails details = factory.getCreationDetails(IMPL_CLASS, serviceProperties);
         assertNotNull(details);
         assertEquals(IMPL_CLASS, details.type());
         assertEquals(serviceProperties, details.serviceProperties());
@@ -86,7 +86,7 @@ public class TestStandardControllerServiceFactory {
 
         // Test no bundles
         bundles.clear();
-        Assertions.assertThrows(IllegalArgumentException.class, () -> factory.creationDetails(IMPL_CLASS, serviceProperties));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> factory.getCreationDetails(IMPL_CLASS, serviceProperties));
 
         // Test matching creator bundle
         final BundleCoordinate coordinateA = createCoordinate("bundle-A", VERSION_2);
@@ -94,21 +94,21 @@ public class TestStandardControllerServiceFactory {
         when(creator.getBundleCoordinate()).thenReturn(coordinateB);
         bundles.add(createBundle(coordinateA));
         bundles.add(createBundle(coordinateB));
-        assertEquals(coordinateB, factory.creationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
+        assertEquals(coordinateB, factory.getCreationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
 
         // Test matching creator version with two options
         final BundleCoordinate coordinateC = createCoordinate("bundle-C", VERSION_2);
         when(creator.getBundleCoordinate()).thenReturn(coordinateC);
-        Assertions.assertThrows(IllegalArgumentException.class, () -> factory.creationDetails(IMPL_CLASS, serviceProperties));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> factory.getCreationDetails(IMPL_CLASS, serviceProperties));
 
         // Test matching creator version with only 1 option
         bundles.remove(createBundle(coordinateB));
-        assertEquals(coordinateA, factory.creationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
+        assertEquals(coordinateA, factory.getCreationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
 
         bundles.clear();
         final BundleCoordinate frameworkVersionCoordinate = createCoordinate("bundle-X", FRAMEWORK_VERSION);
         bundles.add(createBundle(frameworkVersionCoordinate));
-        assertEquals(frameworkVersionCoordinate, factory.creationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
+        assertEquals(frameworkVersionCoordinate, factory.getCreationDetails(IMPL_CLASS, serviceProperties).serviceBundleCoordinate());
     }
 
     @Test

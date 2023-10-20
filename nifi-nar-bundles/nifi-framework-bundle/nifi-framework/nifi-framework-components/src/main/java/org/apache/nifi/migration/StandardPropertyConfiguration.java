@@ -136,7 +136,7 @@ public class StandardPropertyConfiguration implements PropertyConfiguration {
 
     @Override
     public String createControllerService(final String implementationClassName, final Map<String, String> serviceProperties) {
-        final ControllerServiceCreationDetails creationDetails = controllerServiceFactory.creationDetails(implementationClassName, serviceProperties);
+        final ControllerServiceCreationDetails creationDetails = controllerServiceFactory.getCreationDetails(implementationClassName, serviceProperties);
         if (creationDetails.creationState() == ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED) {
             modified = true;
             createdServices.add(creationDetails);

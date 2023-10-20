@@ -60,7 +60,7 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
 
     @Override
-    public ControllerServiceCreationDetails creationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
+    public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
         final String serviceId = determineServiceId(implementationClassName, propertyValues);
         final ControllerServiceNode existingNode = flowManager.getControllerServiceNode(serviceId);
         if (existingNode != null) {

@@ -22,6 +22,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -1065,5 +1066,12 @@ public interface TestRunner {
      */
      void assertProvenanceEvent(ProvenanceEventType eventType);
 
+    /**
+     * Causes the TestRunner to call the Processor's {@link Processor#migrateProperties(PropertyConfiguration)} method. The effects that are
+     * caused by calling the method are applied, as they would be in a running NiFi instance. Unlike in a running NiFi instance, though, the
+     * operations that were performed are captured so that they can be examined and assertions made about the migration that occurred.
+     *
+     * @return the results of migrating properties
+     */
     PropertyMigrationResult migrateProperties();
 }

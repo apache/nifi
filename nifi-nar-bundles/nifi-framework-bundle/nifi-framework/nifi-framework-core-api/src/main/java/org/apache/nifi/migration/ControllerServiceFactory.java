@@ -22,7 +22,23 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import java.util.Map;
 
 public interface ControllerServiceFactory {
-    ControllerServiceCreationDetails creationDetails(String implementationClassName, Map<String, String> propertyValues);
 
+    /**
+     * Determines whether or not a Controller Service exists in the proper scope with the given implementation and property values.
+     * Provides all of the details that are necessary in order to create or reference the Controller Service with the given implementation
+     * and property values
+     *
+     * @param implementationClassName the fully qualified classname of the Controller Service to create or reference
+     * @param propertyValues          the property values that should be associated with the Controller Service
+     * @return the details necessary in order to reference or create the Controller Service
+     */
+    ControllerServiceCreationDetails getCreationDetails(String implementationClassName, Map<String, String> propertyValues);
+
+    /**
+     * Creates a Controller Service that is described by the given details
+     *
+     * @param creationDetails the details of the service to create
+     * @return the newly created Controller Service
+     */
     ControllerServiceNode create(ControllerServiceCreationDetails creationDetails);
 }

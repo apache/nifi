@@ -177,7 +177,7 @@ public interface PropertyConfiguration {
      * </p>
      *
      * <pre><code>
-     *     // Create a new Controller Service ofo type org.apache.nifi.services.authentication.UsernamePassword whose Username and Password
+     *     // Create a new Controller Service of type org.apache.nifi.services.authentication.UsernamePassword whose Username and Password
      *     // properties match those currently configured for this Processor.
      *     final Map&lt;String, String&gt; serviceProperties = Map.of("Username", propertyConfiguration.getRawPropertyValue("Username"),
      *          "Password", propertyConfiguration.getRawPropertyValue("Password"));
