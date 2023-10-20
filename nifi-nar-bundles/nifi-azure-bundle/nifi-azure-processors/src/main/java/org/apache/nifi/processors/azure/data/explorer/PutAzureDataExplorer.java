@@ -16,12 +16,7 @@
  */
 package org.apache.nifi.processors.azure.data.explorer;
 
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.ingest.IngestionMapping;
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -36,6 +31,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.services.azure.data.explorer.KustoIngestDataFormat;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestService;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionRequest;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionResult;
@@ -53,18 +49,6 @@ import java.util.Set;
 @Tags({"Azure", "Kusto", "ADX", "Explorer", "Data"})
 @CapabilityDescription("The PutAzureDataExplorer acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster.")
-@ReadsAttributes({
-        @ReadsAttribute(attribute = "DB_NAME", description = "Specifies the name of the ADX database where the data needs to be stored."),
-        @ReadsAttribute(attribute = "TABLE_NAME", description = "Specifies the name of the ADX table where the data needs to be stored."),
-        @ReadsAttribute(attribute = "MAPPING_NAME", description = "Specifies the name of the mapping responsible for storing the data in appropriate columns."),
-        @ReadsAttribute(attribute = "FLUSH_IMMEDIATE", description = "In case of queued ingestion, this property determines whether the data should be flushed immediately to the ingest endpoint."),
-        @ReadsAttribute(attribute = "DATA_FORMAT", description = "Specifies the format of data that is send to Azure Data Explorer."),
-        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. " +
-                "This is primarily applicable for csv files. Default is set to NO"),
-        @ReadsAttribute(attribute = "POLL_ON_INGESTION_STATUS", description = "Specifies whether we want to poll on ingestion result during ingestion into ADX." +
-                "In case of applications that need high throughput it is recommended to keep the default value as false. Default is set to false." +
-                "This property should be set to true during Queued Ingestion for near realtime micro-batches of data that require acknowledgement of ingestion status.")
-})
 public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final String FETCH_TABLE_COMMAND = "%s | count";
@@ -74,61 +58,8 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
     private transient KustoIngestService service;
-    private boolean isStreamingEnabled;
+    private boolean streamingEnabled;
     private boolean pollOnIngestionStatus;
-
-    public static final AllowableValue AVRO = new AllowableValue(
-            IngestionProperties.DataFormat.AVRO.getKustoValue(), IngestionProperties.DataFormat.AVRO.getKustoValue(),
-            "An Avro format with support for logical types and for the snappy compression codec");
-
-    public static final AllowableValue APACHEAVRO = new AllowableValue(
-            IngestionProperties.DataFormat.APACHEAVRO.getKustoValue(), IngestionProperties.DataFormat.APACHEAVRO.getKustoValue(),
-            "An Avro format with support for logical types and for the snappy compression codec.");
-
-    public static final AllowableValue CSV = new AllowableValue(
-            IngestionProperties.DataFormat.CSV.name(), IngestionProperties.DataFormat.CSV.getKustoValue(),
-            "A text file with comma-separated values (,). For more information, see RFC 4180: Common Format " +
-                    "and MIME Type for Comma-Separated Values (CSV) Files.");
-
-    public static final AllowableValue JSON = new AllowableValue(
-            IngestionProperties.DataFormat.JSON.name(), IngestionProperties.DataFormat.JSON.getKustoValue(),
-            "A text file containing JSON objects separated by \\n or \\r\\n. For more information, " +
-                    "see JSON Lines (JSONL).");
-
-    public static final AllowableValue MULTIJSON = new AllowableValue(
-            IngestionProperties.DataFormat.MULTIJSON.name(), IngestionProperties.DataFormat.MULTIJSON.getKustoValue(),
-            "A text file containing a JSON array of property containers (each representing a record) or any " +
-                    "number of property containers separated by spaces, \\n or \\r\\n. Each property container may be " +
-                    "spread across multiple lines. This format is preferable to JSON unless the data is not property " +
-                    "containers.");
-
-    public static final AllowableValue ORC = new AllowableValue(
-            IngestionProperties.DataFormat.ORC.name(), IngestionProperties.DataFormat.ORC.getKustoValue(), "An ORC file.");
-
-    public static final AllowableValue PARQUET = new AllowableValue(
-            IngestionProperties.DataFormat.PARQUET.name(), IngestionProperties.DataFormat.PARQUET.getKustoValue(), "A parquet file.");
-
-    public static final AllowableValue PSV = new AllowableValue(
-            IngestionProperties.DataFormat.PSV.name(), IngestionProperties.DataFormat.PSV.getKustoValue(), "A text file with values separated by vertical bars (|).");
-
-    public static final AllowableValue SCSV = new AllowableValue(
-            IngestionProperties.DataFormat.SCSV.name(), IngestionProperties.DataFormat.SCSV.getKustoValue(), "A text file with values separated by semicolons (;).");
-
-    public static final AllowableValue SOHSV = new AllowableValue(
-            IngestionProperties.DataFormat.SOHSV.name(), IngestionProperties.DataFormat.SOHSV.getKustoValue(),
-            "A text file with SOH-separated values. (SOH is the ASCII code point 1. " +
-                    "This format is used by Hive in HDInsight).");
-
-    public static final AllowableValue TSV = new AllowableValue(
-            IngestionProperties.DataFormat.TSV.name(), IngestionProperties.DataFormat.TSV.getKustoValue(), "A text file with tab delimited values (\\t).");
-
-    public static final AllowableValue TSVE = new AllowableValue(
-            IngestionProperties.DataFormat.TSVE.name(), IngestionProperties.DataFormat.TSVE.getKustoValue(),
-            "A text file with tab-delimited values (\\t). A backslash (\\) is used as escape character.");
-
-    public static final AllowableValue TXT = new AllowableValue(
-            IngestionProperties.DataFormat.TXT.name(), IngestionProperties.DataFormat.TXT.getKustoValue(),
-            "A text file with lines separated by \\n. Empty lines are skipped.");
 
     public static final AllowableValue IGNORE_FIRST_RECORD_YES = new AllowableValue(
             "YES", "YES",
@@ -157,16 +88,16 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor MAPPING_NAME = new PropertyDescriptor
-            .Builder().name("Mapping name")
-            .displayName("Mapping name")
+            .Builder().name("Ingest Mapping name")
+            .displayName("Ingest Mapping name")
             .description("The name of the mapping responsible for storing the data in the appropriate columns.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
-            .Builder().name("Is Streaming enabled")
-            .displayName("Is Streaming enabled")
+            .Builder().name("Streaming enabled")
+            .displayName("Streaming enabled")
             .description("This property determines whether we want to stream data to ADX.")
             .required(false)
             .allowableValues("true", "false")
@@ -191,21 +122,12 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .identifiesControllerService(KustoIngestService.class)
             .build();
 
-    public static final Relationship SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Relationship for success")
-            .build();
-    public static final Relationship FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Relationship for failure")
-            .build();
-
     static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor.Builder()
             .name("Data Format")
             .displayName("Data Format")
-            .description("The format of the data that is sent to ADX.")
+            .description("The format of the data that is sent to Azure Data Explorer.")
             .required(true)
-            .allowableValues(AVRO, APACHEAVRO, CSV, JSON, MULTIJSON, ORC, PARQUET, PSV, SCSV, SOHSV, TSV, TSVE, TXT)
+            .allowableValues(KustoIngestDataFormat.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -216,6 +138,44 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .required(false)
             .allowableValues(IGNORE_FIRST_RECORD_YES, IGNORE_FIRST_RECORD_NO)
             .defaultValue(IGNORE_FIRST_RECORD_NO.getValue())
+            .build();
+
+    static final PropertyDescriptor ROUTE_PARTIALLY_SUCCESSFUL_INGESTION = new PropertyDescriptor.Builder()
+            .name("Route partially successful ingestion records")
+            .displayName("Route partially successful ingestion records")
+            .description("Defines where to route partially successful ingestion records.")
+            .required(false)
+            .allowableValues("Success", "Failure")
+            .defaultValue("Failure")
+            .build();
+
+    static final PropertyDescriptor INGESTION_STATUS_POLLING_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Timeout for polling on ingestion status")
+            .displayName("Timeout for polling on ingestion status in seconds")
+            .description("Defines the value of timeout for polling on ingestion status in seconds")
+            .required(false)
+            .dependsOn(POLL_ON_INGESTION_STATUS, "true")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("600")
+            .build();
+
+    static final PropertyDescriptor INGESTION_STATUS_POLLING_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Ingestion status polling interval")
+            .displayName("Ingestion status polling interval in seconds")
+            .description("Defines the value of timeout for polling on ingestion status in seconds.")
+            .required(false)
+            .dependsOn(POLL_ON_INGESTION_STATUS, "true")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("5")
+            .build();
+
+    public static final Relationship SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Relationship for success")
+            .build();
+    public static final Relationship FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Relationship for failure")
             .build();
 
     @Override
@@ -229,6 +189,9 @@ public class PutAzureDataExplorer extends AbstractProcessor {
         descriptorList.add(IGNORE_FIRST_RECORD);
         descriptorList.add(IS_STREAMING_ENABLED);
         descriptorList.add(POLL_ON_INGESTION_STATUS);
+        descriptorList.add(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION);
+        descriptorList.add(INGESTION_STATUS_POLLING_TIMEOUT);
+        descriptorList.add(INGESTION_STATUS_POLLING_INTERVAL);
         this.descriptors = Collections.unmodifiableList(descriptorList);
 
         final Set<Relationship> relationshipSet = new HashSet<>();
@@ -254,9 +217,10 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             getLogger().error("User might not have ingestor privileges, table validation will be skipped for all table mappings.");
             throw new ProcessException("User might not have ingestor privileges, table validation will be skipped for all table mappings. ");
         }
-        isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
-        if (isStreamingEnabled) {
-            checkIfStreamingPolicyIsEnabledInADX(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(DATABASE_NAME).getValue());
+        streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        if (streamingEnabled && !checkIfStreamingPolicyIsEnabledInADX(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(DATABASE_NAME).getValue())) {
+            getLogger().error("Streaming policy is not enabled in database {}", context.getProperty(DATABASE_NAME).getValue());
+            throw new ProcessException("Streaming policy is not enabled in database {}" + context.getProperty(DATABASE_NAME).getValue());
         }
     }
 
@@ -264,136 +228,82 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
-            context.yield();
             return;
         }
 
-        IngestionProperties ingestionProperties = new IngestionProperties(context.getProperty(DATABASE_NAME).getValue(),
-                context.getProperty(TABLE_NAME).getValue());
-
-        IngestionMapping.IngestionMappingKind ingestionMappingKind = null;
-
-        isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        String databaseName = context.getProperty(DATABASE_NAME).getValue();
+        String tableName = context.getProperty(TABLE_NAME).getValue();
+        String dataFormat = context.getProperty(DATA_FORMAT).getValue();
+        String mappingName = context.getProperty(MAPPING_NAME).getValue();
+        String routePartiallySuccessfulIngestion = context.getProperty(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION).getValue();
+        String ingestionStatusPollingTimeout = context.getProperty(INGESTION_STATUS_POLLING_TIMEOUT).getValue();
+        String ingestionStatusPollingInterval = context.getProperty(INGESTION_STATUS_POLLING_INTERVAL).getValue();
+        String ignoreFirstRecord = context.getProperty(IGNORE_FIRST_RECORD).getValue();
+        streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
         pollOnIngestionStatus = context.getProperty(POLL_ON_INGESTION_STATUS).evaluateAttributeExpressions().asBoolean();
-
-        switch (IngestionProperties.DataFormat.valueOf(context.getProperty(DATA_FORMAT).getValue())) {
-            case AVRO:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
-                ingestionMappingKind = IngestionProperties.DataFormat.AVRO.getIngestionMappingKind();
-                break;
-            case APACHEAVRO:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.APACHEAVRO);
-                ingestionMappingKind = IngestionProperties.DataFormat.APACHEAVRO.getIngestionMappingKind();
-                break;
-            case CSV:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.CSV.getIngestionMappingKind();
-                break;
-            case JSON:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
-                ingestionMappingKind = IngestionProperties.DataFormat.JSON.getIngestionMappingKind();
-                break;
-            case MULTIJSON:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.MULTIJSON);
-                ingestionMappingKind = IngestionProperties.DataFormat.MULTIJSON.getIngestionMappingKind();
-                break;
-            case ORC:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.ORC);
-                ingestionMappingKind = IngestionProperties.DataFormat.ORC.getIngestionMappingKind();
-                break;
-            case PARQUET:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PARQUET);
-                ingestionMappingKind = IngestionProperties.DataFormat.PARQUET.getIngestionMappingKind();
-                break;
-            case PSV:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.PSV.getIngestionMappingKind();
-                break;
-            case SCSV:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SCSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.SCSV.getIngestionMappingKind();
-                break;
-            case SOHSV:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SOHSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.SOHSV.getIngestionMappingKind();
-                break;
-            case TSV:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.TSV.getIngestionMappingKind();
-                break;
-            case TSVE:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSVE);
-                ingestionMappingKind = IngestionProperties.DataFormat.TSVE.getIngestionMappingKind();
-                break;
-            case TXT:
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TXT);
-                ingestionMappingKind = IngestionProperties.DataFormat.TXT.getIngestionMappingKind();
-                break;
-        }
-
-        if (StringUtils.isNotEmpty(context.getProperty(MAPPING_NAME).getValue()) && ingestionMappingKind != null) {
-            ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(), ingestionMappingKind);
-        }
-
-        ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
-        ingestionProperties.setFlushImmediately(false);
-        ingestionProperties.setIgnoreFirstRecord(StringUtils.equalsIgnoreCase(context.getProperty(IGNORE_FIRST_RECORD).getValue(), IGNORE_FIRST_RECORD_YES.getValue()));
 
         boolean isError = false;
 
         // ingestion into ADX
         try (final InputStream inputStream = session.read(flowFile)) {
             StringBuilder ingestLogString = new StringBuilder().append("Ingesting with: ")
-                    .append("dataFormat - ").append(ingestionProperties.getDataFormat()).append("|")
-                    .append("ingestionMapping - ").append(ingestionProperties.getIngestionMapping().getIngestionMappingReference()).append("|")
-                    .append("reportLevel - ").append(ingestionProperties.getReportLevel()).append("|")
-                    .append("reportMethod - ").append(ingestionProperties.getReportMethod()).append("|")
-                    .append("databaseName - ").append(ingestionProperties.getDatabaseName()).append("|")
-                    .append("tableName - ").append(ingestionProperties.getTableName()).append("|")
-                    .append("flushImmediately - ").append(ingestionProperties.getFlushImmediately());
-            getLogger().info(ingestLogString.toString());
+                    .append("dataFormat - ").append(dataFormat).append("|")
+                    .append("ingestionMappingName - ").append(mappingName).append("|")
+                    .append("databaseName - ").append(databaseName).append("|")
+                    .append("tableName - ").append(tableName).append("|")
+                    .append("pollOnIngestionStatus - ").append(pollOnIngestionStatus).append("|")
+                    .append("ingestionStatusPollingTimeout - ").append(ingestionStatusPollingTimeout).append("|")
+                    .append("ingestionStatusPollingInterval - ").append(ingestionStatusPollingInterval).append("|")
+                    .append("routePartiallySuccessfulIngestion - ").append(routePartiallySuccessfulIngestion);
+            getLogger().debug(ingestLogString.toString());
 
-            KustoIngestionResult result = service.ingestData(new KustoIngestionRequest(isStreamingEnabled, pollOnIngestionStatus, inputStream, ingestionProperties));
-            getLogger().info("Poll on Ingestion Status {} and Operation status: {} ", pollOnIngestionStatus, result.toString());
+            KustoIngestionResult result = service.ingestData(
+                    new KustoIngestionRequest(streamingEnabled, pollOnIngestionStatus, inputStream, databaseName,
+                            tableName, dataFormat, mappingName, ignoreFirstRecord, ingestionStatusPollingTimeout, ingestionStatusPollingInterval)
+            );
+            getLogger().info("Ingest Status Polling Enabled {} and Ingest Status Polling Enabled {} ", pollOnIngestionStatus, result.toString());
 
             if (result == KustoIngestionResult.SUCCEEDED) {
-                getLogger().info("Operation status Succeeded - {}", result.toString());
+                getLogger().info("Ingest Completed - {}", result.getStatus());
             } else if (result == KustoIngestionResult.FAILED) {
-                getLogger().error("Operation status Error - {}", result.toString());
+                getLogger().error("Ingest Failed - {}", result.getStatus());
                 isError = true;
             } else if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
-                getLogger().error("Operation status Partially succeeded - {}", result.toString());
-                isError = true;
+                getLogger().warn("Ingest Partially succeeded - {}", result.getStatus());
+                flowFile = session.putAttribute(flowFile, "ingestion_status", "partial_success");
+                if (StringUtils.equalsIgnoreCase(routePartiallySuccessfulIngestion, "Failure")) {
+                    isError = true;
+                }
             }
 
         } catch (IOException | URISyntaxException e) {
-            getLogger().error("Exception occurred while ingesting data into ADX ", e);
+            getLogger().error("Azure Data Explorer Ingest processing failed", e);
             isError = true;
         }
 
         if (isError) {
-            getLogger().error("Process failed - {}");
+            getLogger().error("Ingest processing failed {}", flowFile);
             session.transfer(flowFile, FAILURE);
-        } else {
-            getLogger().info("Process succeeded - {}");
+        }else {
+            getLogger().info("Ingest processing completed {}", flowFile);
             session.transfer(flowFile, SUCCESS);
         }
     }
 
-    protected void checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {
+    protected boolean checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {
         KustoQueryResponse kustoQueryResponse = service.executeQuery(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
         if (kustoQueryResponse.isError()) {
-            throw new ProcessException("Error occurred while checking if streaming policy is enabled for the table");
+            throw new ProcessException(String.format("Error occurred while checking if streaming policy is enabled for the table for entity %s in database %s",entityName,database));
         }
-        KustoResultSetTable ingestionResultSet = kustoQueryResponse.getIngestionResultSet();
-        ingestionResultSet.next();
-        ingestionResultSet.getString("Policy");
+        List<List<Object>> queryResult = kustoQueryResponse.getQueryResult();;
+        if ( queryResult.get(0) !=null && queryResult.get(0).get(2)!=null && StringUtils.isNotEmpty(queryResult.get(0).get(2).toString())) {
+            return true;
+        }
+        return false;
     }
 
     protected boolean checkIfIngestorRoleDoesntExist(String databaseName, String tableName) {
         KustoQueryResponse kustoQueryResponse = service.executeQuery(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
         return kustoQueryResponse.isError();
     }
-
 }

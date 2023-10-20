@@ -16,42 +16,85 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
-
 import java.io.InputStream;
 
 public class KustoIngestionRequest {
 
-    private boolean isStreamingEnabled;
-
+    private boolean streamingEnabled;
     private boolean pollOnIngestionStatus;
     private InputStream inputStream;
-    private IngestionProperties ingestionProperties;
+    private String dataFormat;
+    private String mappingName;
 
-    public KustoIngestionRequest(boolean isStreamingEnabled, boolean pollOnIngestionStatus , InputStream inputStream, IngestionProperties ingestionProperties) {
-        this.isStreamingEnabled = isStreamingEnabled;
+    private String databaseName;
+
+    private String tableName;
+
+    private String ignoreFirstRecord;
+
+    private String ingestionStatusPollingTimeout;
+
+    private String ingestionStatusPollingInterval;
+
+    public KustoIngestionRequest(boolean isStreamingEnabled,
+                                 boolean pollOnIngestionStatus,
+                                 InputStream inputStream,
+                                 String databaseName,
+                                 String tableName,
+                                 String dataFormat,
+                                 String mappingName,
+                                 String ignoreFirstRecord,
+                                 String ingestionStatusPollingTimeout,
+                                 String ingestionStatusPollingInterval) {
+        this.streamingEnabled = isStreamingEnabled;
         this.inputStream = inputStream;
-        this.ingestionProperties = ingestionProperties;
         this.pollOnIngestionStatus = pollOnIngestionStatus;
+        this.databaseName = databaseName;
+        this.tableName = tableName;
+        this.dataFormat = dataFormat;
+        this.mappingName = mappingName;
+        this.ignoreFirstRecord = ignoreFirstRecord;
+        this.ingestionStatusPollingInterval = ingestionStatusPollingInterval;
+        this.ingestionStatusPollingTimeout = ingestionStatusPollingTimeout;
     }
 
     public boolean isStreamingEnabled() {
-        return isStreamingEnabled;
+        return streamingEnabled;
     }
 
     public InputStream getInputStream() {
         return inputStream;
     }
 
-    public IngestionProperties getIngestionProperties() {
-        return ingestionProperties;
-    }
-
     public boolean pollOnIngestionStatus() {
         return pollOnIngestionStatus;
     }
 
-    public void setPollOnIngestionStatus(boolean pollOnIngestionStatus) {
-        this.pollOnIngestionStatus = pollOnIngestionStatus;
+    public String getDatabaseName() {
+        return databaseName;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public String getIgnoreFirstRecord() {
+        return ignoreFirstRecord;
+    }
+
+    public String getDataFormat() {
+        return dataFormat;
+    }
+
+    public String getMappingName() {
+        return mappingName;
+    }
+
+    public String getIngestionStatusPollingTimeout() {
+        return ingestionStatusPollingTimeout;
+    }
+
+    public String getIngestionStatusPollingInterval() {
+        return ingestionStatusPollingInterval;
     }
 }

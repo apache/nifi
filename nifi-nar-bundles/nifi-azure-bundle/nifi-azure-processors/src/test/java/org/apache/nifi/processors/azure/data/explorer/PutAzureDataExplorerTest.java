@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.data.explorer;
 
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestService;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionResult;
@@ -31,6 +30,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 
@@ -53,7 +54,7 @@ public class PutAzureDataExplorerTest {
     private KustoIngestService kustoIngestService;
 
     @Mock
-    private KustoResultSetTable kustoResultSetTable;
+    private List<List<Object>> queryResult;
 
     private TestRunner runner;
 
@@ -64,6 +65,12 @@ public class PutAzureDataExplorerTest {
         when(kustoIngestService.getIdentifier()).thenReturn(SERVICE_ID);
         runner.addControllerService(SERVICE_ID, kustoIngestService);
         runner.enableControllerService(kustoIngestService);
+        queryResult = new ArrayList<>();
+        List<Object> row = new ArrayList<>();
+        row.add("test1");
+        row.add("test2");
+        row.add("test3");
+        queryResult.add(row);
     }
 
     @Test
@@ -130,7 +137,7 @@ public class PutAzureDataExplorerTest {
 
         runner.enqueue(EMPTY);
 
-        KustoQueryResponse kustoQueryResponse = new KustoQueryResponse(kustoResultSetTable);
+        KustoQueryResponse kustoQueryResponse = new KustoQueryResponse(queryResult);
         when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
@@ -151,9 +158,8 @@ public class PutAzureDataExplorerTest {
 
         runner.enqueue(EMPTY);
 
-        KustoQueryResponse kustoQueryResponse = Mockito.mock(KustoQueryResponse.class);
+        KustoQueryResponse kustoQueryResponse = new KustoQueryResponse(queryResult);
         when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
-        when(kustoQueryResponse.getIngestionResultSet()).thenReturn(kustoResultSetTable);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.FAILED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
