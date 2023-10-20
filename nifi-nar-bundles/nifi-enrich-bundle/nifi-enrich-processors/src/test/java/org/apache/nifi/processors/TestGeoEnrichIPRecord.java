@@ -98,7 +98,7 @@ public class TestGeoEnrichIPRecord {
         runner.setProperty(GeoEnrichIPRecord.GEO_POSTAL_CODE, "/geo/country_postal");
         runner.setProperty(GeoEnrichIPRecord.GEO_LATITUDE, "/geo/lat");
         runner.setProperty(GeoEnrichIPRecord.GEO_LONGITUDE, "/geo/lon");
-        runner.setProperty(AbstractEnrichIP.LOG_LEVEL, "warn");
+        runner.setProperty(AbstractEnrichIP.LOG_LEVEL, "WARN");
         runner.assertValid();
     }
 
@@ -155,7 +155,8 @@ public class TestGeoEnrichIPRecord {
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return Collections.unmodifiableList(Arrays.asList(
-                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE, LOG_LEVEL
+                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE,
+                    GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE, LOG_LEVEL
             ));
         }
         @Override

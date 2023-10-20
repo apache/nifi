@@ -94,7 +94,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         }
 
         DatabaseReader dbReader = databaseReaderRef.get();
-        final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(flowFile).getValue().toLowerCase());
+        final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(flowFile).getValue().toUpperCase());
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
 
@@ -137,20 +137,18 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             session.transfer(flowFile, REL_NOT_FOUND);
 
             switch (logLevel) {
-                case info:
+                case INFO:
                     getLogger().info("Address not found in the database", anfe);
                     break;
-                case warn:
+                case WARN:
                     getLogger().warn("Address not found in the database", anfe);
                     break;
-                case error:
+                case ERROR:
                     getLogger().error("Address not found in the database", anfe);
                     break;
-                case debug:
+                case DEBUG:
                 default:
-                    if(getLogger().isDebugEnabled()) {
-                        getLogger().debug("Address not found in the database", anfe);
-                    }
+                    getLogger().debug("Address not found in the database", anfe);
                     break;
             }
 

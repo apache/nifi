@@ -71,12 +71,12 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
-            .name("log-level")
+            .name("Log Level")
             .displayName("Log Level")
             .required(true)
-            .description("The Log Level to use when an IP is not found in the database")
+            .description("The Log Level to use when an IP is not found in the database. Accepted values: INFO, DEBUG, WARN, ERROR.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(MessageLogLevel.warn.toString())
+            .defaultValue(MessageLogLevel.WARN.toString())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -91,7 +91,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .build();
 
     enum MessageLogLevel {
-        debug, info, warn, error
+        DEBUG, INFO, WARN, ERROR
     }
 
     private Set<Relationship> relationships;

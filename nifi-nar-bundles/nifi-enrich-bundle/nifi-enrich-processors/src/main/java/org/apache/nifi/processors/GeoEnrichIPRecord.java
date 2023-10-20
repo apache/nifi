@@ -232,7 +232,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             }
 
             String rawIpPath = context.getProperty(IP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(input).getValue().toLowerCase());
+            final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(input).getValue().toUpperCase());
 
             RecordPath ipPath = cache.getCompiled(rawIpPath);
 
@@ -334,20 +334,18 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             } catch (AddressNotFoundException anfe) {
 
                 switch (logLevel) {
-                    case info:
+                    case INFO:
                         getLogger().info("Address not found in the database", anfe);
                         break;
-                    case warn:
+                    case WARN:
                         getLogger().warn("Address not found in the database", anfe);
                         break;
-                    case error:
+                    case ERROR:
                         getLogger().error("Address not found in the database", anfe);
                         break;
-                    case debug:
+                    case DEBUG:
                     default:
-                        if(getLogger().isDebugEnabled()) {
-                            getLogger().debug("Address not found in the database", anfe);
-                        }
+                        getLogger().debug("Address not found in the database", anfe);
                         break;
                 }
 
