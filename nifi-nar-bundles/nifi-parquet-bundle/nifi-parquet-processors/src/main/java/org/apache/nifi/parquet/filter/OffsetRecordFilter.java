@@ -21,6 +21,9 @@ import org.apache.parquet.column.ColumnReader;
 import org.apache.parquet.filter.RecordFilter;
 import org.apache.parquet.filter.UnboundRecordFilter;
 
+/**
+ * Filter to be used for 'jumping' to a specific record index.
+ */
 public class OffsetRecordFilter implements RecordFilter, UnboundRecordFilter {
 
     private long skipsRemaining;

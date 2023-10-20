@@ -34,7 +34,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.parquet.filter.LimitRecordFilter;
 import org.apache.nifi.parquet.filter.OffsetRecordFilter;
 import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
@@ -42,7 +41,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.filter.AndRecordFilter;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
@@ -92,14 +90,7 @@ public class FetchParquet extends AbstractFetchHDFSRecord {
                 .map(Long::parseLong)
                 .orElse(null);
 
-        if ((offset != null) && (count != null)) {
-            readerBuilder.withFilter(FilterCompat.get(AndRecordFilter.and(
-                    new OffsetRecordFilter(offset),
-                    new LimitRecordFilter(count)
-            )));
-        } else if ((offset == null) && (count != null)) {
-            readerBuilder.withFilter(FilterCompat.get(new LimitRecordFilter(count)));
-        } else if (offset != null) {
+        if (offset != null) {
             readerBuilder.withFilter(FilterCompat.get(new OffsetRecordFilter(offset)));
         }
 

@@ -24,7 +24,6 @@ import java.util.Optional;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.parquet.filter.LimitRecordFilter;
 import org.apache.nifi.parquet.filter.OffsetRecordFilter;
 import org.apache.nifi.parquet.stream.NifiParquetInputFile;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
@@ -33,7 +32,6 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.filter.AndRecordFilter;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetReader.Builder;
@@ -75,14 +73,7 @@ public class ParquetRecordReader implements RecordReader {
         final Builder<GenericRecord> builder = AvroParquetReader.<GenericRecord>builder(inputFile)
                 .withConf(configuration);
 
-        if ((offset != null) && (count != null)) {
-            builder.withFilter(FilterCompat.get(AndRecordFilter.and(
-                    new OffsetRecordFilter(offset),
-                    new LimitRecordFilter(count)
-            )));
-        } else if ((offset == null) && (count != null)) {
-            builder.withFilter(FilterCompat.get(new LimitRecordFilter(count)));
-        } else if (offset != null) {
+        if (offset != null) {
             builder.withFilter(FilterCompat.get(new OffsetRecordFilter(offset)));
         }
 
