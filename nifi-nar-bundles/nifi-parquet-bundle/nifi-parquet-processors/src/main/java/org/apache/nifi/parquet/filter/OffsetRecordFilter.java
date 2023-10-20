@@ -17,6 +17,7 @@
 
 package org.apache.nifi.parquet.filter;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.parquet.filter.RecordFilter;
 import org.apache.parquet.filter.UnboundRecordFilter;
 
@@ -25,22 +26,20 @@ import org.apache.parquet.filter.UnboundRecordFilter;
  */
 public class OffsetRecordFilter implements RecordFilter {
 
-    private long skipsRemaining;
+    private final AtomicLong skipsRemaining;
 
     public static UnboundRecordFilter offset(long startIndex) {
-        return readers -> new OffsetRecordFilter(startIndex);
+        final AtomicLong skipsRemaining = new AtomicLong(startIndex);
+        return readers -> new OffsetRecordFilter(skipsRemaining);
     }
 
-    private OffsetRecordFilter(long startIndex) {
-        this.skipsRemaining = startIndex;
+    private OffsetRecordFilter(AtomicLong skipsRemaining) {
+        this.skipsRemaining = skipsRemaining;
     }
 
     @Override
     public boolean isMatch() {
-        if (skipsRemaining == 0) {
-            return true;
-        }
-        skipsRemaining--;
-        return false;
+        // Get current value, and decrement it until zero, in a single atomic operation.
+        return skipsRemaining.getAndUpdate(l -> l > 0 ? l - 1 : l) == 0;
     }
 }

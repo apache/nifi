@@ -107,29 +107,29 @@ public class TestParquetReader {
 
     @Test
     public void testReadUsersPartiallyWithOffset() throws IOException {
-        final int numUsers = 25;
+        final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 5;
         final File parquetFile = createUsersParquetFile(numUsers);
-        final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_OFFSET, "20"));
+        final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_OFFSET, "1000020"));
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
-                .forEach(i -> assertEquals(createUser(i + 20), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(createUser(i + 1000020), convertRecordToUser(results.get(i))));
     }
 
     @Test
     public void testReadUsersPartiallyWithOffsetAndLimitedRecordCount() throws IOException {
-        final int numUsers = 25;
+        final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 2;
         final File parquetFile = createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, Map.of(
-                ParquetAttribute.RECORD_OFFSET, "20",
+                ParquetAttribute.RECORD_OFFSET, "1000020",
                 ParquetAttribute.RECORD_COUNT, "2"
         ));
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
-                .forEach(i -> assertEquals(createUser(i + 20), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(createUser(i + 1000020), convertRecordToUser(results.get(i))));
     }
 
     @Test
@@ -294,6 +294,7 @@ public class TestParquetReader {
         return AvroParquetWriter.<GenericRecord>builder(HadoopOutputFile.fromPath(parquetPath, conf))
                         .withSchema(schema)
                         .withConf(conf)
+                        .withRowGroupSize(8192L)
                         .build();
     }
 
