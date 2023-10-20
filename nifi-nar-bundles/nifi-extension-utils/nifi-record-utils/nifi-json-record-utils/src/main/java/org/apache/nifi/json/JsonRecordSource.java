@@ -18,6 +18,7 @@ package org.apache.nifi.json;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.core.io.SerializedString;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.schema.inference.RecordSource;
@@ -29,6 +30,11 @@ import java.io.InputStream;
 
 public class JsonRecordSource implements RecordSource<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonRecordSource.class);
+
+    private static final StreamReadConstraints DEFAULT_STREAM_READ_CONSTRAINTS = StreamReadConstraints.defaults();
+
+    private static final boolean ALLOW_COMMENTS_ENABLED = true;
+
     private final JsonParser jsonParser;
     private final StartingFieldStrategy strategy;
 
@@ -41,7 +47,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
     }
 
     public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, TokenParserFactory tokenParserFactory) throws IOException {
-        jsonParser = tokenParserFactory.getJsonParser(in);
+        jsonParser = tokenParserFactory.getJsonParser(in, DEFAULT_STREAM_READ_CONSTRAINTS, ALLOW_COMMENTS_ENABLED);
         this.strategy = strategy;
 
         if (strategy == StartingFieldStrategy.NESTED_FIELD) {

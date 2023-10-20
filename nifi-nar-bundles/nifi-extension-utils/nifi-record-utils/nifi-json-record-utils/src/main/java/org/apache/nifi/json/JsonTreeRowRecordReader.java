@@ -73,7 +73,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
                                    final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
                                    final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate,
-                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints, TokenParserFactory tokenParserFactory)
+                                   final boolean allowComments, final StreamReadConstraints streamReadConstraints, final TokenParserFactory tokenParserFactory)
             throws IOException, MalformedRecordException {
 
         super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, captureFieldPredicate,

@@ -18,13 +18,19 @@ package org.apache.nifi.json;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.StreamReadConstraints;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public interface TokenParserFactory {
-    JsonParser getJsonParser(InputStream in) throws IOException;
-
-    ObjectMapper createCodec(boolean allowComments, StreamReadConstraints streamReadConstraints);
+    /**
+     * Get JSON Parser implementation for provided Input Stream with configured settings
+     *
+     * @param in Input Stream to be parsed
+     * @param streamReadConstraints Stream Read Constraints applied
+     * @param allowComments Whether to allow comments when parsing
+     * @return JSON Parser
+     * @throws IOException Thrown on failures ot read the Input Stream
+     */
+    JsonParser getJsonParser(InputStream in, StreamReadConstraints streamReadConstraints, boolean allowComments) throws IOException;
 }

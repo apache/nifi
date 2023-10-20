@@ -22,7 +22,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
@@ -141,9 +140,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         capturedFields = new LinkedHashMap<>();
 
         try {
-            final ObjectMapper codec = tokenParserFactory.createCodec(allowComments, streamReadConstraints != null ? streamReadConstraints : DEFAULT_STREAM_READ_CONSTRAINTS);
-            jsonParser = codec.getFactory().createParser(in);
-            jsonParser.setCodec(codec);
+            final StreamReadConstraints configuredStreamReadConstraints = streamReadConstraints == null ? DEFAULT_STREAM_READ_CONSTRAINTS : streamReadConstraints;
+            jsonParser = tokenParserFactory.getJsonParser(in, configuredStreamReadConstraints, allowComments);
 
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
                 while (jsonParser.nextToken() != null) {

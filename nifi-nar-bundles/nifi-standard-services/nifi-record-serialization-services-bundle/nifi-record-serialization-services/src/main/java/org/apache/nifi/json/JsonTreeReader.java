@@ -162,7 +162,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     protected RecordSourceFactory<JsonNode> createJsonRecordSourceFactory() {
-        return (var, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
+        return (variables, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
     }
 
     @Override

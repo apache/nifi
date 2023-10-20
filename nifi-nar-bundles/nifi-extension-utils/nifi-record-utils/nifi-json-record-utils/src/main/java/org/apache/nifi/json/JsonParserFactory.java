@@ -23,27 +23,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
-public class JsonParserFactory implements TokenParserFactory{
-    private static final JsonFactory JSON_FACTORY = new JsonFactory();
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-
+public class JsonParserFactory implements TokenParserFactory {
     @Override
-    public JsonParser getJsonParser(InputStream in) throws IOException {
-        JsonParser jsonParser = JSON_FACTORY.createParser(in);
-        jsonParser.setCodec(JSON_MAPPER);
+    public JsonParser getJsonParser(final InputStream in, final StreamReadConstraints streamReadConstraints, final boolean allowComments) throws IOException {
+        Objects.requireNonNull(in, "Input Stream required");
+        Objects.requireNonNull(streamReadConstraints, "Stream Read Constraints required");
 
-        return jsonParser;
-    }
-
-    @Override
-    public ObjectMapper createCodec(boolean allowComments, StreamReadConstraints streamReadConstraints) {
-        ObjectMapper codec = new ObjectMapper();
-        if(allowComments) {
-            codec.enable(JsonParser.Feature.ALLOW_COMMENTS);
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
+        if (allowComments) {
+            objectMapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
         }
-        codec.getFactory().setStreamReadConstraints(streamReadConstraints);
-
-        return codec;
+        final JsonFactory jsonFactory = objectMapper.getFactory();
+        return jsonFactory.createParser(in);
     }
 }

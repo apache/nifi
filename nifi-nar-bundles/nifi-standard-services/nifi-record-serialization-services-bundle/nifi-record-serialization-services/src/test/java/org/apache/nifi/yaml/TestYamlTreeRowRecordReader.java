@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -902,7 +903,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, expected, StartingFieldStrategy.NESTED_FIELD, "accounts");
+        testNestedReadRecords(yamlPath, expected, "accounts");
     }
 
     @Test
@@ -921,7 +922,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, expected, StartingFieldStrategy.NESTED_FIELD, "account");
+        testNestedReadRecords(yamlPath, expected, "account");
     }
 
     @Test
@@ -944,14 +945,14 @@ class TestYamlTreeRowRecordReader {
                     }})
         );
 
-        testReadRecords(yamlPath, expected, StartingFieldStrategy.NESTED_FIELD, "accountIds");
+        testNestedReadRecords(yamlPath, expected, "accountIds");
     }
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
 
-        testReadRecords(yamlPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name");
+        testNestedReadRecords(yamlPath, Collections.emptyList(), "name");
     }
 
     @Test
@@ -961,8 +962,7 @@ class TestYamlTreeRowRecordReader {
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
         List<Object> expected = Collections.emptyList();
 
-        testReadRecords(yamlPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "notfound", SchemaApplicationStrategy.SELECTED_PART);
+        testNestedReadRecords(yamlPath, expectedRecordSchema, expected, "notfound", SchemaApplicationStrategy.SELECTED_PART);
     }
 
     @Test
@@ -985,8 +985,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accounts", SchemaApplicationStrategy.SELECTED_PART);
+        testNestedReadRecords(yamlPath, expectedRecordSchema, expected, "accounts", SchemaApplicationStrategy.SELECTED_PART);
     }
 
     @Test
@@ -1009,8 +1008,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "account", SchemaApplicationStrategy.WHOLE_JSON);
+        testNestedReadRecords(yamlPath, recordSchema, expected, "account", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
     @Test
@@ -1037,8 +1035,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accounts", SchemaApplicationStrategy.WHOLE_JSON);
+        testNestedReadRecords(yamlPath, recordSchema, expected, "accounts", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
     @Test
@@ -1074,8 +1071,7 @@ class TestYamlTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(yamlPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON);
+        testNestedReadRecords(yamlPath, recordSchema, expected, "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
     @Test
@@ -1119,7 +1115,12 @@ class TestYamlTreeRowRecordReader {
                     StartingFieldStrategy.NESTED_FIELD, startingFieldName,
                     SchemaApplicationStrategy.SELECTED_PART, capturePredicate);
 
-            while (reader.nextRecord() != null);
+            int records = 0;
+            while (reader.nextRecord() != null) {
+                records++;
+            }
+            assertNotEquals(0, records);
+
             Map<String, String> capturedFields = reader.getCapturedFields();
 
             assertEquals(expectedCapturedFields, capturedFields);
@@ -1136,16 +1137,12 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String yamlPath,
-                                 List<Object> expected,
-                                 StartingFieldStrategy strategy,
-                                 String startingFieldName)
-            throws IOException, MalformedRecordException {
+    private void testNestedReadRecords(String yamlPath, List<Object> expected, String startingFieldName) throws IOException, MalformedRecordException {
 
         final File jsonFile = new File(yamlPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
-            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
+            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.NESTED_FIELD, startingFieldName);
+            testNestedReadRecords(jsonStream, schema, expected, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 
@@ -1156,17 +1153,16 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String yamlPath,
+    private void testNestedReadRecords(String yamlPath,
                                  RecordSchema schema,
                                  List<Object> expected,
-                                 StartingFieldStrategy strategy,
                                  String startingFieldName,
                                  SchemaApplicationStrategy schemaApplicationStrategy
     ) throws IOException, MalformedRecordException {
 
         final File yamlFile = new File(yamlPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(yamlFile))) {
-            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
+            testNestedReadRecords(jsonStream, schema, expected, startingFieldName, schemaApplicationStrategy);
         }
     }
 
@@ -1197,16 +1193,15 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(InputStream yamlStream,
+    private void testNestedReadRecords(InputStream yamlStream,
                                  RecordSchema schema,
                                  List<Object> expected,
-                                 StartingFieldStrategy strategy,
                                  String startingFieldName,
                                  SchemaApplicationStrategy schemaApplicationStrategy)
             throws IOException, MalformedRecordException {
 
         try (YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(yamlStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                strategy, startingFieldName, schemaApplicationStrategy, null)) {
+                StartingFieldStrategy.NESTED_FIELD, startingFieldName, schemaApplicationStrategy, null)) {
             List<Object> actual = new ArrayList<>();
             Record record;
 

@@ -18,7 +18,6 @@ package org.apache.nifi.yaml;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.StreamReadConstraints;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.apache.nifi.json.TokenParserFactory;
@@ -27,19 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class YamlParserFactory implements TokenParserFactory {
-    private static final YAMLFactory YAML_FACTORY = new YAMLFactory();
-    private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+    private static final YAMLFactory YAML_FACTORY = new YAMLFactory(new YAMLMapper());
 
+    /**
+     * Get Parser implementation for YAML
+     *
+     * @param in Input Stream to be parsed
+     * @param streamReadConstraints Stream Read Constraints are not supported in YAML
+     * @param allowComments Whether to allow comments when parsing does not apply to YAML
+     * @return YAML Parser
+     * @throws IOException Thrown on parser creation failures
+     */
     @Override
-    public JsonParser getJsonParser(InputStream in) throws IOException {
-        JsonParser jsonParser = YAML_FACTORY.createParser(in);
-        jsonParser.setCodec(YAML_MAPPER);
-
-        return jsonParser;
-    }
-
-    @Override
-    public ObjectMapper createCodec(boolean allowComments, StreamReadConstraints streamReadConstraints) {
-        return new YAMLMapper();
+    public JsonParser getJsonParser(final InputStream in, final StreamReadConstraints streamReadConstraints, final boolean allowComments) throws IOException {
+        return YAML_FACTORY.createParser(in);
     }
 }
