@@ -514,7 +514,7 @@ public class ControllerResource extends ApplicationResource {
                     // Nothing to verify
                 },
                 (importRequest) -> {
-                    final VersionedReportingTaskSnapshot snapshot = importRequestEntity.getReportingTaskSnapshot();
+                    final VersionedReportingTaskSnapshot snapshot = importRequest.getReportingTaskSnapshot();
                     final VersionedReportingTaskImportResponseEntity responseEntity = serviceFacade.importReportingTasks(snapshot);
                     return generateOkResponse(responseEntity).build();
                 }
