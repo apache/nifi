@@ -74,7 +74,7 @@ public class ParquetRecordReader implements RecordReader {
                 .withConf(configuration);
 
         if (offset != null) {
-            builder.withFilter(FilterCompat.get(new OffsetRecordFilter(offset)));
+            builder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));
         }
 
         parquetReader = builder.build();

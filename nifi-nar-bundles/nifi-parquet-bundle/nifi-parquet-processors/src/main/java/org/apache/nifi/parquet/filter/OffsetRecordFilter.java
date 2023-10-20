@@ -17,18 +17,21 @@
 
 package org.apache.nifi.parquet.filter;
 
-import org.apache.parquet.column.ColumnReader;
 import org.apache.parquet.filter.RecordFilter;
 import org.apache.parquet.filter.UnboundRecordFilter;
 
 /**
  * Filter to be used for 'jumping' to a specific record index.
  */
-public class OffsetRecordFilter implements RecordFilter, UnboundRecordFilter {
+public class OffsetRecordFilter implements RecordFilter {
 
     private long skipsRemaining;
 
-    public OffsetRecordFilter(long startIndex) {
+    public static UnboundRecordFilter offset(long startIndex) {
+        return readers -> new OffsetRecordFilter(startIndex);
+    }
+
+    private OffsetRecordFilter(long startIndex) {
         this.skipsRemaining = startIndex;
     }
 
@@ -39,10 +42,5 @@ public class OffsetRecordFilter implements RecordFilter, UnboundRecordFilter {
         }
         skipsRemaining--;
         return false;
-    }
-
-    @Override
-    public RecordFilter bind(Iterable<ColumnReader> readers) {
-        return this;
     }
 }

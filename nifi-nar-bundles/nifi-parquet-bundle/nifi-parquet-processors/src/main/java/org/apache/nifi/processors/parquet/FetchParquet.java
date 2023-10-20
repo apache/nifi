@@ -91,7 +91,7 @@ public class FetchParquet extends AbstractFetchHDFSRecord {
                 .orElse(null);
 
         if (offset != null) {
-            readerBuilder.withFilter(FilterCompat.get(new OffsetRecordFilter(offset)));
+            readerBuilder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));
         }
 
         if (count == null) {
