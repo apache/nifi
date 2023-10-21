@@ -275,7 +275,7 @@ public class SharedEncryptConfig {
 
         if (oldKey == null) {
             if (oldPassword == null) {
-                logger.info("Neither Migration Bootstrap Root Key not Migration Bootstrap Password specified");
+                logger.info("Neither Migration Bootstrap Root Key nor Migration Bootstrap Password specified");
                 rootKey = null;
             } else {
                 if (verboseModeEnabled) {
