@@ -24,16 +24,17 @@
 
 	<artifactId>nifi-network-processors-nar</artifactId>
 	<packaging>nar</packaging>
-	<properties>
-		<maven.javadoc.skip>true</maven.javadoc.skip>
-		<source.skip>true</source.skip>
-	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-network-processors</artifactId>
 			<version>2.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-standard-shared-nar</artifactId>
+			<type>nar</type>
 		</dependency>
 	</dependencies>
 </project>
