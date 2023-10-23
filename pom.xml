@@ -154,12 +154,6 @@
         <zookeeper.version>3.9.1</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
     </properties>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>groovy-plugins-release</id>
-            <url>https://groovy.jfrog.io/artifactory/plugins-release</url>
-        </pluginRepository>
-    </pluginRepositories>
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -342,7 +336,6 @@
                 <artifactId>groovy-all</artifactId>
                 <version>${nifi.groovy.version}</version>
                 <type>pom</type>
-                <scope>test</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.groovy</groupId>
@@ -357,12 +350,6 @@
                         <artifactId>ant-junit</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.groovy</groupId>
-                <artifactId>groovy-test</artifactId>
-                <version>${nifi.groovy.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -971,6 +958,8 @@
                                         <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
                                         <!-- The Spock Framework should not be used for testing -->
                                         <exclude>org.spockframework:*</exclude>
+                                        <!-- Groovy should not be used for testing -->
+                                        <exclude>org.apache.groovy:groovy-test</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
