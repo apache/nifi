@@ -26,12 +26,21 @@ import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } fr
 import { NifiTooltipDirective } from '../nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
+import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'extension-creation',
     standalone: true,
     templateUrl: './extension-creation.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NifiTooltipDirective],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        NgIf,
+        NifiTooltipDirective,
+        NifiSpinnerDirective
+    ],
     styleUrls: ['./extension-creation.component.scss']
 })
 export class ExtensionCreation implements AfterViewInit {
@@ -54,6 +63,7 @@ export class ExtensionCreation implements AfterViewInit {
         };
     }
     @Input() componentType!: string;
+    @Input() saving!: boolean;
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     protected readonly RestrictionsTip = RestrictionsTip;
@@ -142,7 +152,7 @@ export class ExtensionCreation implements AfterViewInit {
     }
 
     createExtension(documentedType: DocumentedType | null): void {
-        if (documentedType) {
+        if (documentedType && !this.saving) {
             this.extensionTypeSelected.next(documentedType);
         }
     }

@@ -290,6 +290,7 @@ export interface FlowState {
     dragging: boolean;
     transitionRequired: boolean;
     skipTransform: boolean;
+    saving: boolean;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }

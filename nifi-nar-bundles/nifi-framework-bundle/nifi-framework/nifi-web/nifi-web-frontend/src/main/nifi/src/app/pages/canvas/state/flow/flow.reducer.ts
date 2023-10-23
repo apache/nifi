@@ -20,6 +20,10 @@ import {
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
+    createFunnel,
+    createLabel,
+    createPort,
+    createProcessor,
     deleteComponentsSuccess,
     flowApiError,
     loadProcessGroup,
@@ -28,6 +32,7 @@ import {
     setDragging,
     setSkipTransform,
     setTransitionRequired,
+    updateComponent,
     updateComponentFailure,
     updateComponentSuccess
 } from './flow.actions';
@@ -106,6 +111,7 @@ export const initialState: FlowState = {
         reportingTaskBulletins: []
     },
     dragging: false,
+    saving: false,
     transitionRequired: false,
     skipTransform: false,
     error: null,
@@ -138,7 +144,28 @@ export const flowReducer = createReducer(
     on(clearFlowApiError, (state) => ({
         ...state,
         error: null,
+        saving: false,
         status: 'pending' as const
+    })),
+    on(createProcessor, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(createPort, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(createProcessor, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(createFunnel, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(createLabel, (state) => ({
+        ...state,
+        saving: true
     })),
     on(createComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
@@ -177,7 +204,12 @@ export const flowReducer = createReducer(
     }),
     on(createComponentComplete, (state) => ({
         ...state,
-        dragging: false
+        dragging: false,
+        saving: false
+    })),
+    on(updateComponent, (state) => ({
+        ...state,
+        saving: true
     })),
     on(updateComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
@@ -215,6 +247,8 @@ export const flowReducer = createReducer(
                     collection[componentIndex] = response.response;
                 }
             }
+
+            draftState.saving = false;
         });
     }),
     on(updateComponentFailure, (state, { response }) => {
@@ -258,6 +292,8 @@ export const flowReducer = createReducer(
                         };
                     }
                 }
+
+                draftState.saving = false;
             }
         });
     }),

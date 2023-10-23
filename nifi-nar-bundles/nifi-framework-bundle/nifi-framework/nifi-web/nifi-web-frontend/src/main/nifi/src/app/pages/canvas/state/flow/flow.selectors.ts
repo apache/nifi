@@ -28,6 +28,8 @@ export const selectFlow = createSelector(selectFlowState, (state: FlowState) => 
 
 export const selectApiError = createSelector(selectFlowState, (state: FlowState) => state.error);
 
+export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
+
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
 export const selectCanvasPermissions = createSelector(selectFlowState, (state: FlowState) => state.flow.permissions);

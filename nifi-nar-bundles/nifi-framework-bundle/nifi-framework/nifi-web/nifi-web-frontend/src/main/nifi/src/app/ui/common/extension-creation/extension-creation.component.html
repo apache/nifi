@@ -92,12 +92,12 @@
         <div class="flex justify-end gap-x-2">
             <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="selectedType == null"
+                [disabled]="selectedType == null || saving"
                 type="submit"
                 color="primary"
                 (click)="createExtension(selectedType)"
                 mat-raised-button>
-                Add
+                <span *nifiSpinner="saving">Add</span>
             </button>
         </div>
     </div>

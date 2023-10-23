@@ -18,4 +18,5 @@
 <extension-creation
     [componentType]="'Processor'"
     [documentedTypes]="processorTypes"
+    [saving]="(saving$ | async)!"
     (extensionTypeSelected)="createProcessor($event)"></extension-creation>

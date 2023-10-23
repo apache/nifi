@@ -28,16 +28,30 @@ import { Banner } from '../../common/banner/banner.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { NgIf } from '@angular/common';
+import { AsyncPipe, NgIf } from '@angular/common';
+import { selectSaving } from '../../../state/flow/flow.selectors';
+import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'edit-port',
     standalone: true,
     templateUrl: './edit-port.component.html',
-    imports: [ReactiveFormsModule, Banner, MatDialogModule, MatInputModule, MatCheckboxModule, MatButtonModule, NgIf],
+    imports: [
+        ReactiveFormsModule,
+        Banner,
+        MatDialogModule,
+        MatInputModule,
+        MatCheckboxModule,
+        MatButtonModule,
+        NgIf,
+        AsyncPipe,
+        NifiSpinnerDirective
+    ],
     styleUrls: ['./edit-port.component.scss']
 })
 export class EditPort {
+    saving$ = this.store.select(selectSaving);
+
     editPortForm: FormGroup;
     portTypeLabel: string;
 

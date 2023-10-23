@@ -20,7 +20,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { selectParentProcessGroupId } from '../../../state/flow/flow.selectors';
+import { selectParentProcessGroupId, selectSaving } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from 'src/app/pages/canvas/state/flow/flow.actions';
 import { CreateComponent } from '../../../state/flow';
@@ -29,8 +29,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Banner } from '../../common/banner/banner.component';
-import { NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'create-port',
@@ -44,12 +45,16 @@ import { MatButtonModule } from '@angular/material/button';
         Banner,
         NgIf,
         NgForOf,
-        MatButtonModule
+        MatButtonModule,
+        AsyncPipe,
+        NifiSpinnerDirective
     ],
     templateUrl: './create-port.component.html',
     styleUrls: ['./create-port.component.scss']
 })
 export class CreatePort {
+    saving$ = this.store.select(selectSaving);
+
     createPortForm: FormGroup;
     isRootProcessGroup: boolean = false;
     portTypeLabel: string;
