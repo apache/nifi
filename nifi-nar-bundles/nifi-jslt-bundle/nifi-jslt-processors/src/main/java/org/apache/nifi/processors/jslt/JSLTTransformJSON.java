@@ -62,6 +62,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -107,6 +108,16 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .defaultValue(EACH_OBJECT.getValue())
             .build();
 
+    public static final PropertyDescriptor RESULT_FILTER = new PropertyDescriptor.Builder()
+            .name("jslt-transform-result-filter")
+            .displayName("Transform Result Filter")
+            .description("An optional filter of output results using another JSLT, allowing you to change the default filter."
+                    + " The default filter is \". != null and . != {} and . != []\" which excludes objects with null values, empty objects and empty arrays")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT, ResourceType.FILE)
+            .required(false)
+            .build();
+
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
             .name("jslt-transform-pretty_print")
             .displayName("Pretty Print")
@@ -145,6 +156,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                 Arrays.asList(
                         JSLT_TRANSFORM,
                         TRANSFORMATION_STRATEGY,
+                        RESULT_FILTER,
                         PRETTY_PRINT,
                         TRANSFORM_CACHE_SIZE
                 )
@@ -174,24 +186,33 @@ public class JSLTTransformJSON extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        final ValidationResult.Builder transformBuilder = new ValidationResult.Builder().subject(JSLT_TRANSFORM.getDisplayName());
-
         final PropertyValue transformProperty = validationContext.getProperty(JSLT_TRANSFORM);
         if (transformProperty.isExpressionLanguagePresent()) {
-            transformBuilder.valid(true);
+            final ValidationResult.Builder transformBuilder = new ValidationResult.Builder().subject(JSLT_TRANSFORM.getDisplayName());
+            results.add(transformBuilder.valid(true).build());
         } else {
-            try {
-                final String transform = readTransform(transformProperty);
-                Parser.compileString(transform);
-                transformBuilder.valid(true);
-            } catch (final RuntimeException e) {
-                final String explanation = String.format("JSLT Transform not valid: %s", e.getMessage());
-                transformBuilder.valid(false).explanation(explanation);
-            }
+            results.add(validateJSLT(JSLT_TRANSFORM, transformProperty));
         }
 
-        results.add(transformBuilder.build());
+        final PropertyValue filterProperty = validationContext.getProperty(RESULT_FILTER);
+        if (filterProperty.isSet()) {
+            results.add(validateJSLT(RESULT_FILTER, filterProperty));
+        }
+
         return results;
+    }
+
+    private ValidationResult validateJSLT(PropertyDescriptor property, PropertyValue value) {
+        final ValidationResult.Builder builder = new ValidationResult.Builder().subject(property.getDisplayName());
+        try {
+            final String transform = readTransform(value);
+            getJstlExpression(transform, null);
+            builder.valid(true);
+        } catch (final RuntimeException e) {
+            final String explanation = String.format("%s not valid: %s", property.getDisplayName(), e.getMessage());
+            builder.valid(false).explanation(explanation);
+        }
+        return builder.build();
     }
 
     @OnScheduled
@@ -202,10 +223,11 @@ public class JSLTTransformJSON extends AbstractProcessor {
                 .build();
         // Precompile the transform if it hasn't been done already (and if there is no Expression Language present)
         final PropertyValue transformProperty = context.getProperty(JSLT_TRANSFORM);
+        final PropertyValue filterProperty = context.getProperty(RESULT_FILTER);
         if (!transformProperty.isExpressionLanguagePresent()) {
             try {
                 final String transform = readTransform(transformProperty);
-                transformCache.put(transform, Parser.compileString(transform));
+                transformCache.put(transform, getJstlExpression(transform, filterProperty.getValue()));
             } catch (final RuntimeException e) {
                 throw new ProcessException("JSLT Transform compilation failed", e);
             }
@@ -223,12 +245,13 @@ public class JSLTTransformJSON extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
 
         final PropertyValue transformProperty = context.getProperty(JSLT_TRANSFORM);
+        final PropertyValue filterProperty = context.getProperty(RESULT_FILTER);
         FlowFile transformed;
         final JsonFactory jsonFactory = new JsonFactory();
 
         try {
             final String transform = readTransform(transformProperty, original);
-            final Expression jsltExpression = transformCache.get(transform, currString -> Parser.compileString(transform));
+            final Expression jsltExpression = transformCache.get(transform, currString -> getJstlExpression(transform, filterProperty.getValue()));
             final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
 
             transformed = session.write(original, (inputStream, outputStream) -> {
@@ -296,7 +319,18 @@ public class JSLTTransformJSON extends AbstractProcessor {
     @OnStopped
     @OnShutdown
     public void onStopped() {
-        transformCache.cleanUp();
+        if (transformCache != null) {
+            transformCache.cleanUp();
+        }
+    }
+
+    private Expression getJstlExpression(String transform, String jsltFilter) {
+        Parser parser = new Parser(new StringReader(transform))
+                .withSource("<inline>");
+        if (jsltFilter != null && !jsltFilter.isEmpty()) {
+            parser = parser.withObjectFilter(jsltFilter);
+        }
+        return parser.compile();
     }
 
     private JsonNode readJson(final InputStream in) throws IOException {

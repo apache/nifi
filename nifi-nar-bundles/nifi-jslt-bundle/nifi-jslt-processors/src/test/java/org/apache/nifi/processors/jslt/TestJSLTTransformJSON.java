@@ -151,6 +151,24 @@ public class TestJSLTTransformJSON {
         flowFile.assertContentEquals(new byte[0]);
     }
 
+    @Test
+    public void testTransformWithNullValueRemoved() {
+        runner.setProperty(JSLTTransformJSON.RESULT_FILTER, ". != null and . != {} and . != []");
+        runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithoutNull.json");
+    }
+
+    @Test
+    public void testTransformWithNullValueIncluded() {
+        runner.setProperty(JSLTTransformJSON.RESULT_FILTER, ". != {} and . != []");
+        runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
+    }
+
+    // This test verifies transformCache cleanup does not throw an exception
+    @Test
+    public void testShutdown() {
+        runner.stop();
+    }
+
     private void runTransform(final String inputFileName, final String transformFileName, final String outputFileName) {
         setTransformEnqueueJson(transformFileName, inputFileName);
 
