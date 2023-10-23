@@ -31,9 +31,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
+    InlineServiceCreationRequest,
+    InlineServiceCreationResponse,
     Property,
     PropertyDependency,
     PropertyDescriptor,
@@ -54,6 +56,7 @@ import {
 import { ComboEditor } from './editors/combo-editor/combo-editor.component';
 import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 
 export interface PropertyItem extends Property {
     id: number;
@@ -78,7 +81,9 @@ export interface PropertyItem extends Property {
         NfEditor,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
-        ComboEditor
+        ComboEditor,
+        RouterLink,
+        AsyncPipe
     ],
     styleUrls: ['./property-table.component.scss'],
     providers: [
@@ -91,6 +96,8 @@ export interface PropertyItem extends Property {
 })
 export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
+    @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
+    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() supportsSensitiveDynamicProperties: boolean = false;
 
     private destroyRef = inject(DestroyRef);
@@ -358,6 +365,31 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         this.editorItem = item;
         this.editorTrigger = editorTrigger;
         this.editorOpen = true;
+    }
+
+    canGoTo(item: PropertyItem): boolean {
+        // TODO - add Input() for supportsGoTo? currently only false in summary table
+
+        const descriptor: PropertyDescriptor = item.descriptor;
+        if (item.value && descriptor.identifiesControllerService) {
+            return descriptor.allowableValues.some(
+                (entity: AllowableValueEntity) => entity.allowableValue.value == item.value
+            );
+        }
+
+        return false;
+    }
+
+    createNewControllerService(item: PropertyItem): void {
+        this.createNewService({ descriptor: item.descriptor })
+            .pipe(take(1))
+            .subscribe((response) => {
+                item.value = response.value;
+                item.descriptor = response.descriptor;
+                item.dirty = true;
+
+                this.handleChanged();
+            });
     }
 
     deleteProperty(item: PropertyItem): void {

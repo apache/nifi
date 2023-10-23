@@ -56,6 +56,16 @@ export const createControllerServiceSuccess = createAction(
     props<{ response: CreateControllerServiceSuccess }>()
 );
 
+export const inlineCreateControllerServiceSuccess = createAction(
+    '[Management Controller Services] InlineCreate Controller Service Success',
+    props<{ response: CreateControllerServiceSuccess }>()
+);
+
+export const navigateToEditService = createAction(
+    '[Management Controller Services] Navigate To Edit Service',
+    props<{ id: string }>()
+);
+
 export const openConfigureControllerServiceDialog = createAction(
     '[Management Controller Services] Open Configure Controller Service Dialog',
     props<{ request: EditControllerServiceRequest }>()

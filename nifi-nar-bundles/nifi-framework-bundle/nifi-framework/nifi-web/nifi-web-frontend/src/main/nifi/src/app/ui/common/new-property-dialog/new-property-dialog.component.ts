@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { NewPropertyDialogRequest } from '../../../state/shared';
+import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { NewPropertyDialogRequest, NewPropertyDialogResponse } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -40,11 +40,12 @@ import { MatRadioModule } from '@angular/material/radio';
     styleUrls: ['./new-property-dialog.component.scss']
 })
 export class NewPropertyDialog {
+    @Output() newProperty: EventEmitter<NewPropertyDialogResponse> = new EventEmitter<NewPropertyDialogResponse>();
+
     newPropertyForm: FormGroup;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: NewPropertyDialogRequest,
-        private dialogRef: MatDialogRef<NewPropertyDialog>,
         private formBuilder: FormBuilder
     ) {
         this.newPropertyForm = this.formBuilder.group({
@@ -54,7 +55,7 @@ export class NewPropertyDialog {
     }
 
     addProperty(): void {
-        this.dialogRef.close({
+        this.newProperty.next({
             name: this.newPropertyForm.get('name')?.value,
             sensitive: this.newPropertyForm.get('sensitive')?.value
         });

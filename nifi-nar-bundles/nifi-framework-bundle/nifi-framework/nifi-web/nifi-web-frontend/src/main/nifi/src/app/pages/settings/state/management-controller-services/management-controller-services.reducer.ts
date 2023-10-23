@@ -21,6 +21,7 @@ import {
     configureControllerServiceSuccess,
     createControllerServiceSuccess,
     deleteControllerServiceSuccess,
+    inlineCreateControllerServiceSuccess,
     loadManagementControllerServices,
     loadManagementControllerServicesSuccess,
     managementControllerServicesApiError
@@ -53,6 +54,11 @@ export const managementControllerServicesReducer = createReducer(
         status: 'error' as const
     })),
     on(createControllerServiceSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            draftState.controllerServices.push(response.controllerService);
+        });
+    }),
+    on(inlineCreateControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             draftState.controllerServices.push(response.controllerService);
         });

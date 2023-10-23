@@ -16,7 +16,9 @@
   -->
 
 <div class="controller-service-references">
-    <div *ngIf="serviceReferences == null || serviceReferences.length == 0; else hasReferences" class="value">No referencing components</div>
+    <div *ngIf="serviceReferences == null || serviceReferences.length == 0; else hasReferences" class="value">
+        No referencing components
+    </div>
 
     <ng-template #hasReferences>
         <ng-container
@@ -97,14 +99,18 @@
                             <ng-template #validNonService>
                                 <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
                             </ng-template>
-                            <a [routerLink]="getRouteForReference(reference.component)" mat-dialog-close>{{ reference.component.name }}</a>
+                            <a [routerLink]="getRouteForReference(reference.component)" mat-dialog-close>{{
+                                reference.component.name
+                            }}</a>
                             <div
-                              class="pointer fa fa-sticky-note-o"
-                              *ngIf="hasBulletins(reference)"
-                              nifiTooltip
-                              [tooltipComponentType]="BulletinsTip"
-                              [tooltipInputData]="getBulletinsTipData(reference)"></div>
-                            <div *ngIf="hasActiveThreads(reference.component)">({{ reference.component.activeThreadCount }})</div>
+                                class="pointer fa fa-sticky-note-o"
+                                *ngIf="hasBulletins(reference)"
+                                nifiTooltip
+                                [tooltipComponentType]="BulletinsTip"
+                                [tooltipInputData]="getBulletinsTipData(reference)"></div>
+                            <div *ngIf="hasActiveThreads(reference.component)">
+                                ({{ reference.component.activeThreadCount }})
+                            </div>
                         </div>
                     </div>
                 </li>
@@ -128,13 +134,15 @@
                                 <ng-template #validService>
                                     <div [ngClass]="getServiceStateIcon(service.component)"></div>
                                 </ng-template>
-                                <a [routerLink]="getRouteForReference(service.component)" mat-dialog-close>{{ service.component.name }}</a>
+                                <a [routerLink]="getRouteForReference(service.component)" mat-dialog-close>{{
+                                    service.component.name
+                                }}</a>
                                 <div
-                                  class="pointer fa fa-sticky-note-o"
-                                  *ngIf="hasBulletins(service)"
-                                  nifiTooltip
-                                  [tooltipComponentType]="BulletinsTip"
-                                  [tooltipInputData]="getBulletinsTipData(service)"></div>
+                                    class="pointer fa fa-sticky-note-o"
+                                    *ngIf="hasBulletins(service)"
+                                    nifiTooltip
+                                    [tooltipComponentType]="BulletinsTip"
+                                    [tooltipInputData]="getBulletinsTipData(service)"></div>
                             </div>
                             <div>
                                 <div *ngIf="service.component.referenceCycle; else noReference" class="unset">

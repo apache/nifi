@@ -223,7 +223,7 @@ export class ReportingTasksEffects {
                 ofType(ReportingTaskActions.selectReportingTask),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/settings', 'reporting-tasks', request.reportingTask.id]);
+                    this.router.navigate(['settings', 'reporting-tasks', request.reportingTask.id]);
                 })
             ),
         { dispatch: false }

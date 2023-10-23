@@ -31,7 +31,7 @@ export interface NewPropertyDialogRequest {
 
 export interface NewPropertyDialogResponse {
     name: string;
-    senstive: boolean;
+    sensitive: boolean;
 }
 
 export interface CreateControllerServiceRequest {
@@ -220,5 +220,14 @@ export interface PropertyDescriptor {
 export interface Property {
     property: string;
     value: string | null;
+    descriptor: PropertyDescriptor;
+}
+
+export interface InlineServiceCreationRequest {
+    descriptor: PropertyDescriptor;
+}
+
+export interface InlineServiceCreationResponse {
+    value: string;
     descriptor: PropertyDescriptor;
 }

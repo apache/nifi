@@ -28,9 +28,17 @@ import { CreateControllerService } from '../../../../ui/common/controller-servic
 import { Client } from '../../../../service/client.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
-import { NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../../state/shared';
+import {
+    InlineServiceCreationRequest,
+    InlineServiceCreationResponse,
+    NewPropertyDialogRequest,
+    NewPropertyDialogResponse,
+    Property,
+    PropertyDescriptor
+} from '../../../../state/shared';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { Router } from '@angular/router';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -39,6 +47,7 @@ export class ManagementControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private managementControllerServiceService: ManagementControllerServiceService,
+        private extensionTypesService: ExtensionTypesService,
         private dialog: MatDialog,
         private router: Router
     ) {}
@@ -138,63 +147,164 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
+    navigateToEditService$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.navigateToEditService),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['settings', 'management-controller-services', id, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    const dialogReference = this.dialog.open(EditControllerService, {
+                    const serviceId: string = request.id;
+
+                    const editDialogReference = this.dialog.open(EditControllerService, {
                         data: {
                             controllerService: request.controllerService
                         },
                         panelClass: 'large-dialog'
                     });
 
-                    dialogReference.componentInstance.createNewProperty = (
+                    editDialogReference.componentInstance.createNewProperty = (
                         allowsSensitive: boolean
                     ): Observable<Property> => {
                         const dialogRequest: NewPropertyDialogRequest = { allowsSensitive };
-                        return this.dialog
-                            .open(NewPropertyDialog, {
-                                data: { dialogRequest },
-                                panelClass: 'small-dialog'
+                        const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
+                            data: { dialogRequest },
+                            panelClass: 'small-dialog'
+                        });
+
+                        return newPropertyDialogReference.componentInstance.newProperty.pipe(
+                            take(1),
+                            switchMap((dialogResponse: NewPropertyDialogResponse) => {
+                                return this.managementControllerServiceService
+                                    .getPropertyDescriptor(request.id, dialogResponse.name, dialogResponse.sensitive)
+                                    .pipe(
+                                        take(1),
+                                        map((response) => {
+                                            newPropertyDialogReference.close();
+
+                                            return {
+                                                property: dialogResponse.name,
+                                                value: null,
+                                                descriptor: response.propertyDescriptor
+                                            };
+                                        })
+                                    );
                             })
-                            .afterClosed()
+                        );
+                    };
+
+                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
+                        return of(['settings', 'management-controller-services', serviceId]);
+                    };
+
+                    editDialogReference.componentInstance.createNewService = (
+                        request: InlineServiceCreationRequest
+                    ): Observable<InlineServiceCreationResponse> => {
+                        const descriptor: PropertyDescriptor = request.descriptor;
+
+                        // fetch all services that implement the requested service api
+                        return this.extensionTypesService
+                            .getImplementingControllerServiceTypes(
+                                descriptor.identifiesControllerService,
+                                descriptor.identifiesControllerServiceBundle
+                            )
                             .pipe(
                                 take(1),
-                                switchMap((dialogResponse: NewPropertyDialogResponse) => {
-                                    if (dialogResponse) {
-                                        return this.managementControllerServiceService
-                                            .getPropertyDescriptor(
-                                                request.id,
-                                                dialogResponse.name,
-                                                dialogResponse.senstive
-                                            )
-                                            .pipe(
-                                                take(1),
-                                                map((response) => {
-                                                    return {
-                                                        property: dialogResponse.name,
-                                                        value: null,
-                                                        descriptor: response.propertyDescriptor
-                                                    };
+                                switchMap((implementingTypesResponse) => {
+                                    // show the create controller service dialog with the types that implemented the interface
+                                    const createServiceDialogReference = this.dialog.open(CreateControllerService, {
+                                        data: {
+                                            controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
+                                        },
+                                        panelClass: 'medium-dialog'
+                                    });
+
+                                    return createServiceDialogReference.componentInstance.createControllerService.pipe(
+                                        take(1),
+                                        switchMap((controllerServiceType) => {
+                                            // typically this sequence would be implemented with ngrx actions, however we are
+                                            // currently in an edit session and we need to return both the value (new service id)
+                                            // and updated property descriptor so the table renders correctly
+                                            return this.managementControllerServiceService
+                                                .createControllerService({
+                                                    revision: {
+                                                        clientId: this.client.getClientId(),
+                                                        version: 0
+                                                    },
+                                                    controllerServiceType: controllerServiceType.type,
+                                                    controllerServiceBundle: controllerServiceType.bundle
                                                 })
-                                            );
-                                    } else {
-                                        return NEVER;
-                                    }
+                                                .pipe(
+                                                    take(1),
+                                                    switchMap((createReponse) => {
+                                                        // dispatch an inline create service success action so the new service is in the state
+                                                        this.store.dispatch(
+                                                            ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
+                                                                {
+                                                                    response: {
+                                                                        controllerService: createReponse
+                                                                    }
+                                                                }
+                                                            )
+                                                        );
+
+                                                        // fetch an updated property descriptor
+                                                        return this.managementControllerServiceService
+                                                            .getPropertyDescriptor(serviceId, descriptor.name, false)
+                                                            .pipe(
+                                                                take(1),
+                                                                map((descriptorResponse) => {
+                                                                    createServiceDialogReference.close();
+
+                                                                    return {
+                                                                        value: createReponse.id,
+                                                                        descriptor:
+                                                                            descriptorResponse.propertyDescriptor
+                                                                    };
+                                                                })
+                                                            );
+                                                    }),
+                                                    catchError((error) => {
+                                                        // TODO - show error
+                                                        return NEVER;
+                                                    })
+                                                );
+                                        })
+                                    );
                                 })
                             );
                     };
 
-                    dialogReference.componentInstance.editControllerService.pipe(take(1)).subscribe((payload: any) => {
+                    editDialogReference.componentInstance.editControllerService
+                        .pipe(take(1))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                ManagementControllerServicesActions.configureControllerService({
+                                    request: {
+                                        id: request.controllerService.id,
+                                        uri: request.controllerService.uri,
+                                        payload
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(
-                            ManagementControllerServicesActions.configureControllerService({
+                            ManagementControllerServicesActions.selectControllerService({
                                 request: {
-                                    id: request.controllerService.id,
-                                    uri: request.controllerService.uri,
-                                    payload
+                                    id: serviceId
                                 }
                             })
                         );
@@ -298,7 +408,7 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.selectControllerService),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/settings', 'management-controller-services', request.controllerService.id]);
+                    this.router.navigate(['settings', 'management-controller-services', request.id]);
                 })
             ),
         { dispatch: false }

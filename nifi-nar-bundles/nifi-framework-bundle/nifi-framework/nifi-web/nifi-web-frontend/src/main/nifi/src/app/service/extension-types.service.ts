@@ -18,6 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { Bundle } from '../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ExtensionTypesService {
@@ -31,6 +32,16 @@ export class ExtensionTypesService {
 
     getControllerServiceTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`);
+    }
+
+    getImplementingControllerServiceTypes(serviceType: string, bundle: Bundle): Observable<any> {
+        const params: any = {
+            serviceType,
+            serviceBundleGroup: bundle.group,
+            serviceBundleArtifact: bundle.artifact,
+            serviceBundleVersion: bundle.version
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/controller-service-types`, { params });
     }
 
     getReportingTaskTypes(): Observable<any> {

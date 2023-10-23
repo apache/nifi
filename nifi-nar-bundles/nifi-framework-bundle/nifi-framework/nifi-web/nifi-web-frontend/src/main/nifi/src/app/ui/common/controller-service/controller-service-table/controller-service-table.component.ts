@@ -197,7 +197,8 @@ export class ControllerServiceTable implements AfterViewInit {
         return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
-    configureClicked(entity: ControllerServiceEntity): void {
+    configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        event.stopPropagation();
         this.configureControllerService.next(entity);
     }
 
@@ -223,7 +224,8 @@ export class ControllerServiceTable implements AfterViewInit {
         return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && canWriteParent;
     }
 
-    deleteClicked(entity: ControllerServiceEntity): void {
+    deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        event.stopPropagation();
         this.deleteControllerService.next(entity);
     }
 

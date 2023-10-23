@@ -351,7 +351,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
+                    this.router.navigate(['process-groups', processGroupId, request.type, request.id, 'edit']);
                 })
             ),
         { dispatch: false }
@@ -626,7 +626,7 @@ export class FlowEffects {
                 ofType(FlowActions.enterProcessGroup),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/process-groups', request.id]);
+                    this.router.navigate(['process-groups', request.id]);
                 })
             ),
         { dispatch: false }
@@ -639,7 +639,7 @@ export class FlowEffects {
                 withLatestFrom(this.store.select(selectParentProcessGroupId)),
                 filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
                 tap(([action, parentProcessGroupId]) => {
-                    this.router.navigate(['/process-groups', parentProcessGroupId]);
+                    this.router.navigate(['process-groups', parentProcessGroupId]);
                 })
             ),
         { dispatch: false }
@@ -665,12 +665,12 @@ export class FlowEffects {
                         ];
                     } else if (request.components.length > 1) {
                         const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
-                        commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                        commands = ['process-groups', processGroupId, 'bulk', ids.join(',')];
                     }
                 } else {
                     const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
                     ids.push(...selected);
-                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                    commands = ['process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
                 return of(navigateWithoutTransform({ url: commands }));
             })
@@ -688,11 +688,11 @@ export class FlowEffects {
             switchMap(([request, processGroupId, selected]) => {
                 let commands: string[];
                 if (selected.length === 0) {
-                    commands = ['/process-groups', processGroupId];
+                    commands = ['process-groups', processGroupId];
                 } else {
                     const idsToRemove: string[] = request.components.map((selectedComponent) => selectedComponent.id);
                     const ids: string[] = selected.filter((id) => !idsToRemove.includes(id));
-                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                    commands = ['process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
                 return of(navigateWithoutTransform({ url: commands }));
             })
@@ -715,7 +715,7 @@ export class FlowEffects {
                     ];
                 } else if (request.components.length > 1) {
                     const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
-                    commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
+                    commands = ['process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
                 return of(navigateWithoutTransform({ url: commands }));
             })
@@ -727,7 +727,7 @@ export class FlowEffects {
             ofType(FlowActions.deselectAllComponents),
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
-                return of(navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
+                return of(navigateWithoutTransform({ url: ['process-groups', processGroupId] }));
             })
         )
     );
@@ -739,7 +739,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id]);
+                    this.router.navigate(['process-groups', processGroupId, request.type, request.id]);
                 })
             ),
         { dispatch: false }

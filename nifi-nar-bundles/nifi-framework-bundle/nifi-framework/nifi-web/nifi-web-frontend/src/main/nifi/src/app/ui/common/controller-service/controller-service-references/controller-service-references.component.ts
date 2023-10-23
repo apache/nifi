@@ -64,7 +64,9 @@ export class ControllerServiceReferences {
     }
 
     getReferencesByType(references: ControllerServiceReferencingComponentEntity[], referenceType: string) {
-        return references.filter((reference) => reference.permissions.canRead && reference.component.referenceType == referenceType);
+        return references.filter(
+            (reference) => reference.permissions.canRead && reference.component.referenceType == referenceType
+        );
     }
 
     isServiceInvalid(reference: ControllerServiceReferencingComponent): boolean {

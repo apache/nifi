@@ -20,10 +20,13 @@ import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
 import {
     selectControllerServiceIdFromRoute,
-    selectManagementControllerServicesState
+    selectManagementControllerServicesState,
+    selectService,
+    selectSingleEditedService
 } from '../../state/management-controller-services/management-controller-services.selectors';
 import {
     loadManagementControllerServices,
+    navigateToEditService,
     openConfigureControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
@@ -31,6 +34,8 @@ import {
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
+import { filter, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'management-controller-services',
@@ -41,7 +46,27 @@ export class ManagementControllerServices implements OnInit {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
 
-    constructor(private store: Store<ManagementControllerServicesState>) {}
+    constructor(private store: Store<ManagementControllerServicesState>) {
+        this.store
+            .select(selectSingleEditedService)
+            .pipe(
+                filter((id: string) => id != null),
+                switchMap((id: string) => this.store.select(selectService(id))),
+                takeUntilDestroyed()
+            )
+            .subscribe((entity) => {
+                if (entity) {
+                    this.store.dispatch(
+                        openConfigureControllerServiceDialog({
+                            request: {
+                                id: entity.id,
+                                controllerService: entity
+                            }
+                        })
+                    );
+                }
+            });
+    }
 
     ngOnInit(): void {
         this.store.dispatch(loadManagementControllerServices());
@@ -62,11 +87,8 @@ export class ManagementControllerServices implements OnInit {
 
     configureControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
-            openConfigureControllerServiceDialog({
-                request: {
-                    id: entity.id,
-                    controllerService: entity
-                }
+            navigateToEditService({
+                id: entity.id
             })
         );
     }
@@ -85,7 +107,7 @@ export class ManagementControllerServices implements OnInit {
         this.store.dispatch(
             selectControllerService({
                 request: {
-                    controllerService: entity
+                    id: entity.id
                 }
             })
         );

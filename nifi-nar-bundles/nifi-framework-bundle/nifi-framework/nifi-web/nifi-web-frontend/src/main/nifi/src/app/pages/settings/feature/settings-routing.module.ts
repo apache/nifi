@@ -38,7 +38,13 @@ const routes: Routes = [
                 children: [
                     {
                         path: ':id',
-                        component: ManagementControllerServices
+                        component: ManagementControllerServices,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: ManagementControllerServices
+                            }
+                        ]
                     }
                 ]
             },

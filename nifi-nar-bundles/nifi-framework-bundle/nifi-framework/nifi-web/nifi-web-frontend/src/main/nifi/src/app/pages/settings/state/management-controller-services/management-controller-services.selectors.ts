@@ -17,8 +17,9 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
-import { managementControllerServicesFeatureKey } from './index';
+import { managementControllerServicesFeatureKey, ManagementControllerServicesState } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { ControllerServiceEntity } from '../../../../state/shared';
 
 export const selectManagementControllerServicesState = createSelector(
     selectSettingsState,
@@ -32,3 +33,20 @@ export const selectControllerServiceIdFromRoute = createSelector(selectCurrentRo
     }
     return null;
 });
+
+export const selectSingleEditedService = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'edit') {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectServices = createSelector(
+    selectManagementControllerServicesState,
+    (state: ManagementControllerServicesState) => state.controllerServices
+);
+
+export const selectService = (id: string) =>
+    createSelector(selectServices, (services: ControllerServiceEntity[]) =>
+        services.find((service) => id == service.id)
+    );

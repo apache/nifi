@@ -28,7 +28,8 @@
                             <!--
                                 nifiTooltip dynamically inserts the tooltip component
                                 into the dom. the dom placement caused shifting of icons
-                                because of the gap between items.
+                                because of the gap between items. simple solution is to
+                                just wrap the target.
                             -->
                             <div>
                                 <div
@@ -120,7 +121,7 @@
                             <div
                                 class="pointer fa fa-gear"
                                 *ngIf="canConfigure(item)"
-                                (click)="configureClicked(item)"
+                                (click)="configureClicked(item, $event)"
                                 title="Configure"></div>
                             <!-- TODO - handle read only in configure component? -->
                             <div
@@ -135,7 +136,7 @@
                             <div
                                 class="pointer fa fa-trash"
                                 *ngIf="canDelete(item)"
-                                (click)="deleteClicked(item)"
+                                (click)="deleteClicked(item, $event)"
                                 title="Delete"></div>
                             <div class="pointer fa fa-tasks" *ngIf="canViewState(item)" title="View State"></div>
                         </div>

@@ -101,7 +101,19 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
-                        <!-- TODO - convert to parameter, go to parameter, go to service, create new service -->
+                        <!-- TODO - convert to parameter, go to parameter -->
+                        <div
+                            class="pointer fa fa-plus"
+                            *ngIf="item.descriptor.identifiesControllerService"
+                            (click)="createNewControllerService(item)"
+                            title="Create new service"></div>
+                        <!-- TODO - need to prevent navigation if outstanding changes -->
+                        <div
+                            class="pointer fa fa-long-arrow-right"
+                            *ngIf="canGoTo(item)"
+                            [routerLink]="getServiceLink(item.value) | async"
+                            mat-dialog-close
+                            title="Go to"></div>
                         <div
                             class="pointer fa fa-trash"
                             *ngIf="item.type == 'userDefined'"

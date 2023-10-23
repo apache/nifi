@@ -57,6 +57,7 @@ export class ExtensionCreation implements AfterViewInit {
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     protected readonly RestrictionsTip = RestrictionsTip;
+    protected readonly ControllerServiceApiTip = ControllerServiceApiTip;
 
     displayedColumns: string[] = ['type', 'version', 'tags'];
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
@@ -145,6 +146,4 @@ export class ExtensionCreation implements AfterViewInit {
             this.extensionTypeSelected.next(documentedType);
         }
     }
-
-    protected readonly ControllerServiceApiTip = ControllerServiceApiTip;
 }

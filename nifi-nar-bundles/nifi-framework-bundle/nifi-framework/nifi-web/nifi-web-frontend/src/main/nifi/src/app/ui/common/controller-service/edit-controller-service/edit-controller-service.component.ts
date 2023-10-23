@@ -19,7 +19,13 @@ import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../service/client.service';
-import { ControllerServiceEntity, EditControllerServiceRequest, Property } from '../../../../state/shared';
+import {
+    ControllerServiceEntity,
+    EditControllerServiceRequest,
+    InlineServiceCreationRequest,
+    InlineServiceCreationResponse,
+    Property
+} from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -56,6 +62,8 @@ import { ControllerServiceReferences } from '../controller-service-references/co
 })
 export class EditControllerService {
     @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
+    @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
+    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();
 
     editControllerServiceForm: FormGroup;

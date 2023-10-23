@@ -54,7 +54,7 @@ export interface DeleteControllerServiceSuccess {
 }
 
 export interface SelectControllerService {
-    controllerService: ControllerServiceEntity;
+    id: string;
 }
 
 export interface ManagementControllerServicesState {
