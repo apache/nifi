@@ -119,8 +119,6 @@
         <jsp:include page="/WEB-INF/partials/canvas/new-port-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-process-group-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-remote-process-group-dialog.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/new-template-dialog.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/upload-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/instantiate-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>

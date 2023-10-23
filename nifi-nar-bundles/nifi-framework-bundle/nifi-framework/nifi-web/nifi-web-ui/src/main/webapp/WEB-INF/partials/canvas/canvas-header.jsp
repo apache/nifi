@@ -175,13 +175,6 @@
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
-                        <a id="templates-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
-                            <i class="icon icon-template"></i>Templates
-                        </a>
-                    </md-menu-item>
-                    <md-menu-divider></md-menu-divider>
-                    <md-menu-item layout-align="space-around center">
                         <a id="help-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.help.shell.launch();">
                             <i class="fa fa-question-circle"></i>Help

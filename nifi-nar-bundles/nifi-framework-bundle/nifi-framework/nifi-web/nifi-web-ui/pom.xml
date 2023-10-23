@@ -674,8 +674,6 @@
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/templates/nf-templates-table.js</include>
-                                                <include>${staging.dir}/js/nf/templates/nf-templates.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -850,7 +848,6 @@
                                                 <include>${staging.dir}/css/main.css</include>
                                                 <include>${staging.dir}/css/banner.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
-                                                <include>${staging.dir}/css/templates.css</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
