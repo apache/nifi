@@ -813,7 +813,7 @@
     function sort(sortDetails, dataView, tab) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'heartbeat' || sortDetails.columnId === 'uptime') {
+            if (sortDetails.columnId === 'heartbeat' || sortDetails.columnId === 'nodeStartTime') {
                 var aDate = nfCommon.parseDateTime(a[sortDetails.columnId]);
                 var bDate = nfCommon.parseDateTime(b[sortDetails.columnId]);
                 return aDate.getTime() - bDate.getTime();
@@ -834,16 +834,15 @@
                 }
             } else if (sortDetails.columnId === 'maxHeap' || sortDetails.columnId === 'totalHeap' || sortDetails.columnId === 'usedHeap'
                 || sortDetails.columnId === 'totalNonHeap' || sortDetails.columnId === 'usedNonHeap'
-                || sortDetails.columnId === 'ffRepoTotal' || sortDetails.columnId === 'ffRepoUsed'
-                || sortDetails.columnId === 'ffRepoFree' || sortDetails.columnId === 'contentRepoTotal'
-                || sortDetails.columnId === 'contentRepoUsed' || sortDetails.columnId === 'contentRepoFree') {
+                || sortDetails.columnId.includes('RepoTotal') || sortDetails.columnId.includes('RepoUsed')
+                || sortDetails.columnId.includes('RepoFree')) {
                 var aSize = nfCommon.parseSize(a[sortDetails.columnId]);
                 var bSize = nfCommon.parseSize(b[sortDetails.columnId]);
                 return aSize - bSize;
             } else if (sortDetails.columnId === 'totalThreads' || sortDetails.columnId === 'daemonThreads'
-                || sortDetails.columnId === 'processors') {
-                var aCount = nfCommon.parseCount(a[sortDetails.columnId]);
-                var bCount = nfCommon.parseCount(b[sortDetails.columnId]);
+                || sortDetails.columnId === 'processors' || sortDetails.columnId === 'processorLoadAverage') {
+                var aCount = a[sortDetails.columnId];
+                var bCount = b[sortDetails.columnId];
                 return aCount - bCount;
             } else if (sortDetails.columnId === 'status') {
                 var aStatus = formatNodeStatus(a);
@@ -853,6 +852,14 @@
                 var aNode = formatNodeAddress(a);
                 var bNode = formatNodeAddress(b);
                 return aNode === bNode ? 0 : aNode > bNode ? 1 : -1;
+            } else if (sortDetails.columnId === 'version' || sortDetails.columnId === 'javaVersion') {
+                return nfCommon.sortVersion(a[sortDetails.columnId], b[sortDetails.columnId]);
+            } else if (sortDetails.columnId === 'uptime') {
+                var aDuration = nfCommon.parseDuration(a[sortDetails.columnId]);
+                var bDuration = nfCommon.parseDuration(b[sortDetails.columnId]);
+                return aDuration - bDuration;
+            } else if (sortDetails.columnId.includes('Util')) {
+                return parseFloat(a[sortDetails.columnId]) - parseFloat(b[sortDetails.columnId]);
             } else {
                 var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
                 var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
