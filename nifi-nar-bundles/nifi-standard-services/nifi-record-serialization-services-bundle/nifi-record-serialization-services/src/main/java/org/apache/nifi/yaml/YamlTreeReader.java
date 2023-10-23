@@ -17,10 +17,12 @@
 
 package org.apache.nifi.yaml;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.json.AbstractJsonRowRecordReader;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
@@ -47,7 +49,7 @@ public class YamlTreeReader extends JsonTreeReader {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        //NOTE: Remove those properties which are not applicable for Yaml.
+        // Remove those properties which are not applicable for YAML
         properties.remove(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
         properties.remove(AbstractJsonRowRecordReader.ALLOW_COMMENTS);
 
@@ -63,5 +65,10 @@ public class YamlTreeReader extends JsonTreeReader {
     protected JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream in, ComponentLog logger, RecordSchema schema) throws IOException, MalformedRecordException {
         return new YamlTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
                 schemaApplicationStrategy, null);
+    }
+
+    @Override
+    protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
+        return StreamReadConstraints.defaults();
     }
 }

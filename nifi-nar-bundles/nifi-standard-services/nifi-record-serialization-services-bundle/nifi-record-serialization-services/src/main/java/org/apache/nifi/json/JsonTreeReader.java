@@ -138,9 +138,13 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.startingFieldStrategy = StartingFieldStrategy.valueOf(context.getProperty(STARTING_FIELD_STRATEGY).getValue());
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
         this.schemaApplicationStrategy = SchemaApplicationStrategy.valueOf(context.getProperty(SCHEMA_APPLICATION_STRATEGY).getValue());
-        final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
-        this.streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+        this.streamReadConstraints = buildStreamReadConstraints(context);
         this.allowComments = context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
+    }
+
+    protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
+        final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        return StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
     }
 
     @Override
