@@ -139,12 +139,28 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
         this.schemaApplicationStrategy = SchemaApplicationStrategy.valueOf(context.getProperty(SCHEMA_APPLICATION_STRATEGY).getValue());
         this.streamReadConstraints = buildStreamReadConstraints(context);
-        this.allowComments = context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
+        this.allowComments = isAllowCommentsEnabled(context);
     }
 
+    /**
+     * Build Stream Read Constraints based on available properties
+     *
+     * @param context Configuration Context with property values
+     * @return Stream Read Constraints
+     */
     protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
         final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         return StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+    }
+
+    /**
+     * Determine whether to allow comments when parsing based on available properties
+     *
+     * @param context Configuration Context with property values
+     * @return Allow comments status
+     */
+    protected boolean isAllowCommentsEnabled(final ConfigurationContext context) {
+        return context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
     }
 
     @Override

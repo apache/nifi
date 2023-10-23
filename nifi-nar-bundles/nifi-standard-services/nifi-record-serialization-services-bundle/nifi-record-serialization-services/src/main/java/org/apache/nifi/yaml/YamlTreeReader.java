@@ -46,6 +46,8 @@ import java.util.List;
         + "See the Usage of the Controller Service for more information and examples.")
 public class YamlTreeReader extends JsonTreeReader {
 
+    private static final boolean ALLOW_COMMENTS_DISABLED = false;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
@@ -70,5 +72,10 @@ public class YamlTreeReader extends JsonTreeReader {
     @Override
     protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
         return StreamReadConstraints.defaults();
+    }
+
+    @Override
+    protected boolean isAllowCommentsEnabled(final ConfigurationContext context) {
+        return ALLOW_COMMENTS_DISABLED;
     }
 }
