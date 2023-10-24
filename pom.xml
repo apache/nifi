@@ -9,7 +9,9 @@
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
     language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
@@ -82,8 +84,8 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
     <issueManagement>
         <system>JIRA</system>
         <url>https://issues.apache.org/jira/browse/NIFI</url>
@@ -107,9 +109,10 @@
         <com.amazonaws.version>1.12.550</com.amazonaws.version>
         <software.amazon.awssdk.version>2.20.148</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
-        <kotlin.version>1.9.0</kotlin.version>
-        <okhttp.version>4.11.0</okhttp.version>
-        <okio.version>3.5.0</okio.version>
+        <io.fabric8.kubernetes.client.version>6.8.1</io.fabric8.kubernetes.client.version>
+        <kotlin.version>1.9.10</kotlin.version>
+        <okhttp.version>4.12.0</okhttp.version>
+        <okio.version>3.6.0</okio.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.24.0</org.apache.commons.compress.version>
@@ -172,7 +175,8 @@
                 <version>5.2</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- logback-classic, logback-core, log4j-over-slf4j, jul-to-slf4j,jcl-over-slf4j,slf4j-api handling this explicitly  Must be in root lib -->
+            <!-- logback-classic, logback-core, log4j-over-slf4j,
+            jul-to-slf4j,jcl-over-slf4j,slf4j-api handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
@@ -390,7 +394,8 @@
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
-            <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
+            <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from
+            it so we dont want this getting overriden -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
@@ -819,7 +824,8 @@
                         <releaseProfiles>apache-release</releaseProfiles>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <goals>deploy</goals>
-                        <!--suppress UnresolvedMavenProperty -->
+                        <!--suppress
+                        UnresolvedMavenProperty -->
                         <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
                         <pushChanges>false</pushChanges>
                         <localCheckout>true</localCheckout>
@@ -950,14 +956,16 @@
                                     <plugins>
                                         <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
                                         <plugin>org.apache.maven.plugins:maven-failsafe-plugin</plugin>
-                                        <plugin>org.apache.maven.plugins:maven-surefire-report-plugin</plugin>
+                                        <plugin>
+                                            org.apache.maven.plugins:maven-surefire-report-plugin</plugin>
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
                                     <version>3.6.0</version>
                                 </requireMavenVersion>
                                 <requireReleaseDeps>
-                                    <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
+                                    <message>Dependencies outside of Apache NiFi must not use
+                                        SNAPSHOT versions</message>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
@@ -972,20 +980,25 @@
                                         <!-- Cat-X Deps -->
                                         <exclude>org.json:json:*:*:compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
-                                        <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
+                                        <!-- Versions of JSR305 before 3.0.1 are not allowed
+                                        https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:[,3.0.0]:compile</exclude>
-                                        <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->
+                                        <!-- SLF4J routing to Log4j 1.2 is a runtime implementation
+                                        that conflicts with Logback -->
                                         <exclude>org.slf4j:slf4j-log4j12</exclude>
                                         <exclude>org.slf4j:slf4j-reload4j</exclude>
                                         <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
                                         <exclude>log4j:log4j:*</exclude>
-                                        <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j routing to logback -->
+                                        <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j
+                                        routing to logback -->
                                         <exclude>org.apache.logging.log4j:log4j-core:*</exclude>
                                         <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
                                         <exclude>commons-logging:commons-logging:*</exclude>
-                                        <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
+                                        <!-- Apache Xalan is no longer maintained and is bundled in
+                                        the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
-                                        <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
+                                        <!-- As of Bouncycastle 1.71 Java 8 is the minimum required
+                                        so jdk15on artifacts not allowed -->
                                         <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcpg-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
@@ -1019,9 +1032,11 @@
                     <consoleOutput>true</consoleOutput>
                     <useIdeaDefaultExcludes>true</useIdeaDefaultExcludes>
                     <excludes>
-                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
+                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans
+                        users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
+                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven
+                        config while building sources.zip -->
                     </excludes>
                 </configuration>
             </plugin>
@@ -1119,7 +1134,8 @@
             </build>
         </profile>
         <profile>
-            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
+            <!-- This profile, activating when compiling on Java versions above 1.8, provides
+            configuration changes to
                  allow NiFi to be compiled on those JDKs. -->
             <id>jigsaw</id>
             <activation>
@@ -1169,8 +1185,10 @@
             </dependencyManagement>
         </profile>
         <profile>
-            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
-            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
+            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in
+            the target directory -->
+            <!-- Report results require detailed analysis to determine whether the vulnerability
+            impacts the application -->
             <id>dependency-check</id>
             <build>
                 <plugins>
@@ -1187,9 +1205,11 @@
                                 </goals>
                                 <configuration>
                                     <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
-                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
+                                    <!-- Skip System Scope to avoid dependency resolution errors
+                                    with jdk.tools on Java 8 -->
                                     <skipSystemScope>true</skipSystemScope>
-                                    <!-- Disable .NET Assembly Analyzer to avoid non-applicable errors -->
+                                    <!-- Disable .NET Assembly Analyzer to avoid non-applicable
+                                    errors -->
                                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
                                     <skipProvidedScope>true</skipProvidedScope>
                                 </configuration>
