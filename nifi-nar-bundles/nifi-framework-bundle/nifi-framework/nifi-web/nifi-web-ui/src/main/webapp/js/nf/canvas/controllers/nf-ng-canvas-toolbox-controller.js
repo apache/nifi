@@ -74,7 +74,6 @@
                     remoteProcessGroup: 'Remote Process Group',
                     connection: 'Connection',
                     funnel: 'Funnel',
-                    template: 'Template',
                     importFromRegistry: 'Import from Registry',
                     label: 'Label'
                 },
