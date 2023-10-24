@@ -37,11 +37,11 @@ export const rootGroupGuard: CanActivateFn = (route, state) => {
                 return flowService.getProcessGroupStatus().pipe(
                     take(1),
                     switchMap((rootGroupStatus: any) => {
-                        return router.navigate(['process-groups', rootGroupStatus.processGroupStatus.id]);
+                        return router.navigate(['/process-groups', rootGroupStatus.processGroupStatus.id]);
                     })
                 );
             } else {
-                return router.navigate(['process-groups', pgId]);
+                return router.navigate(['/process-groups', pgId]);
             }
         })
     );

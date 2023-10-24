@@ -19,46 +19,17 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
-import { loadExtensionTypesForSettings } from '../../../state/extension-types/extension-types.actions';
 
 @Component({
-    selector: 'settings',
-    templateUrl: './settings.component.html',
-    styleUrls: ['./settings.component.scss']
+    selector: 'parameter-contexts',
+    templateUrl: './parameter-contexts.component.html',
+    styleUrls: ['./parameter-contexts.component.scss']
 })
-export class Settings implements OnInit, OnDestroy {
-    tabLinks: any[] = [
-        {
-            label: 'General',
-            link: 'general'
-        },
-        {
-            label: 'Management Controller Services',
-            link: 'management-controller-services'
-        },
-        {
-            label: 'Reporting Tasks',
-            link: 'reporting-tasks'
-        },
-        {
-            label: 'Flow Analysis Rules',
-            link: 'flow-analysis-rules'
-        },
-        {
-            label: 'Registry Clients',
-            link: 'registry-clients'
-        },
-        {
-            label: 'Parameter Providers',
-            link: 'parameter-providers'
-        }
-    ];
-
+export class ParameterContexts implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(startUserPolling());
-        this.store.dispatch(loadExtensionTypesForSettings());
     }
 
     ngOnDestroy(): void {

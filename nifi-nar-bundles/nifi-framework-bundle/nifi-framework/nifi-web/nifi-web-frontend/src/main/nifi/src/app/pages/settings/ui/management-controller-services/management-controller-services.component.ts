@@ -19,18 +19,18 @@ import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
 import {
-    selectControllerServiceIdFromRoute,
-    selectManagementControllerServicesState,
-    selectService,
-    selectSingleEditedService
+  selectControllerServiceIdFromRoute,
+  selectManagementControllerServicesState,
+  selectService,
+  selectSingleEditedService
 } from '../../state/management-controller-services/management-controller-services.selectors';
 import {
-    loadManagementControllerServices,
-    navigateToEditService,
-    openConfigureControllerServiceDialog,
-    openNewControllerServiceDialog,
-    promptControllerServiceDeletion,
-    selectControllerService
+  loadManagementControllerServices,
+  navigateToEditService,
+  openConfigureControllerServiceDialog,
+  openNewControllerServiceDialog,
+  promptControllerServiceDeletion,
+  selectControllerService
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
@@ -51,7 +51,12 @@ export class ManagementControllerServices implements OnInit {
             .select(selectSingleEditedService)
             .pipe(
                 filter((id: string) => id != null),
-                switchMap((id: string) => this.store.select(selectService(id)).pipe(take(1))),
+                switchMap((id: string) =>
+                    this.store.select(selectService(id)).pipe(
+                        filter((entity) => entity != null),
+                        take(1)
+                    )
+                ),
                 takeUntilDestroyed()
             )
             .subscribe((entity) => {

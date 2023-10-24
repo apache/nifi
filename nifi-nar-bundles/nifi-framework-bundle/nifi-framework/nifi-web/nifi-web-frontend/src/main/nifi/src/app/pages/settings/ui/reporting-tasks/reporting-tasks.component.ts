@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
 import {
     selectReportingTaskIdFromRoute,
@@ -31,13 +30,14 @@ import {
     startReportingTask,
     stopReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
+import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 
 @Component({
     selector: 'reporting-tasks',
     templateUrl: './reporting-tasks.component.html',
     styleUrls: ['./reporting-tasks.component.scss']
 })
-export class ReportingTasks {
+export class ReportingTasks implements OnInit {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
 

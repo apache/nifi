@@ -105,20 +105,20 @@ export class ControllerServiceReferences {
     getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
         if (reference.referenceType == 'ControllerService') {
             if (reference.groupId == null) {
-                return ['settings', 'management-controller-services', reference.id];
+                return ['/settings', 'management-controller-services', reference.id];
             } else {
-                return ['process-groups', reference.groupId, 'controller-services', reference.id];
+                return ['/process-groups', reference.groupId, 'controller-services', reference.id];
             }
         } else if (reference.referenceType == 'ReportingTask') {
-            return ['settings', 'reporting-tasks', reference.id];
+            return ['/settings', 'reporting-tasks', reference.id];
         } else if (reference.referenceType == 'Processor') {
-            return ['process-groups', reference.groupId, 'processors', reference.id];
+            return ['/process-groups', reference.groupId, 'processors', reference.id];
         } else if (reference.referenceType == 'FlowAnalysisRule') {
-            return ['settings', 'flow-analysis-rules', reference.id];
+            return ['/settings', 'flow-analysis-rules', reference.id];
         } else if (reference.referenceType == 'ParameterProvider') {
-            return ['settings', 'parameter-providers', reference.id];
+            return ['/settings', 'parameter-providers', reference.id];
         } else {
-            return ['settings', 'registry-clients', reference.id];
+            return ['/settings', 'registry-clients', reference.id];
         }
     }
 

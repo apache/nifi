@@ -156,7 +156,7 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.navigateToEditService),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['settings', 'management-controller-services', id, 'edit']);
+                    this.router.navigate(['/settings', 'management-controller-services', id, 'edit']);
                 })
             ),
         { dispatch: false }
@@ -210,7 +210,7 @@ export class ManagementControllerServicesEffects {
                     };
 
                     editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return of(['settings', 'management-controller-services', serviceId]);
+                        return of(['/settings', 'management-controller-services', serviceId]);
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -413,7 +413,7 @@ export class ManagementControllerServicesEffects {
                 ofType(ManagementControllerServicesActions.selectControllerService),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['settings', 'management-controller-services', request.id]);
+                    this.router.navigate(['/settings', 'management-controller-services', request.id]);
                 })
             ),
         { dispatch: false }

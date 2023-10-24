@@ -17,40 +17,29 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { authGuard } from './service/guard/auth.guard';
+import { ParameterContexts } from './parameter-contexts.component';
 
 const routes: Routes = [
     {
-        path: 'login',
-        loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
-    },
-    {
-        path: 'settings',
-        canMatch: [authGuard],
-        loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
-    },
-    {
-        path: 'parameter-contexts',
-        canMatch: [authGuard],
-        loadChildren: () =>
-            import('./pages/parameter-contexts/feature/parameter-contexts.module').then(
-                (m) => m.ParameterContextsModule
-            )
-    },
-    {
         path: '',
-        canMatch: [authGuard],
-        loadChildren: () => import('./pages/canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
+        component: ParameterContexts,
+        children: [
+            {
+                path: ':id',
+                component: ParameterContexts,
+                children: [
+                    {
+                        path: 'edit',
+                        component: ParameterContexts
+                    }
+                ]
+            }
+        ]
     }
 ];
 
 @NgModule({
-    imports: [
-        RouterModule.forRoot(routes, {
-            paramsInheritanceStrategy: 'always',
-            useHash: true
-        })
-    ],
+    imports: [RouterModule.forChild(routes)],
     exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class ParameterContextsRoutingModule {}

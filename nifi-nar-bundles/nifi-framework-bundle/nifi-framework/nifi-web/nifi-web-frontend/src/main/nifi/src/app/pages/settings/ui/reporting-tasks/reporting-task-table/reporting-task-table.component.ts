@@ -60,7 +60,6 @@ export class ReportingTaskTable implements AfterViewInit {
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<ReportingTaskEntity> = new MatTableDataSource<ReportingTaskEntity>();
-    selectedReportingTask: ReportingTaskEntity | null = null;
 
     @ViewChild(MatSort) sort!: MatSort;
 
