@@ -558,7 +558,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-group-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-remote-process-group-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-funnel-component.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-template-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-registry-import-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-label-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-breadcrumbs-directive.js</include>
