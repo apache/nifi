@@ -18,6 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { ReportingTasksState } from './index';
 import {
+    createReportingTask,
     createReportingTaskSuccess,
     deleteReportingTaskSuccess,
     loadReportingTasks,
@@ -30,6 +31,7 @@ import { produce } from 'immer';
 
 export const initialState: ReportingTasksState = {
     reportingTasks: [],
+    saving: false,
     loadedTimestamp: '',
     error: null,
     status: 'pending'
@@ -50,12 +52,18 @@ export const reportingTasksReducer = createReducer(
     })),
     on(reportingTasksApiError, (state, { error }) => ({
         ...state,
+        saving: false,
         error,
         status: 'error' as const
+    })),
+    on(createReportingTask, (state, { request }) => ({
+        ...state,
+        saving: true
     })),
     on(createReportingTaskSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             draftState.reportingTasks.push(response.reportingTask);
+            draftState.saving = false;
         });
     }),
     on(startReportingTaskSuccess, (state, { response }) => {

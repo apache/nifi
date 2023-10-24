@@ -34,7 +34,7 @@ import {
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
-import { filter, switchMap } from 'rxjs';
+import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -51,7 +51,7 @@ export class ManagementControllerServices implements OnInit {
             .select(selectSingleEditedService)
             .pipe(
                 filter((id: string) => id != null),
-                switchMap((id: string) => this.store.select(selectService(id))),
+                switchMap((id: string) => this.store.select(selectService(id)).pipe(take(1))),
                 takeUntilDestroyed()
             )
             .subscribe((entity) => {

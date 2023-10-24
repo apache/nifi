@@ -18,7 +18,9 @@
 import { createReducer, on } from '@ngrx/store';
 import { ManagementControllerServicesState } from './index';
 import {
+    configureControllerService,
     configureControllerServiceSuccess,
+    createControllerService,
     createControllerServiceSuccess,
     deleteControllerServiceSuccess,
     inlineCreateControllerServiceSuccess,
@@ -30,6 +32,7 @@ import { produce } from 'immer';
 
 export const initialState: ManagementControllerServicesState = {
     controllerServices: [],
+    saving: false,
     loadedTimestamp: '',
     error: null,
     status: 'pending'
@@ -50,12 +53,18 @@ export const managementControllerServicesReducer = createReducer(
     })),
     on(managementControllerServicesApiError, (state, { error }) => ({
         ...state,
+        saving: false,
         error,
         status: 'error' as const
+    })),
+    on(createControllerService, (state, { request }) => ({
+        ...state,
+        saving: true
     })),
     on(createControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             draftState.controllerServices.push(response.controllerService);
+            draftState.saving = false;
         });
     }),
     on(inlineCreateControllerServiceSuccess, (state, { response }) => {
@@ -63,12 +72,17 @@ export const managementControllerServicesReducer = createReducer(
             draftState.controllerServices.push(response.controllerService);
         });
     }),
+    on(configureControllerService, (state, { request }) => ({
+        ...state,
+        saving: true
+    })),
     on(configureControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.controllerServices.findIndex((f: any) => response.id === f.id);
             if (componentIndex > -1) {
                 draftState.controllerServices[componentIndex] = response.controllerService;
             }
+            draftState.saving = false;
         });
     }),
     on(deleteControllerServiceSuccess, (state, { response }) => {

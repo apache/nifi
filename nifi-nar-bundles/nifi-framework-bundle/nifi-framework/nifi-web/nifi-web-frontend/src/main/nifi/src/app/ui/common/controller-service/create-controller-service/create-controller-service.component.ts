@@ -15,21 +15,25 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CreateControllerServiceRequest, DocumentedType } from '../../../../state/shared';
 import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
+import { Observable } from 'rxjs';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: 'create-controller-service',
     standalone: true,
-    imports: [ExtensionCreation],
+    imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-controller-service.component.html',
     styleUrls: ['./create-controller-service.component.scss']
 })
 export class CreateControllerService {
-    controllerServiceTypes: DocumentedType[];
+    @Input() saving$!: Observable<boolean>;
     @Output() createControllerService: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
+
+    controllerServiceTypes: DocumentedType[];
 
     constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: CreateControllerServiceRequest) {
         this.controllerServiceTypes = dialogRequest.controllerServiceTypes;

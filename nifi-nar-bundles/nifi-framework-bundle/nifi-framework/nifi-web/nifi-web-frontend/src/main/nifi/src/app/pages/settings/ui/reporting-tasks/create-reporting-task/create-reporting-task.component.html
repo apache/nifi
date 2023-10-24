@@ -18,4 +18,5 @@
 <extension-creation
     [componentType]="'Reporting Task'"
     [documentedTypes]="reportingTasks"
+    [saving]="(saving$ | async)!"
     (extensionTypeSelected)="createReportingTask($event)"></extension-creation>

@@ -138,13 +138,13 @@ export const flowReducer = createReducer(
     on(flowApiError, (state, { error }) => ({
         ...state,
         dragging: false,
+        saving: false,
         error: error,
         status: 'error' as const
     })),
     on(clearFlowApiError, (state) => ({
         ...state,
         error: null,
-        saving: false,
         status: 'pending' as const
     })),
     on(createProcessor, (state) => ({

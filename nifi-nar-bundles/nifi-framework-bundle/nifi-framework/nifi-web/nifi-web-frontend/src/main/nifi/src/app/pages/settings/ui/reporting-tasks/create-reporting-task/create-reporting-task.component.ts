@@ -23,16 +23,19 @@ import { CreateReportingTaskRequest, ReportingTasksState } from '../../../state/
 import { createReportingTask } from '../../../state/reporting-tasks/reporting-tasks.actions';
 import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
+import { selectSaving } from '../../../state/reporting-tasks/reporting-tasks.selectors';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: 'create-reporting-task',
     standalone: true,
-    imports: [ExtensionCreation],
+    imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-reporting-task.component.html',
     styleUrls: ['./create-reporting-task.component.scss']
 })
 export class CreateReportingTask {
     reportingTasks: DocumentedType[];
+    saving$ = this.store.select(selectSaving);
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateReportingTaskRequest,

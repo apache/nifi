@@ -79,6 +79,7 @@ export interface ReportingTaskEntity {
 
 export interface ReportingTasksState {
     reportingTasks: ReportingTaskEntity[];
+    saving: boolean;
     loadedTimestamp: string;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';

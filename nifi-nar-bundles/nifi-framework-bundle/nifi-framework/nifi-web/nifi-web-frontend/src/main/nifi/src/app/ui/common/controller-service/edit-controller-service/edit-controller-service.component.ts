@@ -29,7 +29,7 @@ import {
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatOptionModule } from '@angular/material/core';
@@ -38,6 +38,7 @@ import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { Observable } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
+import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'edit-controller-service',
@@ -56,7 +57,9 @@ import { ControllerServiceReferences } from '../controller-service-references/co
         NgForOf,
         PropertyTable,
         ControllerServiceApi,
-        ControllerServiceReferences
+        ControllerServiceReferences,
+        AsyncPipe,
+        NifiSpinnerDirective
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
@@ -64,6 +67,7 @@ export class EditControllerService {
     @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() saving$!: Observable<boolean>;
     @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();
 
     editControllerServiceForm: FormGroup;

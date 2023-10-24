@@ -39,6 +39,7 @@ import {
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { Router } from '@angular/router';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { selectSaving } from './management-controller-services.selectors';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -89,6 +90,8 @@ export class ManagementControllerServicesEffects {
                         },
                         panelClass: 'medium-dialog'
                     });
+
+                    dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
                     dialogReference.componentInstance.createControllerService
                         .pipe(take(1))
@@ -173,6 +176,8 @@ export class ManagementControllerServicesEffects {
                         },
                         panelClass: 'large-dialog'
                     });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
                     editDialogReference.componentInstance.createNewProperty = (
                         allowsSensitive: boolean
