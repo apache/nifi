@@ -186,7 +186,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
 
     private boolean isPublicKeyMatched(final PGPPublicKey publicKey, final String search) {
         boolean matched = false;
-        final String keyId = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        final String keyId = String.format("%016X", publicKey.getKeyID());
         if (keyId.equals(search)) {
             matched = true;
         } else {
