@@ -16,6 +16,7 @@
  */
 package org.apche.nifi.pgp.service.standard;
 
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.standard.StandardPGPPublicKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
@@ -129,7 +130,7 @@ public class StandardPGPPublicKeyServiceTest {
 
     private void assertPublicKeyFound(final PGPSecretKey secretKey) {
         final long keyIdentifier = secretKey.getKeyID();
-        final String publicKeySearch = Long.toHexString(keyIdentifier).toUpperCase();
+        final String publicKeySearch = KeyIdentifierConverter.format(keyIdentifier);
         final Optional<PGPPublicKey> optionalPublicKey = service.findPublicKey(publicKeySearch);
         assertTrue(optionalPublicKey.isPresent());
         final PGPPublicKey publicKey = optionalPublicKey.get();

@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.api.PGPPrivateKeyService;
 import org.apache.nifi.pgp.service.standard.exception.PGPConfigurationException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -142,7 +143,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
      */
     @Override
     public Optional<PGPPrivateKey> findPrivateKey(final long keyIdentifier) {
-        getLogger().debug("Find Private Key [{}]", Long.toHexString(keyIdentifier).toUpperCase());
+        getLogger().debug("Find Private Key [{}]", KeyIdentifierConverter.format(keyIdentifier));
         return Optional.ofNullable(privateKeys.get(keyIdentifier));
     }
 
@@ -256,7 +257,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
         for (final PGPSecretKeyRing keyRing : keyRings) {
             for (final PGPSecretKey secretKey : keyRing) {
                 final long keyId = secretKey.getKeyID();
-                final String keyIdentifier = Long.toHexString(keyId).toUpperCase();
+                final String keyIdentifier = KeyIdentifierConverter.format(keyId);
                 try {
                     final PGPPrivateKey privateKey = secretKey.extractPrivateKey(keyDecryptor);
                     extractedPrivateKeys.add(privateKey);
