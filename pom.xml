@@ -845,14 +845,17 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr3-maven-plugin</artifactId>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.3.1</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
@@ -868,6 +871,21 @@
                 <plugin>
                     <groupId>org.apache.rat</groupId>
                     <artifactId>apache-rat-plugin</artifactId>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-nar-maven-plugin</artifactId>
+                    <version>${nifi.nar.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.13</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jvnet.jaxb2.maven2</groupId>
+                    <artifactId>maven-jaxb2-plugin</artifactId>
+                    <version>0.15.3</version>
                 </plugin>
             </plugins>
         </pluginManagement>
