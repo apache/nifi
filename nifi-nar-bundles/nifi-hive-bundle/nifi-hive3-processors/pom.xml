@@ -144,6 +144,27 @@
                     <groupId>org.eclipse.jetty.websocket</groupId>
                     <artifactId>websocket-client</artifactId>
                 </exclusion>
+                <!-- Exclude HBase -->
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-common</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-mapreduce</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop2-compat</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop-compat</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>

@@ -35,36 +35,6 @@
         <vulnerabilityName>CVE-2020-5408</vulnerabilityName>
     </suppress>
     <suppress>
-        <notes>Apache Hive vulnerabilities do not apply to Flume Hive Sink</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-hive\-sink@.*$</packageUrl>
-        <cpe>cpe:/a:apache:hive</cpe>
-    </suppress>
-    <suppress>
-        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Sink</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-kafka\-sink@.*$</packageUrl>
-        <cpe>cpe:/a:apache:kafka</cpe>
-    </suppress>
-    <suppress>
-        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Source</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sources/flume\-kafka\-source@.*$</packageUrl>
-        <cpe>cpe:/a:apache:kafka</cpe>
-    </suppress>
-    <suppress>
-        <notes>Apache Kafka vulnerabilities do not apply to Flume Shared Kafka</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-shared/flume\-shared\-kafka@.*$</packageUrl>
-        <cpe>cpe:/a:apache:kafka</cpe>
-    </suppress>
-    <suppress>
-        <notes>Apache HBase vulnerabilities do not apply to Flume HBase Sink</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-hbase\-sink@.*$</packageUrl>
-        <cpe>cpe:/a:apache:hbase</cpe>
-    </suppress>
-    <suppress>
-        <notes>Apache Solr vulnerabilities do not apply to Flume Solr Sink</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-morphline\-solr\-sink@.*$</packageUrl>
-        <cpe>cpe:/a:apache:solr</cpe>
-    </suppress>
-    <suppress>
         <notes>CVE-2017-10355 does not apply to Xerces 2.12.2</notes>
         <packageUrl regex="true">^pkg:maven/xerces/xercesImpl@.*$</packageUrl>
         <cve>CVE-2017-10355</cve>
@@ -75,24 +45,9 @@
         <cve>CVE-2020-13955</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2018-8025 applies to HBase Server not HBase Client</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-client@.*$</packageUrl>
-        <cve>CVE-2018-8025</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-0212 applies to HBase Server not HBase Client</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-client@.*$</packageUrl>
-        <cve>CVE-2019-0212</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2007-6465 applies to Ganglia Server not Ganglia client libraries</notes>
         <packageUrl regex="true">^pkg:maven/com\.yammer\.metrics/metrics\-ganglia@.*$</packageUrl>
         <cve>CVE-2007-6465</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2021-43045 applies to the Apache Avro .NET SDK and not to the Java SDK</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.avro/avro@.*$</packageUrl>
-        <cve>CVE-2021-43045</cve>
     </suppress>
     <suppress>
         <notes>CVE-2022-31159 applies to AWS S3 library not the SWF libraries</notes>
@@ -113,16 +68,6 @@
         <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch</notes>
         <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@7.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
-    </suppress>
-    <suppress>
-        <notes>Elasticsearch Server CVE-2020-7009 does not apply to elasticsearch client libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch.*$</packageUrl>
-        <cve>CVE-2020-7009</cve>
-    </suppress>
-    <suppress>
-        <notes>Elasticsearch Server CVE-2020-7014 does not apply to elasticsearch client libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch.*$</packageUrl>
-        <cve>CVE-2020-7014</cve>
     </suppress>
     <suppress>
         <notes>CVE-2021-22145 applies to Elasticsearch Server not client libraries</notes>
@@ -153,11 +98,6 @@
         <notes>CVE-2022-39135 applies to Apache Calcite core not the Calcite Druid library</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.calcite/calcite\-druid@.*$</packageUrl>
         <cve>CVE-2022-39135</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2018-1000873 applies to Jackson Java 8 Time modules not Jackson Annotations</notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-annotations@.*$</packageUrl>
-        <cve>CVE-2018-1000873</cve>
     </suppress>
     <suppress>
         <notes>CVE-2010-1151 applies to mod_auth_shadow in Apache HTTP Server not the FTP server library</notes>
@@ -205,29 +145,9 @@
         <cve>CVE-2021-34538</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2018-8025 applies to HBase server not the shaded libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase\.thirdparty/hbase\-shaded\-.*$</packageUrl>
-        <cve>CVE-2018-8025</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2018-8025 applies to HBase Server not HBase libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-.*$</packageUrl>
-        <cve>CVE-2018-8025</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-0212 applies to HBase Server not HBase libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-.*$</packageUrl>
-        <cve>CVE-2019-0212</cve>
-    </suppress>
-    <suppress>
         <notes>Hadoop vulnerabilities do not apply to HBase Hadoop2 compatibility library</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-hadoop2\-compat@.*$</packageUrl>
         <cpe>cpe:/a:apache:hadoop</cpe>
-    </suppress>
-    <suppress>
-        <notes>CVE-2022-45688 applies to hutools-json not org.json</notes>
-        <packageUrl regex="true">^pkg:maven/org\.json/json@.*$</packageUrl>
-        <cve>CVE-2022-45688</cve>
     </suppress>
     <suppress>
         <notes>The Jackson maintainers dispute the applicability of CVE-2023-35116 based on cyclic nature of reported concern</notes>
@@ -258,5 +178,270 @@
         <notes>CVE-2022-41915 applies to Netty HTTP decoding which is not applicable to Apache Kudu clients</notes>
         <packageUrl regex="true">^pkg:maven/io\.netty/netty.*?@.*$</packageUrl>
         <cve>CVE-2022-41915</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-34462 applies to Netty servers using SniHandler not Netty 4.1 shaded for Couchbase and HBase 2</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
+        <cve>CVE-2023-34462</cve>
+    </suppress>
+    <suppress>
+        <notes>The Square Wire framework is not the same as the Wire secure communication application</notes>
+        <packageUrl regex="true">^pkg:maven/com\.squareup\.wire/.*$</packageUrl>
+        <cpe>cpe:/a:wire:wire</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-44487 applies to Solr Server not Solr client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.solr/solr\-solrj@.*$</packageUrl>
+        <cve>CVE-2023-44487</cve>
+    </suppress>
+    <suppress>
+        <notes>Quartz maintainers dispute CVE-2023-39017 because it requires code injection from external users</notes>
+        <packageUrl regex="true">^pkg:maven/org\.quartz\-scheduler/quartz@.*$</packageUrl>
+        <cve>CVE-2023-39017</cve>
+    </suppress>
+    <suppress>
+        <notes>Avro project vulnerabilities do not apply to Parquet Avro</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.parquet/parquet\-avro@.*$</packageUrl>
+        <cpe>cpe:/a:avro_project:avro</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-4759 is resolved in 6.7.0 which is already upgraded in nifi-registry</notes>
+        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/.*$</packageUrl>
+        <cve>CVE-2023-4759</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-4586 is resolved in Netty 4.1.100 which is already upgraded</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
+        <cve>CVE-2023-4586</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-35887 applies to MINA SSHD not MINA core libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.mina/mina\-core@.*$</packageUrl>
+        <cve>CVE-2023-35887</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2016-5397 applies to Apache Thrift Go not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
+        <cve>CVE-2016-5397</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-0210 applies to Apache Thrift Go server not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
+        <cve>CVE-2019-0210</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-11798 applies Apache Thrift Node.js not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
+        <cve>CVE-2018-11798</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-11939 applies to Thrift Servers in Go not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-11939</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3552 applies to Thrift Servers in CPP not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3552</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3553 applies to Thrift Servers in CPP not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3553</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3558 applies to Thrift Servers in Python not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3558</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3564 applies to Thrift Servers in Go not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3564</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3565 applies to Thrift Servers in CPP not Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3565</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-24028 applies to Facebook Thrift CPP</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2021-24028</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-11938 applies to Facebook Thrift Servers</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-11938</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-3559 applies to Facebook Thrift Servers</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
+        <cve>CVE-2019-3559</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-36479 was resolved in Jetty 10.0.16</notes>
+        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jetty/jetty\-servlets@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-36479</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>The jetty-servlet-api is versioned according to the Java Servlet API version not the Jetty version</notes>
+        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jetty\.toolchain/jetty\-servlet\-api@.*$</packageUrl>
+        <cpe>cpe:/a:eclipse:jetty</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-31419 applies to Elasticsearch Server not client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-31419</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-37475 applies to Hamba Avro in Go not Apache Avro for Java</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.avro/.*$</packageUrl>
+        <cve>CVE-2023-37475</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-45860 is resolved in Hazelcast 5.3.5</notes>
+        <packageUrl regex="true">^pkg:maven/com\.hazelcast/hazelcast@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-45860</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-36414 applies to Azure Identity for .NET not Java</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+        <cve>CVE-2023-36414</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-36415 applies to Azure Identity for Python not Java</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+        <cve>CVE-2023-36415</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-13949 applies to Thrift and not to Hive</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hive.*$</packageUrl>
+        <cve>CVE-2020-13949</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-44487 applies to netty-codec-http2 as a Server</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
+        <cve>CVE-2023-44487</cve>
+    </suppress>
+    <suppress>
+        <notes>Parquet MR vulnerabilities do not apply to other Parquet libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.parquet/parquet\-(?!mr).*$</packageUrl>
+        <cpe>cpe:/a:apache:parquet-mr</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Hadoop vulnerabilities do not apply to Parquet Hadoop Bundle library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.parquet/parquet\-hadoop\-bundle@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hadoop</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2017-7525 applies to Jackson 2 not Jackson 1</notes>
+        <packageUrl regex="true">^pkg:maven/org\.codehaus\.jackson/jackson\-mapper\-asl@.*$</packageUrl>
+        <vulnerabilityName>CVE-2017-7525</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-11358 applies to bundled copies of jQuery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2019-11358</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-11022 applies to bundled copies of jQuery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2020-11022</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-11023 applies to bundled copies of jQuery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2020-11023</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-23064 applies to bundled copies of jQuery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2020-23064</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2011-4969 applies to bundled copies of jQUery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2011-4969</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2012-6708 applies to bundled copies of jQUery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2012-6708</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2015-9251 applies to bundled copies of jQUery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2015-9251</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-7656 applies to bundled copies of jQUery not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <cve>CVE-2020-7656</cve>
+    </suppress>
+    <suppress>
+        <notes>jQuery vulnerability warning for historical versions</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <vulnerabilityName>jQuery 1.x and 2.x are End-of-Life and no longer receiving security updates</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-28458 applies to bundled copies of jQuery datatables not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
+        <cve>CVE-2020-28458</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-23445 applies to bundled copies of jQuery datatables not used in the project</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
+        <cve>CVE-2021-23445</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-44487 references gRPC for Go</notes>
+        <packageUrl regex="true">^pkg:maven/io\.grpc/grpc.*$</packageUrl>
+        <cve>CVE-2023-44487</cve>
+    </suppress>
+    <suppress>
+        <notes>Guava temporary directory file creation is not used</notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
+        <cve>CVE-2023-2976</cve>
+    </suppress>
+    <suppress>
+        <notes>Guava temporary directory file creation is not used</notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
+        <cve>CVE-2020-8908</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-44521 applies to Apache Cassandra Server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
+        <cve>CVE-2021-44521</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-17516 applies to Apache Cassandra Server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
+        <cve>CVE-2020-17516</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-2684 applies to Apache Cassandra Server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
+        <cve>CVE-2019-2684</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-13946 applies to Apache Cassandra Server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
+        <cve>CVE-2020-13946</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-10172 applies to Jackson 1 XmlMapper not JSON mapper used in Ranger plugins</notes>
+        <packageUrl regex="true">^pkg:maven/org\.codehaus\.jackson/jackson\-mapper\-asl@.*$</packageUrl>
+        <cve>CVE-2019-10172</cve>
+    </suppress>
+    <suppress>
+        <notes>Bundled versions of jQuery DataTables are not used</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
+        <vulnerabilityName>prototype pollution</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>Bundled versions of jQuery DataTables are not used</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
+        <vulnerabilityName>possible XSS</vulnerabilityName>
     </suppress>
 </suppressions>

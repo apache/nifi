@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure.sdk.bom.version>1.2.16</azure.sdk.bom.version>
+        <azure.sdk.bom.version>1.2.17</azure.sdk.bom.version>
         <msal4j.version>1.13.10</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
