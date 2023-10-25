@@ -284,6 +284,31 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         assertProvenanceEvents();
     }
 
+    @Test
+    public void testPutBlobFromNonExistentLocalFile() throws Exception {
+        String attributeName = "file.path";
+
+        String serviceId = FileResourceService.class.getSimpleName();
+        FileResourceService service = new StandardFileResourceService();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
+        runner.enableControllerService(service);
+
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
+
+        String filePath = "nonexistent.txt";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(attributeName, filePath);
+
+        runProcessor(EMPTY_CONTENT, attributes);
+
+        runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_FAILURE, 1);
+
+        assertProvenanceEvents();
+    }
+
 
     private void runProcessor(byte[] data) {
         runProcessor(data, Collections.emptyMap());
