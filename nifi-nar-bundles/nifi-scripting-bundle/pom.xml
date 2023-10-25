@@ -17,22 +17,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>1.24.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-scripting-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <scripting.groovy.version>${nifi.groovy.version}</scripting.groovy.version>
+    </properties>
+
     <modules>
         <module>nifi-scripting-processors</module>
         <module>nifi-scripting-nar</module>
     </modules>
-
-    <properties>
-        <scripting.groovy.version>3.0.19</scripting.groovy.version>
-    </properties>
 
     <dependencyManagement>
         <dependencies>

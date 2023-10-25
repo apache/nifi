@@ -22,10 +22,16 @@
 
     <artifactId>nifi-datadog-nar</artifactId>
     <packaging>nar</packaging>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-datadog-reporting-task</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <type>nar</type>
         </dependency>
     </dependencies>
 </project>

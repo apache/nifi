@@ -31,6 +31,7 @@
                 <include>*:nifi-stateless-bootstrap</include>
                 <include>*:nifi-stateless-nar</include>
                 <include>*:nifi-standard-nar</include>
+                <include>*:nifi-standard-shared-nar</include>
                 <include>*:nifi-standard-services-api-nar</include>
                 <include>*:nifi-jetty-bundle</include>
                 <include>*:nifi-update-attribute-nar</include>

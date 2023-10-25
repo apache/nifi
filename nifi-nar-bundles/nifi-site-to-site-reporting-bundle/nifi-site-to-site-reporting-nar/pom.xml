@@ -22,6 +22,7 @@
 
     <artifactId>nifi-site-to-site-reporting-nar</artifactId>
     <packaging>nar</packaging>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -29,8 +30,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.24.0-SNAPSHOT</version>
+            <artifactId>nifi-standard-shared-nar</artifactId>
             <type>nar</type>
         </dependency>
     </dependencies>

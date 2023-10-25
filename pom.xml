@@ -707,6 +707,23 @@
                 <artifactId>junit</artifactId>
                 <version>4.13.2</version>
             </dependency>
+            <!-- Shared Project dependencies -->
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-shared-nar</artifactId>
+                <version>1.24.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-property-utils</artifactId>
+                <version>1.24.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-utils</artifactId>
+                <version>1.24.0-SNAPSHOT</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

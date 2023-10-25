@@ -27,6 +27,7 @@
     </properties>
     <modules>
         <module>nifi-framework-bundle</module>
+        <module>nifi-standard-shared-bundle</module>
         <module>nifi-hadoop-bundle</module>
         <module>nifi-hadoop-libraries-bundle</module>
         <module>nifi-jetty-bundle</module>

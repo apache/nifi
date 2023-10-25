@@ -27,5 +27,10 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snmp-processors</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 </project>
