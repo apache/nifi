@@ -23,16 +23,11 @@
     <artifactId>nifi-enrich-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi Enrichment NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>${project.version}</version>
+            <artifactId>nifi-standard-shared-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
