@@ -61,6 +61,8 @@ import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
 import org.apache.nifi.processors.standard.exception.ListenHttpException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.cert.PrincipalFormatter;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -204,9 +206,10 @@ public class ListenHTTPServlet extends HttpServlet {
             foundSubject = DEFAULT_FOUND_SUBJECT;
             foundIssuer = DEFAULT_FOUND_ISSUER;
             if (certs != null) {
+                final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
                 for (final X509Certificate cert : certs) {
-                    foundSubject = cert.getSubjectX500Principal().getName();
-                    foundIssuer = cert.getIssuerX500Principal().getName();
+                    foundSubject = principalFormatter.getSubject(cert);
+                    foundIssuer = principalFormatter.getIssuer(cert);
                     if (authorizedPattern.matcher(foundSubject).matches()) {
                         if (authorizedIssuerPattern.matcher(foundIssuer).matches()) {
                             break;

@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StandardSocketPeerIdentityProviderTest {
-    private static final String DISTINGUISHED_NAME = "CN=Common Name,OU=Organizational Unit,O=Organization";
+    private static final String DISTINGUISHED_NAME = "CN=Common Name, OU=Organizational Unit, O=Organization";
 
     @Mock
     SSLSocket sslSocket;

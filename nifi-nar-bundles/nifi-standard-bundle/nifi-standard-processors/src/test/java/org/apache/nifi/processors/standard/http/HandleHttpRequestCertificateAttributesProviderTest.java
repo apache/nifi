@@ -39,9 +39,13 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HandleHttpRequestCertificateAttributesProviderTest {
-    private static final X500Principal SUBJECT_PRINCIPAL = new X500Principal("CN=subject, OU=users");
+    private static final String SUBJECT_FORMATTED = "CN=subject, OU=users";
 
-    private static final X500Principal ISSUER_PRINCIPAL = new X500Principal("CN=issuer, OU=authorities");
+    private static final X500Principal SUBJECT_PRINCIPAL = new X500Principal(SUBJECT_FORMATTED);
+
+    private static final String ISSUER_FORMATTED = "CN=issuer, OU=authorities";
+
+    private static final X500Principal ISSUER_PRINCIPAL = new X500Principal(ISSUER_FORMATTED);
 
     private static final String RFC_822_NAME_GENERAL_NAME = "rfc822Name";
 
@@ -143,7 +147,7 @@ class HandleHttpRequestCertificateAttributesProviderTest {
     }
 
     private void assertSubjectIssuerFound(final Map<String, String> attributes) {
-        assertEquals(SUBJECT_PRINCIPAL.getName(), attributes.get(CertificateAttribute.HTTP_SUBJECT_DN.getName()));
-        assertEquals(ISSUER_PRINCIPAL.getName(), attributes.get(CertificateAttribute.HTTP_ISSUER_DN.getName()));
+        assertEquals(SUBJECT_FORMATTED, attributes.get(CertificateAttribute.HTTP_SUBJECT_DN.getName()));
+        assertEquals(ISSUER_FORMATTED, attributes.get(CertificateAttribute.HTTP_ISSUER_DN.getName()));
     }
 }

@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.standard.http;
 
 import org.apache.nifi.security.cert.CertificateAttributeReader;
+import org.apache.nifi.security.cert.PrincipalFormatter;
 import org.apache.nifi.security.cert.StandardCertificateAttributeReader;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.security.cert.SubjectAlternativeName;
 
 import javax.servlet.http.HttpServletRequest;
@@ -65,8 +67,9 @@ public class HandleHttpRequestCertificateAttributesProvider implements Certifica
     private Map<String, String> getCertificateAttributes(final X509Certificate certificate) {
         final Map<String, String> attributes = new LinkedHashMap<>();
 
-        final String subjectPrincipal = certificate.getSubjectX500Principal().getName();
-        final String issuerPrincipal = certificate.getIssuerX500Principal().getName();
+        final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
+        final String subjectPrincipal = principalFormatter.getSubject(certificate);
+        final String issuerPrincipal = principalFormatter.getIssuer(certificate);
 
         attributes.put(CertificateAttribute.HTTP_SUBJECT_DN.getName(), subjectPrincipal);
         attributes.put(CertificateAttribute.HTTP_ISSUER_DN.getName(), issuerPrincipal);

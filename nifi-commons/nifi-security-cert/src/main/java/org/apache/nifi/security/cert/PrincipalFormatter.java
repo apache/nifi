@@ -14,20 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.x509;
+package org.apache.nifi.security.cert;
 
 import java.security.cert.X509Certificate;
 
-import org.apache.nifi.security.cert.StandardPrincipalFormatter;
-import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-
 /**
- * Principal extractor for extracting a DN.
+ * Abstraction for retrieving and formatting X.509 Certificate Subject and Issuer Principal Distinguished Names
  */
-public class SubjectDnX509PrincipalExtractor implements X509PrincipalExtractor {
+public interface PrincipalFormatter {
+    /**
+     * Get Subject Distinguished Name formatted as a string according to standard implementation conventions
+     *
+     * @param certificate X.509 Certificate
+     * @return Formatted Subject Distinguished Name
+     */
+    String getSubject(X509Certificate certificate);
 
-    @Override
-    public Object extractPrincipal(final X509Certificate cert) {
-        return StandardPrincipalFormatter.getInstance().getSubject(cert);
-    }
+    /**
+     * Get Issuer Distinguished Name formatted as a string according to standard implementation conventions
+     *
+     * @param certificate X.509 Certificate
+     * @return Formatted Issuer Distinguished Name
+     */
+    String getIssuer(X509Certificate certificate);
 }
