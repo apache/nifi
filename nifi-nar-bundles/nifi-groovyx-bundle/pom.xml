@@ -16,9 +16,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>1.24.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-groovyx-bundle</artifactId>
@@ -29,11 +30,6 @@
         <module>nifi-groovyx-processors</module>
         <module>nifi-groovyx-nar</module>
     </modules>
-
-    <properties>
-        <groovyx.groovy.version>${nifi.groovy.version}</groovyx.groovy.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -44,7 +40,7 @@
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${groovyx.groovy.version}</version>
+                <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>provided</scope>
             </dependency>

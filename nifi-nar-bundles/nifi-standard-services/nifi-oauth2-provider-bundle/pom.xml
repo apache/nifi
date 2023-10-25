@@ -16,9 +16,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-services</artifactId>
         <version>1.24.0-SNAPSHOT</version>
+        <relativePath>../../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-oauth2-provider-bundle</artifactId>
@@ -28,19 +29,4 @@
         <module>nifi-oauth2-provider-service</module>
         <module>nifi-oauth2-provider-nar</module>
     </modules>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/fake.keytab</exclude>
-                        <exclude>src/test/resources/krb5.conf</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

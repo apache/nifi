@@ -17,9 +17,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>1.24.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-zendesk-bundle</artifactId>
@@ -29,5 +30,4 @@
         <module>nifi-zendesk-processors</module>
         <module>nifi-zendesk-nar</module>
     </modules>
-
 </project>
