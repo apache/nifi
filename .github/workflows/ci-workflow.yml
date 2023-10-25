@@ -79,11 +79,12 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  security-events: write
   contents: read
 
 jobs:
   static-analysis:
-    timeout-minutes: 30
+    timeout-minutes: 120
     name: Static Analysis
     runs-on: ubuntu-latest
     steps:
@@ -109,6 +110,19 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -P contrib-check
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: java
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
   ubuntu-build-en:
     timeout-minutes: 120
