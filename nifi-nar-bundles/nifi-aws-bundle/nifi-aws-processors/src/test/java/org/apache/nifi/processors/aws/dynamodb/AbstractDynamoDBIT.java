@@ -17,13 +17,10 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -108,18 +105,7 @@ public class AbstractDynamoDBIT {
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
-
-        try {
-            final AWSCredentialsProviderControllerService creds = new AWSCredentialsProviderControllerService();
-            runner.addControllerService("creds", creds);
-            runner.setProperty(creds, CredentialPropertyDescriptors.ACCESS_KEY_ID, localstack.getAccessKey());
-            runner.setProperty(creds, CredentialPropertyDescriptors.SECRET_KEY, localstack.getSecretKey());
-            runner.enableControllerService(creds);
-
-            runner.setProperty(AbstractDynamoDBProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
-        } catch (final InitializationException e) {
-            Assertions.fail("Could not set security properties");
-        }
+        AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
         runner.setProperty(AbstractDynamoDBProcessor.REGION, localstack.getRegion());
         runner.setProperty(AbstractDynamoDBProcessor.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB).toString());
