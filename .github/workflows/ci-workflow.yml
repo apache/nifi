@@ -110,10 +110,10 @@ jobs:
           --fail-fast
           -P contrib-check
 
-  ubuntu-build-en:
+  build-en:
     timeout-minutes: 120
-    runs-on: ubuntu-latest
-    name: Ubuntu Corretto JDK 21 EN
+    runs-on: ${{ github.repository_owner == 'apache' && '["self-hosted", "asf-runner"]' || 'ubuntu-latest' }}
+    name: Corretto JDK 21 EN
     steps:
       - name: System Information
         run: |
@@ -164,7 +164,7 @@ jobs:
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3
         with:
-          name: surefire-reports-ubuntu-21
+          name: surefire-reports-en
           path: |
             ./**/target/surefire-reports/*.txt
             ./**/target/surefire-reports/*.xml
@@ -174,12 +174,20 @@ jobs:
         run: df
         if: ${{ always() }}
 
-  macos-build-jp:
+  build-jp:
     timeout-minutes: 150
-    runs-on: macos-latest
-    name: MacOS Zulu JDK 21 JP
+    runs-on: ${{ github.repository_owner == 'apache' && '["self-hosted", "asf-arm"]' || 'macos-latest' }}
+    name: Zulu JDK 21 JP
     steps:
       - name: System Information
+        if: github.repository_owner == 'apache'
+        run: |
+          hostname
+          cat /proc/cpuinfo
+          cat /proc/meminfo
+          df
+      - name: System Information
+        if: github.repository_owner != 'apache'
         run: |
           hostname
           top -l 1 | grep PhysMem
@@ -228,7 +236,7 @@ jobs:
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3
         with:
-          name: surefire-reports-macos-jp
+          name: surefire-reports-jp
           path: |
             ./**/target/surefire-reports/*.txt
             ./**/target/surefire-reports/*.xml
