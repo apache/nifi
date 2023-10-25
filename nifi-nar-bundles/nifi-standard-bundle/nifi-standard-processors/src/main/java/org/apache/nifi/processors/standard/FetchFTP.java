@@ -47,7 +47,8 @@ import org.apache.nifi.processors.standard.util.FileTransfer;
     @WritesAttribute(attribute = "ftp.remote.port", description = "The port that was used to communicate with the remote FTP server"),
     @WritesAttribute(attribute = "ftp.remote.filename", description = "The name of the remote file that was pulled"),
     @WritesAttribute(attribute = "filename", description = "The filename is updated to point to the filename fo the remote file"),
-    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute")
+    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute"),
+    @WritesAttribute(attribute = "failure", description = "If the transfer failed, the failure reason is written to this attribute")
 })
 @MultiProcessorUseCase(
     description = "Retrieve all files in a directory of an FTP Server",

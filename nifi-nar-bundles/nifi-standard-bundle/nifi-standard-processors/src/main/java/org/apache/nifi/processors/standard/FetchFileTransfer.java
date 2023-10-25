@@ -254,36 +254,46 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             transfer = transferWrapper.getFileTransfer();
         }
 
+        String failureReason = null;
+        Relationship failureRelationship = null;
+        boolean closeConnOnFailure = false;
+        boolean provenanceEventOnFailure = false;
+
         try {
             // Pull data from remote system.
             try {
                 flowFile = transfer.getRemoteFile(filename, flowFile, session);
-
             } catch (final FileNotFoundException e) {
-                getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
+                failureReason = String.format(
+                        "Failed to fetch content for %s from filename %s on remote host %s because the file could not be found on the remote system; routing to %s",
                         flowFile, filename, host, REL_NOT_FOUND.getName());
-                session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
-                session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
-                cleanupTransfer(transfer, false, transferQueue, host, port);
-                return;
+
+                getLogger().log(levelFileNotFound, failureReason);
+
+                failureRelationship = REL_NOT_FOUND;
+                provenanceEventOnFailure = true;
             } catch (final PermissionDeniedException e) {
-                getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
+                failureReason = String.format("Failed to fetch content for %s from filename %s on remote host %s due to insufficient permissions; routing to %s",
                         flowFile, filename, host, REL_PERMISSION_DENIED.getName());
-                session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
-                session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
-                cleanupTransfer(transfer, false, transferQueue, host, port);
-                return;
+
+                getLogger().error(failureReason);
+
+                failureRelationship = REL_PERMISSION_DENIED;
+                provenanceEventOnFailure = true;
             } catch (final ProcessException | IOException e) {
-                getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
-                        flowFile, filename, host, port, e.toString(), e);
-                session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
-                cleanupTransfer(transfer, true, transferQueue, host, port);
-                return;
+                failureReason = String.format("Failed to fetch content for %s from filename %s on remote host %s:%s due to %s; routing to comms.failure",
+                        flowFile, filename, host, port, e.toString());
+
+                getLogger().error(failureReason, e);
+
+                failureRelationship = REL_COMMS_FAILURE;
+                closeConnOnFailure = true;
             }
 
             // Add FlowFile attributes
-            final String protocolName = transfer.getProtocolName();
             final Map<String, String> attributes = new HashMap<>();
+            final String protocolName = transfer.getProtocolName();
+
             attributes.put(protocolName + ".remote.host", host);
             attributes.put(protocolName + ".remote.port", String.valueOf(port));
             attributes.put(protocolName + ".remote.filename", filename);
@@ -296,6 +306,18 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             } else {
                 attributes.put(CoreAttributes.FILENAME.key(), filename);
             }
+
+            if (failureReason != null) {
+                attributes.put("failure", failureReason);
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(session.penalize(flowFile), failureRelationship);
+                if (provenanceEventOnFailure) {
+                    session.getProvenanceReporter().route(flowFile, failureRelationship);
+                }
+                cleanupTransfer(transfer, closeConnOnFailure, transferQueue, host, port);
+                return;
+            }
+
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             // emit provenance event and transfer FlowFile

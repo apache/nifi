@@ -269,6 +269,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FetchFTP.REL_NOT_FOUND);
+        runner.assertAllFlowFilesContainAttribute("failure");
     }
 
     @Test
@@ -290,6 +291,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FetchFTP.REL_PERMISSION_DENIED);
+        runner.assertAllFlowFilesContainAttribute("failure");
     }
 
     @Test
