@@ -64,18 +64,6 @@
                 <artifactId>derby</artifactId>
                 <version>${derby.version}</version>
             </dependency>
-            <!-- Override zookeeper -->
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>${zookeeper.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
             <!-- Override ant -->
             <dependency>
                 <groupId>org.apache.ant</groupId>
@@ -115,6 +103,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>32.1.2-jre</version>
+            </dependency>
+            <!-- Override Groovy from hive-exec -->
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-all</artifactId>
+                <version>2.4.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

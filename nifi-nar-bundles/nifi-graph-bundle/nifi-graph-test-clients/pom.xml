@@ -28,6 +28,7 @@
         <gremlin.version>3.7.0</gremlin.version>
         <janusgraph.version>0.6.3</janusgraph.version>
         <guava.version>32.1.2-jre</guava.version>
+        <amqp-client.version>5.19.0</amqp-client.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -53,6 +54,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <!-- Override AMQP Client from JanusGraph -->
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>${amqp-client.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
