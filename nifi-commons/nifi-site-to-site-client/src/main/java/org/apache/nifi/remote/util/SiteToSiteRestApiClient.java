@@ -116,6 +116,7 @@ import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -317,7 +318,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
                 try {
                     final X509Certificate cert = (X509Certificate) certChain[0];
-                    trustedPeerDn = cert.getSubjectX500Principal().getName().trim();
+                    trustedPeerDn = StandardPrincipalFormatter.getInstance().getSubject(cert);
                 } catch (final RuntimeException e) {
                     final String msg = "Could not extract subject DN from SSL session peer certificate";
                     logger.warn(msg);

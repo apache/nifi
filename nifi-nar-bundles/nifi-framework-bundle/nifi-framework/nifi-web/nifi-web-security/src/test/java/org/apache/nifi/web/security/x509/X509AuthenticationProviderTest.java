@@ -277,7 +277,7 @@ public class X509AuthenticationProviderTest {
         final X509Certificate certificate = mock(X509Certificate.class);
         when(certificate.getSubjectX500Principal()).then(invocation -> {
             final X500Principal principal = mock(X500Principal.class);
-            when(principal.getName()).thenReturn(identity);
+            when(principal.getName(any())).thenReturn(identity);
             return principal;
         });
         return certificate;

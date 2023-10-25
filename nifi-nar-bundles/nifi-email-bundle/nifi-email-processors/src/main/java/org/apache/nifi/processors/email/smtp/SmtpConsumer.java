@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.email.ListenSMTP;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.util.StopWatch;
 import org.subethamail.smtp.MessageContext;
@@ -141,7 +142,7 @@ public class SmtpConsumer implements MessageHandler {
             for (int i = 0; i < tlsPeerCertificates.length; i++) {
                 if (tlsPeerCertificates[i] instanceof final X509Certificate x509Cert) {
                     attributes.put("smtp.certificate." + i + ".serial", x509Cert.getSerialNumber().toString());
-                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectX500Principal().getName());
+                    attributes.put("smtp.certificate." + i + ".subjectName", StandardPrincipalFormatter.getInstance().getSubject(x509Cert));
                 }
             }
         }

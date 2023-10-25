@@ -67,6 +67,8 @@ import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.record.listen.SSLSocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReaderDispatcher;
+import org.apache.nifi.security.cert.PrincipalFormatter;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -486,8 +488,9 @@ public class ListenTCPRecord extends AbstractProcessor {
                 final Certificate[] certificates = sslSession.getPeerCertificates();
                 if (certificates.length > 0) {
                     final X509Certificate certificate = (X509Certificate) certificates[0];
-                    attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, certificate.getSubjectX500Principal().toString());
-                    attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, certificate.getIssuerX500Principal().toString());
+                    final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
+                    attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, principalFormatter.getSubject(certificate));
+                    attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, principalFormatter.getIssuer(certificate));
                 }
             } catch (final SSLPeerUnverifiedException peerUnverifiedException) {
                 getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
