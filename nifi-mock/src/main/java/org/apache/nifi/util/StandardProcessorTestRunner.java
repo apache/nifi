@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -202,23 +203,20 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         context.assertValid();
-        context.enableExpressionValidation();
 
         // Call onConfigurationRestored here, right before the test run, as all properties should have been set byt this point.
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, this.context);
 
-        try {
-            if (initialize) {
-                try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
-                } catch (final Exception e) {
-                    Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
-                }
+        if (initialize) {
+            try {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
+            } catch (final Exception e) {
+                Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
             }
+        }
 
-            final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numThreads);
-            @SuppressWarnings("unchecked")
-            final Future<Throwable>[] futures = new Future[iterations];
+        @SuppressWarnings("unchecked") final Future<Throwable>[] futures = new Future[iterations];
+        try (final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numThreads)) {
             for (int i = 0; i < iterations; i++) {
                 final Future<Throwable> future = executorService.schedule(new RunProcessor(), i * runSchedule, TimeUnit.MILLISECONDS);
                 futures[i] = future;
@@ -229,33 +227,31 @@ public class StandardProcessorTestRunner implements TestRunner {
                 executorService.awaitTermination(runWait, TimeUnit.MILLISECONDS);
             } catch (final InterruptedException e1) {
             }
+        }
 
-            int finishedCount = 0;
-            boolean unscheduledRun = false;
-            for (final Future<Throwable> future : futures) {
-                try {
-                    final Throwable thrown = future.get(); // wait for the result
-                    if (thrown != null) {
-                        throw new AssertionError(thrown);
-                    }
-
-                    if (++finishedCount == 1 && stopOnFinish) {
-                        unscheduledRun = true;
-                        unSchedule();
-                    }
-                } catch (final Exception e) {
+        int finishedCount = 0;
+        boolean unscheduledRun = false;
+        for (final Future<Throwable> future : futures) {
+            try {
+                final Throwable thrown = future.get(); // wait for the result
+                if (thrown != null) {
+                    throw new AssertionError(thrown);
                 }
-            }
 
-            if (!unscheduledRun && stopOnFinish) {
-                unSchedule();
+                if (++finishedCount == 1 && stopOnFinish) {
+                    unscheduledRun = true;
+                    unSchedule();
+                }
+            } catch (final InterruptedException | ExecutionException e) {
             }
+        }
 
-            if (stopOnFinish) {
-                stop();
-            }
-        } finally {
-            context.disableExpressionValidation();
+        if (!unscheduledRun && stopOnFinish) {
+            unSchedule();
+        }
+
+        if (stopOnFinish) {
+            stop();
         }
     }
 
@@ -331,7 +327,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         assertAllFlowFiles(new FlowFileValidator() {
             @Override
             public void assertFlowFile(FlowFile f) {
-                Assertions.assertTrue(f.getAttribute(attributeName) != null);
+                Assertions.assertNotNull(f.getAttribute(attributeName));
             }
         });
     }
@@ -341,7 +337,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         assertAllFlowFiles(relationship, new FlowFileValidator() {
             @Override
             public void assertFlowFile(FlowFile f) {
-                Assertions.assertTrue(f.getAttribute(attributeName) != null);
+                Assertions.assertNotNull(f.getAttribute(attributeName));
             }
         });
     }
@@ -387,7 +383,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
 
         List<String> actualContent = flowFiles.stream()
-            .map(flowFile -> flowFile.getContent())
+            .map(MockFlowFile::getContent)
             .collect(Collectors.toList());
 
         assertEquals(expectedContent, actualContent);
@@ -664,11 +660,11 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
-        final MockComponentLog logger = new MockComponentLog(identifier, service);
-        controllerServiceLoggers.put(identifier, logger);
+        final MockComponentLog mockComponentLog = new MockComponentLog(identifier, service);
+        controllerServiceLoggers.put(identifier, mockComponentLog);
         final MockStateManager serviceStateManager = new MockStateManager(service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(
-                requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager, kerberosContext);
+                requireNonNull(service), requireNonNull(identifier), mockComponentLog, serviceStateManager, kerberosContext);
         controllerServiceStateManagers.put(identifier, serviceStateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);
@@ -719,7 +715,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
-                Assertions.fail("Expected Controller Service to be valid but it is invalid due to: " + result.toString());
+                Assertions.fail("Expected Controller Service to be valid but it is invalid due to: " + result);
             }
         }
     }
@@ -768,7 +764,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
-                throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is in an invalid state: " + result.toString());
+                throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is in an invalid state: " + result);
             }
         }
 
@@ -1046,7 +1042,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         for (MockFlowFile flowFile : flowFiles) {
-            if (predicate.test(flowFile)==false) {
+            if (!predicate.test(flowFile)) {
                 Assertions.fail("FlowFile " + flowFile + " does not meet all condition");
             }
         }
@@ -1075,7 +1071,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public PropertyMigrationResult migrateProperties() {
-        final MockPropertyConfiguration mockPropertyConfiguration = new MockPropertyConfiguration(getProcessContext().getAllProperties());
+        final MockPropertyConfiguration mockPropertyConfiguration = new MockPropertyConfiguration(context.getAllProperties());
         getProcessor().migrateProperties(mockPropertyConfiguration);
 
         final PropertyMigrationResult migrationResult = mockPropertyConfiguration.toPropertyMigrationResult();
@@ -1093,6 +1089,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
                 serviceImpl = (ControllerService) newInstance;
                 addControllerService(service.id(), serviceImpl, service.serviceProperties());
+                enableControllerService(serviceImpl);
             } catch (final Exception e) {
                 if (serviceCreationException == null) {
                     if (e instanceof RuntimeException) {
@@ -1111,10 +1108,27 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         final Map<String, String> updatedProperties = mockPropertyConfiguration.getRawProperties();
-        final MockProcessContext processContext = getProcessContext();
-        processContext.clearProperties();
-        updatedProperties.forEach(processContext::setProperty);
+        clearProperties();
+        updatedProperties.forEach((propertyName, propertyValue) -> {
+            if (propertyValue == null) {
+                removeProperty(propertyName);
+            } else {
+                setProperty(propertyName, propertyValue);
+            }
+        });
 
         return migrationResult;
+    }
+
+    @Override
+    public RelationshipMigrationResult migrateRelationships() {
+        final MockRelationshipConfiguration mockRelationshipConfiguration = new MockRelationshipConfiguration(context.getAllRelationships());
+        getProcessor().migrateRelationships(mockRelationshipConfiguration);
+
+        final Set<Relationship> updatedRelationships = mockRelationshipConfiguration.getRawRelationships();
+        context.clearConnections();
+        updatedRelationships.forEach(context::addConnection);
+
+        return mockRelationshipConfiguration.toRelationshipMigrationResult();
     }
 }

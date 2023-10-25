@@ -18,4 +18,12 @@
   "id" : "4",
   "field1" : "value2",
   "field2" : "30"
+}, {
+  "id" : "6",
+  "field1" : "value1",
+  "field2" : "213,456.9"
+}, {
+  "id" : "7",
+  "field1" : "value1",
+  "field2" : "unit test"
 } ]
