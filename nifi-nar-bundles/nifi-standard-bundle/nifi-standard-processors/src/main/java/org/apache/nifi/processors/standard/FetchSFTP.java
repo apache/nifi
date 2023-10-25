@@ -46,7 +46,8 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     @WritesAttribute(attribute = "sftp.remote.port", description = "The port that was used to communicate with the remote SFTP server"),
     @WritesAttribute(attribute = "sftp.remote.filename", description = "The name of the remote file that was pulled"),
     @WritesAttribute(attribute = "filename", description = "The filename is updated to point to the filename fo the remote file"),
-    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute")
+    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute"),
+    @WritesAttribute(attribute = "fetch.failure.reason", description = "The name of the failure relationship applied when routing to any failure relationship")
 })
 public class FetchSFTP extends FetchFileTransfer {
 
