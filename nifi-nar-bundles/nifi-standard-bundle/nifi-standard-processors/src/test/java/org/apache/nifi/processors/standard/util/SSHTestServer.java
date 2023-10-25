@@ -34,7 +34,7 @@ public class SSHTestServer {
 
     private String virtualFileSystemPath = "target/ssh_vfs/";
 
-    private String host = "127.0.0.1";
+    private final String host = "127.0.0.1";
 
     private String username = "nifiuser";
 
