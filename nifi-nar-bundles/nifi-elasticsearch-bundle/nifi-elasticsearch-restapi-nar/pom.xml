@@ -19,9 +19,6 @@ language governing permissions and limitations under the License. -->
 
     <artifactId>nifi-elasticsearch-restapi-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <lucene.version>6.2.1</lucene.version>
-    </properties>
 
     <dependencies>
         <dependency>
