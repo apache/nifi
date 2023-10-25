@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.parameter-context-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
-    @include mat.button-density(-1);
+import { EditParameterDialog } from './edit-parameter-dialog.component';
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
+describe('EditParameterDialog', () => {
+    let component: EditParameterDialog;
+    let fixture: ComponentFixture<EditParameterDialog>;
 
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [EditParameterDialog]
+        });
+        fixture = TestBed.createComponent(EditParameterDialog);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-        .results-content {
-            height: 523px;
-            overflow-y: auto;
-        }
-    }
-
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    mat-dialog-actions {
-        margin-top: auto;
-    }
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

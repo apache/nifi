@@ -101,6 +101,8 @@ export const parameterContextUpdateRequestSuccess = createAction(
     props<{ response: ParameterContextUpdateSuccess }>()
 );
 
+export const editParameterContextComplete = createAction('[Parameter Context Listing] Edit Parameter Context Complete');
+
 export const promptParameterContextDeletion = createAction(
     '[Parameter Context Listing] Prompt Parameter Context Deletion',
     props<{ request: DeleteParameterContext }>()

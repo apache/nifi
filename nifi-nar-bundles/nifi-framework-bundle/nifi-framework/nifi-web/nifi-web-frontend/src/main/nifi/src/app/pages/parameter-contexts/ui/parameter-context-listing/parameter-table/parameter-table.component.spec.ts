@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.parameter-context-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
-    @include mat.button-density(-1);
+import { ParameterTable } from './parameter-table.component';
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
+describe('ParameterTable', () => {
+    let component: ParameterTable;
+    let fixture: ComponentFixture<ParameterTable>;
 
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ParameterTable]
+        });
+        fixture = TestBed.createComponent(ParameterTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-        .results-content {
-            height: 523px;
-            overflow-y: auto;
-        }
-    }
-
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    mat-dialog-actions {
-        margin-top: auto;
-    }
-}
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

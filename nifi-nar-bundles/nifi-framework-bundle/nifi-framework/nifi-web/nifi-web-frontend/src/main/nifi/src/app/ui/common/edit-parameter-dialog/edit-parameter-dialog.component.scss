@@ -17,31 +17,14 @@
 
 @use '@angular/material' as mat;
 
-.parameter-context-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
+.edit-parameter-form {
     @include mat.button-density(-1);
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
-
-        .results-content {
-            height: 523px;
-            overflow-y: auto;
-        }
+    textarea {
+        min-height: 100px;
     }
 
     .mat-mdc-form-field {
         width: 100%;
-    }
-
-    mat-dialog-actions {
-        margin-top: auto;
     }
 }

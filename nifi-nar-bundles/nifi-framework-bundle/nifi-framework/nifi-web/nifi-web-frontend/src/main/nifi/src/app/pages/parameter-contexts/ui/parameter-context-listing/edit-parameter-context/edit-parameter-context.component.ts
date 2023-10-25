@@ -26,10 +26,16 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { EditParameterContextRequest, ParameterContextEntity } from '../../../state/parameter-context-listing';
+import {
+    EditParameterContextRequest,
+    Parameter,
+    ParameterContextEntity,
+    ParameterContextUpdateRequest
+} from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { ParameterTable } from '../parameter-table/parameter-table.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -48,12 +54,15 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         NgForOf,
         AsyncPipe,
         NifiSpinnerDirective,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        ParameterTable
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
 export class EditParameterContext {
-    @Input() createNewParameter!: () => Observable<any>;
+    @Input() createNewParameter!: () => Observable<Parameter>;
+    @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() updateRequest!: Observable<ParameterContextUpdateRequest | null>;
     @Input() saving$!: Observable<boolean>;
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
@@ -61,7 +70,8 @@ export class EditParameterContext {
 
     editParameterContextForm: FormGroup;
     isNew: boolean;
-    isUpdateInProgress: boolean = false;
+
+    // updateRequest!: ParameterContextUpdateRequest;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterContextRequest,
@@ -72,27 +82,18 @@ export class EditParameterContext {
         if (request.parameterContext) {
             this.isNew = false;
 
-            // const serviceProperties: any = request.controllerService.component.properties;
-            // const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
-            //     const [property, value] = entry;
-            //     return {
-            //         property,
-            //         value,
-            //         descriptor: request.controllerService.component.descriptors[property]
-            //     };
-            // });
-
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl(request.parameterContext.component.name, Validators.required),
-                description: new FormControl(request.parameterContext.component.description)
-                // properties: new FormControl(properties),
+                description: new FormControl(request.parameterContext.component.description),
+                parameters: new FormControl(request.parameterContext.component.parameters)
             });
         } else {
             this.isNew = true;
 
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl('', Validators.required),
-                description: new FormControl('')
+                description: new FormControl(''),
+                parameters: new FormControl([])
             });
         }
     }
@@ -106,7 +107,8 @@ export class EditParameterContext {
                 },
                 component: {
                     name: this.editParameterContextForm.get('name')?.value,
-                    description: this.editParameterContextForm.get('description')?.value
+                    description: this.editParameterContextForm.get('description')?.value,
+                    parameters: this.editParameterContextForm.get('parameters')?.value
                 }
             };
 
@@ -120,11 +122,11 @@ export class EditParameterContext {
                 component: {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,
-                    description: this.editParameterContextForm.get('description')?.value
+                    description: this.editParameterContextForm.get('description')?.value,
+                    parameters: this.editParameterContextForm.get('parameters')?.value
                 }
             };
 
-            this.isUpdateInProgress = true;
             this.editParameterContext.next(payload);
         }
     }

@@ -17,31 +17,51 @@
 
 @use '@angular/material' as mat;
 
-.parameter-context-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
-    @include mat.button-density(-1);
+.parameter-table {
+    @include mat.table-density(-4);
+    min-width: 740px;
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
-
-        .tab-content {
-            height: 475px;
-            overflow-y: auto;
-        }
-
-        .results-content {
-            height: 523px;
-            overflow-y: auto;
-        }
-    }
-
-    .mat-mdc-form-field {
+    table {
         width: 100%;
-    }
 
-    mat-dialog-actions {
-        margin-top: auto;
+        td,
+        th {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 8px;
+            cursor: default;
+        }
+
+        th {
+            background-color: #728e9b;
+            color: #fff;
+        }
+
+        tr:hover {
+            background-color: #dce3e6 !important;
+        }
+
+        .selected {
+            background-color: #ffef85 !important;
+        }
+
+        .even {
+            background-color: #f4f6f7;
+        }
+
+        .fa {
+            width: 10px;
+            height: 14px;
+        }
+
+        .mat-column-actions {
+            width: 75px;
+        }
     }
+}
+
+::ng-deep .mat-sort-header-arrow {
+    color: #fff;
 }

@@ -16,13 +16,13 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { ParameterContextListingState } from './index';
+import { ParameterContextListingState, ParameterContextUpdateRequest } from './index';
 import { produce } from 'immer';
 import {
     createParameterContext,
     createParameterContextSuccess,
     deleteParameterContextSuccess,
-    deleteParameterContextUpdateRequest,
+    editParameterContextComplete,
     loadParameterContexts,
     loadParameterContextsSuccess,
     parameterContextListingApiError,
@@ -82,10 +82,6 @@ export const parameterContextListingReducer = createReducer(
         ...state,
         updateRequest: response.request
     })),
-    on(deleteParameterContextUpdateRequest, (state, {}) => ({
-        ...state,
-        updateRequest: null
-    })),
     on(parameterContextUpdateRequestSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.parameterContexts.findIndex((f: any) => response.id === f.id);
@@ -93,6 +89,19 @@ export const parameterContextListingReducer = createReducer(
                 draftState.parameterContexts[componentIndex] = response.parameterContext;
             }
             draftState.saving = false;
+        });
+    }),
+    on(editParameterContextComplete, (state, {}) => {
+        return produce(state, (draftState) => {
+            const updateRequest: ParameterContextUpdateRequest | null = draftState.updateRequest;
+
+            if (updateRequest) {
+                // const componentIndex: number = draftState.parameterContexts.findIndex((f: any) => updateRequest..id === f.id);
+                // if (componentIndex > -1) {
+                //     draftState.parameterContexts[componentIndex] = response.parameterContext;
+                // }
+                draftState.updateRequest = null;
+            }
         });
     }),
     on(deleteParameterContextSuccess, (state, { response }) => {

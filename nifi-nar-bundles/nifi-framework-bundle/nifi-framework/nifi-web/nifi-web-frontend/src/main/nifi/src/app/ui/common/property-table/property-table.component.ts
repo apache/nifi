@@ -119,12 +119,12 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     onChange!: (properties: Property[]) => void;
 
     private originPos: OriginConnectionPosition = {
-        originX: 'start',
-        originY: 'top'
+        originX: 'center',
+        originY: 'center'
     };
     private editorOverlayPos: OverlayConnectionPosition = {
-        overlayX: 'start',
-        overlayY: 'top'
+        overlayX: 'center',
+        overlayY: 'center'
     };
     private editorPosition: ConnectionPositionPair = new ConnectionPositionPair(
         this.originPos,

@@ -34,6 +34,22 @@ export interface NewPropertyDialogResponse {
     sensitive: boolean;
 }
 
+export interface ParameterDetails {
+    name: string;
+    description: string;
+    sensitive: boolean;
+    value: string | null;
+    valueRemoved?: boolean;
+}
+
+export interface EditParameterRequest {
+    parameter?: ParameterDetails;
+}
+
+export interface EditParameterResponse {
+    parameter: ParameterDetails;
+}
+
 export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
 }

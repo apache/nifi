@@ -25,6 +25,7 @@ import {
     interval,
     map,
     NEVER,
+    Observable,
     of,
     switchMap,
     take,
@@ -40,6 +41,9 @@ import { ParameterContextService } from '../../service/parameter-contexts.servic
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
 import { selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
+import { EditParameterRequest, EditParameterResponse } from '../../../../state/shared';
+import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
+import { Parameter } from './index';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -87,6 +91,27 @@ export class ParameterContextListingEffects {
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    dialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = {};
+                        const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                            data: dialogRequest,
+                            panelClass: 'medium-dialog'
+                        });
+
+                        newParameterDialogReference.componentInstance.saving = false;
+
+                        return newParameterDialogReference.componentInstance.editParameter.pipe(
+                            take(1),
+                            map((dialogResponse: EditParameterResponse) => {
+                                newParameterDialogReference.close();
+
+                                return {
+                                    ...dialogResponse.parameter
+                                };
+                            })
+                        );
+                    };
 
                     dialogReference.componentInstance.addParameterContext.pipe(take(1)).subscribe((payload: any) => {
                         this.store.dispatch(
@@ -161,10 +186,59 @@ export class ParameterContextListingEffects {
                         data: {
                             parameterContext: request.parameterContext
                         },
-                        panelClass: 'large-dialog'
+                        panelClass: 'edit-parameter-context-dialog'
                     });
 
+                    editDialogReference.componentInstance.updateRequest = this.store.select(selectUpdateRequest);
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = {};
+                        const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                            data: dialogRequest,
+                            panelClass: 'medium-dialog'
+                        });
+
+                        newParameterDialogReference.componentInstance.saving = false;
+
+                        return newParameterDialogReference.componentInstance.editParameter.pipe(
+                            take(1),
+                            map((dialogResponse: EditParameterResponse) => {
+                                newParameterDialogReference.close();
+
+                                return {
+                                    ...dialogResponse.parameter
+                                };
+                            })
+                        );
+                    };
+
+                    editDialogReference.componentInstance.editParameter = (
+                        parameter: Parameter
+                    ): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = {
+                            parameter: {
+                                ...parameter
+                            }
+                        };
+                        const editParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                            data: dialogRequest,
+                            panelClass: 'medium-dialog'
+                        });
+
+                        editParameterDialogReference.componentInstance.saving = false;
+
+                        return editParameterDialogReference.componentInstance.editParameter.pipe(
+                            take(1),
+                            map((dialogResponse: EditParameterResponse) => {
+                                editParameterDialogReference.close();
+
+                                return {
+                                    ...dialogResponse.parameter
+                                };
+                            })
+                        );
+                    };
 
                     editDialogReference.componentInstance.editParameterContext
                         .pipe(take(1))
@@ -187,6 +261,7 @@ export class ParameterContextListingEffects {
                                 }
                             })
                         );
+                        this.store.dispatch(ParameterContextListingActions.editParameterContextComplete());
                     });
                 })
             ),

@@ -99,22 +99,22 @@ export interface ParameterContextEntity {
 //     // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 // }
 //
-// export interface ParameterEntity {
-//     canWrite: boolean;
-//     parameter: Parameter;
-// }
-//
-// export interface Parameter {
-//     name: string;
-//     description: string;
-//     sensitive: boolean;
-//     value: string;
-//     valueRemoved?: boolean;
-//     provided: boolean;
-//     // private Set<AffectedComponentEntity> referencingComponents;
-//     // private ParameterContextReferenceEntity parameterContext;
-//     inherited: boolean;
-// }
+export interface ParameterEntity {
+    canWrite?: boolean;
+    parameter: Parameter;
+}
+
+export interface Parameter {
+    name: string;
+    description: string;
+    sensitive: boolean;
+    value: string | null;
+    valueRemoved?: boolean;
+    provided?: boolean;
+    // private Set<AffectedComponentEntity> referencingComponents;
+    // private ParameterContextReferenceEntity parameterContext;
+    inherited?: boolean;
+}
 
 export interface ParameterContextListingState {
     parameterContexts: ParameterContextEntity[];

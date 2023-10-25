@@ -17,67 +17,92 @@
 
 <h2 mat-dialog-title>{{ this.isNew ? 'Add' : 'Edit' }} Parameter Context</h2>
 <form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
-    <mat-dialog-content>
-        <mat-tab-group>
-            <mat-tab label="Settings">
-                <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full">
-                        <div class="flex flex-col mb-5" *ngIf="!isNew">
-                            <div>Id</div>
-                            <div class="value">{{ request.parameterContext?.id }}</div>
-                        </div>
-                        <div>
-                            <mat-form-field>
-                                <mat-label>Name</mat-label>
-                                <input matInput formControlName="name" type="text" />
-                            </mat-form-field>
-                        </div>
-                        <div>
-                            <mat-form-field>
-                                <mat-label>Description</mat-label>
-                                <textarea matInput formControlName="description" type="text" rows="5"></textarea>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                    <div class="flex flex-col w-full">
-                        <div>Referencing Components</div>
-                        <div>
-                            <!-- TODO parameter references -->
-                            <!--                            <controller-service-references-->
-                            <!--                                [serviceReferences]="-->
-                            <!--                                    request.controllerService.component.referencingComponents-->
-                            <!--                                "></controller-service-references>-->
-                        </div>
-                    </div>
+    <mat-dialog-content *ngIf="(updateRequest | async)! as request; else editFormContent">
+        <div class="results-content flex">
+            <div class="w-full flex flex-col">
+                <div>Steps To Update Parameters</div>
+                <div></div>
+            </div>
+            <div class="w-full flex flex-col gap-y-3">
+                <div class="flex flex-col">
+                    <div>Parameter</div>
+                    <div class="value">param</div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Parameters">
-                <div class="tab-content py-4">
-                    <!-- TODO parameter table -->
-                    <!--                    <property-table-->
-                    <!--                        formControlName="properties"-->
-                    <!--                        [createNewProperty]="createNewParameter"-->
-                    <!--                        [createNewService]="createNewService"-->
-                    <!--                        [getServiceLink]="getServiceLink"-->
-                    <!--                        [supportsSensitiveDynamicProperties]="-->
-                    <!--                            request.controllerService.component.supportsSensitiveDynamicProperties-->
-                    <!--                        "></property-table>-->
+                <div class="flex-1 flex flex-col">
+                    <div>Referencing Components</div>
+                    <div class="flex-1"></div>
                 </div>
-            </mat-tab>
-            <mat-tab label="Inheritance">
-                <div class="tab-content py-4"></div>
-            </mat-tab>
-        </mat-tab-group>
+            </div>
+        </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
+    <ng-template #editFormContent>
+        <mat-dialog-content>
+            <mat-tab-group>
+                <mat-tab label="Settings">
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-full">
+                            <div class="flex flex-col mb-5" *ngIf="!isNew">
+                                <div>Id</div>
+                                <div class="value">{{ request.parameterContext?.id }}</div>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Name</mat-label>
+                                    <input matInput formControlName="name" type="text" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Description</mat-label>
+                                    <textarea matInput formControlName="description" type="text" rows="5"></textarea>
+                                </mat-form-field>
+                            </div>
+                        </div>
+                        <div class="flex flex-col w-full">
+                            <div>Referencing Components</div>
+                            <div>
+                                <!-- TODO parameter references -->
+                                <!--                            <controller-service-references-->
+                                <!--                                [serviceReferences]="-->
+                                <!--                                    request.controllerService.component.referencingComponents-->
+                                <!--                                "></controller-service-references>-->
+                            </div>
+                        </div>
+                    </div>
+                </mat-tab>
+                <mat-tab label="Parameters">
+                    <div class="tab-content py-4">
+                        <parameter-table
+                            formControlName="parameters"
+                            [createNewParameter]="createNewParameter"
+                            [editParameter]="editParameter"></parameter-table>
+                    </div>
+                </mat-tab>
+                <mat-tab label="Inheritance">
+                    <div class="tab-content py-4"></div>
+                </mat-tab>
+            </mat-tab-group>
+        </mat-dialog-content>
+    </ng-template>
+    <mat-dialog-actions align="end" *ngIf="(updateRequest | async)! as request; else editFormActions">
+        <ng-container *ngIf="request.complete; else updateInProgressActions">
+            <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+        </ng-container>
+        <ng-template #updateInProgressActions>
+            <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        </ng-template>
     </mat-dialog-actions>
+    <ng-template #editFormActions>
+        <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
+            <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    </ng-template>
 </form>

@@ -33,7 +33,7 @@ import {
     selectParameterContext
 } from '../../state/parameter-context-listing/parameter-context-listing.actions';
 import { initialState } from '../../state/parameter-context-listing/parameter-context-listing.reducer';
-import { filter, switchMap, take, tap } from 'rxjs';
+import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -50,14 +50,12 @@ export class ParameterContextListing {
             .select(selectSingleEditedParameterContext)
             .pipe(
                 filter((id: string) => id != null),
-                tap((id) => console.log('id', id)),
                 switchMap((id: string) =>
                     this.store.select(selectContext(id)).pipe(
                         filter((entity) => entity != null),
                         take(1)
                     )
                 ),
-                tap((entity) => console.log('entity', entity)),
                 takeUntilDestroyed()
             )
             .subscribe((entity) => {

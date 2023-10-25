@@ -281,6 +281,13 @@ a:hover {
     min-width: 760px;
 }
 
+.edit-parameter-context-dialog {
+    max-height: 72%;
+    max-width: 55%;
+    min-width: 850px;
+    min-height: 575px;
+}
+
 .tooltip {
     position: fixed;
     max-width: 500px;
