@@ -33,10 +33,17 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.stream.JsonParsingException;
+import javax.net.ssl.SSLContext;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -65,6 +72,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"slack", "post", "notify", "upload", "message"})
 @CapabilityDescription("Sends a message on Slack. The FlowFile content (e.g. an image) can be uploaded and attached to the message.")
@@ -180,6 +188,13 @@ public class PostSlack extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("If specified, indicates the SSL Context Service that is used to communicate with the "
+                    + "remote server. If not specified, communications will not be encrypted")
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are routed to success after being successfully sent to Slack")
@@ -199,7 +214,8 @@ public class PostSlack extends AbstractProcessor {
         UPLOAD_FLOWFILE,
         FILE_TITLE,
         FILE_NAME,
-        FILE_MIME_TYPE);
+        FILE_MIME_TYPE,
+        SSL_CONTEXT_SERVICE);
 
     public static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
@@ -235,18 +251,27 @@ public class PostSlack extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void initDynamicProperties(ProcessContext context) {
+    public void onScheduled(ProcessContext context) {
         attachmentProperties.clear();
         attachmentProperties.addAll(
                 context.getProperties().keySet()
                         .stream()
                         .filter(PropertyDescriptor::isDynamic)
                     .toList());
-    }
 
-    @OnScheduled
-    public void initHttpResources() {
-        connManager = new PoolingHttpClientConnectionManager();
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+        if (sslService != null) {
+            final SSLContext sslContext = sslService.createContext();
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .register("https", new SSLConnectionSocketFactory(sslContext))
+                    .build();
+
+            connManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        } else {
+            connManager = new PoolingHttpClientConnectionManager();
+        }
 
         client = HttpClientBuilder.create()
                 .setConnectionManager(connManager)

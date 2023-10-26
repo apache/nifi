@@ -19,6 +19,12 @@ package org.apache.nifi.processors.slack;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,10 +33,13 @@ import org.junit.jupiter.api.Test;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.net.ssl.SSLContext;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PostSlackTextMessageTest {
     private static final String RESPONSE_SUCCESS_TEXT_MSG = "{\"ok\": true}";
@@ -276,6 +285,26 @@ public class PostSlackTextMessageTest {
         assertEquals("Iñtërnâtiônàližætiøn", requestBodyJson.getString("text"));
     }
 
+    @Test
+    public void sendTextOnlyMessageWithSSLContext() throws TlsException, InitializationException {
+        configureSSLContextService();
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
+        testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
+        testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
+        testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG));
+
+        testRunner.enqueue(new byte[0]);
+        testRunner.run(1);
+
+        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
+
+        JsonObject requestBodyJson = getRequestBodyJson();
+        assertBasicRequest(requestBodyJson);
+        assertEquals("my-text", requestBodyJson.getString("text"));
+    }
+
     private void assertBasicRequest(JsonObject requestBodyJson) {
         assertEquals("my-channel", requestBodyJson.getString("channel"));
     }
@@ -290,5 +319,21 @@ public class PostSlackTextMessageTest {
         } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void configureSSLContextService() throws InitializationException, TlsException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+
+        mockWebServer.useHttps(sslContext.getSocketFactory(), false);
+        url = mockWebServer.url("/").toString();
+
+        SSLContextService sslService = mock(SSLContextService.class);
+        when(sslService.getIdentifier()).thenReturn("ssl-context");
+        when(sslService.createContext()).thenReturn(sslContext);
+
+        testRunner.addControllerService("ssl-context", sslService);
+        testRunner.enableControllerService(sslService);
+        testRunner.setProperty(PutSlack.SSL_CONTEXT_SERVICE, "ssl-context");
     }
 }
