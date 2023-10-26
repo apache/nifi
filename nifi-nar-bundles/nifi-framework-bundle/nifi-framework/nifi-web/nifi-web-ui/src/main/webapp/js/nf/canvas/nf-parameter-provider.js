@@ -3386,7 +3386,7 @@
                 parameterProviderGrid.setSelectedRows([row]);
                 parameterProviderGrid.scrollRowIntoView(row);
 
-                $('#settings-tabs').find('li:eq(4)').click();
+                $('#settings-tabs').find('li:eq(5)').click();
 
                 // adjust the table size
                 nfSettings.resetTableSize();
