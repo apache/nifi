@@ -112,7 +112,7 @@ jobs:
 
   build-en:
     timeout-minutes: 120
-    runs-on: ${{ github.repository_owner == 'apache' && '["self-hosted", "asf-runner"]' || 'ubuntu-latest' }}
+    runs-on: ["self-hosted", "asf-runner"]
     name: Corretto JDK 21 EN
     steps:
       - name: System Information
@@ -176,7 +176,7 @@ jobs:
 
   build-jp:
     timeout-minutes: 150
-    runs-on: ${{ github.repository_owner == 'apache' && '["self-hosted", "asf-arm"]' || 'macos-latest' }}
+    runs-on: ["self-hosted", "asf-arm"]
     name: Zulu JDK 21 JP
     steps:
       - name: System Information
