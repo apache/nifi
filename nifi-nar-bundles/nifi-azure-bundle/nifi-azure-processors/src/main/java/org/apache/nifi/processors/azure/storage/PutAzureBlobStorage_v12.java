@@ -231,7 +231,6 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             getLogger().error("Failed to create blob on Azure Blob Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-            session.getProvenanceReporter().send(flowFile, "/error/" + blobName);
         }
     }
 
