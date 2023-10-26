@@ -52,7 +52,6 @@
             remoteProcessGroup: 'Remote Process Group',
             connection: 'Connection',
             funnel: 'Funnel',
-            template: 'Template',
             label: 'Label',
             node: 'Node'
         },

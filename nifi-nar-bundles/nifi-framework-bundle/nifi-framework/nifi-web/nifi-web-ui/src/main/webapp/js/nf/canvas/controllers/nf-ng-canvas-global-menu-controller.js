@@ -304,27 +304,6 @@
             };
 
             /**
-             * The templates menu item controller.
-             */
-            this.templates = {
-
-                /**
-                 * The templates menu item's shell controller.
-                 */
-                shell: {
-
-                    /**
-                     * Launch the templates shell.
-                     */
-                    launch: function () {
-                        nfShell.showPage('templates?' + $.param({
-                                groupId: nfCanvasUtils.getGroupId()
-                            }));
-                    }
-                }
-            };
-
-            /**
              * The help menu item controller.
              */
             this.help = {

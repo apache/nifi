@@ -17,7 +17,7 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="bulletin-board">
     <div id="bulletin-board-header-and-filter">
-        <div id="bulletin-board-header-text">NiFi Templates</div>
+        <div id="bulletin-board-header-text"></div>
         <div id="bulletin-board-filter-controls">
             <div id="bulletin-board-filter-container" class="filter-container">
                 <input type="text" placeholder="Filter" id="bulletin-board-filter" class="filter"/>
