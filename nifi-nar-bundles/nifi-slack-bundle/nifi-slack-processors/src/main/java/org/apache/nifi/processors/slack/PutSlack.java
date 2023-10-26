@@ -33,6 +33,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -41,6 +42,8 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonParsingException;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -131,6 +134,12 @@ public class PutSlack extends AbstractProcessor {
             .addValidator(new EmojiValidator())
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are routed to success after being successfully sent to Slack")
@@ -144,7 +153,7 @@ public class PutSlack extends AbstractProcessor {
     private final SortedSet<PropertyDescriptor> attachments = Collections.synchronizedSortedSet(new TreeSet<PropertyDescriptor>());
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-            Arrays.asList(WEBHOOK_URL, WEBHOOK_TEXT, CHANNEL, USERNAME, ICON_URL, ICON_EMOJI));
+            Arrays.asList(WEBHOOK_URL, WEBHOOK_TEXT, CHANNEL, USERNAME, ICON_URL, ICON_EMOJI, SSL_CONTEXT_SERVICE));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -237,6 +246,8 @@ public class PutSlack extends AbstractProcessor {
             builder.add("icon_emoji", iconEmoji);
         }
 
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
         try {
             // Get Attachments Array
             if (!attachments.isEmpty()) {
@@ -260,6 +271,12 @@ public class PutSlack extends AbstractProcessor {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
+
+            if (sslService != null) {
+                final SSLContext sslContext = sslService.createContext();
+                ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+            }
+
             DataOutputStream outputStream  = new DataOutputStream(conn.getOutputStream());
             String payload = "payload=" + URLEncoder.encode(stringWriter.getBuffer().toString(), "UTF-8");
             outputStream.writeBytes(payload);

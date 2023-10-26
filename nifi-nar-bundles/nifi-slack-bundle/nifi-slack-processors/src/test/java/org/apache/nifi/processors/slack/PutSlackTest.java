@@ -185,13 +185,14 @@ public class PutSlackTest {
     public void testGetPropertyDescriptors() {
         PutSlack processor = new PutSlack();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(6, pd.size(), "size should be eq");
+        assertEquals(7, pd.size(), "size should be eq");
         assertTrue(pd.contains(PutSlack.WEBHOOK_TEXT));
         assertTrue(pd.contains(PutSlack.WEBHOOK_URL));
         assertTrue(pd.contains(PutSlack.CHANNEL));
         assertTrue(pd.contains(PutSlack.USERNAME));
         assertTrue(pd.contains(PutSlack.ICON_URL));
         assertTrue(pd.contains(PutSlack.ICON_EMOJI));
+        assertTrue(pd.contains(PutSlack.SSL_CONTEXT_SERVICE));
     }
 
     @Test
