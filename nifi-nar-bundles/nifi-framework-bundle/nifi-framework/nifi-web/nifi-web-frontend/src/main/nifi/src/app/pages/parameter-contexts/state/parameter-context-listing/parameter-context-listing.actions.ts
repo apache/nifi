@@ -18,7 +18,6 @@
 import { createAction, props } from '@ngrx/store';
 import {
     SubmitParameterContextUpdate,
-    ParameterContextUpdateSuccess,
     CreateParameterContext,
     CreateParameterContextSuccess,
     DeleteParameterContext,
@@ -94,11 +93,6 @@ export const stopPollingParameterContextUpdateRequest = createAction(
 
 export const deleteParameterContextUpdateRequest = createAction(
     '[Parameter Context Listing] Delete Parameter Context Update Request'
-);
-
-export const parameterContextUpdateRequestSuccess = createAction(
-    '[Parameter Context Listing] Parameter Context Request Update Success',
-    props<{ response: ParameterContextUpdateSuccess }>()
 );
 
 export const editParameterContextComplete = createAction('[Parameter Context Listing] Edit Parameter Context Complete');

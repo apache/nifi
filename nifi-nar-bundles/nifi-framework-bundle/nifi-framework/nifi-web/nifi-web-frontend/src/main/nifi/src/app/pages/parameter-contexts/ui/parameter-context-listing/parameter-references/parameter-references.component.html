@@ -15,77 +15,45 @@
   ~ limitations under the License.
   -->
 
-<div class="controller-service-references">
-    <div *ngIf="serviceReferences == null || serviceReferences.length == 0; else hasReferences" class="value">
+<div class="parameter-references">
+    <div *ngIf="parameterReferenceMap == null || parameterReferenceMap.size == 0; else hasReferences" class="value">
         No referencing components
     </div>
 
     <ng-template #hasReferences>
-        <ng-container
-            *ngTemplateOutlet="
-                referenceListing;
-                context: { $implicit: serviceReferences, nested: false }
-            "></ng-container>
-        <ng-template #referenceListing let-references let-nested="nested">
-            <ul [class.nested]="nested">
-                <ng-container
-                    *ngTemplateOutlet="
-                        nonService;
-                        context: {
-                            $implicit: getReferencesByType(references, 'Processor'),
-                            referenceTypeLabel: 'Processors'
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        service;
-                        context: { $implicit: getReferencesByType(references, 'ControllerService') }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        nonService;
-                        context: {
-                            $implicit: getReferencesByType(references, 'ReportingTask'),
-                            referenceTypeLabel: 'Reporting Tasks'
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        nonService;
-                        context: {
-                            $implicit: getReferencesByType(references, 'FlowAnalysisRule'),
-                            referenceTypeLabel: 'Flow Analysis Rules'
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        nonService;
-                        context: {
-                            $implicit: getReferencesByType(references, 'ParameterProvider'),
-                            referenceTypeLabel: 'Parameter Providers'
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        nonService;
-                        context: {
-                            $implicit: getReferencesByType(references, 'FlowRegistryClient'),
-                            referenceTypeLabel: 'Registry Clients'
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        unauthorized;
-                        context: { $implicit: getUnauthorized(references) }
-                    "></ng-container>
-            </ul>
-        </ng-template>
-        <ng-template #nonService let-references let-referenceTypeLabel="referenceTypeLabel">
-            <ng-container *ngIf="references.length > 0">
+        <ng-container *ngFor="let pg of processGroups">
+            <ng-container *ngTemplateOutlet="pgListing; context: { $implicit: pg }"></ng-container>
+        </ng-container>
+        <ng-template #pgListing let-pg>
+            <ul>
                 <li>
                     <h4>
-                        <span class="value">{{ referenceTypeLabel }}</span> ({{ references.length }})
+                        <b>{{ pg.name }}</b>
                     </h4>
+                    <ul *ngIf="parameterReferenceMap.get(pg.id) as references" class="nested">
+                        <ng-container
+                            *ngTemplateOutlet="
+                                processor;
+                                context: { $implicit: getReferencesByType(references, 'PROCESSOR') }
+                            "></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                service;
+                                context: { $implicit: getReferencesByType(references, 'CONTROLLER_SERVICE') }
+                            "></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                unauthorized;
+                                context: { $implicit: getUnauthorized(references) }
+                            "></ng-container>
+                    </ul>
+                </li>
+            </ul>
+        </ng-template>
+        <ng-template #processor let-references>
+            <ng-container *ngIf="references.length > 0">
+                <li>
+                    <h4><span class="value">Processors</span> ({{ references.length }})</h4>
                     <div class="references">
                         <div *ngFor="let reference of references" class="flex items-center gap-x-2">
                             <div>
@@ -143,23 +111,6 @@
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"
                                     [tooltipInputData]="getBulletinsTipData(service)"></div>
-                            </div>
-                            <div>
-                                <div *ngIf="service.component.referenceCycle; else noReferenceCycle" class="unset">
-                                    Reference cycle detected
-                                </div>
-                                <ng-template #noReferenceCycle>
-                                    <ng-container *ngIf="service.component.referencingComponents.length > 0">
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                referenceListing;
-                                                context: {
-                                                    $implicit: service.component.referencingComponents,
-                                                    nested: true
-                                                }
-                                            "></ng-container>
-                                    </ng-container>
-                                </ng-template>
                             </div>
                         </div>
                     </div>

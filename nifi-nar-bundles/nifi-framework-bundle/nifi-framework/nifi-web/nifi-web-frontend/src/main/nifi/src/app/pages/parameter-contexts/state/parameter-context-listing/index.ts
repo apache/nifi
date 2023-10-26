@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Permissions, Revision } from '../../../../state/shared';
+import { ParameterEntity, Permissions, Revision } from '../../../../state/shared';
 
 export const parameterContextListingFeatureKey = 'parameterContextListing';
 
@@ -41,21 +41,8 @@ export interface SubmitParameterContextUpdate {
     payload: any;
 }
 
-export interface PollParameterContextUpdate {
-    uri: string;
-}
-
 export interface PollParameterContextUpdateSuccess {
-    request: ParameterContextUpdateRequest;
-}
-
-export interface DeleteParameterContextUpdate {
-    uri: string;
-}
-
-export interface ParameterContextUpdateSuccess {
-    id: string;
-    parameterContext: ParameterContextEntity;
+    requestEntity: ParameterContextUpdateRequestEntity;
 }
 
 export interface DeleteParameterContext {
@@ -79,6 +66,12 @@ export interface ParameterContextUpdateRequest {
     state: string;
     updateSteps: any[];
     uri: string;
+    parameterContext?: any;
+}
+
+export interface ParameterContextUpdateRequestEntity {
+    parameterContextRevision: Revision;
+    request: ParameterContextUpdateRequest;
 }
 
 export interface ParameterContextEntity {
@@ -86,39 +79,32 @@ export interface ParameterContextEntity {
     permissions: Permissions;
     id: string;
     uri: string;
-    component: any;
+    component: ParameterContext;
 }
 
-// export interface ParameterContext {
-//     identifier: string;
-//     name: string;
-//     description: string;
-//     parameters: ParameterEntity[];
-//     // private Set<ProcessGroupEntity> boundProcessGroups;
-//     // private List<ParameterContextReferenceEntity> inheritedParameterContexts;
-//     // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
-// }
-//
-export interface ParameterEntity {
-    canWrite?: boolean;
-    parameter: Parameter;
-}
-
-export interface Parameter {
+export interface ParameterContext {
+    identifier: string;
     name: string;
     description: string;
-    sensitive: boolean;
-    value: string | null;
-    valueRemoved?: boolean;
-    provided?: boolean;
-    // private Set<AffectedComponentEntity> referencingComponents;
-    // private ParameterContextReferenceEntity parameterContext;
-    inherited?: boolean;
+    parameters: ParameterEntity[];
+    boundProcessGroups: BoundProcessGroup[];
+    // private List<ParameterContextReferenceEntity> inheritedParameterContexts;
+    // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
+}
+
+export interface BoundProcessGroup {
+    permissions: Permissions;
+    id: string;
+    component: {
+        id: string;
+        parentGroupId: string;
+        name: string;
+    }
 }
 
 export interface ParameterContextListingState {
     parameterContexts: ParameterContextEntity[];
-    updateRequest: ParameterContextUpdateRequest | null;
+    updateRequestEntity: ParameterContextUpdateRequestEntity | null;
     saving: boolean;
     loadedTimestamp: string;
     error: string | null;

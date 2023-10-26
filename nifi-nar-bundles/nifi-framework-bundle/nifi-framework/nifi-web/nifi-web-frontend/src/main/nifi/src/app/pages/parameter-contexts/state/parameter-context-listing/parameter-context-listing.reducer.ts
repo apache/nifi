@@ -16,7 +16,7 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { ParameterContextListingState, ParameterContextUpdateRequest } from './index';
+import { ParameterContextListingState, ParameterContextUpdateRequestEntity } from './index';
 import { produce } from 'immer';
 import {
     createParameterContext,
@@ -26,15 +26,15 @@ import {
     loadParameterContexts,
     loadParameterContextsSuccess,
     parameterContextListingApiError,
-    parameterContextUpdateRequestSuccess,
     pollParameterContextUpdateRequestSuccess,
     submitParameterContextUpdateRequest,
     submitParameterContextUpdateRequestSuccess
 } from './parameter-context-listing.actions';
+import { Revision } from '../../../../state/shared';
 
 export const initialState: ParameterContextListingState = {
     parameterContexts: [],
-    updateRequest: null,
+    updateRequestEntity: null,
     saving: false,
     loadedTimestamp: '',
     error: null,
@@ -76,31 +76,37 @@ export const parameterContextListingReducer = createReducer(
     })),
     on(submitParameterContextUpdateRequestSuccess, (state, { response }) => ({
         ...state,
-        updateRequest: response.request
+        updateRequestEntity: response.requestEntity
     })),
     on(pollParameterContextUpdateRequestSuccess, (state, { response }) => ({
         ...state,
-        updateRequest: response.request
+        updateRequestEntity: response.requestEntity
     })),
-    on(parameterContextUpdateRequestSuccess, (state, { response }) => {
-        return produce(state, (draftState) => {
-            const componentIndex: number = draftState.parameterContexts.findIndex((f: any) => response.id === f.id);
-            if (componentIndex > -1) {
-                draftState.parameterContexts[componentIndex] = response.parameterContext;
-            }
-            draftState.saving = false;
-        });
-    }),
     on(editParameterContextComplete, (state, {}) => {
         return produce(state, (draftState) => {
-            const updateRequest: ParameterContextUpdateRequest | null = draftState.updateRequest;
+            const updateRequestEntity: ParameterContextUpdateRequestEntity | null = draftState.updateRequestEntity;
 
-            if (updateRequest) {
-                // const componentIndex: number = draftState.parameterContexts.findIndex((f: any) => updateRequest..id === f.id);
-                // if (componentIndex > -1) {
-                //     draftState.parameterContexts[componentIndex] = response.parameterContext;
-                // }
-                draftState.updateRequest = null;
+            if (updateRequestEntity) {
+                const revision: Revision = updateRequestEntity.parameterContextRevision;
+                const parameterContext: any = updateRequestEntity.request.parameterContext;
+
+                const componentIndex: number = draftState.parameterContexts.findIndex(
+                    (f: any) => parameterContext.id === f.id
+                );
+                if (componentIndex > -1) {
+                    draftState.parameterContexts[componentIndex] = {
+                        ...draftState.parameterContexts[componentIndex],
+                        revision: {
+                            ...revision
+                        },
+                        component: {
+                            ...parameterContext
+                        }
+                    };
+                }
+
+                draftState.updateRequestEntity = null;
+                draftState.saving = false;
             }
         });
     }),

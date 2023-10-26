@@ -46,7 +46,7 @@ export const selectSingleEditedParameterContext = createSelector(selectCurrentRo
 
 export const selectUpdateRequest = createSelector(
     selectParameterContextListingState,
-    (state: ParameterContextListingState) => state.updateRequest
+    (state: ParameterContextListingState) => state.updateRequestEntity
 );
 
 export const selectParameterContexts = createSelector(

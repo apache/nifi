@@ -24,7 +24,7 @@ import { ComponentRef, Directive, HostListener, Input, Type, ViewContainerRef } 
 export class NifiTooltipDirective<T> {
     @Input() tooltipComponentType!: Type<T>;
     @Input() tooltipInputData: any;
-    @Input() xOffset: number = 0;
+    @Input() xOffset: number = 0; // TODO - replace pixel based offset with css transformY to support positioning above/below
     @Input() yOffset: number = 0;
     @Input() delayClose: boolean = true;
 

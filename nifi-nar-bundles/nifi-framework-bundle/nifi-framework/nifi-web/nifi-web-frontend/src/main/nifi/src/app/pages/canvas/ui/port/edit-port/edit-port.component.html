@@ -42,15 +42,15 @@
             </mat-form-field>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
+    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
         <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
         <button
-            [disabled]="!editPortForm.dirty || editPortForm.invalid"
+            [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
             type="button"
             color="primary"
             (click)="editPort()"
             mat-raised-button>
-            <span>Apply</span>
+            <span *nifiSpinner="saving.value">Apply</span>
         </button>
     </mat-dialog-actions>
 </form>

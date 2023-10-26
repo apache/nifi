@@ -41,9 +41,9 @@ import { ParameterContextService } from '../../service/parameter-contexts.servic
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
 import { selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
-import { EditParameterRequest, EditParameterResponse } from '../../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
-import { Parameter } from './index';
+import { ParameterContextUpdateRequest } from './index';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -253,15 +253,17 @@ export class ParameterContextListingEffects {
                             );
                         });
 
-                    editDialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(
-                            ParameterContextListingActions.selectParameterContext({
-                                request: {
-                                    id: parameterContextId
-                                }
-                            })
-                        );
-                        this.store.dispatch(ParameterContextListingActions.editParameterContextComplete());
+                    editDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(
+                                ParameterContextListingActions.selectParameterContext({
+                                    request: {
+                                        id: parameterContextId
+                                    }
+                                })
+                            );
+                            this.store.dispatch(ParameterContextListingActions.editParameterContextComplete());
+                        }
                     });
                 })
             ),
@@ -277,7 +279,7 @@ export class ParameterContextListingEffects {
                     map((response) =>
                         ParameterContextListingActions.submitParameterContextUpdateRequestSuccess({
                             response: {
-                                request: response.request
+                                requestEntity: response
                             }
                         })
                     ),
@@ -323,10 +325,12 @@ export class ParameterContextListingEffects {
             withLatestFrom(this.store.select(selectUpdateRequest)),
             switchMap(([action, updateRequest]) => {
                 if (updateRequest) {
-                    return from(this.parameterContextService.pollParameterContextUpdate(updateRequest)).pipe(
+                    return from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
                         map((response) =>
                             ParameterContextListingActions.pollParameterContextUpdateRequestSuccess({
-                                response: { request: response.request }
+                                response: {
+                                    requestEntity: response
+                                }
                             })
                         ),
                         catchError((error) =>
@@ -349,7 +353,8 @@ export class ParameterContextListingEffects {
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequestSuccess),
             map((action) => action.response),
             switchMap((response) => {
-                if (response.request.complete) {
+                const updateRequest: ParameterContextUpdateRequest = response.requestEntity.request;
+                if (updateRequest.complete) {
                     return of(ParameterContextListingActions.stopPollingParameterContextUpdateRequest());
                 } else {
                     return NEVER;
@@ -372,7 +377,7 @@ export class ParameterContextListingEffects {
                 withLatestFrom(this.store.select(selectUpdateRequest)),
                 tap(([action, updateRequest]) => {
                     if (updateRequest) {
-                        this.parameterContextService.deleteParameterContextUpdate(updateRequest).subscribe();
+                        this.parameterContextService.deleteParameterContextUpdate(updateRequest.request).subscribe();
                     }
                 })
             ),

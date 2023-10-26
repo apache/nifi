@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { EditParameterRequest, EditParameterResponse, ParameterDetails } from '../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import {
     AbstractControl,
@@ -62,7 +62,7 @@ export class EditParameterDialog {
         @Inject(MAT_DIALOG_DATA) public request: EditParameterRequest,
         private formBuilder: FormBuilder
     ) {
-        const parameter: ParameterDetails | undefined = request.parameter;
+        const parameter: Parameter | undefined = request.parameter;
 
         if (parameter) {
             this.isNew = false;

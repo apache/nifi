@@ -131,7 +131,7 @@ export class ControllerServiceTable implements AfterViewInit {
 
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating fa fa-spin fa-circle-notch';
+            return 'validating fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning';
         } else {

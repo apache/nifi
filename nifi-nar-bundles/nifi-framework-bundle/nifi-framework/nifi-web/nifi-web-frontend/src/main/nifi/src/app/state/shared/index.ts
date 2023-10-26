@@ -34,20 +34,12 @@ export interface NewPropertyDialogResponse {
     sensitive: boolean;
 }
 
-export interface ParameterDetails {
-    name: string;
-    description: string;
-    sensitive: boolean;
-    value: string | null;
-    valueRemoved?: boolean;
-}
-
 export interface EditParameterRequest {
-    parameter?: ParameterDetails;
+    parameter?: Parameter;
 }
 
 export interface EditParameterResponse {
-    parameter: ParameterDetails;
+    parameter: Parameter;
 }
 
 export interface CreateControllerServiceRequest {
@@ -137,6 +129,46 @@ export interface BulletinEntity {
         timestamp: string;
         nodeAddress?: string;
     };
+}
+
+export interface ParameterEntity {
+    canWrite?: boolean;
+    parameter: Parameter;
+}
+
+export interface Parameter {
+    name: string;
+    description: string;
+    sensitive: boolean;
+    value: string | null;
+    valueRemoved?: boolean;
+    provided?: boolean;
+    referencingComponents?: AffectedComponentEntity[];
+    // private ParameterContextReferenceEntity parameterContext;
+    inherited?: boolean;
+}
+
+export interface AffectedComponentEntity {
+    permissions: Permissions;
+    bulletins: BulletinEntity[];
+    component: AffectedComponent;
+    processGroup: ProcessGroupName;
+    referenceType: string;
+}
+
+export interface AffectedComponent {
+    processGroupId: string;
+    id: string;
+    referenceType: string;
+    name: string;
+    state: string;
+    activeThreadCount?: number;
+    validationErrors: string[];
+}
+
+export interface ProcessGroupName {
+    id: string;
+    name: string;
 }
 
 export enum ComponentType {

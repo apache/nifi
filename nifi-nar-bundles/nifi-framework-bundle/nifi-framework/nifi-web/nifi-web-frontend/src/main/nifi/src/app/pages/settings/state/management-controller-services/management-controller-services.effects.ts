@@ -305,14 +305,16 @@ export class ManagementControllerServicesEffects {
                             );
                         });
 
-                    editDialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(
-                            ManagementControllerServicesActions.selectControllerService({
-                                request: {
-                                    id: serviceId
-                                }
-                            })
-                        );
+                    editDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(
+                                ManagementControllerServicesActions.selectControllerService({
+                                    request: {
+                                        id: serviceId
+                                    }
+                                })
+                            );
+                        }
                     });
                 })
             ),

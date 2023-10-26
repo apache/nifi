@@ -28,14 +28,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
 import {
     EditParameterContextRequest,
-    Parameter,
     ParameterContextEntity,
-    ParameterContextUpdateRequest
+    ParameterContextUpdateRequestEntity
 } from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
+import { Parameter, ParameterEntity } from '../../../../../state/shared';
+import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -55,14 +56,15 @@ import { ParameterTable } from '../parameter-table/parameter-table.component';
         AsyncPipe,
         NifiSpinnerDirective,
         NifiSpinnerDirective,
-        ParameterTable
+        ParameterTable,
+        ProcessGroupReferences
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
 export class EditParameterContext {
     @Input() createNewParameter!: () => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
-    @Input() updateRequest!: Observable<ParameterContextUpdateRequest | null>;
+    @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
     @Input() saving$!: Observable<boolean>;
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
@@ -71,7 +73,7 @@ export class EditParameterContext {
     editParameterContextForm: FormGroup;
     isNew: boolean;
 
-    // updateRequest!: ParameterContextUpdateRequest;
+    parameters!: ParameterEntity[];
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterContextRequest,
@@ -98,6 +100,16 @@ export class EditParameterContext {
         }
     }
 
+    getUpdatedParameters(): string {
+        if (this.parameters) {
+            const updatedParameters: string[] = this.parameters.map(
+                (parameterEntity) => parameterEntity.parameter.name
+            );
+            return updatedParameters.join(', ');
+        }
+        return '';
+    }
+
     submitForm() {
         if (this.isNew) {
             const payload: any = {
@@ -117,13 +129,15 @@ export class EditParameterContext {
             // @ts-ignore
             const pc: ParameterContextEntity = this.request.parameterContext;
 
+            this.parameters = this.editParameterContextForm.get('parameters')?.value;
+
             const payload: any = {
                 revision: this.client.getRevision(pc),
                 component: {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,
                     description: this.editParameterContextForm.get('description')?.value,
-                    parameters: this.editParameterContextForm.get('parameters')?.value
+                    parameters: this.parameters
                 }
             };
 

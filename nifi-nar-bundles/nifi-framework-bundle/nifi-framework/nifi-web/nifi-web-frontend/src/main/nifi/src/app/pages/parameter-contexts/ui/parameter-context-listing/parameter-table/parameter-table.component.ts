@@ -23,12 +23,12 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
-import { Parameter, ParameterEntity } from '../../../state/parameter-context-listing';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { TextTipInput } from '../../../../../state/shared';
+import { Parameter, ParameterEntity, TextTipInput } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { Observable, take } from 'rxjs';
+import { ParameterReferences } from '../parameter-references/parameter-references.component';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -51,7 +51,8 @@ export interface ParameterItem {
         CdkConnectedOverlay,
         RouterLink,
         AsyncPipe,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ParameterReferences
     ],
     styleUrls: ['./parameter-table.component.scss'],
     providers: [
@@ -65,9 +66,6 @@ export interface ParameterItem {
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: () => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
-
-    // @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    // @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
 
     protected readonly TextTip = TextTip;
 
@@ -222,8 +220,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             this.handleChanged();
         }
     }
-
-    saveParameterValue(item: ParameterItem, newValue: string): void {}
 
     private handleChanged() {
         // this is needed to trigger the filter to be reapplied
