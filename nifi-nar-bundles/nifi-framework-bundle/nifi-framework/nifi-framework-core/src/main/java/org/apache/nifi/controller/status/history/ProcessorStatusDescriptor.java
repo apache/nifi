@@ -57,7 +57,7 @@ public enum ProcessorStatusDescriptor {
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that this Processor has pulled from its queues in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getInputCount())),
+        s -> (long) s.getInputCount()),
 
     OUTPUT_BYTES(
         "outputBytes",
@@ -71,14 +71,14 @@ public enum ProcessorStatusDescriptor {
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getOutputCount())),
+        s -> (long) s.getOutputCount()),
 
     TASK_COUNT(
         "taskCount",
         "Tasks (5 mins)",
         "The number of tasks that this Processor has completed in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getInvocations())),
+        s -> (long) s.getInvocations()),
 
     TASK_MILLIS(
         "taskMillis",
@@ -100,7 +100,7 @@ public enum ProcessorStatusDescriptor {
         "FlowFiles Removed (5 mins)",
         "The total number of FlowFiles removed by this Processor in the last 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getFlowFilesRemoved())),
+        s -> (long) s.getFlowFilesRemoved()),
 
     AVERAGE_LINEAGE_DURATION(
         "averageLineageDuration",
@@ -108,27 +108,27 @@ public enum ProcessorStatusDescriptor {
         "The average amount of time that a FlowFile took to process (from receipt until this Processor finished processing it) in the past 5 minutes.",
         Formatter.DURATION,
         s -> s.getAverageLineageDuration(TimeUnit.MILLISECONDS),
-        new ValueReducer<StatusSnapshot, Long>() {
-            @Override
-            public Long reduce(final List<StatusSnapshot> values) {
-                long millis = 0L;
-                int count = 0;
+            new ValueReducer<StatusSnapshot, Long>() {
+                @Override
+                public Long reduce(final List<StatusSnapshot> values) {
+                    long millis = 0L;
+                    long count = 0;
 
-                for (final StatusSnapshot snapshot : values) {
-                    final long removed = snapshot.getStatusMetric(FLOWFILES_REMOVED.getDescriptor()).longValue();
-                    final long outputCount = snapshot.getStatusMetric(OUTPUT_COUNT.getDescriptor()).longValue();
-                    final long processed = removed + outputCount;
+                    for (final StatusSnapshot snapshot : values) {
+                        final long removed = snapshot.getStatusMetric(FLOWFILES_REMOVED.getDescriptor());
+                        final long outputCount = snapshot.getStatusMetric(OUTPUT_COUNT.getDescriptor());
+                        final long processed = removed + outputCount;
 
-                    count += processed;
+                        count += processed;
 
-                    final long avgMillis = snapshot.getStatusMetric(AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue();
-                    final long totalMillis = avgMillis * processed;
-                    millis += totalMillis;
+                        final long avgMillis = snapshot.getStatusMetric(AVERAGE_LINEAGE_DURATION.getDescriptor());
+                        final long totalMillis = avgMillis * processed;
+                        millis += totalMillis;
+                    }
+
+                    return count == 0 ? 0 : millis / count;
                 }
-
-                return count == 0 ? 0 : millis / count;
-            }
-        },
+            },
         true
     ),
 
@@ -138,31 +138,31 @@ public enum ProcessorStatusDescriptor {
         "The average number of nanoseconds it took this Processor to complete a task, over the past 5 minutes",
         Formatter.COUNT,
         s -> s.getInvocations() == 0 ? 0 : s.getProcessingNanos() / s.getInvocations(),
-        new ValueReducer<StatusSnapshot, Long>() {
-            @Override
-            public Long reduce(final List<StatusSnapshot> values) {
-                long procNanos = 0L;
-                int invocations = 0;
+            new ValueReducer<StatusSnapshot, Long>() {
+                @Override
+                public Long reduce(final List<StatusSnapshot> values) {
+                    long procNanos = 0L;
+                    int invocations = 0;
 
-                for (final StatusSnapshot snapshot : values) {
-                    final Long taskNanos = snapshot.getStatusMetric(TASK_NANOS.getDescriptor());
-                    if (taskNanos != null) {
-                        procNanos += taskNanos.longValue();
+                    for (final StatusSnapshot snapshot : values) {
+                        final Long taskNanos = snapshot.getStatusMetric(TASK_NANOS.getDescriptor());
+                        if (taskNanos != null) {
+                            procNanos += taskNanos;
+                        }
+
+                        final Long taskInvocations = snapshot.getStatusMetric(TASK_COUNT.getDescriptor());
+                        if (taskInvocations != null) {
+                            invocations += taskInvocations.intValue();
+                        }
                     }
 
-                    final Long taskInvocations = snapshot.getStatusMetric(TASK_COUNT.getDescriptor());
-                    if (taskInvocations != null) {
-                        invocations += taskInvocations.intValue();
+                    if (invocations == 0) {
+                        return 0L;
                     }
-                }
 
-                if (invocations == 0) {
-                    return 0L;
+                    return procNanos / invocations;
                 }
-
-                return procNanos / invocations;
-            }
-        },
+            },
         true
     );
 

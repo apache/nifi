@@ -44,8 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -56,8 +56,8 @@ public class TestWaitNotifyProtocol {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private AtomicDistributedMapCacheClient<Long> cache;
-    @SuppressWarnings("unchecked")
-    private final Answer successfulReplace = invocation -> {
+
+    private final Answer<?> successfulReplace = invocation -> {
         final AtomicCacheEntry<String, String, Long> entry = invocation.getArgument(0);
         cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getRevision().orElse(0L) + 1));
         return true;
@@ -83,11 +83,7 @@ public class TestWaitNotifyProtocol {
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
         final String signalId = "signal-id";
-        try {
-            protocol.notify(signalId, "a", 1, null);
-            fail("Notify should fail after retrying few times.");
-        } catch (ConcurrentModificationException e) {
-        }
+        assertThrows(ConcurrentModificationException.class, () -> protocol.notify(signalId, "a", 1, null));
     }
 
     @Test
@@ -248,12 +244,7 @@ public class TestWaitNotifyProtocol {
         assertEquals("value3", signal.getAttributes().get("key3"));
 
         cacheEntries.put(signalId, new AtomicCacheEntry<>(signalId, "UNSUPPORTED_FORMAT", 0L));
-        try {
-            protocol.getSignal(signalId);
-            fail("Should fail since cached value was not in expected format.");
-        } catch (DeserializationException e) {
-        }
-
+        assertThrows(DeserializationException.class, () -> protocol.getSignal(signalId));
     }
 
     @Test
@@ -263,14 +254,11 @@ public class TestWaitNotifyProtocol {
         final List<Integer> released = new ArrayList<>();
         final List<Integer> waiting = new ArrayList<>();
 
-        // Test default name.
-        final String counterName = DEFAULT_COUNT_NAME;
-
         final BiConsumer<Long, Integer> releaseCandidate = (requiredCountForPass, releasableCandidatePerPass) -> {
             released.clear();
             waiting.clear();
-            signal.releaseCandidates(counterName, requiredCountForPass, releasableCandidatePerPass, candidates,
-                    r -> released.addAll(r), w -> waiting.addAll(w));
+            signal.releaseCandidates(DEFAULT_COUNT_NAME, requiredCountForPass, releasableCandidatePerPass, candidates,
+                    released::addAll, waiting::addAll);
         };
 
         final Field releasableCount = Signal.class.getDeclaredField("releasableCount");
@@ -281,7 +269,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(0, released.size());
         assertEquals(10, waiting.size());
         assertEquals(0, signal.getCount(DEFAULT_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter is not enough yet.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 1L);
@@ -289,7 +277,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(0, released.size());
         assertEquals(10, waiting.size());
         assertEquals(1, signal.getCount(DEFAULT_COUNT_NAME)); // Counter incremented, but not enough
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 3L);
@@ -297,7 +285,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(1, released.size());
         assertEquals(9, waiting.size());
         assertEquals(0, signal.getCount(DEFAULT_COUNT_NAME)); // Counter 3 was converted into 1 release
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two candidates.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 6L);
@@ -305,7 +293,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(2, released.size());
         assertEquals(8, waiting.size());
         assertEquals(0, signal.getCount(DEFAULT_COUNT_NAME)); // Counter 3 was converted into 1 release
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two candidates, and reminder is 2.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 11L);
@@ -313,7 +301,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(3, released.size()); // 11 / 3 = 3
         assertEquals(7, waiting.size());
         assertEquals(2, signal.getCount(DEFAULT_COUNT_NAME)); // 11 % 3 = 2
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two pass count and each pass can release 2 candidates.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 6L);
@@ -321,7 +309,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(4, released.size()); // (6 / 3) * 2 = 4
         assertEquals(6, waiting.size());
         assertEquals(0, signal.getCount(DEFAULT_COUNT_NAME)); // 6 % 3 = 0
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // If there are counts more than enough to release current candidates, unused releasableCount should remain.
         signal.getCounts().put(DEFAULT_COUNT_NAME, 50L);
@@ -329,10 +317,8 @@ public class TestWaitNotifyProtocol {
         assertEquals(10, released.size()); // (50 / 3) * 2 = 32. Used 10.
         assertEquals(0, waiting.size());
         assertEquals(2, signal.getCount(DEFAULT_COUNT_NAME)); // 50 % 3 = 2.
-        assertEquals(22, releasableCount.getInt(signal)); // 32 - 10 = 22.
-
+        assertEquals(22, releasableCount.getLong(signal)); // 32 - 10 = 22.
     }
-
 
     @Test
     public void testReleaseCandidateTotal() throws Exception {
@@ -348,7 +334,7 @@ public class TestWaitNotifyProtocol {
             released.clear();
             waiting.clear();
             signal.releaseCandidates(emptyCounterName, requiredCountForPass, releasableCandidatePerPass, candidates,
-                    r -> released.addAll(r), w -> waiting.addAll(w));
+                    released::addAll, waiting::addAll);
         };
 
         final String counterA = "counterA";
@@ -364,7 +350,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(10, waiting.size());
         assertEquals(0, signal.getCount(emptyCounterName));
         assertEquals(0, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter is not enough yet.
         signal.getCounts().put(counterA, 1L);
@@ -374,7 +360,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(10, waiting.size());
         assertEquals(1, signal.getCount(emptyCounterName)); // Counter incremented, but not enough
         assertEquals(0, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target.
         signal.getCounts().put(counterA, 1L);
@@ -386,7 +372,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(9, waiting.size());
         assertEquals(0, signal.getCount(emptyCounterName)); // Counter 3 was converted into 1 release
         assertEquals(-3, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two candidates.
         signal.getCounts().put(counterA, 1L);
@@ -398,7 +384,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(8, waiting.size());
         assertEquals(0, signal.getCount(emptyCounterName)); // Counter 3 was converted into 1 release
         assertEquals(-6, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two candidates, and reminder is 2.
         signal.getCounts().put(counterA, 3L);
@@ -410,7 +396,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(7, waiting.size());
         assertEquals(2, signal.getCount(emptyCounterName));
         assertEquals(-9, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // Counter reached the target for two pass count and each pass can release 2 candidates.
         signal.getCounts().put(counterA, 1L);
@@ -422,7 +408,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(6, waiting.size());
         assertEquals(0, signal.getCount(emptyCounterName));
         assertEquals(-6, signal.getCount(CONSUMED_COUNT_NAME));
-        assertEquals(0, releasableCount.getInt(signal));
+        assertEquals(0, releasableCount.getLong(signal));
 
         // If there are counts more than enough to release current candidates, unused releasableCount should remain.
         signal.getCounts().put(counterA, 10L);
@@ -434,7 +420,7 @@ public class TestWaitNotifyProtocol {
         assertEquals(0, waiting.size());
         assertEquals(2, signal.getCount(emptyCounterName)); // 50 % 3 = 2.
         assertEquals(-48, signal.getCount(CONSUMED_COUNT_NAME)); // 50 % 3 = 2.
-        assertEquals(22, releasableCount.getInt(signal)); // 32 - 10 = 22.
+        assertEquals(22, releasableCount.getLong(signal)); // 32 - 10 = 22.
 
     }
 
