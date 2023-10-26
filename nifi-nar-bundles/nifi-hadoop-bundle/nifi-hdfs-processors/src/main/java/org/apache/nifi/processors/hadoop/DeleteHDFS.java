@@ -139,7 +139,6 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         // If this processor has an incoming connection, then do not run unless a
         // FlowFile is actually sent through
         if (originalFlowFile == null && context.hasIncomingConnection()) {
-            context.yield();
             return;
         }
 
