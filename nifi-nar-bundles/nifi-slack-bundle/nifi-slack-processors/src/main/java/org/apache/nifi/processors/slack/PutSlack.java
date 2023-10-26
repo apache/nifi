@@ -18,7 +18,6 @@ package org.apache.nifi.processors.slack;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
@@ -144,8 +143,7 @@ public class PutSlack extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("If specified, indicates the SSL Context Service that is used to communicate with the "
-                    + "remote server. If not specified, communications will not be encrypted")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .identifiesControllerService(SSLContextService.class)
             .build();
 
@@ -272,27 +270,21 @@ public class PutSlack extends AbstractProcessor {
             jsonWriter.close();
 
             final URL url = URI.create(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue()).toURL();
-            int responseCode;
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
 
             if (sslService != null) {
-                final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-
                 final SSLContext sslContext = sslService.createContext();
-                conn.setSSLSocketFactory(sslContext.getSocketFactory());
-                sendPayload(stringWriter, new DataOutputStream(conn.getOutputStream()));
-
-                responseCode = conn.getResponseCode();
-            } else {
-                final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                sendPayload(stringWriter, new DataOutputStream(conn.getOutputStream()));
-
-                responseCode = conn.getResponseCode();
+                ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
             }
 
+            final DataOutputStream outputStream = new DataOutputStream(conn.getOutputStream());
+            final String payload = "payload=" + URLEncoder.encode(stringWriter.getBuffer().toString(), StandardCharsets.UTF_8);
+            outputStream.writeBytes(payload);
+            outputStream.close();
+
+            int responseCode = conn.getResponseCode();
             if (responseCode >= 200 && responseCode < 300) {
                 getLogger().info("Successfully posted message to Slack");
                 session.transfer(flowFile, REL_SUCCESS);
@@ -313,13 +305,6 @@ public class PutSlack extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
-    }
-
-    private void sendPayload(StringWriter stringWriter, OutputStream out) throws IOException {
-        DataOutputStream outputStream = new DataOutputStream(out);
-        final String payload = "payload=" + URLEncoder.encode(stringWriter.getBuffer().toString(), StandardCharsets.UTF_8);
-        outputStream.writeBytes(payload);
-        outputStream.close();
     }
 
     private boolean isEmpty(final String value) {

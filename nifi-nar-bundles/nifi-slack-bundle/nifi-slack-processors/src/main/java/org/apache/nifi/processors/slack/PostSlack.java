@@ -190,8 +190,7 @@ public class PostSlack extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("If specified, indicates the SSL Context Service that is used to communicate with the "
-                    + "remote server. If not specified, communications will not be encrypted")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .identifiesControllerService(SSLContextService.class)
             .build();
 
