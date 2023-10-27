@@ -16,7 +16,7 @@
 import json
 
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
-from nifiapi.properties import PropertyDescriptor
+from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope
 import ChromaUtils
 import EmbeddingUtils
 
@@ -28,7 +28,8 @@ class PutChroma(FlowFileTransform):
     class ProcessorDetails:
         version = '2.0.0-SNAPSHOT'
         description = """Publishes JSON data to a Chroma VectorDB. The Incoming data must be in single JSON per Line format, each with two keys: 'text' and 'metadata'.
-                       The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored."""
+                       The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored. If the collection name specified
+                       does not exist, the Processor will automatically create the collection."""
         tags = ["chroma", "vector", "vectordb", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
 
 
@@ -47,6 +48,14 @@ class PutChroma(FlowFileTransform):
         default_value="cosine",
         required=True
     )
+    DOC_ID_FIELD_NAME = PropertyDescriptor(
+        name="Document ID Field Name",
+        description="Specifies the name of the field in the 'metadata' element of each document where the document's ID can be found. " +
+                    "If not specified, an ID will be generated based on the FlowFile's filename and a one-up number.",
+        required=False,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
+    )
 
 
     client = None
@@ -56,6 +65,7 @@ class PutChroma(FlowFileTransform):
         self.property_descriptors = [prop for prop in ChromaUtils.PROPERTIES] + [prop for prop in EmbeddingUtils.PROPERTIES]
         self.property_descriptors.append(self.STORE_TEXT)
         self.property_descriptors.append(self.DISTANCE_METHOD)
+        self.property_descriptors.append(self.DOC_ID_FIELD_NAME)
 
 
     def getPropertyDescriptors(self):
@@ -71,6 +81,7 @@ class PutChroma(FlowFileTransform):
         embedding_function = self.embedding_function
         collection_name = context.getProperty(ChromaUtils.COLLECTION_NAME).evaluateAttributeExpressions(flowfile).getValue()
         distance_method = context.getProperty(self.DISTANCE_METHOD).getValue()
+        id_field_name = context.getProperty(self.DOC_ID_FIELD_NAME).evaluateAttributeExpressions(flowfile).getValue()
 
         collection = client.get_or_create_collection(
             name=collection_name,
@@ -95,16 +106,20 @@ class PutChroma(FlowFileTransform):
                     filtered_metadata[key] = value
 
             metadatas.append(filtered_metadata)
-            ids.append(flowfile.getAttribute("uuid") + "-" + str(i))
+
+            doc_id = None
+            if id_field_name is not None:
+                doc_id = metadata.get(id_field_name)
+            if doc_id is None:
+                flowfile.getAttribute("filename") + "-" + str(i)
+            ids.append(doc_id)
+
             i += 1
 
         embeddings = embedding_function(texts)
         if not context.getProperty(self.STORE_TEXT).asBoolean():
             texts = None
 
-        # TODO: Need to think through how to assign IDs. As we have it is fine for a default.
-        #  But may want to specify it if ingesting json docs, etc. E.g., Slack messages w/ ts as the id
-        # Probably want to have a "document_id" field in the metadata....
         collection.upsert(ids, embeddings, metadatas, texts)
 
         return FlowFileTransformResult(relationship = "success")

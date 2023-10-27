@@ -27,7 +27,7 @@ class PutPinecone(FlowFileTransform):
 
     class ProcessorDetails:
         version = '2.0.0-SNAPSHOT'
-        description = """Publishes JSON data to a Pinecone. The Incoming data must be in single JSON per Line format, each with two keys: 'text' and 'metadata'.
+        description = """Publishes JSON data to Pinecone. The Incoming data must be in single JSON per Line format, each with two keys: 'text' and 'metadata'.
                        The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored."""
         tags = ["pinecone", "vector", "vectordb", "vectorstore", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
 
@@ -76,13 +76,22 @@ class PutPinecone(FlowFileTransform):
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
     )
+    DOC_ID_FIELD_NAME = PropertyDescriptor(
+        name="Document ID Field Name",
+        description="Specifies the name of the field in the 'metadata' element of each document where the document's ID can be found. " +
+                    "If not specified, an ID will be generated based on the FlowFile's filename and a one-up number.",
+        required=False,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
+    )
 
     properties = [PINECONE_API_KEY,
                   OPENAI_API_KEY,
                   PINECONE_ENV,
                   INDEX_NAME,
                   TEXT_KEY,
-                  NAMESPACE]
+                  NAMESPACE,
+                  DOC_ID_FIELD_NAME]
 
     embeddings = None
 
@@ -109,17 +118,22 @@ class PutPinecone(FlowFileTransform):
         # First, check if our index already exists. If it doesn't, we create it
         index_name = context.getProperty(self.INDEX_NAME).evaluateAttributeExpressions(flowfile).getValue()
         namespace = context.getProperty(self.NAMESPACE).evaluateAttributeExpressions(flowfile).getValue()
+        id_field_name = context.getProperty(self.DOC_ID_FIELD_NAME).evaluateAttributeExpressions(flowfile).getValue()
 
         index = pinecone.Index(index_name)
 
         # Read the FlowFile content as "json-lines".
         json_lines = flowfile.getContentsAsBytes().decode()
-        i = 0
+        i = 1
         texts = []
         metadatas = []
         ids = []
         for line in json_lines.split("\n"):
-            doc = json.loads(line)
+            try:
+                doc = json.loads(line)
+            except Exception as e:
+                raise ValueError(f"Could not parse line {i} as JSON") from e
+
             text = doc.get('text')
             metadata = doc.get('metadata')
             texts.append(text)
@@ -131,7 +145,14 @@ class PutPinecone(FlowFileTransform):
                     filtered_metadata[key] = value
 
             metadatas.append(filtered_metadata)
-            ids.append(flowfile.getAttribute("uuid") + "-" + str(i))
+
+            doc_id = None
+            if id_field_name is not None:
+                doc_id = metadata.get(id_field_name)
+            if doc_id is None:
+                flowfile.getAttribute("filename") + "-" + str(i)
+            ids.append(doc_id)
+
             i += 1
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()

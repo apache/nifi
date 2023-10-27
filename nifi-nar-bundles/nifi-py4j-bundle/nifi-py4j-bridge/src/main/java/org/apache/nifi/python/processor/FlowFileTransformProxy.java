@@ -17,6 +17,8 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,6 +30,7 @@ import py4j.Py4JNetworkException;
 import java.util.Map;
 import java.util.Optional;
 
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
 
     private final PythonProcessorBridge bridge;

@@ -100,10 +100,10 @@ PASSWORD = PropertyDescriptor(
 )
 COLLECTION_NAME = PropertyDescriptor(
     name="Collection Name",
-    description="The name of the Chroma Collection to update",
+    description="The name of the Chroma Collection",
     validators=[StandardValidators.NON_EMPTY_VALIDATOR],
     required=True,
-    default_value="langchain",
+    default_value="nifi",
     expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
 )
 

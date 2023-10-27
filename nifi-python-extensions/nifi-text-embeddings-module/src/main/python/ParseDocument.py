@@ -40,16 +40,17 @@ TEXT_KEY = "text"
 METADATA_KEY = "metadata"
 
 
-class ParseUnstructuredDocument(FlowFileTransform):
+class ParseDocument(FlowFileTransform):
     class Java:
         implements = ["org.apache.nifi.python.processor.FlowFileTransform"]
 
     class ProcessorDetails:
         version = "2.0.0-SNAPSHOT"
         description = """Parses incoming unstructured text documents and performs optical character recognition (OCR) in order to extract text from PDF and image files.
-            The output is formatted as "json-lines" with two keys: 'text' and 'metadata'. Note that in order to process PDF or Images,
-            Tesseract and Poppler must be installed on the system."""
-        tags = ["text", "embeddings", "vector", "machine learning", "ML", "artificial intelligence", "ai", "document", "langchain"]
+            The output is formatted as "json-lines" with two keys: 'text' and 'metadata'.
+            Note that use of this Processor may require significant storage space and RAM utilization due to third-party dependencies necessary for processing PDF and image files.
+            Also note that in order to process PDF or Images, Tesseract and Poppler must be installed on the system."""
+        tags = ["text", "embeddings", "vector", "machine learning", "ML", "artificial intelligence", "ai", "document", "langchain", "pdf", "html", "markdown", "word", "excel", "powerpoint"]
         dependencies = ['langchain', 'unstructured', 'unstructured-inference', 'unstructured_pytesseract', 'numpy',
                         'opencv-python', 'pdf2image', 'pdfminer.six[image]', 'python-docx', 'openpyxl', 'python-pptx']
 
@@ -81,19 +82,19 @@ class ParseUnstructuredDocument(FlowFileTransform):
     )
     ELEMENT_STRATEGY = PropertyDescriptor(
         name="Element Strategy",
-        description="Specifies whether the PDF should be loaded as a single Document, or if each element in the PDF should be separated out into its own Document",
+        description="Specifies whether the input should be loaded as a single Document, or if each element in the input should be separated out into its own Document",
         allowable_values=[SINGLE_DOCUMENT, DOCUMENT_PER_ELEMENT],
         required=True,
         default_value=DOCUMENT_PER_ELEMENT,
-        dependencies=[PropertyDependency(INPUT_FORMAT, PDF, HTML, MARKDOWN)]
+        dependencies=[PropertyDependency(INPUT_FORMAT, HTML, MARKDOWN)]
     )
     INCLUDE_PAGE_BREAKS = PropertyDescriptor(
         name="Include Page Breaks",
-        description="Specifies whether or not page breaks should be considered when creating Documents from the PDF",
+        description="Specifies whether or not page breaks should be considered when creating Documents from the input",
         allowable_values=["true", "false"],
         required=True,
         default_value="false",
-        dependencies=[PropertyDependency(INPUT_FORMAT, PDF, HTML, MARKDOWN),
+        dependencies=[PropertyDependency(INPUT_FORMAT, HTML, MARKDOWN),
                       PropertyDependency(ELEMENT_STRATEGY, DOCUMENT_PER_ELEMENT)]
     )
     PDF_INFER_TABLE_STRUCTURE = PropertyDescriptor(

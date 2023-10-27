@@ -25,19 +25,6 @@ language governing permissions and limitations under the License. -->
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>unpack-python-extensions</id>
-                        <goals>
-                            <goal>unpack-dependencies</goal>
-                        </goals>
-                        <phase>generate-resources</phase>
-                        <configuration>
-                            <includeArtifactIds>nifi-python-extensions-bundle</includeArtifactIds>
-                            <includes>**/*</includes>
-                            <excludeTransitive>true</excludeTransitive>
-                            <outputDirectory>${project.build.directory}/nifi-${project.version}-bin/nifi-${project.version}/python/extensions</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>extract-extension-manifests</id>
                         <goals>
                             <goal>unpack-dependencies</goal>

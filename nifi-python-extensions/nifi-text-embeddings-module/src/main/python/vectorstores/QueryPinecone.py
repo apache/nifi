@@ -62,14 +62,14 @@ class QueryPinecone(FlowFileTransform):
     )
     QUERY = PropertyDescriptor(
         name="Query",
-        description="The query to issue to Pinecone.",
+        description="The text of the query to send to Pinecone.",
         required=True,
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
     )
     NUMBER_OF_RESULTS = PropertyDescriptor(
         name="Number of Results",
-        description="The number of results to return from Chroma",
+        description="The number of results to return from Pinecone",
         required=True,
         validators=[StandardValidators.POSITIVE_INTEGER_VALIDATOR],
         default_value="10",
