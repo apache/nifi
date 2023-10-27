@@ -53,7 +53,7 @@
         <p><b>NOTE:</b> the command should be on <code>$PATH</code> or it should be in the working directory, otherwise path also should be specified.</p>
 
         <h4>Dynamic Properties</h4>
-        <p>Arguments can be specified with Dynamic Properties. Dynamic Properties with the pattern of 'command.arguments.&lt;commandIndex&gt;' will be appended
+        <p>Arguments can be specified with Dynamic Properties. Dynamic Properties with the pattern of 'command.argument.&lt;commandIndex&gt;' will be appended
         to the command in ascending order.</p>
 
         <p>The above example with dynamic properties would look like this:</p>
@@ -64,11 +64,11 @@
                 <th>Property Value</th>
             </tr>
             <tr>
-                <td>command.arguments.0</td>
+                <td>command.argument.0</td>
                 <td>-lah</td>
             </tr>
             <tr>
-                <td>command.arguments.1</td>
+                <td>command.argument.1</td>
                 <td>/path/to/dir</td>
             </tr>
         </table>
@@ -76,7 +76,7 @@
         <h3>Configuring environment variables</h3>
         <p>In addition to specifying command arguments using the Command Argument field or Dynamic Properties, users can also use environment variables with
         the ExecuteStreamCommand processor. Environment variables are a set of key-value pairs that can be accessed by processes running on the system.
-        ExecuteStreamCommand will treat every Dynamic Property as an environment variable that doesn't match the pattern 'command.arguments.&lt;commandIndex&gt;'.</p>
+        ExecuteStreamCommand will treat every Dynamic Property as an environment variable that doesn't match the pattern 'command.argument.&lt;commandIndex&gt;'.</p>
 
         <p>Consider that we want to execute a Maven command with the processor. If there are multiple Java versions installed on the system, you can specify
         which version will be used by setting the <code>JAVA_HOME</code> environment variable. The output FlowFile will looke like this if we run
