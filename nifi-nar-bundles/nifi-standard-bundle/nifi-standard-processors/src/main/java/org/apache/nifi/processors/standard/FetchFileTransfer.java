@@ -61,7 +61,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
     static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Move the file to the directory specified by the <Move Destination Directory> property");
     static final AllowableValue COMPLETION_DELETE = new AllowableValue("Delete File", "Delete File", "Deletes the original file from the remote system");
-
+    static final String FAILURE_REASON_ATTRIBUTE = "fetch.failure.reason";
 
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
@@ -254,7 +254,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             transfer = transferWrapper.getFileTransfer();
         }
 
-        String failureReason = null;
         Relationship failureRelationship = null;
         boolean closeConnOnFailure = false;
         boolean provenanceEventOnFailure = false;
@@ -264,29 +263,22 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             try {
                 flowFile = transfer.getRemoteFile(filename, flowFile, session);
             } catch (final FileNotFoundException e) {
-                failureReason = String.format(
-                        "Failed to fetch content for %s from filename %s on remote host %s because the file could not be found on the remote system; routing to %s",
-                        flowFile, filename, host, REL_NOT_FOUND.getName());
-
-                getLogger().log(levelFileNotFound, failureReason);
-
                 failureRelationship = REL_NOT_FOUND;
+                getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
+                        flowFile, filename, host, failureRelationship.getName());
+
                 provenanceEventOnFailure = true;
             } catch (final PermissionDeniedException e) {
-                failureReason = String.format("Failed to fetch content for %s from filename %s on remote host %s due to insufficient permissions; routing to %s",
-                        flowFile, filename, host, REL_PERMISSION_DENIED.getName());
-
-                getLogger().error(failureReason);
-
                 failureRelationship = REL_PERMISSION_DENIED;
+                getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
+                        flowFile, filename, host, failureRelationship.getName());
+
                 provenanceEventOnFailure = true;
             } catch (final ProcessException | IOException e) {
-                failureReason = String.format("Failed to fetch content for %s from filename %s on remote host %s:%s due to %s; routing to comms.failure",
-                        flowFile, filename, host, port, e.toString());
-
-                getLogger().error(failureReason, e);
-
                 failureRelationship = REL_COMMS_FAILURE;
+                getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to {}",
+                        flowFile, filename, host, port, e.toString(), failureRelationship.getName(), e);
+
                 closeConnOnFailure = true;
             }
 
@@ -307,8 +299,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 attributes.put(CoreAttributes.FILENAME.key(), filename);
             }
 
-            if (failureReason != null) {
-                attributes.put("failure", failureReason);
+            if (failureRelationship != null) {
+                attributes.put(FAILURE_REASON_ATTRIBUTE, failureRelationship.getName());
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(session.penalize(flowFile), failureRelationship);
                 if (provenanceEventOnFailure) {

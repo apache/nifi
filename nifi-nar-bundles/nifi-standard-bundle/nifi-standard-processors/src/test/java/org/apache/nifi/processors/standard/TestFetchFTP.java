@@ -113,10 +113,9 @@ public class TestFetchFTP {
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_NOT_FOUND, 1);
-        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.REL_NOT_FOUND, "failure");
-        runner.assertAllFlowFilesContainAttribute("failure");
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
         MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
-        assertTrue(transferredFlowFile.getAttribute("failure").contains(FetchFileTransfer.REL_NOT_FOUND.getName()));
+        assertEquals(FetchFileTransfer.REL_NOT_FOUND.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
     @Test
@@ -126,9 +125,9 @@ public class TestFetchFTP {
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
-        runner.assertAllFlowFilesContainAttribute("failure");
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
         MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
-        assertTrue(transferredFlowFile.getAttribute("failure").contains(FetchFileTransfer.REL_PERMISSION_DENIED.getName()));
+        assertEquals(FetchFileTransfer.REL_PERMISSION_DENIED.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
     @Test
@@ -139,7 +138,7 @@ public class TestFetchFTP {
 
         runner.run(2, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 2);
-        runner.assertAllFlowFilesContainAttribute("failure");
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
 
         assertEquals(1, proc.numberOfFileTransfers);
         assertFalse(proc.isClosed);
@@ -153,7 +152,7 @@ public class TestFetchFTP {
 
         runner.run(2, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_NOT_FOUND, 2);
-        runner.assertAllFlowFilesContainAttribute("failure");
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
 
         assertEquals(1, proc.numberOfFileTransfers);
         assertFalse(proc.isClosed);
@@ -166,9 +165,9 @@ public class TestFetchFTP {
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_COMMS_FAILURE, 1);
-        runner.assertAllFlowFilesContainAttribute("failure");
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
         MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
-        assertTrue(transferredFlowFile.getAttribute("failure").contains(FetchFileTransfer.REL_COMMS_FAILURE.getName()));
+        assertEquals(FetchFileTransfer.REL_COMMS_FAILURE.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
 
         assertTrue(proc.isClosed);
     }
