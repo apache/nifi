@@ -217,7 +217,7 @@ public class FormatUtils {
             durationLong = Math.round(durationVal);
         } else {
             // Try reducing the size of the units to make the input a long
-            List wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
+            List<?> wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
             durationLong = (long) wholeResults.get(0);
             specifiedTimeUnit = (TimeUnit) wholeResults.get(1);
         }
@@ -247,7 +247,8 @@ public class FormatUtils {
     protected static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
         // If the value is already a whole number, return it and the current time unit
         if (decimal == Math.rint(decimal)) {
-            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+            final long rounded = Math.round(decimal);
+            return Arrays.asList(new Object[]{rounded, timeUnit});
         } else if (TimeUnit.NANOSECONDS == timeUnit) {
             // The time unit is as small as possible
             if (decimal < 1.0) {

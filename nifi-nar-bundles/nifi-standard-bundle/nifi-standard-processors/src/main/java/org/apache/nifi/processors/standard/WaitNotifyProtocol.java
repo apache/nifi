@@ -70,7 +70,7 @@ public class WaitNotifyProtocol {
         transient private AtomicCacheEntry<String, String, Object> cachedEntry;
         private Map<String, Long> counts = new HashMap<>();
         private Map<String, String> attributes = new HashMap<>();
-        private int releasableCount = 0;
+        private long releasableCount = 0;
 
         public Map<String, Long> getCounts() {
             return counts;
@@ -110,11 +110,11 @@ public class WaitNotifyProtocol {
             return count != null ? count : 0;
         }
 
-        public int getReleasableCount() {
+        public long getReleasableCount() {
             return releasableCount;
         }
 
-        public void setReleasableCount(int releasableCount) {
+        public void setReleasableCount(long releasableCount) {
             this.releasableCount = releasableCount;
         }
 
@@ -155,7 +155,8 @@ public class WaitNotifyProtocol {
                 }
             }
 
-            int releaseCount = Math.min(releasableCount, candidateSize);
+            // Convert to integer for list index sizing
+            final int releaseCount = Math.toIntExact(Math.min(releasableCount, candidateSize));
             released.accept(candidates.subList(0, releaseCount));
             waiting.accept(candidates.subList(releaseCount, candidateSize));
 
