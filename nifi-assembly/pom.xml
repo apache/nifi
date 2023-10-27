@@ -314,18 +314,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hadoop-libraries-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hadoop-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-2-6-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -351,12 +339,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-poi-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kudu-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -390,7 +372,7 @@ language governing permissions and limitations under the License. -->
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
-	<dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
@@ -405,12 +387,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-solr-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -482,19 +458,7 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hbase-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hbase_2-client-service-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -716,12 +680,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-parquet-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -786,7 +744,7 @@ language governing permissions and limitations under the License. -->
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
-	    <dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-user-service-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
@@ -999,6 +957,98 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>include-hadoop</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hadoop-libraries-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hadoop-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-parquet-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-kudu</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hadoop-libraries-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-kudu-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-hbase</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hbase-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hbase_2-client-service-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-solr</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-solr-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-hive3</id>
             <!-- This profile handles the inclusion of Hive 3 artifacts. The NAR
             is quite large and makes the resultant binary distribution significantly
@@ -1077,7 +1127,7 @@ language governing permissions and limitations under the License. -->
                     <type>nar</type>
                 </dependency>
             </dependencies>
-    	</profile>
+        </profile>
         <profile>
             <id>headless</id>
             <!-- This profile excludes the nifi-server artifacts, such as the Web/UI NAR(s) and instead uses the nifi-headless-server-nar. -->
@@ -1100,7 +1150,7 @@ language governing permissions and limitations under the License. -->
                 </dependency>
             </dependencies>
         </profile>
-	<profile>
+        <profile>
             <id>include-accumulo</id>
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
             <activation>
@@ -1115,14 +1165,14 @@ language governing permissions and limitations under the License. -->
                     <artifactId>nifi-accumulo-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
-	    	</dependency>
-		<dependency>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-api-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
                     <type>nar</type>
-		</dependency>
-		<dependency>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-nar</artifactId>
                     <version>2.0.0-SNAPSHOT</version>
