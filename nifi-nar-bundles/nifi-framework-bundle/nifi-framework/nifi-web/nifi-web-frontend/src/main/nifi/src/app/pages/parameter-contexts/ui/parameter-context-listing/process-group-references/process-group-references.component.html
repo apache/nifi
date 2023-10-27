@@ -16,9 +16,7 @@
   -->
 
 <div class="process-group-references">
-    <div *ngIf="!hasBoundProcessGroups(); else hasReferences" class="value">
-        No referencing Process Groups
-    </div>
+    <div *ngIf="!hasBoundProcessGroups(); else hasReferences" class="value">No referencing Process Groups</div>
 
     <ng-template #hasReferences>
         <ul>
@@ -29,9 +27,9 @@
                 <ul class="nested">
                     <ng-container
                         *ngTemplateOutlet="
-                                processGroups;
-                                context: { $implicit: authorizedProcessGroupReferences }
-                            "></ng-container>
+                            processGroups;
+                            context: { $implicit: authorizedProcessGroupReferences }
+                        "></ng-container>
                 </ul>
             </li>
             <li *ngIf="unauthorizedProcessGroupReferences.length > 0">
@@ -41,9 +39,9 @@
                 <ul class="nested">
                     <ng-container
                         *ngTemplateOutlet="
-                                unauthorized;
-                                context: { $implicit: unauthorizedProcessGroupReferences }
-                            "></ng-container>
+                            unauthorized;
+                            context: { $implicit: unauthorizedProcessGroupReferences }
+                        "></ng-container>
                 </ul>
             </li>
         </ul>
@@ -52,7 +50,7 @@
                 <li *ngFor="let reference of references">
                     <a [routerLink]="getRouteForReference(reference)" mat-dialog-close="ROUTED">{{
                         reference.component.name
-                        }}</a>
+                    }}</a>
                 </li>
             </ng-container>
         </ng-template>

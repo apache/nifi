@@ -40,7 +40,7 @@ import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
-import { selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
+import { selectParameterContexts, selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
 import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { ParameterContextUpdateRequest } from './index';
@@ -90,6 +90,8 @@ export class ParameterContextListingEffects {
                         panelClass: 'large-dialog'
                     });
 
+                    dialogReference.componentInstance.availableParameterContexts$ =
+                        this.store.select(selectParameterContexts);
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
                     dialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {
@@ -173,10 +175,35 @@ export class ParameterContextListingEffects {
         { dispatch: false }
     );
 
-    openConfigureControllerServiceDialog$ = createEffect(
+    getEffectiveParameterContextAndOpenDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterContextListingActions.getEffectiveParameterContextAndOpenDialog),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.parameterContextService.getParameterContext(request.id, true)).pipe(
+                    map((response) =>
+                        ParameterContextListingActions.openParameterContextDialog({
+                            request: {
+                                parameterContext: response
+                            }
+                        })
+                    ),
+                    catchError((error) =>
+                        of(
+                            ParameterContextListingActions.parameterContextListingApiError({
+                                error: error.error
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    openParameterContextDialog$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ParameterContextListingActions.openParameterContextServiceDialog),
+                ofType(ParameterContextListingActions.openParameterContextDialog),
                 map((action) => action.request),
                 tap((request) => {
                     // @ts-ignore
@@ -190,6 +217,11 @@ export class ParameterContextListingEffects {
                     });
 
                     editDialogReference.componentInstance.updateRequest = this.store.select(selectUpdateRequest);
+                    editDialogReference.componentInstance.availableParameterContexts$ = this.store
+                        .select(selectParameterContexts)
+                        .pipe(
+                            map((parameterContexts) => parameterContexts.filter((pc) => pc.id != parameterContextId))
+                        );
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
                     editDialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {

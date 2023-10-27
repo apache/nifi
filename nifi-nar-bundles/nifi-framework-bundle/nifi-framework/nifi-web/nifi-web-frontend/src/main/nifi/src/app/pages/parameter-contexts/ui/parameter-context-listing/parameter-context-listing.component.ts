@@ -25,10 +25,10 @@ import {
     selectSingleEditedParameterContext
 } from '../../state/parameter-context-listing/parameter-context-listing.selectors';
 import {
+    getEffectiveParameterContextAndOpenDialog,
     loadParameterContexts,
     navigateToEditParameterContext,
     openNewParameterContextDialog,
-    openParameterContextServiceDialog,
     promptParameterContextDeletion,
     selectParameterContext
 } from '../../state/parameter-context-listing/parameter-context-listing.actions';
@@ -61,9 +61,9 @@ export class ParameterContextListing {
             .subscribe((entity) => {
                 if (entity) {
                     this.store.dispatch(
-                        openParameterContextServiceDialog({
+                        getEffectiveParameterContextAndOpenDialog({
                             request: {
-                                parameterContext: entity
+                                id: entity.id
                             }
                         })
                     );

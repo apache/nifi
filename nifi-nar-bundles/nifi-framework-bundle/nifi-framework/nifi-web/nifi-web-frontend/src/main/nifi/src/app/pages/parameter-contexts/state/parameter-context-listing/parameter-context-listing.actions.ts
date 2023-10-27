@@ -25,7 +25,8 @@ import {
     EditParameterContextRequest,
     LoadParameterContextsResponse,
     SelectParameterContext,
-    PollParameterContextUpdateSuccess
+    PollParameterContextUpdateSuccess,
+    GetEffectiveParameterContext
 } from './index';
 
 export const loadParameterContexts = createAction('[Parameter Context Listing] Load Parameter Contexts');
@@ -59,7 +60,12 @@ export const navigateToEditParameterContext = createAction(
     props<{ id: string }>()
 );
 
-export const openParameterContextServiceDialog = createAction(
+export const getEffectiveParameterContextAndOpenDialog = createAction(
+    '[Parameter Context Listing] Get Effective Parameter Context Open Dialog',
+    props<{ request: GetEffectiveParameterContext }>()
+);
+
+export const openParameterContextDialog = createAction(
     '[Parameter Context Listing] Open Configure Parameter Context Dialog',
     props<{ request: EditParameterContextRequest }>()
 );

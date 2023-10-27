@@ -191,6 +191,28 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         };
     }
 
+    canGoToParameter(item: ParameterItem): boolean {
+        return (
+            item.entity.parameter.inherited == true &&
+            item.entity.parameter.parameterContext?.permissions.canRead == true
+        );
+    }
+
+    getParameterLink(item: ParameterItem): string[] {
+        if (item.entity.parameter.parameterContext) {
+            // TODO - support routing directly to a parameter
+            return ['/parameter-contexts', item.entity.parameter.parameterContext.id, 'edit'];
+        }
+        return [];
+    }
+
+    canEdit(item: ParameterItem): boolean {
+        const canWrite: boolean = item.entity.canWrite == true;
+        const provided: boolean = item.entity.parameter.provided == true;
+        const inherited: boolean = item.entity.parameter.inherited == true;
+        return canWrite && !provided && !inherited;
+    }
+
     editClicked(item: ParameterItem): void {
         this.editParameter(item.entity.parameter)
             .pipe(take(1))
@@ -208,6 +230,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                     this.handleChanged();
                 }
             });
+    }
+
+    canDelete(item: ParameterItem): boolean {
+        const canWrite: boolean = item.entity.canWrite == true;
+        const provided: boolean = item.entity.parameter.provided == true;
+        const inherited: boolean = item.entity.parameter.inherited == true;
+        return canWrite && !provided && !inherited;
     }
 
     deleteClicked(item: ParameterItem): void {

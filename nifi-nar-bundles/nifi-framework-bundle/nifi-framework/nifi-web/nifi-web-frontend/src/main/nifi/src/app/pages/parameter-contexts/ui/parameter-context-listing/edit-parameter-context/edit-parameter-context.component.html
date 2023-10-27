@@ -72,7 +72,10 @@
                             <div>Referencing Components</div>
                             <div class="relative h-full border">
                                 <div class="absolute inset-0 overflow-y-auto p-1">
-                                    <process-group-references [processGroupReferences]="request.parameterContext?.component?.boundProcessGroups"></process-group-references>
+                                    <process-group-references
+                                        [processGroupReferences]="
+                                            request.parameterContext?.component?.boundProcessGroups
+                                        "></process-group-references>
                                 </div>
                             </div>
                         </div>
@@ -87,7 +90,13 @@
                     </div>
                 </mat-tab>
                 <mat-tab label="Inheritance">
-                    <div class="tab-content py-4"></div>
+                    <div class="tab-content py-4">
+                        <parameter-context-inheritance
+                            formControlName="inheritedParameterContexts"
+                            [allParameterContexts]="
+                                (availableParameterContexts$ | async)!
+                            "></parameter-context-inheritance>
+                    </div>
                 </mat-tab>
             </mat-tab-group>
         </mat-dialog-content>

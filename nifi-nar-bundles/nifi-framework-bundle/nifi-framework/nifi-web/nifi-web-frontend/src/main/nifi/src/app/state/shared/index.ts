@@ -144,8 +144,19 @@ export interface Parameter {
     valueRemoved?: boolean;
     provided?: boolean;
     referencingComponents?: AffectedComponentEntity[];
-    // private ParameterContextReferenceEntity parameterContext;
+    parameterContext?: ParameterContextReferenceEntity;
     inherited?: boolean;
+}
+
+export interface ParameterContextReferenceEntity {
+    permissions: Permissions;
+    id: string;
+    component?: ParameterContextReference;
+}
+
+export interface ParameterContextReference {
+    id: string;
+    name: string;
 }
 
 export interface AffectedComponentEntity {

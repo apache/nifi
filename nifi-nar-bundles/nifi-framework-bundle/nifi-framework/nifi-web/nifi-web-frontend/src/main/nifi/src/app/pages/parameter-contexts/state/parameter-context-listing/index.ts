@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ParameterEntity, Permissions, Revision } from '../../../../state/shared';
+import { ParameterContextReferenceEntity, ParameterEntity, Permissions, Revision } from '../../../../state/shared';
 
 export const parameterContextListingFeatureKey = 'parameterContextListing';
 
@@ -30,6 +30,10 @@ export interface CreateParameterContext {
 
 export interface CreateParameterContextSuccess {
     parameterContext: ParameterContextEntity;
+}
+
+export interface GetEffectiveParameterContext {
+    id: string;
 }
 
 export interface EditParameterContextRequest {
@@ -83,12 +87,12 @@ export interface ParameterContextEntity {
 }
 
 export interface ParameterContext {
-    identifier: string;
+    id: string;
     name: string;
     description: string;
     parameters: ParameterEntity[];
     boundProcessGroups: BoundProcessGroup[];
-    // private List<ParameterContextReferenceEntity> inheritedParameterContexts;
+    inheritedParameterContexts: ParameterContextReferenceEntity[];
     // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 }
 
@@ -99,7 +103,7 @@ export interface BoundProcessGroup {
         id: string;
         parentGroupId: string;
         name: string;
-    }
+    };
 }
 
 export interface ParameterContextListingState {

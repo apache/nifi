@@ -33,10 +33,10 @@ import {
 } from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import { Parameter, ParameterEntity } from '../../../../../state/shared';
 import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
+import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -57,7 +57,8 @@ import { ProcessGroupReferences } from '../process-group-references/process-grou
         NifiSpinnerDirective,
         NifiSpinnerDirective,
         ParameterTable,
-        ProcessGroupReferences
+        ProcessGroupReferences,
+        ParameterContextInheritance
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
@@ -65,6 +66,7 @@ export class EditParameterContext {
     @Input() createNewParameter!: () => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
+    @Input() availableParameterContexts$!: Observable<ParameterContextEntity[]>;
     @Input() saving$!: Observable<boolean>;
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
@@ -78,8 +80,7 @@ export class EditParameterContext {
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterContextRequest,
         private formBuilder: FormBuilder,
-        private client: Client,
-        private nifiCommon: NiFiCommon
+        private client: Client
     ) {
         if (request.parameterContext) {
             this.isNew = false;
@@ -87,7 +88,10 @@ export class EditParameterContext {
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl(request.parameterContext.component.name, Validators.required),
                 description: new FormControl(request.parameterContext.component.description),
-                parameters: new FormControl(request.parameterContext.component.parameters)
+                parameters: new FormControl(request.parameterContext.component.parameters),
+                inheritedParameterContexts: new FormControl(
+                    request.parameterContext.component.inheritedParameterContexts
+                )
             });
         } else {
             this.isNew = true;
@@ -95,7 +99,8 @@ export class EditParameterContext {
             this.editParameterContextForm = this.formBuilder.group({
                 name: new FormControl('', Validators.required),
                 description: new FormControl(''),
-                parameters: new FormControl([])
+                parameters: new FormControl([]),
+                inheritedParameterContexts: new FormControl([])
             });
         }
     }
@@ -120,7 +125,8 @@ export class EditParameterContext {
                 component: {
                     name: this.editParameterContextForm.get('name')?.value,
                     description: this.editParameterContextForm.get('description')?.value,
-                    parameters: this.editParameterContextForm.get('parameters')?.value
+                    parameters: this.editParameterContextForm.get('parameters')?.value,
+                    inheritedParameterContexts: this.editParameterContextForm.get('inheritedParameterContexts')?.value
                 }
             };
 
@@ -137,7 +143,8 @@ export class EditParameterContext {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,
                     description: this.editParameterContextForm.get('description')?.value,
-                    parameters: this.parameters
+                    parameters: this.parameters,
+                    inheritedParameterContexts: this.editParameterContextForm.get('inheritedParameterContexts')?.value
                 }
             };
 

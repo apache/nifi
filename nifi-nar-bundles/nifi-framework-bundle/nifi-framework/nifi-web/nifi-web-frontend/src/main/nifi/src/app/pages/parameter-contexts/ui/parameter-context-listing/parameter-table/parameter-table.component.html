@@ -92,19 +92,22 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center gap-x-3">
-                            <!-- TODO - go to inherited parameter -->
-                            <!--                        <div-->
-                            <!--                            class="pointer fa fa-long-arrow-right"-->
-                            <!--                            *ngIf="canGoTo(item)"-->
-                            <!--                            [routerLink]="getServiceLink(item.value) | async"-->
-                            <!--                            mat-dialog-close-->
-                            <!--                            title="Go to"></div>-->
+                            <div
+                                class="pointer fa fa-long-arrow-right"
+                                *ngIf="canGoToParameter(item)"
+                                [routerLink]="getParameterLink(item)"
+                                mat-dialog-close="ROUTED"
+                                title="Go to"></div>
                             <div
                                 class="pointer fa fa-pencil"
-                                *ngIf="item.entity.canWrite"
+                                *ngIf="canEdit(item)"
                                 (click)="editClicked(item)"
                                 title="Edit"></div>
-                            <div class="pointer fa fa-trash" (click)="deleteClicked(item)" title="Delete"></div>
+                            <div
+                                class="pointer fa fa-trash"
+                                *ngIf="canDelete(item)"
+                                (click)="deleteClicked(item)"
+                                title="Delete"></div>
                         </div>
                     </td>
                 </ng-container>
@@ -135,7 +138,9 @@
                 <div class="absolute inset-0 overflow-y-auto p-1">
                     <parameter-references
                         *ngIf="selectedItem"
-                        [parameterReferences]="selectedItem.entity.parameter.referencingComponents"></parameter-references>
+                        [parameterReferences]="
+                            selectedItem.entity.parameter.referencingComponents
+                        "></parameter-references>
                 </div>
             </div>
         </div>
