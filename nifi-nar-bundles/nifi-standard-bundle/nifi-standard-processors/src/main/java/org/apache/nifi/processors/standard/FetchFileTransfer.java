@@ -256,7 +256,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
         Relationship failureRelationship = null;
         boolean closeConnOnFailure = false;
-        boolean provenanceEventOnFailure = false;
 
         try {
             // Pull data from remote system.
@@ -266,14 +265,10 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 failureRelationship = REL_NOT_FOUND;
                 getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
                         flowFile, filename, host, failureRelationship.getName());
-
-                provenanceEventOnFailure = true;
             } catch (final PermissionDeniedException e) {
                 failureRelationship = REL_PERMISSION_DENIED;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
                         flowFile, filename, host, failureRelationship.getName());
-
-                provenanceEventOnFailure = true;
             } catch (final ProcessException | IOException e) {
                 failureRelationship = REL_COMMS_FAILURE;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to {}",
@@ -303,9 +298,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 attributes.put(FAILURE_REASON_ATTRIBUTE, failureRelationship.getName());
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(session.penalize(flowFile), failureRelationship);
-                if (provenanceEventOnFailure) {
-                    session.getProvenanceReporter().route(flowFile, failureRelationship);
-                }
+                session.getProvenanceReporter().route(flowFile, failureRelationship);
                 cleanupTransfer(transfer, closeConnOnFailure, transferQueue, host, port);
                 return;
             }
