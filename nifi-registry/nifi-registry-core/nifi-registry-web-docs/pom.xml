@@ -22,11 +22,6 @@
     <artifactId>nifi-registry-web-docs</artifactId>
     <packaging>war</packaging>
 
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
