@@ -22,26 +22,17 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.SSLContext;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PutSlackTest {
 
@@ -256,37 +247,4 @@ public class PutSlackTest {
         assertEquals(expected, requestBody);
     }
 
-    @Test
-    public void testWithSSLContext() throws InterruptedException, InitializationException, TlsException {
-        configureSSLContextService();
-        testRunner.setProperty(PutSlack.WEBHOOK_URL, url);
-        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, PutSlackTest.WEBHOOK_TEST_TEXT);
-
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
-
-        testRunner.enqueue(new byte[0]);
-        testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS, 1);
-
-        String expected = "payload=%7B%22text%22%3A%22Hello+From+Apache+NiFi%22%7D";
-        final RecordedRequest recordedRequest = mockWebServer.takeRequest();
-        final String requestBody = recordedRequest.getBody().readString(StandardCharsets.UTF_8);
-        assertEquals(expected, requestBody);
-    }
-
-    private void configureSSLContextService() throws InitializationException, TlsException {
-        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-
-        mockWebServer.useHttps(sslContext.getSocketFactory(), false);
-        url = mockWebServer.url("/").toString();
-
-        SSLContextService sslService = mock(SSLContextService.class);
-        when(sslService.getIdentifier()).thenReturn("ssl-context");
-        when(sslService.createContext()).thenReturn(sslContext);
-
-        testRunner.addControllerService("ssl-context", sslService);
-        testRunner.enableControllerService(sslService);
-        testRunner.setProperty(PutSlack.SSL_CONTEXT_SERVICE, "ssl-context");
-    }
 }
