@@ -22,10 +22,6 @@
     <artifactId>minifi-server-nar</artifactId>
     <packaging>nar</packaging>
     <description>MiNiFi server NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>

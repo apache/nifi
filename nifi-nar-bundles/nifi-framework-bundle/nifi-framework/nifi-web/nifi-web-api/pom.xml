@@ -22,10 +22,7 @@
     </parent>
     <artifactId>nifi-web-api</artifactId>
     <packaging>war</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+
     <build>
         <resources>
             <resource>
