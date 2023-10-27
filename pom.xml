@@ -1043,6 +1043,38 @@
         </plugins>
     </build>
     <profiles>
+        <!-- Configure build properties for modules with NAR packaging -->
+        <profile>
+            <id>nar-packaging</id>
+            <activation>
+                <property>
+                    <name>packaging</name>
+                    <value>nar</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- Skip source and javadoc plugins for NAR bundles during release process -->
+                <maven.source.skip>true</maven.source.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+        </profile>
+
+        <!-- Configure build properties for modules with WAR packaging -->
+        <profile>
+            <id>war-packaging</id>
+            <activation>
+                <property>
+                    <name>packaging</name>
+                    <value>war</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- Skip source and javadoc plugins for WAR bundles during release process -->
+                <maven.source.skip>true</maven.source.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+        </profile>
+
         <profile>
             <!-- Performs execution of Integration Tests using the Maven
                 FailSafe Plugin. The view of integration tests in this context are those

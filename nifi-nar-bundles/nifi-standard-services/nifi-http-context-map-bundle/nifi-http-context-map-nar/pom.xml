@@ -22,10 +22,6 @@
 	
     <artifactId>nifi-http-context-map-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 	
     <dependencies>
         <dependency>

@@ -21,10 +21,7 @@
     </parent>
     <artifactId>nifi-web-error</artifactId>
     <packaging>war</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>javax.servlet</groupId>

@@ -21,11 +21,8 @@
     </parent>
     <artifactId>nifi-framework-nar</artifactId>
     <packaging>nar</packaging>
-    <description>NiFi: Framework Nar</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+    <description>NiFi: Framework NAR</description>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

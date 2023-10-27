@@ -26,10 +26,7 @@ limitations under the License.
     <artifactId>minifi-standard-nar</artifactId>
     <packaging>nar</packaging>
     <description>MiNiFi Standard Extensions NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
