@@ -23,6 +23,7 @@ import java.math.BigInteger;
  */
 public class KeyIdentifierConverter {
     private static final int HEXADECIMAL_RADIX = 16;
+    private static final int KEY_ID_LENGTH = 16;
 
     /**
      * Format numeric key identifier as uppercase hexadecimal string
@@ -31,7 +32,7 @@ public class KeyIdentifierConverter {
      * @return Uppercase hexadecimal string
      */
     public static String format(final long keyId) {
-        return Long.toHexString(keyId).toUpperCase();
+        return String.format("%0" + KEY_ID_LENGTH + "X", keyId);
     }
 
     /**

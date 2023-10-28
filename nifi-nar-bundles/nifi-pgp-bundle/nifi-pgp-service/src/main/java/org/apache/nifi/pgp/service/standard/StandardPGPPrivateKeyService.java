@@ -142,7 +142,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
      */
     @Override
     public Optional<PGPPrivateKey> findPrivateKey(final long keyIdentifier) {
-        getLogger().debug("Find Private Key [{}]", Long.toHexString(keyIdentifier).toUpperCase());
+        getLogger().debug("Find Private Key [{}]", String.format("%016X", keyIdentifier));
         return Optional.ofNullable(privateKeys.get(keyIdentifier));
     }
 
@@ -256,7 +256,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
         for (final PGPSecretKeyRing keyRing : keyRings) {
             for (final PGPSecretKey secretKey : keyRing) {
                 final long keyId = secretKey.getKeyID();
-                final String keyIdentifier = Long.toHexString(keyId).toUpperCase();
+                final String keyIdentifier = String.format("%016X", keyId);
                 try {
                     final PGPPrivateKey privateKey = secretKey.extractPrivateKey(keyDecryptor);
                     extractedPrivateKeys.add(privateKey);
