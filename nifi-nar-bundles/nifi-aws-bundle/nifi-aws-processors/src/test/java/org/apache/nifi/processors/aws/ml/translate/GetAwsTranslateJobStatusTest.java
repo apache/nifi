@@ -17,19 +17,11 @@
 
 package org.apache.nifi.processors.aws.ml.translate;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.translate.AmazonTranslateClient;
-import com.amazonaws.services.translate.model.DescribeTextTranslationJobRequest;
-import com.amazonaws.services.translate.model.DescribeTextTranslationJobResult;
-import com.amazonaws.services.translate.model.JobStatus;
-import com.amazonaws.services.translate.model.OutputDataConfig;
-import com.amazonaws.services.translate.model.TextTranslationJobProperties;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,91 +31,132 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.translate.TranslateClient;
+import software.amazon.awssdk.services.translate.model.DescribeTextTranslationJobRequest;
+import software.amazon.awssdk.services.translate.model.DescribeTextTranslationJobResponse;
+import software.amazon.awssdk.services.translate.model.JobStatus;
+import software.amazon.awssdk.services.translate.model.OutputDataConfig;
+import software.amazon.awssdk.services.translate.model.TextTranslationJobProperties;
 
+import java.time.Instant;
 import java.util.Collections;
 
-import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class GetAwsTranslateJobStatusTest {
-    private static final String TEST_TASK_ID = "testTaskId";
+    private static final String TEST_TASK_ID = "testJobId";
+    private static final String OUTPUT_LOCATION_PATH = "outputLocationPath";
+    private static final String REASON_OF_FAILURE = "reasonOfFailure";
     private static final String CONTENT_STRING = "content";
-    private static final String AWS_CREDENTIALS_PROVIDER_NAME = "awsCredetialProvider";
-    private static final String OUTPUT_LOCATION_PATH = "outputLocation";
     private TestRunner runner;
     @Mock
-    private AmazonTranslateClient mockTranslateClient;
-    @Mock
-    private AWSCredentialsProviderService mockAwsCredentialsProvider;
+    private TranslateClient mockTranslateClient;
+
+    private GetAwsTranslateJobStatus processor;
+
     @Captor
     private ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor;
 
+    private TestRunner createRunner(final GetAwsTranslateJobStatus processor) {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        AuthUtils.enableAccessKey(runner, "abcd", "defg");
+        return runner;
+    }
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIALS_PROVIDER_NAME);
-        final GetAwsTranslateJobStatus mockPollyFetcher = new GetAwsTranslateJobStatus() {
+        processor = new GetAwsTranslateJobStatus() {
             @Override
-            protected AmazonTranslateClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                         final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+            public TranslateClient getClient(final ProcessContext context) {
                 return mockTranslateClient;
             }
         };
-        runner = TestRunners.newTestRunner(mockPollyFetcher);
-        runner.addControllerService(AWS_CREDENTIALS_PROVIDER_NAME, mockAwsCredentialsProvider);
-        runner.enableControllerService(mockAwsCredentialsProvider);
-        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, AWS_CREDENTIALS_PROVIDER_NAME);
+        runner = createRunner(processor);
     }
 
     @Test
-    public void testTranscribeTaskInProgress() {
-        TextTranslationJobProperties task = new TextTranslationJobProperties()
-                .withJobId(TEST_TASK_ID)
-                .withJobStatus(JobStatus.IN_PROGRESS);
-        DescribeTextTranslationJobResult taskResult = new DescribeTextTranslationJobResult().withTextTranslationJobProperties(task);
-        when(mockTranslateClient.describeTextTranslationJob(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+    public void testTranslateJobInProgress() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobId(TEST_TASK_ID)
+                .jobStatus(JobStatus.IN_PROGRESS)
+                .build();
+        testTranslateJob(job, REL_RUNNING);
     }
 
     @Test
-    public void testTranscribeTaskCompleted() {
-        TextTranslationJobProperties task = new TextTranslationJobProperties()
-                .withJobId(TEST_TASK_ID)
-                .withOutputDataConfig(new OutputDataConfig().withS3Uri(OUTPUT_LOCATION_PATH))
-                .withJobStatus(JobStatus.COMPLETED);
-        DescribeTextTranslationJobResult taskResult = new DescribeTextTranslationJobResult().withTextTranslationJobProperties(task);
-        when(mockTranslateClient.describeTextTranslationJob(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
-        runner.run();
+    public void testTranslateSubmitted() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobId(TEST_TASK_ID)
+                .jobStatus(JobStatus.SUBMITTED)
+                .build();
+        testTranslateJob(job, REL_RUNNING);
+    }
 
-        runner.assertAllFlowFilesTransferred(REL_SUCCESS);
+    @Test
+    public void testTranslateStopRequested() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobId(TEST_TASK_ID)
+                .jobStatus(JobStatus.STOP_REQUESTED)
+                .build();
+        testTranslateJob(job, REL_RUNNING);
+    }
+
+    @Test
+    public void testTranslateJobCompleted() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobStatus(TEST_TASK_ID)
+                .outputDataConfig(OutputDataConfig.builder().s3Uri(OUTPUT_LOCATION_PATH).build())
+                .submittedTime(Instant.now())
+                .jobStatus(JobStatus.COMPLETED)
+                .build();
+        testTranslateJob(job, REL_SUCCESS);
         runner.assertAllFlowFilesContainAttribute(AWS_TASK_OUTPUT_LOCATION);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).iterator().next();
+        assertEquals(OUTPUT_LOCATION_PATH, flowFile.getAttribute(AWS_TASK_OUTPUT_LOCATION));
     }
 
     @Test
-    public void testTranscribeTaskFailed() {
-        TextTranslationJobProperties task = new TextTranslationJobProperties()
-                .withJobId(TEST_TASK_ID)
-                .withJobStatus(JobStatus.FAILED);
-        DescribeTextTranslationJobResult taskResult = new DescribeTextTranslationJobResult().withTextTranslationJobProperties(task);
-        when(mockTranslateClient.describeTextTranslationJob(requestCaptor.capture())).thenReturn(taskResult);
+    public void testTranslateJobFailed() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobStatus(TEST_TASK_ID)
+                .jobStatus(JobStatus.FAILED)
+                .build();
+        testTranslateJob(job, REL_FAILURE);
+    }
+
+    @Test
+    public void testTranslateJobStopped() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobStatus(TEST_TASK_ID)
+                .jobStatus(JobStatus.STOPPED)
+                .build();
+        testTranslateJob(job, REL_FAILURE);
+    }
+
+    @Test
+    public void testTranslateJobUnrecognized() {
+        final TextTranslationJobProperties job = TextTranslationJobProperties.builder()
+                .jobStatus(TEST_TASK_ID)
+                .jobStatus(JobStatus.UNKNOWN_TO_SDK_VERSION)
+                .build();
+        testTranslateJob(job, REL_FAILURE);
+    }
+
+    private void testTranslateJob(final TextTranslationJobProperties job, final Relationship expectedRelationship) {
+        final DescribeTextTranslationJobResponse response = DescribeTextTranslationJobResponse.builder().textTranslationJobProperties(job).build();
+        when(mockTranslateClient.describeTextTranslationJob(requestCaptor.capture())).thenReturn(response);
         runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+        runner.assertAllFlowFilesTransferred(expectedRelationship);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().jobId());
     }
 
 }

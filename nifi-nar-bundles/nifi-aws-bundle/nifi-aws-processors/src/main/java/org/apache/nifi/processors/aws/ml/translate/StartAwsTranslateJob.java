@@ -17,47 +17,44 @@
 
 package org.apache.nifi.processors.aws.ml.translate;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.translate.AmazonTranslateClient;
-import com.amazonaws.services.translate.model.StartTextTranslationJobRequest;
-import com.amazonaws.services.translate.model.StartTextTranslationJobResult;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
+import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
+import software.amazon.awssdk.services.translate.TranslateClient;
+import software.amazon.awssdk.services.translate.TranslateClientBuilder;
+import software.amazon.awssdk.services.translate.model.StartTextTranslationJobRequest;
+import software.amazon.awssdk.services.translate.model.StartTextTranslationJobResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
 @CapabilityDescription("Trigger a AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsTranslateJobStatus")
+})
 @SeeAlso({GetAwsTranslateJobStatus.class})
-public class StartAwsTranslateJob extends AwsMachineLearningJobStarter<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
+public class StartAwsTranslateJob extends AbstractAwsMachineLearningJobStarter<
+        StartTextTranslationJobRequest, StartTextTranslationJobRequest.Builder, StartTextTranslationJobResponse, TranslateClient, TranslateClientBuilder> {
 
     @Override
-    protected AmazonTranslateClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                 final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-        return (AmazonTranslateClient) AmazonTranslateClient.builder()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withCredentials(credentialsProvider)
-                .withClientConfiguration(config)
-                .withEndpointConfiguration(endpointConfiguration)
-                .build();
+    protected TranslateClientBuilder createClientBuilder(final ProcessContext context) {
+        return TranslateClient.builder();
     }
 
     @Override
-    protected StartTextTranslationJobResult sendRequest(StartTextTranslationJobRequest request, ProcessContext context, FlowFile flowFile) {
+    protected StartTextTranslationJobResponse sendRequest(final StartTextTranslationJobRequest request, final ProcessContext context, final FlowFile flowFile) {
         return getClient(context).startTextTranslationJob(request);
     }
 
     @Override
-    protected Class<StartTextTranslationJobRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
-        return StartTextTranslationJobRequest.class;
+    protected Class<? extends StartTextTranslationJobRequest.Builder> getAwsRequestBuilderClass(final ProcessContext context, final FlowFile flowFile) {
+        return StartTextTranslationJobRequest.serializableBuilderClass();
     }
 
-    protected String getAwsTaskId(ProcessContext context, StartTextTranslationJobResult startTextTranslationJobResult, FlowFile flowFile) {
-        return startTextTranslationJobResult.getJobId();
+    protected String getAwsTaskId(final ProcessContext context, final StartTextTranslationJobResponse startTextTranslationJobResponse, final FlowFile flowFile) {
+        return startTextTranslationJobResponse.jobId();
     }
 }

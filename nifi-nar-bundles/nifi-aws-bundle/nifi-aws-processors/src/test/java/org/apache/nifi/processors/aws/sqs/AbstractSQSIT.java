@@ -66,7 +66,6 @@ public abstract class AbstractSQSIT {
         queueUrl = response.queueUrl();
     }
 
-
     @AfterAll
     public static void shutdown() {
         client.close();

@@ -17,33 +17,30 @@
 
 package org.apache.nifi.processors.aws.ml;
 
-import com.amazonaws.AmazonWebServiceClient;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.http.SdkHttpMetadata;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
+import software.amazon.awssdk.core.SdkClient;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 
-public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebServiceClient>
-        extends AbstractAWSCredentialsProviderProcessor<T>  {
+public abstract class AbstractAwsMachineLearningJobStatusProcessor<
+        T extends SdkClient,
+        U extends AwsSyncClientBuilder<U, T> & AwsClientBuilder<U, T>>
+        extends AbstractAwsSyncProcessor<T, U> {
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE)
@@ -81,13 +78,6 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             .description("The job failed, the original FlowFile will be routed to this relationship.")
             .autoTerminateDefault(true)
             .build();
-    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .displayName("Region")
-            .name("aws-region")
-            .required(true)
-            .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
-            .build();
     public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
     protected static final List<PropertyDescriptor> PROPERTIES = List.of(
             TASK_ID,
@@ -99,17 +89,13 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             PROXY_CONFIGURATION_SERVICE);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .findAndAddModules()
             .build();
 
-    static {
-        SimpleModule awsResponseModule = new SimpleModule();
-        awsResponseModule.addDeserializer(ResponseMetadata.class, new AwsResponseMetadataDeserializer());
-        SimpleModule sdkHttpModule = new SimpleModule();
-        awsResponseModule.addDeserializer(SdkHttpMetadata.class, new SdkHttpMetadataDeserializer());
-        MAPPER.registerModule(awsResponseModule);
-        MAPPER.registerModule(sdkHttpModule);
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("aws-region", REGION.getName());
     }
-
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -129,13 +115,7 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
         return PROPERTIES;
     }
 
-    @Override
-    protected T createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                             final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void writeToFlowFile(ProcessSession session, FlowFile flowFile, Object response) {
-        session.write(flowFile, out -> MAPPER.writeValue(out, response));
+    protected FlowFile writeToFlowFile(final ProcessSession session, final FlowFile flowFile, final AwsResponse response) {
+        return session.write(flowFile, out -> MAPPER.writeValue(out, response.toBuilder()));
     }
 }
