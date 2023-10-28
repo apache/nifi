@@ -21,7 +21,7 @@ import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.HashAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.SigningStrategy;
-import org.apache.nifi.processors.pgp.io.KeyIdentifierConverter;
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;

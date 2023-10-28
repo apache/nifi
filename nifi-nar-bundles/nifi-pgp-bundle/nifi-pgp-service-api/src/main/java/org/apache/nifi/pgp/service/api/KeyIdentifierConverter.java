@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pgp.io;
+package org.apache.nifi.pgp.service.api;
 
 import java.math.BigInteger;
 
@@ -23,7 +23,8 @@ import java.math.BigInteger;
  */
 public class KeyIdentifierConverter {
     private static final int HEXADECIMAL_RADIX = 16;
-    private static final int KEY_ID_LENGTH = 16;
+
+    private static final String KEY_ID_FORMAT = "%016X";
 
     /**
      * Format numeric key identifier as uppercase hexadecimal string
@@ -32,7 +33,7 @@ public class KeyIdentifierConverter {
      * @return Uppercase hexadecimal string
      */
     public static String format(final long keyId) {
-        return String.format("%0" + KEY_ID_LENGTH + "X", keyId);
+        return String.format(KEY_ID_FORMAT, keyId);
     }
 
     /**
