@@ -195,11 +195,6 @@
         <cve>CVE-2023-44487</cve>
     </suppress>
     <suppress>
-        <notes>Quartz maintainers dispute CVE-2023-39017 because it requires code injection from external users</notes>
-        <packageUrl regex="true">^pkg:maven/org\.quartz\-scheduler/quartz@.*$</packageUrl>
-        <cve>CVE-2023-39017</cve>
-    </suppress>
-    <suppress>
         <notes>Avro project vulnerabilities do not apply to Parquet Avro</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.parquet/parquet\-avro@.*$</packageUrl>
         <cpe>cpe:/a:avro_project:avro</cpe>

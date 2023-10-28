@@ -88,7 +88,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.ThreadUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.quartz.CronExpression;
+import org.springframework.scheduling.support.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1155,7 +1155,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 switch (schedulingStrategy) {
                     case CRON_DRIVEN: {
                         try {
-                            new CronExpression(evaluatedSchedulingPeriod);
+                            CronExpression.parse(evaluatedSchedulingPeriod);
                         } catch (final Exception e) {
                             results.add(new ValidationResult.Builder()
                                     .subject(RUN_SCHEDULE)

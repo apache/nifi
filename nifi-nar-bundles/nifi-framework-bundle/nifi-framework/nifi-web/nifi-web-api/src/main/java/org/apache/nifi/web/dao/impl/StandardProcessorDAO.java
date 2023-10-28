@@ -55,10 +55,9 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
-import org.quartz.CronExpression;
+import org.springframework.scheduling.support.CronExpression;
 
 import java.net.URL;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -313,11 +312,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     break;
                 case CRON_DRIVEN:
                     try {
-                        new CronExpression(evaluatedSchedulingPeriod);
-                    } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, pe.getMessage()));
+                        CronExpression.parse(evaluatedSchedulingPeriod);
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + schedulingPeriod);
+                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, e.getMessage()));
                     }
                     break;
             }

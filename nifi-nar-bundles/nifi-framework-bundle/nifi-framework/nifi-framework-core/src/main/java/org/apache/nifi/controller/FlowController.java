@@ -103,7 +103,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
-import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
+import org.apache.nifi.controller.scheduling.CronSchedulingAgent;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -594,10 +594,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
+        final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
+        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, cronSchedulingAgent);
 
         startConnectablesAfterInitialization = new HashSet<>();
         startRemoteGroupPortsAfterInitialization = new HashSet<>();
