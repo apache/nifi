@@ -23,25 +23,26 @@ import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.quartz.CronExpression;
+import org.springframework.scheduling.support.CronExpression;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
-    private final Map<Object, Map<Integer, ScheduledFuture<?>>> quartzFutures = new HashMap<>();
+public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
+    private final Map<Object, Map<Integer, ScheduledFuture<?>>> scheduledFutures = new HashMap<>();
 
-    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory) {
+    public CronSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory) {
         super(flowEngine, flowController, contextFactory);
     }
 
     @Override
     public void shutdown() {
-        quartzFutures.values().forEach(map -> map.values().forEach(future -> {
+        scheduledFutures.values().forEach(map -> map.values().forEach(future -> {
             if (!future.isCancelled()) {
                 // stop scheduling to run and interrupt currently running tasks.
                 future.cancel(true);
@@ -52,7 +53,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
     @Override
     public void doSchedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
-        final Map<Integer, ScheduledFuture<?>> componentFuturesMap = quartzFutures.computeIfAbsent(taskNode, k -> new HashMap<>());
+        final Map<Integer, ScheduledFuture<?>> componentFuturesMap = scheduledFutures.computeIfAbsent(taskNode, k -> new HashMap<>());
         if (!componentFuturesMap.values().isEmpty()) {
             throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask().getIdentifier() + " because it is already scheduled to run");
         }
@@ -60,19 +61,19 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
         final String cronSchedule = taskNode.getSchedulingPeriod();
         final CronExpression cronExpression;
         try {
-            cronExpression = new CronExpression(cronSchedule);
+            cronExpression = CronExpression.parse(cronSchedule);
         } catch (final Exception pe) {
             throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask().getIdentifier() + " to run because its scheduling period is not valid");
         }
 
         final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState, flowController.getExtensionManager());
 
-        final Date initialDate = cronExpression.getTimeAfter(new Date());
-        final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
+        final Instant initialDate = Objects.requireNonNull(cronExpression.next(Instant.now()));
+        final long initialDelay = initialDate.toEpochMilli() - System.currentTimeMillis();
 
         final Runnable command = new Runnable() {
 
-            private Date nextSchedule = initialDate;
+            private Instant nextSchedule = initialDate;
 
             @Override
             public void run() {
@@ -98,7 +99,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
     @Override
     public synchronized void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
-        final Map<Integer, ScheduledFuture<?>> componentFuturesMap = quartzFutures.computeIfAbsent(connectable, k -> new HashMap<>());
+        final Map<Integer, ScheduledFuture<?>> componentFuturesMap = scheduledFutures.computeIfAbsent(connectable, k -> new HashMap<>());
         if (!componentFuturesMap.values().isEmpty()) {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
         }
@@ -107,7 +108,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
         final CronExpression cronExpression;
         try {
-            cronExpression = new CronExpression(cronSchedule);
+            cronExpression = CronExpression.parse(cronSchedule);
         } catch (final Exception pe) {
             throw new IllegalStateException("Cannot schedule " + connectable + " to run because its scheduling period is not valid");
         }
@@ -117,12 +118,12 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
             final AtomicInteger taskNumber = new AtomicInteger(i);
 
-            final Date initialDate = cronExpression.getTimeAfter(new Date());
-            final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
+            final Instant initialDate = Objects.requireNonNull(cronExpression.next(Instant.now()));
+            final long initialDelay = initialDate.toEpochMilli() - System.currentTimeMillis();
 
             final Runnable command = new Runnable() {
 
-                private Date nextSchedule = initialDate;
+                private Instant nextSchedule = initialDate;
 
                 @Override
                 public void run() {
@@ -163,7 +164,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     }
 
     private void unschedule(final Object scheduled, final LifecycleState scheduleState) {
-        quartzFutures.remove(scheduled);
+        scheduledFutures.remove(scheduled);
         scheduleState.getFutures().forEach(future -> {
             if (!future.isCancelled()) {
                 // stop scheduling to run but do not interrupt currently running tasks.
@@ -183,15 +184,15 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     public void setMaxThreadCount(final int maxThreads) {
     }
 
-    private static Date getNextSchedule(final Date currentSchedule, final CronExpression cronExpression) {
+    private static Instant getNextSchedule(final Instant currentSchedule, final CronExpression cronExpression) {
         // Since the clock has not a millisecond precision, we have to check that we
         // schedule the next time after the time this was supposed to run, otherwise
         // we might end up with running the same task twice
-        final Date now = new Date();
-        return cronExpression.getTimeAfter(now.after(currentSchedule) ? now : currentSchedule);
+        final Instant now = Instant.now();
+        return cronExpression.next(now.isAfter(currentSchedule) ? now : currentSchedule);
     }
 
-    private static long getDelay(Date nextSchedule) {
-        return Math.max(nextSchedule.getTime() - System.currentTimeMillis(), 0L);
+    private static long getDelay(final Instant nextSchedule) {
+        return Math.max(nextSchedule.toEpochMilli() - System.currentTimeMillis(), 0L);
     }
 }
