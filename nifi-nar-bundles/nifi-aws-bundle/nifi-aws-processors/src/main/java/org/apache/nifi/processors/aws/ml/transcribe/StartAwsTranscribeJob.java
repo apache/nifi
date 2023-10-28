@@ -17,48 +17,45 @@
 
 package org.apache.nifi.processors.aws.ml.transcribe;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.transcribe.AmazonTranscribeClient;
-import com.amazonaws.services.transcribe.model.StartTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.StartTranscriptionJobResult;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
+import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
+import software.amazon.awssdk.services.transcribe.TranscribeClientBuilder;
+import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Transcribe"})
 @CapabilityDescription("Trigger a AWS Transcribe job. It should be followed by GetAwsTranscribeStatus processor in order to monitor job status.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsTranscribeJobStatus")
+})
 @SeeAlso({GetAwsTranscribeJobStatus.class})
-public class StartAwsTranscribeJob extends AwsMachineLearningJobStarter<AmazonTranscribeClient, StartTranscriptionJobRequest, StartTranscriptionJobResult> {
+public class StartAwsTranscribeJob extends AbstractAwsMachineLearningJobStarter<
+        StartTranscriptionJobRequest, StartTranscriptionJobRequest.Builder, StartTranscriptionJobResponse, TranscribeClient, TranscribeClientBuilder> {
 
     @Override
-    protected AmazonTranscribeClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withClientConfiguration(config)
-                .withEndpointConfiguration(endpointConfiguration)
-                .withCredentials(credentialsProvider)
-                .build();
+    protected TranscribeClientBuilder createClientBuilder(final ProcessContext context) {
+        return TranscribeClient.builder();
     }
 
     @Override
-    protected StartTranscriptionJobResult sendRequest(StartTranscriptionJobRequest request, ProcessContext context, FlowFile flowFile) {
+    protected StartTranscriptionJobResponse sendRequest(final StartTranscriptionJobRequest request, final ProcessContext context, final FlowFile flowFile) {
         return getClient(context).startTranscriptionJob(request);
     }
 
     @Override
-    protected Class<? extends StartTranscriptionJobRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
-        return StartTranscriptionJobRequest.class;
+    protected Class<? extends StartTranscriptionJobRequest.Builder> getAwsRequestBuilderClass(final ProcessContext context, final FlowFile flowFile) {
+        return StartTranscriptionJobRequest.serializableBuilderClass();
     }
 
     @Override
-    protected String getAwsTaskId(ProcessContext context, StartTranscriptionJobResult startTranscriptionJobResult, FlowFile flowFile) {
-        return startTranscriptionJobResult.getTranscriptionJob().getTranscriptionJobName();
+    protected String getAwsTaskId(final ProcessContext context, final StartTranscriptionJobResponse startTranscriptionJobResponse, final FlowFile flowFile) {
+        return startTranscriptionJobResponse.transcriptionJob().transcriptionJobName();
     }
 }

@@ -17,17 +17,10 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.textract.AmazonTextractClient;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
-import com.amazonaws.services.textract.model.JobStatus;
 import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -38,13 +31,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
+import software.amazon.awssdk.services.textract.model.GetExpenseAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.GetExpenseAnalysisResponse;
+import software.amazon.awssdk.services.textract.model.JobStatus;
 
-import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
-import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEXTRACT_TYPE;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_THROTTLED;
+import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -53,64 +53,144 @@ public class GetAwsTextractJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private TestRunner runner;
     @Mock
-    private AmazonTextractClient mockTextractClient;
-    @Mock
-    private AWSCredentialsProviderService mockAwsCredentialsProvider;
+    private TextractClient mockTextractClient;
+
+    private GetAwsTextractJobStatus processor;
+
     @Captor
-    private ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor;
+    private ArgumentCaptor<GetDocumentAnalysisRequest> documentAnalysisCaptor;
+    @Captor
+    private ArgumentCaptor<GetExpenseAnalysisRequest> expenseAnalysisRequestCaptor;
+    @Captor
+    private ArgumentCaptor<GetDocumentTextDetectionRequest> documentTextDetectionCaptor;
+
+    private TestRunner createRunner(final GetAwsTextractJobStatus processor) {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        AuthUtils.enableAccessKey(runner, "abcd", "defg");
+        return runner;
+    }
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredentialProvider");
-        final GetAwsTextractJobStatus awsTextractJobStatusGetter = new GetAwsTextractJobStatus() {
+        processor = new GetAwsTextractJobStatus() {
             @Override
-            protected AmazonTextractClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                        final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+            public TextractClient getClient(final ProcessContext context) {
                 return mockTextractClient;
             }
         };
-        runner = TestRunners.newTestRunner(awsTextractJobStatusGetter);
-        runner.addControllerService("awsCredentialProvider", mockAwsCredentialsProvider);
-        runner.enableControllerService(mockAwsCredentialsProvider);
-        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialProvider");
+        runner = createRunner(processor);
     }
 
     @Test
     public void testTextractDocAnalysisTaskInProgress() {
-        GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
-                .withJobStatus(JobStatus.IN_PROGRESS);
-        when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.name()));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+        testTextractDocAnalysis(JobStatus.IN_PROGRESS, REL_RUNNING);
     }
 
     @Test
     public void testTextractDocAnalysisTaskComplete() {
-        GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
-                .withJobStatus(JobStatus.SUCCEEDED);
-        when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.name()));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+        testTextractDocAnalysis(JobStatus.SUCCEEDED, REL_SUCCESS);
     }
 
     @Test
     public void testTextractDocAnalysisTaskFailed() {
-        GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
-                .withJobStatus(JobStatus.FAILED);
-        when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.type));
+        testTextractDocAnalysis(JobStatus.FAILED, REL_FAILURE);
+    }
+
+    @Test
+    public void testTextractDocAnalysisTaskPartialSuccess() {
+        testTextractDocAnalysis(JobStatus.PARTIAL_SUCCESS, REL_THROTTLED);
+    }
+
+    @Test
+    public void testTextractDocAnalysisTaskUnkownStatus() {
+        testTextractDocAnalysis(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
+    }
+
+    private void testTextractDocAnalysis(final JobStatus jobStatus, final Relationship expectedRelationship) {
+        final GetDocumentAnalysisResponse response = GetDocumentAnalysisResponse.builder()
+                .jobStatus(jobStatus).build();
+        when(mockTextractClient.getDocumentAnalysis(documentAnalysisCaptor.capture())).thenReturn(response);
+        runner.enqueue("content", ImmutableMap.of(
+                TASK_ID.getName(), TEST_TASK_ID,
+                StartAwsTextractJob.TEXTRACT_TYPE_ATTRIBUTE, TextractType.DOCUMENT_ANALYSIS.getType()));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
+        runner.assertAllFlowFilesTransferred(expectedRelationship);
+        assertEquals(TEST_TASK_ID, documentAnalysisCaptor.getValue().jobId());
+    }
+
+    @Test
+    public void testTextractExpenseAnalysisTaskInProgress() {
+        testTextractExpenseAnalysis(JobStatus.IN_PROGRESS, REL_RUNNING);
+    }
+
+    @Test
+    public void testTextractExpenseAnalysisTaskComplete() {
+        testTextractExpenseAnalysis(JobStatus.SUCCEEDED, REL_SUCCESS);
+    }
+
+    @Test
+    public void testTextractExpenseAnalysisTaskFailed() {
+        testTextractExpenseAnalysis(JobStatus.FAILED, REL_FAILURE);
+    }
+
+    @Test
+    public void testTextractExpenseAnalysisTaskPartialSuccess() {
+        testTextractExpenseAnalysis(JobStatus.PARTIAL_SUCCESS, REL_THROTTLED);
+    }
+
+    @Test
+    public void testTextractExpenseAnalysisTaskUnkownStatus() {
+        testTextractExpenseAnalysis(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
+    }
+
+    private void testTextractExpenseAnalysis(final JobStatus jobStatus, final Relationship expectedRelationship) {
+        runner.setProperty(GetAwsTextractJobStatus.TEXTRACT_TYPE, TextractType.EXPENSE_ANALYSIS.getType());
+        final GetExpenseAnalysisResponse response = GetExpenseAnalysisResponse.builder()
+                .jobStatus(jobStatus).build();
+        when(mockTextractClient.getExpenseAnalysis(expenseAnalysisRequestCaptor.capture())).thenReturn(response);
+        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(expectedRelationship);
+        assertEquals(TEST_TASK_ID, expenseAnalysisRequestCaptor.getValue().jobId());
+    }
+
+    @Test
+    public void testTextractDocumentTextDetectionTaskInProgress() {
+        testTextractDocumentTextDetection(JobStatus.IN_PROGRESS, REL_RUNNING);
+    }
+
+    @Test
+    public void testTextractDocumentTextDetectionTaskComplete() {
+        testTextractDocumentTextDetection(JobStatus.SUCCEEDED, REL_SUCCESS);
+    }
+
+    @Test
+    public void testTextractDocumentTextDetectionTaskFailed() {
+        testTextractDocumentTextDetection(JobStatus.FAILED, REL_FAILURE);
+    }
+
+    @Test
+    public void testTextractDocumentTextDetectionTaskPartialSuccess() {
+        testTextractDocumentTextDetection(JobStatus.PARTIAL_SUCCESS, REL_THROTTLED);
+    }
+
+    @Test
+    public void testTextractDocumentTextDetectionTaskUnkownStatus() {
+        testTextractDocumentTextDetection(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
+    }
+
+    private void testTextractDocumentTextDetection(final JobStatus jobStatus, final Relationship expectedRelationship) {
+        runner.setProperty(GetAwsTextractJobStatus.TEXTRACT_TYPE, TextractType.DOCUMENT_TEXT_DETECTION.getType());
+
+        final GetDocumentTextDetectionResponse response = GetDocumentTextDetectionResponse.builder()
+                .jobStatus(jobStatus).build();
+        when(mockTextractClient.getDocumentTextDetection(documentTextDetectionCaptor.capture())).thenReturn(response);
+        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(expectedRelationship);
+        assertEquals(TEST_TASK_ID, documentTextDetectionCaptor.getValue().jobId());
     }
 }
