@@ -50,13 +50,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private final MappingIterator<String[]> recordStream;
     private List<String> rawFieldNames = null;
-    private boolean allowDuplicateHeaderNames;
+    private final boolean allowDuplicateHeaderNames;
 
-    private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
+    private static final CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
+                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote,
+                                  final int skipTopRows) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
 
         final Reader reader = new InputStreamReader(BOMInputStream.builder().setInputStream(in).get(), encoding);
 
@@ -100,7 +101,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true);
+        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true, 0);
     }
 
     @Override

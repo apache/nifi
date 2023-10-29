@@ -65,12 +65,12 @@ public class TestFastCSVRecordReader {
 
     private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
         return new FastCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", false);
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", false, 0);
     }
 
     private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new FastCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, 0);
     }
 
     @Test
@@ -83,7 +83,8 @@ public class TestFastCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                     "UTF-8", false, 0)) {
 
             final Record record = reader.nextRecord();
             final String name = (String) record.getValue("name");
@@ -107,7 +108,7 @@ public class TestFastCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.ISO_8859_1));
              final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
-                     StandardCharsets.ISO_8859_1.name(), true)) {
+                     StandardCharsets.ISO_8859_1.name(), true, 0)) {
 
             final Record record = reader.nextRecord();
             final String name = (String) record.getValue("name");
@@ -127,7 +128,7 @@ public class TestFastCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true, 0)) {
 
             final Record record = reader.nextRecord();
             final Object date = record.getValue("date");
@@ -373,7 +374,7 @@ public class TestFastCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, true,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true, 0)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -421,7 +422,7 @@ public class TestFastCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, TRIMMED_RFC4180, true, true,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false, 0)) {
 
             // RFC-4180 does not allow missing column names
             assertThrows(MalformedRecordException.class, reader::nextRecord);

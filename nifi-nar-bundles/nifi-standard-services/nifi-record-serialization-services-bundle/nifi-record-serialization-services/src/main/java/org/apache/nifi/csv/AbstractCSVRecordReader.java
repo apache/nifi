@@ -33,6 +33,8 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final boolean ignoreHeader;
     private final boolean trimDoubleQuote;
 
+    protected final int skipTopRows;
+
     protected final Supplier<DateFormat> LAZY_DATE_FORMAT;
     protected final Supplier<DateFormat> LAZY_TIME_FORMAT;
     protected final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
@@ -44,12 +46,13 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final RecordSchema schema;
 
     AbstractCSVRecordReader(final ComponentLog logger, final RecordSchema schema, final boolean hasHeader, final boolean ignoreHeader,
-                            final String dateFormat, final String timeFormat, final String timestampFormat, final boolean trimDoubleQuote) {
+                            final String dateFormat, final String timeFormat, final String timestampFormat, final boolean trimDoubleQuote, final int skipTopRows) {
         this.logger = logger;
         this.schema = schema;
         this.hasHeader = hasHeader;
         this.ignoreHeader = ignoreHeader;
         this.trimDoubleQuote = trimDoubleQuote;
+        this.skipTopRows = skipTopRows;
 
         if (dateFormat == null || dateFormat.isEmpty()) {
             this.dateFormat = null;

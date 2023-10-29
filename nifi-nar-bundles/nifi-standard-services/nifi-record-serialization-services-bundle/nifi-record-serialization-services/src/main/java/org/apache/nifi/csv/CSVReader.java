@@ -61,6 +61,19 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the "
             + "column names in the header and assuming that all columns are of type String.");
 
+    public static final PropertyDescriptor SKIP_TOP_ROWS = new PropertyDescriptor.Builder()
+            .name("skip-top-rows")
+            .displayName("Skip Top Rows")
+            .description("The maximum number of lines/records (based on the specified record separator) to skip/ignore before processing. "
+                    + "Use this to skip over lines at the top of a CSV file that are not part of the dataset. If the value of this property is larger than the "
+                    + "total number of records in the FlowFile, no records will be returned. Note that CSV-related properties "
+                    + "such as 'Ignore Header Line' are applied after the rows are skipped.")
+            .required(true)
+            .defaultValue("0")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
     // CSV parsers
     public static final AllowableValue APACHE_COMMONS_CSV = new AllowableValue("commons-csv", "Apache Commons CSV",
             "The CSV parser implementation from the Apache Commons CSV library.");
@@ -102,6 +115,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     private volatile ConfigurationContext context;
 
     private volatile String csvParser;
+    private volatile int skipTopRows;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
@@ -119,6 +133,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(SKIP_TOP_ROWS);
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
         properties.add(CSVUtils.RECORD_SEPARATOR);
@@ -176,13 +191,14 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         }
 
         final boolean trimDoubleQuote = context.getProperty(TRIM_DOUBLE_QUOTE).asBoolean();
+        this.skipTopRows = context.getProperty(SKIP_TOP_ROWS).evaluateAttributeExpressions(variables).asInteger();
 
         if (APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
+            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote, skipTopRows);
         } else if (JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
+            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote, skipTopRows);
         } else if (FAST_CSV.getValue().equals(csvParser)) {
-            return new FastCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
+            return new FastCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote, skipTopRows);
         } else {
             throw new IOException("Parser not supported");
         }

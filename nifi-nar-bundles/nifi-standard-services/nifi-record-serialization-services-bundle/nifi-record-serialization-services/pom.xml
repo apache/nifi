@@ -197,6 +197,7 @@
                         <exclude>src/test/resources/csv/multi-bank-account_RFC4180.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account_RFC4180.csv</exclude>
+                        <exclude>src/test/resources/csv/single-bank-account_skip_top_rows.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_escapechar.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_escapechar_RFC4180.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_spec_delimiter.csv</exclude>

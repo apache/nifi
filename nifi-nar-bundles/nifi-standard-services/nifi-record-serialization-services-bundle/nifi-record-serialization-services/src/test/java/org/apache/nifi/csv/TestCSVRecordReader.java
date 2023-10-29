@@ -54,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
+    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setRecordSeparator("\n").build();
     private final CSVFormat RFC4180WithTrim = CSVFormat.RFC4180.builder().setTrim(true).build();
 
     private List<RecordField> getDefaultFields() {
@@ -70,8 +70,13 @@ public class TestCSVRecordReader {
     }
 
     private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+        return createReader(in, schema, format, trimDoubleQuote, 0);
+    }
+
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote,
+                                         final int skipTopRows) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, skipTopRows);
     }
 
     @Test
@@ -705,7 +710,7 @@ public class TestCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, RFC4180WithTrim, true, true,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false, 0)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -947,14 +952,13 @@ public class TestCSVRecordReader {
     @Test
     public void testMultipleRecordsEscapedWithNull_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
 
-        final CSVFormat format = RFC4180WithTrim;
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final CSVRecordReader reader = createReader(fis, schema, format, false)) {
+             final CSVRecordReader reader = createReader(fis, schema, RFC4180WithTrim, false)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "\"123 My Street\"", "My City", "MS", "11111", "USA"};
@@ -1002,15 +1006,34 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), false)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), false, 0)) {
 
             Record record = reader.nextRecord();
-            String name = (String)record.getValue("name");
+            String name = (String) record.getValue("name");
             assertEquals("\"\"\"", name);
 
             record = reader.nextRecord(false, false);
-            name = (String)record.getValue("name");
+            name = (String) record.getValue("name");
             assertEquals("\"\"\"", name);
+        }
+    }
+
+    @Test
+    public void testSkipTopRows() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account_skip_top_rows.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format, true, 3)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+            final Object[] recordValues = record.getValues();
+            final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(expectedValues, recordValues);
+            assertNull(reader.nextRecord());
         }
     }
 }

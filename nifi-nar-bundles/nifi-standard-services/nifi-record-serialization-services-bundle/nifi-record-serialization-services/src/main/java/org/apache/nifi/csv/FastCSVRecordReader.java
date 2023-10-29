@@ -56,8 +56,9 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
     private final CSVFormat csvFormat;
 
     public FastCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                               final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
+                               final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote,
+                               final int skipTopRows) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
         this.ignoreHeader = ignoreHeader;
         this.trimDoubleQuote = trimDoubleQuote;
         this.csvFormat = csvFormat;

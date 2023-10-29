@@ -47,11 +47,17 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
     private List<RecordField> recordFields;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote, final int skipTopRows)
+            throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
 
         final InputStream bomInputStream = BOMInputStream.builder().setInputStream(in).get();
-        final Reader reader = new InputStreamReader(bomInputStream, encoding);
+        final Reader inputStreamReader = new InputStreamReader(bomInputStream);
+
+        // Skip the number of rows at the "top" as specified
+        for (int i = 0; i < skipTopRows; i++) {
+            readNextRecord(inputStreamReader, csvFormat.getRecordSeparator());
+        }
 
         CSVFormat.Builder withHeader;
         if (hasHeader) {
@@ -66,12 +72,12 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
             withHeader = csvFormat.builder().setHeader(schema.getFieldNames().toArray(new String[0]));
         }
 
-        csvParser = new CSVParser(reader, withHeader.build());
+        csvParser = new CSVParser(inputStreamReader, withHeader.build());
     }
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                            final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true);
+        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true, 0);
     }
 
     @Override
@@ -93,14 +99,12 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
                         if (!dropUnknownFields) {
                             values.put("unknown_field_index_" + i, rawValue);
                         }
-
                         continue;
                     } else {
                         final RecordField recordField = recordFields.get(i);
                         rawFieldName = recordField.getFieldName();
                         dataType = recordField.getDataType();
                     }
-
 
                     final Object value;
                     if (coerceTypes) {
@@ -154,5 +158,60 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
     @Override
     public void close() throws IOException {
         csvParser.close();
+    }
+
+    /**
+     * This method builds a text representation of the CSV record by searching character-by-character until the
+     * record separator is found. Because we never want to consume input we don't use, the method attempts to match
+     * the separator separately, and as it is not matched, the characters are added to the returned string.
+     * @param reader the Reader providing the input
+     * @param recordSeparator the String specifying the end of a record in the input
+     * @return a String created from the input until the record separator is reached.
+     * @throws IOException if an error occurs during reading
+     */
+    protected String readNextRecord(Reader reader, String recordSeparator) throws IOException {
+        int indexIntoSeparator = 0;
+        int recordSeparatorLength = recordSeparator.length();
+        StringBuilder lineBuilder = new StringBuilder();
+        StringBuilder separatorBuilder = new StringBuilder();
+        int code = reader.read();
+        while (code != -1) {
+            char nextChar = (char)code;
+            if (recordSeparator.charAt(indexIntoSeparator) == nextChar) {
+                separatorBuilder.append(nextChar);
+                if (++indexIntoSeparator == recordSeparatorLength) {
+                    // We have matched the separator, return the string built so far
+                    lineBuilder.append(separatorBuilder);
+                    return lineBuilder.toString();
+                }
+            } else {
+                // The character didn't match the expected one in the record separator, reset the separator matcher
+                // and check if it is the first character of the separator.
+                indexIntoSeparator = 0;
+                if (recordSeparator.charAt(indexIntoSeparator) == nextChar) {
+                    // This character is the beginning of the record separator, keep it
+                    separatorBuilder = new StringBuilder();
+                    separatorBuilder.append(nextChar);
+                    if (++indexIntoSeparator == recordSeparatorLength) {
+                        // We have matched the separator, return the string built so far
+                        return lineBuilder.toString();
+                    }
+                } else {
+                    // This character is not the beginning of the record separator, add it to the return string
+                    lineBuilder.append(nextChar);
+                }
+            }
+            // This defensive check limits a record size to 2GB, this prevents out-of-memory errors if the record separator
+            // is not present in the input (or at least in the first 2GB)
+            if (indexIntoSeparator == Integer.MAX_VALUE) {
+                throw new IOException("2GB input threshold reached, the record is either larger than 2GB or the separator "
+                        + "is not found in the first 2GB of input. Ensure the Record Separator is correct for this FlowFile.");
+            }
+            code = reader.read();
+        }
+
+        // The end of input has been reached without the record separator being found, throw an exception with the string so far
+
+        return lineBuilder.toString();
     }
 }
