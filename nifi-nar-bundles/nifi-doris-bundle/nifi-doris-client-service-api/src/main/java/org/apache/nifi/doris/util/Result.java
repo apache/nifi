@@ -28,4 +28,14 @@ public class Result {
     public void setExecuteStatus(String executeStatus) {
         this.executeStatus = executeStatus;
     }
+
+
+    @Override
+    public String toString() {
+        return "Result{" +
+                "loadResult='" + loadResult + '\'' +
+                ", statusCode=" + statusCode +
+                ", executeStatus='" + executeStatus + '\'' +
+                '}';
+    }
 }

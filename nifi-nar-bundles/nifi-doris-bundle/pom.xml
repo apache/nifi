@@ -32,7 +32,6 @@
         <module>nifi-doris-client-service</module>
         <module>nifi-doris-processors</module>
         <module>nifi-doris-client-service-nar</module>
-        <!--<module>nifi-doris-nar</module>-->
 
 
 

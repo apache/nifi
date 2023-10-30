@@ -230,7 +230,7 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
     }
 
     @Override
-    public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns, String label) {
+    public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns) {
         String feHost = null;
         String userName = null;
         String password = null;
@@ -256,7 +256,7 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             httpPut.setHeader(HttpHeaders.EXPECT, "100-continue");
             httpPut.setHeader(HttpHeaders.AUTHORIZATION, basicAuthHeader(userName, password));
 
-            httpPut.setHeader("label", label);
+            //httpPut.setHeader("label", label);
             httpPut.setHeader("column_separator", ",");
             httpPut.setHeader("format", "json");
             httpPut.setHeader("columns", columns);

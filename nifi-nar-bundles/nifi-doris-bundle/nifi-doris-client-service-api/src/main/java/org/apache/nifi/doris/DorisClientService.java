@@ -30,7 +30,7 @@ import java.util.HashMap;
 @CapabilityDescription("Example Service API.")
 public interface DorisClientService extends ControllerService {
 
-    public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns, String label);
+    public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns);
 
     public void testConnectivity(ConfigurationContext context) throws IOException;
 
