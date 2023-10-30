@@ -25,10 +25,9 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.springframework.scheduling.support.CronExpression;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -63,17 +62,17 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
         try {
             cronExpression = CronExpression.parse(cronSchedule);
         } catch (final Exception pe) {
-            throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask().getIdentifier() + " to run because its scheduling period is not valid");
+            throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask().getIdentifier() + " to run because its scheduling period is not valid", pe);
         }
 
         final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState, flowController.getExtensionManager());
 
-        final Instant initialDate = Objects.requireNonNull(cronExpression.next(Instant.now()));
-        final long initialDelay = initialDate.toEpochMilli() - System.currentTimeMillis();
+        final OffsetDateTime initialDate = getInitialDate(cronExpression);
+        final long initialDelay = getInitialDelay(initialDate);
 
         final Runnable command = new Runnable() {
 
-            private Instant nextSchedule = initialDate;
+            private OffsetDateTime nextSchedule = initialDate;
 
             @Override
             public void run() {
@@ -110,7 +109,7 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
         try {
             cronExpression = CronExpression.parse(cronSchedule);
         } catch (final Exception pe) {
-            throw new IllegalStateException("Cannot schedule " + connectable + " to run because its scheduling period is not valid");
+            throw new IllegalStateException("Cannot schedule " + connectable + " to run because its scheduling period is not valid", pe);
         }
 
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
@@ -118,12 +117,12 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
             final AtomicInteger taskNumber = new AtomicInteger(i);
 
-            final Instant initialDate = Objects.requireNonNull(cronExpression.next(Instant.now()));
-            final long initialDelay = initialDate.toEpochMilli() - System.currentTimeMillis();
+            final OffsetDateTime initialDate = getInitialDate(cronExpression);
+            final long initialDelay = getInitialDelay(initialDate);
 
             final Runnable command = new Runnable() {
 
-                private Instant nextSchedule = initialDate;
+                private OffsetDateTime nextSchedule = initialDate;
 
                 @Override
                 public void run() {
@@ -184,15 +183,25 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     public void setMaxThreadCount(final int maxThreads) {
     }
 
-    private static Instant getNextSchedule(final Instant currentSchedule, final CronExpression cronExpression) {
+    private OffsetDateTime getInitialDate(final CronExpression cronExpression) {
+        final OffsetDateTime now = OffsetDateTime.now();
+        final OffsetDateTime initialDate = cronExpression.next(now);
+        return initialDate == null ? now : initialDate;
+    }
+
+    private long getInitialDelay(final OffsetDateTime initialDate) {
+        return initialDate.toInstant().toEpochMilli() - System.currentTimeMillis();
+    }
+
+    private static OffsetDateTime getNextSchedule(final OffsetDateTime currentSchedule, final CronExpression cronExpression) {
         // Since the clock has not a millisecond precision, we have to check that we
         // schedule the next time after the time this was supposed to run, otherwise
         // we might end up with running the same task twice
-        final Instant now = Instant.now();
+        final OffsetDateTime now = OffsetDateTime.now();
         return cronExpression.next(now.isAfter(currentSchedule) ? now : currentSchedule);
     }
 
-    private static long getDelay(final Instant nextSchedule) {
-        return Math.max(nextSchedule.toEpochMilli() - System.currentTimeMillis(), 0L);
+    private static long getDelay(final OffsetDateTime nextSchedule) {
+        return Math.max(nextSchedule.toInstant().toEpochMilli() - System.currentTimeMillis(), 0L);
     }
 }
