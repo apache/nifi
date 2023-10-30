@@ -26,8 +26,11 @@ import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
@@ -97,6 +100,69 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = "<Attributes from Record Writer>", description = "Any Attribute that the configured Record Writer returns will be added to the FlowFile.")
 })
 @SeeAlso({MergeContent.class, SplitRecord.class, PartitionRecord.class})
+@UseCase(
+    description = "Combine together many arbitrary Records in order to create a single, larger file",
+    configuration = """
+        Configure the "Record Reader" to specify a Record Reader that is appropriate for the incoming data type.
+        Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output data type.
+        Set "Merge Strategy" to `Bin-Packing Algorithm`.
+        Set the "Minimum Bin Size" to desired file size of the merged output file. For example, a value of `1 MB` will result in not merging data until at least
+            1 MB of data is available (unless the Max Bin Age is reached first). If there is no desired minimum file size, leave the default value of `0 B`.
+        Set the "Minimum Number of Records" property to the minimum number of Records that should be included in the merged output file. For example, setting the value
+            to `10000` ensures that the output file will have at least 10,000 Records in it (unless the Max Bin Age is reached first).
+        Set the "Max Bin Age" to specify the maximum amount of time to hold data before merging. This can be thought of as a "timeout" at which time the Processor will
+            merge whatever data it is, even if the "Minimum Bin Size" and "Minimum Number of Records" has not been reached. It is always recommended to set the value.
+            A reasonable default might be `10 mins` if there is no other latency requirement.
+
+        Connect the 'merged' Relationship to the next component in the flow. Auto-terminate the 'original' Relationship.
+        """
+)
+@MultiProcessorUseCase(
+    description = "Combine together many Records that have the same value for a particular field in the data, in order to create a single, larger file",
+    keywords = {"merge", "combine", "aggregate", "like records", "similar data"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = PartitionRecord.class,
+            configuration = """
+                Configure the "Record Reader" to specify a Record Reader that is appropriate for the incoming data type.
+                Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output data type.
+
+                Add a single additional property. The name of the property should describe the field on which the data is being merged together.
+                The property's value should be a RecordPath that specifies which output FlowFile the Record belongs to.
+
+                For example, to merge together data that has the same value for the "productSku" field, add a property named `productSku` with a value of `/productSku`.
+
+                Connect the "success" Relationship to MergeRecord.
+                Auto-terminate the "original" Relationship.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = MergeRecord.class,
+            configuration = """
+                Configure the "Record Reader" to specify a Record Reader that is appropriate for the incoming data type.
+                Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output data type.
+                Set "Merge Strategy" to `Bin-Packing Algorithm`.
+                Set the "Minimum Bin Size" to desired file size of the merged output file. For example, a value of `1 MB` will result in not merging data until at least
+                    1 MB of data is available (unless the Max Bin Age is reached first). If there is no desired minimum file size, leave the default value of `0 B`.
+                Set the "Minimum Number of Records" property to the minimum number of Records that should be included in the merged output file. For example, setting the value
+                    to `10000` ensures that the output file will have at least 10,000 Records in it (unless the Max Bin Age is reached first).
+                Set the "Maximum Number of Records" property to a value at least as large as the "Minimum Number of Records." If there is no need to limit the maximum number of
+                    records per file, this number can be set to a value that will never be reached such as `1000000000`.
+                Set the "Max Bin Age" to specify the maximum amount of time to hold data before merging. This can be thought of as a "timeout" at which time the Processor will
+                    merge whatever data it is, even if the "Minimum Bin Size" and "Minimum Number of Records" has not been reached. It is always recommended to set the value.
+                    A reasonable default might be `10 mins` if there is no other latency requirement.
+                Set the value of the "Correlation Attribute Name" property to the name of the property that you added in the PartitionRecord Processor. For example, if merging data
+                    based on the "productSku" field, the property in PartitionRecord was named `productSku` so the value of the "Correlation Attribute Name" property should
+                    be `productSku`.
+                Set the "Maximum Number of Bins" property to a value that is at least as large as the different number of values that will be present for the Correlation Attribute.
+                    For example, if you expect 1,000 different SKUs, set this value to at least `1001`. It is not advisable, though, to set the value above 10,000.
+
+                Connect the 'merged' Relationship to the next component in the flow.
+                Auto-terminate the 'original' Relationship.
+                """
+        )
+    }
+)
 public class MergeRecord extends AbstractSessionFactoryProcessor {
     // attributes for defragmentation
     public static final String FRAGMENT_ID_ATTRIBUTE = FragmentAttributes.FRAGMENT_ID.key();

@@ -89,7 +89,7 @@ import java.util.Set;
                     "Listening Port" = a unique port number.
 
                     ListenHTTP automatically unpacks files that have attribute mime.type=application/flowfile-v3.
-                    If PackageFlowFile batches 99 FlowFiles into 1 file that InvokeHTTP sends, then the original 99 FlowFiles will be output by ListenHTTP!
+                    If PackageFlowFile batches 99 FlowFiles into 1 file that InvokeHTTP sends, then the original 99 FlowFiles will be output by ListenHTTP.
                 """
             )
         }
@@ -112,7 +112,7 @@ import java.util.Set;
                     "Packaging Format" = "application/flowfile-v3".
 
                     Connect the output of a NiFi ingress processor that reads files stored offline to the input of UnpackContent.
-                    If PackageFlowFile batches 99 FlowFiles into 1 file that is read from storage, then the original 99 FlowFiles will be output by UnpackContent!
+                    If PackageFlowFile batches 99 FlowFiles into 1 file that is read from storage, then the original 99 FlowFiles will be output by UnpackContent.
                 """
             )
         }
