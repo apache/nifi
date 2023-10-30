@@ -596,7 +596,7 @@ example, 1L indicates the last Sunday of the month.
 
 For example:
 
-* The string `0 0 13 * * ?` indicates that you want to schedule the processor to run at 1:00 PM every day.
+* The string `0 0 13 * * *` indicates that you want to schedule the processor to run at 1:00 PM every day.
 * The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
 
 ===== Concurrent Tasks
