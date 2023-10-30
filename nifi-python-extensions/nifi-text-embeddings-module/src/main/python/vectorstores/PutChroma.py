@@ -111,7 +111,7 @@ class PutChroma(FlowFileTransform):
             if id_field_name is not None:
                 doc_id = metadata.get(id_field_name)
             if doc_id is None:
-                flowfile.getAttribute("filename") + "-" + str(i)
+                doc_id = flowfile.getAttribute("filename") + "-" + str(i)
             ids.append(doc_id)
 
             i += 1

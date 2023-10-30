@@ -17,7 +17,7 @@
 openai
 
 # Chroma requirements
-chromadb
+chromadb==0.4.14
 onnxruntime
 tokenizers
 tqdm
