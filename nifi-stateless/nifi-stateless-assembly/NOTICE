@@ -149,11 +149,3 @@ The following binary components are provided under the Eclipse Distribution Lice
     (EDL 1.0) JAXB (JSR 222) Reference Implementation (org.glassfish.jaxb:jaxb-runtime:jar:2.3.5)
     (EDL 1.0) Istack Common Utility Code Runtime (com.sun.istack:istack-commons-runtime:jar:3.0.12)
     (EDL 1.0) TXW2 Runtime (org.glassfish.jaxb:txw2:jar:2.3.5)
-
-************************
-Eclipse Public License 1.0
-************************
-
-The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
-
-    (EPL 1.0)(LGPL 2.1) c3p0 (com.mchange:c3p0:jar:0.9.5.4 - https://github.com/swaldman/c3p0)

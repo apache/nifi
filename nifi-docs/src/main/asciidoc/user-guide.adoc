@@ -577,7 +577,7 @@ The first configuration option is the Scheduling Strategy. There are three possi
 |1-12 or JAN-DEC
 
 |Day of Week
-|0-6 or SUN-SAT (0 or 7 is SUN)
+|0-7 or SUN-SAT (0 or 7 is Sunday)
 
 |===
 
