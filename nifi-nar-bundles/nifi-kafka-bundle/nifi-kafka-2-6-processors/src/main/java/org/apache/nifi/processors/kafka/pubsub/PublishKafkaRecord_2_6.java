@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -585,6 +586,10 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
+        } catch (final KafkaException e) {
+            getLogger().error("Failed to obtain Kafka publisher; will yield Processor", e);
+            session.transfer(flowFiles);
+            context.yield();
         }
     }
 
