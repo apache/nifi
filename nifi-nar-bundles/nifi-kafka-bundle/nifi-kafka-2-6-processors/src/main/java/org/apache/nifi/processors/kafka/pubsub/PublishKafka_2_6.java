@@ -20,6 +20,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -439,7 +440,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
         final long startTime = System.nanoTime();
-        try (final PublisherLease lease = pool.obtainPublisher()) {
+        try (final PublisherLease lease = obtainPublisher(context, pool)) {
             try {
                 if (useTransactions) {
                     lease.beginTransaction();
@@ -509,6 +510,16 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
+        }
+    }
+
+    private PublisherLease obtainPublisher(final ProcessContext context, final PublisherPool pool) {
+        try {
+            return pool.obtainPublisher();
+        } catch (final KafkaException e) {
+            getLogger().error("Failed to obtain Kafka Producer", e);
+            context.yield();
+            throw e;
         }
     }
 
