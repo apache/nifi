@@ -15,16 +15,8 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
-
-.new-property-form {
-    @include mat.button-density(-1);
-
+.relationship-settings {
     .mat-mdc-form-field {
         width: 100%;
-    }
-
-    .mat-mdc-form-field-error {
-        font-size: 12px;
     }
 }

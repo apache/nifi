@@ -196,6 +196,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
 
                     // combine the original selection with the component
                     return component$.pipe(
+                        filter((component) => component != null),
                         take(1),
                         map((component) => [selectedComponent, component])
                     );

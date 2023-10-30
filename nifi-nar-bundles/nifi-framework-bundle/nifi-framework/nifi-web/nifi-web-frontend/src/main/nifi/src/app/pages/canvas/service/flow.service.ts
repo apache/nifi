@@ -52,6 +52,10 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
     }
 
+    getControllerService(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/controller-services/${id}`);
+    }
+
     getProcessGroupStatus(processGroupId: string = 'root', recursive: boolean = false): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}/status`, {
             params: { recursive: recursive }
@@ -72,6 +76,10 @@ export class FlowService {
 
     getCurrentUser(): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
+    }
+
+    getConnection(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/connections/${id}`);
     }
 
     createFunnel(processGroupId: string = 'root', createFunnel: CreateComponent): Observable<any> {
@@ -100,6 +108,16 @@ export class FlowService {
                 type: createProcessor.processorType,
                 bundle: createProcessor.processorBundle
             }
+        });
+    }
+
+    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
+        const params: any = {
+            propertyName,
+            sensitive
+        };
+        return this.httpClient.get(`${FlowService.API}/processors/${id}/descriptors`, {
+            params
         });
     }
 

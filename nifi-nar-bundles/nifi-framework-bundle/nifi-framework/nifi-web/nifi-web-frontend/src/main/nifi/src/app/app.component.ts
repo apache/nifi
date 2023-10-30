@@ -17,6 +17,7 @@
 
 import { Component } from '@angular/core';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'nifi',
@@ -28,7 +29,7 @@ export class AppComponent {
     guardLoading: boolean = true;
 
     constructor(private router: Router) {
-        this.router.events.subscribe((event) => {
+        this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
             if (event instanceof GuardsCheckStart) {
                 this.guardLoading = true;
             }

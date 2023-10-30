@@ -26,6 +26,7 @@ import {
     EditComponent,
     EditComponentRequest,
     EnterProcessGroupRequest,
+    LoadConnectionSuccess,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     NavigateToComponentRequest,
@@ -71,6 +72,18 @@ export const clearFlowApiError = createAction('[Canvas] Clear Flow Api Error');
 export const startProcessGroupPolling = createAction('[Canvas] Start Process Group Polling');
 
 export const stopProcessGroupPolling = createAction('[Canvas] Stop Process Group Polling');
+
+export const loadConnectionsForComponent = createAction(
+    '[Canvas] Load Connections For Component',
+    props<{ id: string }>()
+);
+
+export const loadConnection = createAction('[Canvas] Load Connection', props<{ id: string }>());
+
+export const loadConnectionSuccess = createAction(
+    '[Canvas] Load Connection Success',
+    props<{ response: LoadConnectionSuccess }>()
+);
 
 /*
     Selectable Behavior
@@ -139,6 +152,11 @@ export const editComponent = createAction('[Canvas] Edit Component', props<{ req
 
 export const openEditPortDialog = createAction('[Canvas] Open Edit Port Dialog', props<{ request: EditComponent }>());
 
+export const openEditProcessorDialog = createAction(
+    '[Canvas] Open Edit Processor Dialog',
+    props<{ request: EditComponent }>()
+);
+
 export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
 
 export const updateComponentSuccess = createAction(
@@ -149,6 +167,13 @@ export const updateComponentSuccess = createAction(
 export const updateComponentFailure = createAction(
     '[Canvas] Update Component Failure',
     props<{ response: UpdateComponentFailure }>()
+);
+
+export const updateProcessor = createAction('[Canvas] Update Processor', props<{ request: UpdateComponent }>());
+
+export const updateProcessorSuccess = createAction(
+    '[Canvas] Update Processor Success',
+    props<{ response: UpdateComponentResponse }>()
 );
 
 export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositions }>());

@@ -19,6 +19,7 @@
     <div class="flex justify-between items-center">
         <div class="font-bold">Required field</div>
         <div>
+            <!-- TODO Property Verification -->
             <button class="nifi-button" type="button" (click)="newPropertyClicked()">
                 <i class="fa fa-plus"></i>
             </button>
@@ -40,7 +41,8 @@
                                 *ngIf="hasInfo(item.descriptor)"
                                 nifiTooltip
                                 [tooltipComponentType]="PropertyTip"
-                                [tooltipInputData]="getPropertyTipData(item)"></div>
+                                [tooltipInputData]="getPropertyTipData(item)"
+                                [delayClose]="false"></div>
                         </div>
                     </div>
                 </td>

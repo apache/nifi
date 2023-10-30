@@ -51,6 +51,11 @@ export interface LoadProcessGroupResponse {
     controllerBulletins: ControllerBulletinsEntity;
 }
 
+export interface LoadConnectionSuccess {
+    id: string;
+    connection: any;
+}
+
 /*
   Component Requests
  */

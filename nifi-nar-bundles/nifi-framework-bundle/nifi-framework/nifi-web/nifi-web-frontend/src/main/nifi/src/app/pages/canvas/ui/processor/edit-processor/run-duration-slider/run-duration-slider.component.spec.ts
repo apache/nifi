@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.new-property-form {
-    @include mat.button-density(-1);
+import { RunDurationSlider } from './run-duration-slider.component';
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
+describe('RunDurationSlider', () => {
+    let component: RunDurationSlider;
+    let fixture: ComponentFixture<RunDurationSlider>;
 
-    .mat-mdc-form-field-error {
-        font-size: 12px;
-    }
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [RunDurationSlider]
+        });
+        fixture = TestBed.createComponent(RunDurationSlider);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

@@ -26,6 +26,7 @@ import {
     createProcessor,
     deleteComponentsSuccess,
     flowApiError,
+    loadConnectionSuccess,
     loadProcessGroup,
     loadProcessGroupSuccess,
     navigateWithoutTransform,
@@ -34,7 +35,9 @@ import {
     setTransitionRequired,
     updateComponent,
     updateComponentFailure,
-    updateComponentSuccess
+    updateComponentSuccess,
+    updateProcessor,
+    updateProcessorSuccess
 } from './flow.actions';
 import { FlowState } from './index';
 import { ComponentType } from '../../../../state/shared';
@@ -135,6 +138,16 @@ export const flowReducer = createReducer(
         error: null,
         status: 'success' as const
     })),
+    on(loadConnectionSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.flow.processGroupFlow.flow.connections.findIndex(
+                (f: any) => response.id === f.id
+            );
+            if (componentIndex > -1) {
+                draftState.flow.processGroupFlow.flow.connections[componentIndex] = response.connection;
+            }
+        });
+    }),
     on(flowApiError, (state, { error }) => ({
         ...state,
         dragging: false,
@@ -147,23 +160,7 @@ export const flowReducer = createReducer(
         error: null,
         status: 'pending' as const
     })),
-    on(createProcessor, (state) => ({
-        ...state,
-        saving: true
-    })),
-    on(createPort, (state) => ({
-        ...state,
-        saving: true
-    })),
-    on(createProcessor, (state) => ({
-        ...state,
-        saving: true
-    })),
-    on(createFunnel, (state) => ({
-        ...state,
-        saving: true
-    })),
-    on(createLabel, (state) => ({
+    on(createProcessor, createPort, createFunnel, createLabel, (state) => ({
         ...state,
         saving: true
     })),
@@ -207,11 +204,11 @@ export const flowReducer = createReducer(
         dragging: false,
         saving: false
     })),
-    on(updateComponent, (state) => ({
+    on(updateComponent, updateProcessor, (state) => ({
         ...state,
         saving: true
     })),
-    on(updateComponentSuccess, (state, { response }) => {
+    on(updateComponentSuccess, updateProcessorSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (response.type) {

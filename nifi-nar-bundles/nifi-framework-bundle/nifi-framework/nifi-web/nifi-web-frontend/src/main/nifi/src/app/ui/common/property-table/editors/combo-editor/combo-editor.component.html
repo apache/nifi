@@ -16,11 +16,12 @@
   -->
 
 <div class="property-editor p-4" cdkDrag>
-    <form [formGroup]="comboEditorForm">
+    <form [formGroup]="comboEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="flex flex-col gap-y-3">
             <div>
                 <mat-select
                     class="combo"
+                    cdkFocusInitial
                     formControlName="value"
                     [placeholder]="getComboPlaceholder()"
                     [panelClass]="'combo-panel'"

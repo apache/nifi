@@ -265,7 +265,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         this.onChange(this.serializeParameters());
     }
 
-    serializeParameters(): ParameterEntity[] {
+    private serializeParameters(): ParameterEntity[] {
         const parameters: ParameterItem[] = this.dataSource.data;
 
         // only include dirty items

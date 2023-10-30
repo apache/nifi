@@ -18,10 +18,11 @@
 <h2 mat-dialog-title>Add Property</h2>
 <form class="new-property-form" [formGroup]="newPropertyForm">
     <mat-dialog-content>
-        <div>
+        <div class="mb-2">
             <mat-form-field>
                 <mat-label>Property Name</mat-label>
-                <input matInput formControlName="name" cdkFocusInitial type="text" />
+                <input matInput formControlName="name" type="text" />
+                <mat-error *ngIf="name.invalid">{{ getNameErrorMessage() }}</mat-error>
             </mat-form-field>
         </div>
         <div class="flex flex-col">
@@ -34,6 +35,12 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-raised-button mat-dialog-close color="accent">Cancel</button>
-        <button mat-raised-button (click)="addProperty()" color="primary">Ok</button>
+        <button
+            mat-raised-button
+            [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid"
+            (click)="addProperty()"
+            color="primary">
+            Ok
+        </button>
     </mat-dialog-actions>
 </form>

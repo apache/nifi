@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../service/client.service';
 import {
     ControllerServiceEntity,
@@ -64,7 +64,7 @@ import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
     styleUrls: ['./edit-controller-service.component.scss']
 })
 export class EditControllerService {
-    @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
+    @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() saving$!: Observable<boolean>;
@@ -138,11 +138,15 @@ export class EditControllerService {
             }
         };
 
-        const properties: Property[] = this.editControllerServiceForm.get('properties')?.value;
-        if (properties.length) {
+        const propertyControl: AbstractControl | null = this.editControllerServiceForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
             const values: { [key: string]: string | null } = {};
             properties.forEach((property) => (values[property.property] = property.value));
             payload.component.properties = values;
+            payload.component.config.sensitiveDynamicPropertyNames = properties
+                .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
+                .map((property) => property.descriptor.name);
         }
 
         this.editControllerService.next(payload);

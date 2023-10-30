@@ -19,10 +19,21 @@ import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { NewPropertyDialogRequest, NewPropertyDialogResponse } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+    AbstractControl,
+    FormBuilder,
+    FormControl,
+    FormGroup,
+    FormsModule,
+    ReactiveFormsModule,
+    ValidationErrors,
+    ValidatorFn,
+    Validators
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'new-property-dialog',
@@ -34,7 +45,8 @@ import { MatRadioModule } from '@angular/material/radio';
         MatFormFieldModule,
         MatInputModule,
         ReactiveFormsModule,
-        MatRadioModule
+        MatRadioModule,
+        NgIf
     ],
     templateUrl: './new-property-dialog.component.html',
     styleUrls: ['./new-property-dialog.component.scss']
@@ -43,15 +55,44 @@ export class NewPropertyDialog {
     @Output() newProperty: EventEmitter<NewPropertyDialogResponse> = new EventEmitter<NewPropertyDialogResponse>();
 
     newPropertyForm: FormGroup;
+    name: FormControl;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: NewPropertyDialogRequest,
         private formBuilder: FormBuilder
     ) {
+        this.name = new FormControl('', [
+            Validators.required,
+            this.existingPropertyValidator(request.existingProperties)
+        ]);
+
         this.newPropertyForm = this.formBuilder.group({
-            name: new FormControl('', Validators.required),
+            name: this.name,
             sensitive: new FormControl({ value: false, disabled: !request.allowsSensitive }, Validators.required)
         });
+    }
+
+    private existingPropertyValidator(existingProperties: string[]): ValidatorFn {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const value = control.value;
+            if (value === '') {
+                return null;
+            }
+            if (existingProperties.includes(value)) {
+                return {
+                    existingProperty: true
+                };
+            }
+            return null;
+        };
+    }
+
+    getNameErrorMessage(): string {
+        if (this.name.hasError('required')) {
+            return 'Property name is required.';
+        }
+
+        return this.name.hasError('existingProperty') ? 'A property with this name already exists.' : '';
     }
 
     addProperty(): void {

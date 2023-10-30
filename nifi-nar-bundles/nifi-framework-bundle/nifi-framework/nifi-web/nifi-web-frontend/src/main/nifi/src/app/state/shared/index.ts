@@ -26,6 +26,7 @@ export interface YesNoDialogRequest {
 }
 
 export interface NewPropertyDialogRequest {
+    existingProperties: string[];
     allowsSensitive: boolean;
 }
 

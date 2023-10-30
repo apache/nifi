@@ -247,6 +247,16 @@ a:hover {
 }
 
 /*
+    Icon for styling mat-icon in forms throughout the application.
+ */
+
+.info-icon {
+    font-size: 14px;
+    height: 14px !important;
+    width: 14px !important;
+}
+
+/*
     This style is needed due to an incompatibility between material and tailwind.
  */
 

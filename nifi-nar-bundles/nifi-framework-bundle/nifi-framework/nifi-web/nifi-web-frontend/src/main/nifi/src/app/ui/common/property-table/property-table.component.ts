@@ -95,7 +95,7 @@ export interface PropertyItem extends Property {
     ]
 })
 export class PropertyTable implements AfterViewInit, ControlValueAccessor {
-    @Input() createNewProperty!: (allowsSensitive: boolean) => Observable<Property>;
+    @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() supportsSensitiveDynamicProperties: boolean = false;
@@ -156,6 +156,9 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 );
 
                 if (valueTrigger) {
+                    // scroll into view
+                    valueTrigger.elementRef.nativeElement.scrollIntoView({ block: 'center', behavior: 'instant' });
+
                     setTimeout(function () {
                         // trigger a click to start editing the new item
                         valueTrigger.elementRef.nativeElement.click();
@@ -272,7 +275,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     newPropertyClicked(): void {
-        this.createNewProperty(this.supportsSensitiveDynamicProperties)
+        const existingProperties: string[] = this.dataSource.data.map((item) => item.descriptor.name);
+        this.createNewProperty(existingProperties, this.supportsSensitiveDynamicProperties)
             .pipe(take(1))
             .subscribe((property) => {
                 const currentPropertyItems: PropertyItem[] = this.dataSource.data;
@@ -428,7 +432,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         this.onChange(this.serializeProperties());
     }
 
-    serializeProperties(): Property[] {
+    private serializeProperties(): Property[] {
         const properties: PropertyItem[] = this.dataSource.data;
 
         // only include dirty items

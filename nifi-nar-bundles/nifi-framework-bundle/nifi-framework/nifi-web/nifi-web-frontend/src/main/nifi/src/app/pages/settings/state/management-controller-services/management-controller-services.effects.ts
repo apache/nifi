@@ -180,11 +180,12 @@ export class ManagementControllerServicesEffects {
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
                     editDialogReference.componentInstance.createNewProperty = (
+                        existingProperties: string[],
                         allowsSensitive: boolean
                     ): Observable<Property> => {
-                        const dialogRequest: NewPropertyDialogRequest = { allowsSensitive };
+                        const dialogRequest: NewPropertyDialogRequest = { existingProperties, allowsSensitive };
                         const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
-                            data: { dialogRequest },
+                            data: dialogRequest,
                             panelClass: 'small-dialog'
                         });
 

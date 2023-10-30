@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.new-property-form {
-    @include mat.button-density(-1);
+import { RelationshipSettings } from './relationship-settings.component';
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
+describe('RelationshipSettings', () => {
+    let component: RelationshipSettings;
+    let fixture: ComponentFixture<RelationshipSettings>;
 
-    .mat-mdc-form-field-error {
-        font-size: 12px;
-    }
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [RelationshipSettings]
+        });
+        fixture = TestBed.createComponent(RelationshipSettings);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

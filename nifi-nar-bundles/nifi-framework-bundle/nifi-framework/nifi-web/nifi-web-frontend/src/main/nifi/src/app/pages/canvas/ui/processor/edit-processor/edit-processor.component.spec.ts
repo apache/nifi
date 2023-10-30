@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.new-property-form {
-    @include mat.button-density(-1);
+import { EditProcessor } from './edit-processor.component';
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
+describe('EditProcessor', () => {
+    let component: EditProcessor;
+    let fixture: ComponentFixture<EditProcessor>;
 
-    .mat-mdc-form-field-error {
-        font-size: 12px;
-    }
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [EditProcessor]
+        });
+        fixture = TestBed.createComponent(EditProcessor);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

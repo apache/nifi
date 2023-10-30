@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { navigateWithoutTransform } from './flow.actions';
+import { navigateWithoutTransform, updateProcessor } from './flow.actions';
 import {
     asyncScheduler,
     catchError,
@@ -29,8 +29,10 @@ import {
     interval,
     map,
     mergeMap,
+    Observable,
     of,
     switchMap,
+    take,
     takeUntil,
     tap,
     withLatestFrom
@@ -47,13 +49,14 @@ import { Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
     selectCurrentProcessGroupId,
-    selectParentProcessGroupId
+    selectParentProcessGroupId,
+    selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType, NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { selectUrl } from '../../../../state/router/router.selectors';
 import { Client } from '../../../../service/client.service';
@@ -62,6 +65,8 @@ import { CanvasView } from '../../service/canvas-view.service';
 import { selectProcessorTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/processor/create-processor/create-processor.component';
+import { EditProcessor } from '../../ui/processor/edit-processor/edit-processor.component';
+import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -363,6 +368,8 @@ export class FlowEffects {
             map((action) => action.request),
             switchMap((request) => {
                 switch (request.type) {
+                    case ComponentType.Processor:
+                        return of(FlowActions.openEditProcessorDialog({ request }));
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
@@ -397,6 +404,105 @@ export class FlowEffects {
                             this.store.dispatch(FlowActions.clearFlowApiError());
                             this.router.navigate(url);
                         });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditProcessorDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditProcessorDialog),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectUrl)),
+                tap(([request, currentUrl]) => {
+                    const editDialogReference = this.dialog.open(EditProcessor, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.createNewProperty = (
+                        existingProperties: string[],
+                        allowsSensitive: boolean
+                    ): Observable<Property> => {
+                        const dialogRequest: NewPropertyDialogRequest = { existingProperties, allowsSensitive };
+                        const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
+                            data: dialogRequest,
+                            panelClass: 'small-dialog'
+                        });
+
+                        return newPropertyDialogReference.componentInstance.newProperty.pipe(
+                            take(1),
+                            switchMap((dialogResponse: NewPropertyDialogResponse) => {
+                                return this.flowService
+                                    .getPropertyDescriptor(
+                                        request.entity.id,
+                                        dialogResponse.name,
+                                        dialogResponse.sensitive
+                                    )
+                                    .pipe(
+                                        take(1),
+                                        map((response) => {
+                                            newPropertyDialogReference.close();
+
+                                            return {
+                                                property: dialogResponse.name,
+                                                value: null,
+                                                descriptor: response.propertyDescriptor
+                                            };
+                                        })
+                                    );
+                            })
+                        );
+                    };
+
+                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
+                        return this.flowService.getControllerService(serviceId).pipe(
+                            take(1),
+                            map((serviceEntity) => {
+                                // TODO - finalize once route is defined
+                                return [
+                                    '/process-groups',
+                                    serviceEntity.component.parentGroupId,
+                                    'controller-services',
+                                    serviceEntity.id
+                                ];
+                            })
+                        );
+                    };
+
+                    // TODO - inline service creation...
+
+                    editDialogReference.componentInstance.editProcessor.pipe(take(1)).subscribe((payload: any) => {
+                        this.store.dispatch(
+                            updateProcessor({
+                                request: {
+                                    id: request.entity.id,
+                                    uri: request.uri,
+                                    type: request.type,
+                                    payload
+                                }
+                            })
+                        );
+                    });
+
+                    editDialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.entity.id,
+                                            componentType: request.type
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -450,6 +556,79 @@ export class FlowEffects {
         )
     );
 
+    updateProcessor$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateProcessor),
+            map((action) => action.request),
+            mergeMap((request) =>
+                from(this.flowService.updateComponent(request)).pipe(
+                    map((response) => {
+                        const updateComponentResponse: UpdateComponentResponse = {
+                            requestId: request.requestId,
+                            id: request.id,
+                            type: request.type,
+                            response: response
+                        };
+                        return FlowActions.updateProcessorSuccess({ response: updateComponentResponse });
+                    }),
+                    catchError((error) => {
+                        const updateComponentFailure: UpdateComponentFailure = {
+                            id: request.id,
+                            type: request.type,
+                            restoreOnFailure: request.restoreOnFailure,
+                            error: error.error
+                        };
+                        return of(FlowActions.updateComponentFailure({ response: updateComponentFailure }));
+                    })
+                )
+            )
+        )
+    );
+
+    updateProcessorSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateProcessorSuccess),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            map((action) => action.response),
+            switchMap((response) => of(FlowActions.loadConnectionsForComponent({ id: response.id })))
+        )
+    );
+
+    loadConnectionsForComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadConnectionsForComponent),
+            map((action) => action.id),
+            switchMap((id: string) => {
+                const componentConnections: any[] = this.canvasUtils.getComponentConnections(id);
+                return componentConnections.map((componentConnection) =>
+                    FlowActions.loadConnection({ id: componentConnection.id })
+                );
+            })
+        )
+    );
+
+    loadConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadConnection),
+            map((action) => action.id),
+            mergeMap((id) =>
+                from(this.flowService.getConnection(id)).pipe(
+                    map((response) => {
+                        return FlowActions.loadConnectionSuccess({
+                            response: {
+                                id: id,
+                                connection: response
+                            }
+                        });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
+        )
+    );
+
     updatePositions$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updatePositions),
@@ -490,7 +669,7 @@ export class FlowEffects {
         )
     );
 
-    updatePositionSuccess$ = createEffect(
+    updatePositionComplete$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.updatePositionComplete),

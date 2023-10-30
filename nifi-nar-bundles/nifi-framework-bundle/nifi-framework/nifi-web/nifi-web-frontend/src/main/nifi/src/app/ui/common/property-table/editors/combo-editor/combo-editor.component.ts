@@ -30,6 +30,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextTip } from '../../../tooltips/text-tip/text-tip.component';
+import { A11yModule } from '@angular/cdk/a11y';
 
 export interface AllowableValueItem extends AllowableValue {
     id: number;
@@ -53,7 +54,8 @@ export interface AllowableValueItem extends AllowableValue {
         MatSelectModule,
         NgForOf,
         MatTooltipModule,
-        NgIf
+        NgIf,
+        A11yModule
     ],
     styleUrls: ['./combo-editor.component.scss']
 })

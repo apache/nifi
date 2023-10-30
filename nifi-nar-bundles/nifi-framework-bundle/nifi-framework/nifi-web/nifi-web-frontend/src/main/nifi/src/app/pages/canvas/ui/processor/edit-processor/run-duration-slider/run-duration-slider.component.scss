@@ -17,14 +17,11 @@
 
 @use '@angular/material' as mat;
 
-.new-property-form {
-    @include mat.button-density(-1);
+.run-duration-slider {
+    @include mat.slider-density(-4);
 
-    .mat-mdc-form-field {
+    .mat-mdc-slider {
         width: 100%;
-    }
-
-    .mat-mdc-form-field-error {
-        font-size: 12px;
+        margin: 0;
     }
 }

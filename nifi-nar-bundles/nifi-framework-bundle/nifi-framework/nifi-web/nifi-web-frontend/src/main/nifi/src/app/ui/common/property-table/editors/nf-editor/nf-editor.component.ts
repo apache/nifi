@@ -27,6 +27,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective } from '../../../nifi-tooltip.directive';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
 import { PropertyHintTipInput } from '../../../../../state/shared';
+import { A11yModule } from '@angular/cdk/a11y';
 
 @Component({
     selector: 'nf-editor',
@@ -41,7 +42,8 @@ import { PropertyHintTipInput } from '../../../../../state/shared';
         MatButtonModule,
         MatCheckboxModule,
         NgTemplateOutlet,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        A11yModule
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
