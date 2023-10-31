@@ -88,9 +88,9 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.ThreadUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.springframework.scheduling.support.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.support.CronExpression;
 
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
@@ -1111,7 +1111,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public List<ValidationResult> validateConfig() {
 
         final List<ValidationResult> results = new ArrayList<>();
@@ -2078,9 +2077,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void migrateConfiguration(final ControllerServiceFactory serviceFactory) {
+    public void migrateConfiguration(final Map<String, String> rawPropertyValues, final ControllerServiceFactory serviceFactory) {
         try {
-            migrateProperties(serviceFactory);
+            migrateProperties(rawPropertyValues, serviceFactory);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);
         }
@@ -2092,11 +2091,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
-    private void migrateProperties(final ControllerServiceFactory serviceFactory) {
+    private void migrateProperties(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
         final Processor processor = getProcessor();
 
-        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(toPropertyNameMap(getEffectivePropertyValues()),
-                toPropertyNameMap(getRawPropertyValues()), this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), getIdentifier())) {
             processor.migrateProperties(propertyConfig);
         }

@@ -298,6 +298,6 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
 
-    public abstract void migrateConfiguration(ControllerServiceFactory serviceFactory);
+    public abstract void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
 }

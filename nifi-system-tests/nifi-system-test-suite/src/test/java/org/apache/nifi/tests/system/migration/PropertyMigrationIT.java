@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -105,6 +106,9 @@ public class PropertyMigrationIT extends NiFiSystemIT {
             final String serviceId = propertiesMap.get(SERVICE);
             assertNotNull(serviceId);
             serviceIds.add(serviceId);
+
+            assertEquals("Deprecated Value", propertiesMap.get("Deprecated"));
+            assertFalse(propertiesMap.containsKey("Deprecated Found"));
         }
 
         // Should be 3 different services
@@ -191,6 +195,7 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         expectedUpdatedProperties.put("Attribute Value", "Hi");
         expectedUpdatedProperties.put("New Property", "true");
         expectedUpdatedProperties.put("Service", null);
+        expectedUpdatedProperties.put("Deprecated", "Deprecated Value");
         assertEquals(expectedUpdatedProperties, updatedProperties);
 
         final ProcessorConfigDTO updatedConfig = updated.getComponent().getConfig();
