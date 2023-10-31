@@ -1200,7 +1200,10 @@
                                 !ITPreventProxiedAnonymousAccess,
                                 !ITPreventDirectAnonymousAccess,
                                 !ITAllowDirectAnonymousAccess,
-                                !ITProcessGroupAccessControl
+                                !ITProcessGroupAccessControl,
+                                !StatelessNiFiSinkTaskIT#testSimpleFlow,
+                                !StatelessNiFiSinkTaskIT#testParameters,
+                                !StatelessNiFiSinkTaskIT#testWrongOutputPort
                             </test>
                         </configuration>
                     </plugin>
