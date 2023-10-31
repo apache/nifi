@@ -27,7 +27,7 @@ TEXT_KEY = "text"
 METADATA_KEY = "metadata"
 
 
-class ChunkDocuments(FlowFileTransform):
+class ChunkDocument(FlowFileTransform):
     class Java:
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
     class ProcessorDetails:

@@ -49,16 +49,16 @@ class QueryChroma(FlowFileTransform):
         default_value="10",
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
     )
-    WHERE_CLAUSE = PropertyDescriptor(
-        name="Where Clause (Metadata Filter)",
+    METADATA_FILTER = PropertyDescriptor(
+        name="Metadata Filter",
         description="A JSON representation of a Metadata Filter that can be applied against the Chroma documents in order to narrow down the documents that can be returned. " +
                     "For example: { \"metadata_field\": \"some_value\" }",
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         required=False
     )
-    WHERE_DOCUMENT_CLAUSE = PropertyDescriptor(
-        name="Where Document (Document Filter)",
+    DOCUMENT_FILTER = PropertyDescriptor(
+        name="Document Filter",
         description="A JSON representation of a Document Filter that can be applied against the Chroma documents' text in order to narrow down the documents that can be returned. " +
                     "For example: { \"$contains\": \"search_string\" }",
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
@@ -80,8 +80,8 @@ class QueryChroma(FlowFileTransform):
         NUMBER_OF_RESULTS,
         QueryUtils.OUTPUT_STRATEGY,
         QueryUtils.RESULTS_FIELD,
-        WHERE_CLAUSE,
-        WHERE_DOCUMENT_CLAUSE,
+        METADATA_FILTER,
+        DOCUMENT_FILTER,
         QueryUtils.INCLUDE_IDS,
         QueryUtils.INCLUDE_METADATAS,
         QueryUtils.INCLUDE_DOCUMENTS,
@@ -129,12 +129,12 @@ class QueryChroma(FlowFileTransform):
             included_fields.append('metadatas')
 
         where = None
-        where_clause = context.getProperty(self.WHERE_CLAUSE).evaluateAttributeExpressions(flowfile).getValue()
+        where_clause = context.getProperty(self.METADATA_FILTER).evaluateAttributeExpressions(flowfile).getValue()
         if where_clause is not None:
             where = json.loads(where_clause)
 
         where_document = None
-        where_document_clause = context.getProperty(self.WHERE_DOCUMENT_CLAUSE).evaluateAttributeExpressions(flowfile).getValue()
+        where_document_clause = context.getProperty(self.DOCUMENT_FILTER).evaluateAttributeExpressions(flowfile).getValue()
         if where_document_clause is not None:
             where_document = json.loads(where_document_clause)
 
