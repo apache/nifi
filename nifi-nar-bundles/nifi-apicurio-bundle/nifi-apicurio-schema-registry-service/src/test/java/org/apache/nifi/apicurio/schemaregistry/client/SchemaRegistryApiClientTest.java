@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.apicurio.schemaregistry;
+package org.apache.nifi.apicurio.schemaregistry.client;
 
-import org.apache.nifi.apicurio.schemaregistry.client.SchemaRegistryApiClient;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;

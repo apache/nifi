@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.apicurio.schemaregistry;
+package org.apache.nifi.apicurio.schemaregistry.client;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.apicurio.schemaregistry.client.ApicurioSchemaRegistryClient;
-import org.apache.nifi.apicurio.schemaregistry.client.SchemaRegistryApiClient;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
@@ -41,9 +40,10 @@ class ApicurioSchemaRegistryClientTest {
 
     private static final String TEST_URL = "http://test.apicurio-schema-registry.com:8888";
     private static final String SCHEMA_NAME = "schema1";
+    private static final int VERSION = 3;
     private static final String SEARCH_URL = TEST_URL + "/search";
     private static final String METADATA_URL = TEST_URL + "/meta";
-    private static final String SCHEMA_URL = TEST_URL + "/schema";
+    private static final String SCHEMA_VERSION_URL = TEST_URL + "/schema/versions/" + VERSION;
     private static final String GROUP_ID = "groupId1";
     private static final String ARTIFACT_ID = "artifactId1";
     @Mock
@@ -53,9 +53,9 @@ class ApicurioSchemaRegistryClientTest {
     @BeforeEach
     void setup() {
         doReturn(URI.create(SEARCH_URL)).when(apiClient).buildSearchUri(SCHEMA_NAME);
-        doReturn(URI.create(SCHEMA_URL)).when(apiClient).buildSchemaUri(GROUP_ID, ARTIFACT_ID);
+        doReturn(URI.create(SCHEMA_VERSION_URL)).when(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
         doReturn(getResource("search_response.json")).when(apiClient).retrieveResponse(URI.create(SEARCH_URL));
-        doReturn(getResource("schema_response.json")).when(apiClient).retrieveResponse(URI.create(SCHEMA_URL));
+        doReturn(getResource("schema_response.json")).when(apiClient).retrieveResponse(URI.create(SCHEMA_VERSION_URL));
     }
 
     @Test
@@ -69,13 +69,12 @@ class ApicurioSchemaRegistryClientTest {
 
         verify(apiClient).buildSearchUri(SCHEMA_NAME);
         verify(apiClient).buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
-        verify(apiClient).buildSchemaUri(GROUP_ID, ARTIFACT_ID);
+        verify(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
 
-        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"))
+        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"), Charset.defaultCharset())
                 .replace("\n", "")
                 .replaceAll(" +", "");
-        assertEquals(expectedSchemaText, schema.getSchemaText().get());
-        assertEquals(expectedSchemaText, schema.getSchemaText().get());
+        assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
     }
 
     @Test
@@ -86,15 +85,13 @@ class ApicurioSchemaRegistryClientTest {
 
         verify(apiClient).buildSearchUri(SCHEMA_NAME);
         verify(apiClient, never()).buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
-        verify(apiClient).buildSchemaUri(GROUP_ID, ARTIFACT_ID);
+        verify(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
 
-        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"))
+        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"), Charset.defaultCharset())
                 .replace("\n", "")
                 .replaceAll(" +", "");
-        assertEquals(expectedSchemaText, schema.getSchemaText().get());
-        assertEquals(expectedSchemaText, schema.getSchemaText().get());
+        assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
     }
-
 
     private InputStream getResource(final String resourceName) {
         return this.getClass().getClassLoader().getResourceAsStream(resourceName);

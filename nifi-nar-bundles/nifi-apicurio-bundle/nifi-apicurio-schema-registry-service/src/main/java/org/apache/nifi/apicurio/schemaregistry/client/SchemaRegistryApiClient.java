@@ -32,7 +32,7 @@ public class SchemaRegistryApiClient {
         this.baseUrl = baseUrl;
     }
 
-    public InputStream retrieveResponse(URI uri) {
+    public InputStream retrieveResponse(final URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
@@ -70,6 +70,13 @@ public class SchemaRegistryApiClient {
         return buildGroupArtifactsUri(groupId, artifactId).build();
     }
 
+    public URI buildSchemaVersionUri(final String groupId, final String artifactId, final int version) {
+        return buildGroupArtifactsUri(groupId, artifactId)
+                .addPathSegment("versions")
+                .addPathSegment(String.valueOf(version))
+                .build();
+    }
+
     private HttpUriBuilder buildGroupArtifactsUri(final String groupId, final String artifactId) {
         return buildBaseUri()
                 .addPathSegment("groups")
@@ -77,5 +84,4 @@ public class SchemaRegistryApiClient {
                 .addPathSegment("artifacts")
                 .addPathSegment(artifactId);
     }
-
 }

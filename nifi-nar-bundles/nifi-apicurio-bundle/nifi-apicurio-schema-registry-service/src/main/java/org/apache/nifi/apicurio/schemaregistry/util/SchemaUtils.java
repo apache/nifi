@@ -24,12 +24,16 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 
 public class SchemaUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(SchemaUtils.class);
     private static final ObjectMapper OBJECT_MAPPER = setObjectMapper();
 
     private SchemaUtils() {
@@ -46,18 +50,19 @@ public class SchemaUtils {
                     .version(version)
                     .build();
             return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
-        } catch (final SchemaParseException spe) {
-            throw new SchemaNotFoundException("Obtained Schema with name " + name
-                    + " from Apicurio Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+        } catch (final SchemaParseException e) {
+            final String errorMessage = String.format("Obtained Schema with name [%s] from Apicurio Schema Registry but the Schema Text " +
+                    "that was returned is not a valid Avro Schema", name);
+            throw new SchemaNotFoundException(errorMessage, e);
         }
     }
 
-    public static int getVersionAttribute(InputStream in) {
+    public static int extractVersionAttributeFromStream(InputStream in) {
         final JsonNode metadataNode;
         try {
             metadataNode = OBJECT_MAPPER.readTree(in);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read HTTP response input stream", e);
+            throw new UncheckedIOException("Failed to read version from HTTP response stream", e);
         }
         return Integer.parseInt(metadataNode.get("version").asText());
     }
@@ -67,7 +72,7 @@ public class SchemaUtils {
         try {
             jsonNode = OBJECT_MAPPER.readTree(in);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read HTTP response input stream", e);
+            throw new UncheckedIOException("Failed to read result attributes from HTTP response stream", e);
         }
         final JsonNode artifactNode = jsonNode.get("artifacts").get(0);
         final String groupId = artifactNode.get("groupId").asText();

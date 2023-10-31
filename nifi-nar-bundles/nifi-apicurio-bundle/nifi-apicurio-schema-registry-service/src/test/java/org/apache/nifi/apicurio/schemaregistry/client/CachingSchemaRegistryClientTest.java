@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.apicurio.schemaregistry;
+package org.apache.nifi.apicurio.schemaregistry.client;
 
-import org.apache.nifi.apicurio.schemaregistry.client.CachingSchemaRegistryClient;
-import org.apache.nifi.apicurio.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;

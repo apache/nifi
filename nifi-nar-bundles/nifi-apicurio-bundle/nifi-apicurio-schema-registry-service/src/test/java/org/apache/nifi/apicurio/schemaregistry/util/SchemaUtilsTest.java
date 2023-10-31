@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package util;
+package org.apache.nifi.apicurio.schemaregistry.util;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils;
 import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.ResultAttributes;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -36,20 +36,21 @@ class SchemaUtilsTest {
 
         final RecordSchema schema = SchemaUtils.createRecordSchema(in, "schema1", 3);
 
-        assertEquals("schema1", schema.getSchemaName().get());
-        assertEquals("schema_namespace_1", schema.getSchemaNamespace().get());
-        assertEquals("avro", schema.getSchemaFormat().get());
-        String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"))
+        assertEquals("schema1", schema.getSchemaName().orElseThrow(() -> new AssertionError("Schema Name is empty")));
+        assertEquals("schema_namespace_1", schema.getSchemaNamespace().orElseThrow(() -> new AssertionError("Schema Namespace is empty")));
+        assertEquals("avro", schema.getSchemaFormat().orElseThrow(() -> new AssertionError("Schema Format is empty")));
+
+        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"), Charset.defaultCharset())
                 .replace("\n", "")
                 .replaceAll(" +", "");
-        assertEquals(expectedSchemaText, schema.getSchemaText().get());
+        assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
     }
 
     @Test
     void testGetVersionAttribute() {
         final InputStream in = getResource("metadata_response.json");
 
-        int version = SchemaUtils.getVersionAttribute(in);
+        int version = SchemaUtils.extractVersionAttributeFromStream(in);
 
         assertEquals(3, version);
     }

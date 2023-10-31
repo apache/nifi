@@ -26,29 +26,32 @@ import java.time.Duration;
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
-    private final LoadingCache<String, RecordSchema> nameCache;
-    private final LoadingCache<Pair<String, Integer>, RecordSchema> nameVersionCache;
+    private final LoadingCache<Pair<String, Integer>, RecordSchema> schemaCache;
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
 
-        nameCache = Caffeine.newBuilder()
+        schemaCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
-                .build(client::getSchema);
-        nameVersionCache = Caffeine.newBuilder()
-                .maximumSize(cacheSize)
-                .expireAfterWrite(Duration.ofNanos(expirationNanos))
-                .build(key -> client.getSchema(key.getLeft(), key.getRight()));
+                .build(key -> {
+                    if (key.getRight() == -1) {
+                        // If the version in the key is -1, fetch the schema by name only.
+                        return client.getSchema(key.getLeft());
+                    } else {
+                        // If a specific version is provided in the key, fetch the schema with that version.
+                        return client.getSchema(key.getLeft(), key.getRight());
+                    }
+                });
     }
 
     @Override
     public RecordSchema getSchema(final String schemaName) {
-        return nameCache.get(schemaName);
+        return schemaCache.get(Pair.of(schemaName, -1));
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, int version) {
-        return nameVersionCache.get(Pair.of(schemaName, version));
+    public RecordSchema getSchema(final String schemaName, final int version) {
+        return schemaCache.get(Pair.of(schemaName, version));
     }
 }

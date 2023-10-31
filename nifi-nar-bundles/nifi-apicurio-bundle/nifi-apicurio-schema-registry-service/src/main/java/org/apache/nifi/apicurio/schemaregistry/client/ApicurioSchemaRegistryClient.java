@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.apicurio.schemaregistry.client;
 
+import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils;
 import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.ResultAttributes;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -23,10 +24,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-
-import static org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.createRecordSchema;
-import static org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.getResultAttributes;
-import static org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.getVersionAttribute;
 
 public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryApiClient apiClient;
@@ -36,31 +33,37 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName) throws IOException, SchemaNotFoundException {
-        final URI searchUri = apiClient.buildSearchUri(schemaName);
-        final InputStream searchResultStream = apiClient.retrieveResponse(searchUri);
-        final ResultAttributes attributes = getResultAttributes(searchResultStream);
-
-        final URI metaDataUri = apiClient.buildMetaDataUri(attributes.groupId(), attributes.artifactId());
-        final InputStream metadataResultStream = apiClient.retrieveResponse(metaDataUri);
-        final int version = getVersionAttribute(metadataResultStream);
-
-        final URI schemaUri = apiClient.buildSchemaUri(attributes.groupId(), attributes.artifactId());
-        final InputStream schemaResultStream = apiClient.retrieveResponse(schemaUri);
-
-        return createRecordSchema(schemaResultStream, attributes.name(), version);
+    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
+        final ResultAttributes attributes = getAttributesForSchemaName(schemaName);
+        final int version = getVersionAttributeFromMetadata(attributes);
+        return createRecordSchemaForAttributes(attributes, version);
     }
-
 
     @Override
     public RecordSchema getSchema(final String schemaName, final int version) throws IOException, SchemaNotFoundException {
+        final ResultAttributes attributes = getAttributesForSchemaName(schemaName);
+        return createRecordSchemaForAttributes(attributes, version);
+    }
+
+    private ResultAttributes getAttributesForSchemaName(String schemaName) throws IOException {
         final URI searchUri = apiClient.buildSearchUri(schemaName);
-        final InputStream searchResultStream = apiClient.retrieveResponse(searchUri);
-        final ResultAttributes attributes = getResultAttributes(searchResultStream);
+        try (final InputStream searchResultStream = apiClient.retrieveResponse(searchUri)) {
+            return SchemaUtils.getResultAttributes(searchResultStream);
+        }
+    }
 
-        final URI schemaUri = apiClient.buildSchemaUri(attributes.groupId(), attributes.artifactId());
-        final InputStream schemaResultStream = apiClient.retrieveResponse(schemaUri);
+    private int getVersionAttributeFromMetadata(final ResultAttributes attributes) throws IOException {
+        final URI metaDataUri = apiClient.buildMetaDataUri(attributes.groupId(), attributes.artifactId());
+        try (final InputStream metadataResultStream = apiClient.retrieveResponse(metaDataUri)) {
+            return SchemaUtils.extractVersionAttributeFromStream(metadataResultStream);
+        }
+    }
 
-        return createRecordSchema(schemaResultStream, attributes.name(), version);
+    private RecordSchema createRecordSchemaForAttributes(ResultAttributes attributes, int version) throws IOException, SchemaNotFoundException {
+        final URI schemaUri = apiClient.buildSchemaVersionUri(attributes.groupId(), attributes.artifactId(), version);
+
+        try (final InputStream schemaResultStream = apiClient.retrieveResponse(schemaUri)) {
+            return SchemaUtils.createRecordSchema(schemaResultStream, attributes.name(), version);
+        }
     }
 }
