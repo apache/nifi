@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 public class AccessPolicyEndpointMerger extends AbstractSingleEntityEndpoint<AccessPolicyEntity> implements EndpointResponseMerger {
     public static final Pattern ACCESS_POLICIES_URI_PATTERN = Pattern.compile("/nifi-api/policies");
     public static final Pattern ACCESS_POLICY_URI_PATTERN = Pattern.compile("/nifi-api/policies/[a-f0-9\\-]{36}");
-    public static final Pattern ACCESS_POLICY_LOOKUP_URI_PATTERN = Pattern.compile("/nifi-api/policies/(?:read|write)/(?:[\\w-]+?/?)+");
+    public static final Pattern ACCESS_POLICY_LOOKUP_URI_PATTERN = Pattern.compile("/nifi-api/policies/(?:read|write)/[a-z0-9\\-/]+");
     private final AccessPolicyEntityMerger accessPolicyEntityMerger = new AccessPolicyEntityMerger();
 
     @Override
