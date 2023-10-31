@@ -23,10 +23,6 @@
     <artifactId>nifi-enrich-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi Enrichment NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
     <dependencies>
         <dependency>

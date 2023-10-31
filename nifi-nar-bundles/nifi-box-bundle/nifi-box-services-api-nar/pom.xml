@@ -24,10 +24,6 @@
 
     <artifactId>nifi-box-services-api-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>false</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
     <dependencies>
         <dependency>
