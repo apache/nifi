@@ -64,14 +64,34 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
+    private volatile Integer sslContextServiceHash;
     private volatile String registryUrl;
     private volatile NiFiRegistryClient registryClient;
+
+    private boolean shouldGetNewRegistryClient(final FlowRegistryClientConfigurationContext context) {
+        final String proposedUrl = getProposedUri(context);
+
+        if (!proposedUrl.equals(registryUrl)) {
+            return true;
+        }
+
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final Integer newSslContextServiceHash = getSslContextServiceHash(sslContextService);
+
+        if ((sslContextServiceHash == null && newSslContextServiceHash != null)
+            || (sslContextServiceHash != null && !newSslContextServiceHash.equals(sslContextServiceHash))) {
+            return true;
+        }
+
+        return false;
+    }
 
     private synchronized NiFiRegistryClient getRegistryClient(final FlowRegistryClientConfigurationContext context) {
         final String proposedUrl = getProposedUri(context);
 
-        if (!proposedUrl.equals(registryUrl)) {
+        if (shouldGetNewRegistryClient(context)) {
             registryUrl = proposedUrl;
+            sslContextServiceHash = getSslContextServiceHash(context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class));
             invalidateClient();
         }
 
@@ -114,6 +134,32 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         }
 
         return uri.toString();
+    }
+
+    /**
+     * In order to decide if the {@code NiFiRegistryClient} instance needs to be replaced, the flow registry client needs to
+     * decide if the {@code SSLContextService} or it's setting are changed. As the {@code hashCode} method might or might not
+     * be implemented, we need to generate a hash based on the relevant attributes.
+     */
+    private Integer getSslContextServiceHash(final SSLContextService sslContextService) {
+        if (sslContextService == null) {
+            return null;
+        }
+
+        return Objects.hash(
+                sslContextService.getIdentifier(),
+                sslContextService.getClass(),
+
+                sslContextService.getSslAlgorithm(),
+                sslContextService.getKeyStoreType(),
+                sslContextService.getKeyStoreFile(),
+                sslContextService.getKeyStorePassword(),
+                sslContextService.getKeyPassword(),
+
+                sslContextService.getTrustStoreFile(),
+                sslContextService.getTrustStorePassword(),
+                sslContextService.getTrustStoreType()
+        );
     }
 
     @Override
