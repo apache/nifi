@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.cs.tests.system.MigrationService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -63,6 +64,13 @@ public class MigrateProperties extends AbstractProcessor {
             .identifiesControllerService(ControllerService.class)
             .build();
 
+    static PropertyDescriptor DEPRECATED = new PropertyDescriptor.Builder()
+            .name("Deprecated")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .defaultValue("Deprecated Value")
+            .build();
+
     static Relationship REL_ODD = new Relationship.Builder().name("odd").build();
     static Relationship REL_EVEN = new Relationship.Builder().name("even").build();
     static Relationship REL_BROKEN = new Relationship.Builder().name("broken").build();
@@ -72,7 +80,8 @@ public class MigrateProperties extends AbstractProcessor {
             INGEST,
             ATTRIBUTE_NAME,
             ATTRIBUTE_VALUE,
-            SERVICE
+            SERVICE,
+            DEPRECATED
     );
 
     private final AtomicLong counter = new AtomicLong(0L);
@@ -97,6 +106,10 @@ public class MigrateProperties extends AbstractProcessor {
         config.setProperty("New Property", config.getPropertyValue(INGEST).orElse("New Value"));
         final String ignoredValue = config.getPropertyValue("ignored").orElse(null);
         config.removeProperty("ignored");
+
+        if (config.hasProperty("Deprecated")) {
+            config.setProperty("Deprecated Found", "true");
+        }
 
         // If the 'ignored' value was set, create a new Controller Service whose Start value is set to that value.
         if (ignoredValue != null && ignoredValue.matches("\\d+")) {

@@ -257,6 +257,6 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState);
 
-    void migrateConfiguration(ControllerServiceFactory serviceFactory);
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
 }

@@ -616,7 +616,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
             controller.getControllerServiceProvider(), taskNode);
-        taskNode.migrateConfiguration(serviceFactory);
+        taskNode.migrateConfiguration(reportingTask.getProperties(), serviceFactory);
     }
 
     private void updateReportingTask(final ReportingTaskNode taskNode, final VersionedReportingTask reportingTask, final FlowController controller) {
@@ -957,26 +957,29 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
         // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
         final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
-        final Set<ControllerServiceNode> controllerServicesAdded = new HashSet<>();
+        final Map<ControllerServiceNode, Map<String, String>> controllerServicesAddedAndProperties = new HashMap<>();
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (serviceNode == null) {
                 final ControllerServiceNode added = addRootControllerService(controller, versionedControllerService);
-                controllerServicesAdded.add(added);
+                controllerServicesAddedAndProperties.put(added, versionedControllerService.getProperties());
             }
         }
 
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
-            if (controllerServicesAdded.contains(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
+            if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
                 updateRootControllerService(serviceNode, versionedControllerService, controller.getEncryptor());
             }
         }
 
-        for (final ControllerServiceNode service : controllerServicesAdded) {
+        for (final Map.Entry<ControllerServiceNode, Map<String, String>> entry : controllerServicesAddedAndProperties.entrySet()) {
+            final ControllerServiceNode service = entry.getKey();
+            final Map<String, String> originalPropertyValues = entry.getValue();
+
             final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
                 controller.getControllerServiceProvider(), service);
-            service.migrateConfiguration(serviceFactory);
+            service.migrateConfiguration(originalPropertyValues, serviceFactory);
         }
 
         for (final VersionedControllerService versionedControllerService : controllerServices) {

@@ -98,7 +98,7 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
         serviceNode.setProperties(creationDetails.serviceProperties());
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode);
-        serviceNode.migrateConfiguration(serviceFactory);
+        serviceNode.migrateConfiguration(creationDetails.serviceProperties(), serviceFactory);
 
         if (isEnable()) {
             final ValidationStatus validationStatus = serviceNode.performValidation();

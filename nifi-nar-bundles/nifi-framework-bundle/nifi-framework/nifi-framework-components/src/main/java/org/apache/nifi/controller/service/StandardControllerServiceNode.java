@@ -75,6 +75,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -836,9 +837,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void migrateConfiguration(final ControllerServiceFactory serviceFactory) {
-        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(toPropertyNameMap(getEffectivePropertyValues()),
-                toPropertyNameMap(getRawPropertyValues()), super::mapRawValueToEffectiveValue, toString(), serviceFactory);
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, super::mapRawValueToEffectiveValue, toString(), serviceFactory);
 
         final ControllerService implementation = getControllerServiceImplementation();
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
