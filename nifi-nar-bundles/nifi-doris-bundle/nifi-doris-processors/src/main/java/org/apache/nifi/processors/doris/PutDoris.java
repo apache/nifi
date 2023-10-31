@@ -295,8 +295,6 @@ public class PutDoris extends AbstractProcessor {
 
         }
 
-        final List<FlowFile> successes = new ArrayList<>();
-
         if (context.getProperty(ONETOONE).isSet()) {
             //srcDatabase.srcTable:destDatabase.destTable,srcDatabase.srcTable1:destDatabase.destTable1,foo...
             String oneToOneValue = context.getProperty(ONETOONE).evaluateAttributeExpressions().getValue();
