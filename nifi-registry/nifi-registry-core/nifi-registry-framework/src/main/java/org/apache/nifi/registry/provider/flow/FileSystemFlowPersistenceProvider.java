@@ -33,6 +33,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 /**
@@ -63,7 +65,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         try {
             flowStorageDir = new File(flowStorageDirValue);
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(flowStorageDir);
-            LOGGER.info("Configured FileSystemFlowPersistenceProvider with Flow Storage Directory {}", new Object[] {flowStorageDir.getAbsolutePath()});
+            LOGGER.info("Configured FileSystemFlowPersistenceProvider with Flow Storage Directory {}", flowStorageDir.getAbsolutePath());
         } catch (IOException e) {
             throw new ProviderCreationException(e);
         }
@@ -71,14 +73,14 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
 
     @Override
     public synchronized void saveFlowContent(final FlowSnapshotContext context, final byte[] content) throws FlowPersistenceException {
-        final File bucketDir = new File(flowStorageDir, context.getBucketId());
+        final File bucketDir = getChildLocation(flowStorageDir, getNormalizedIdPath(context.getBucketId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bucketDir);
         } catch (IOException e) {
             throw new FlowPersistenceException("Error accessing bucket directory at " + bucketDir.getAbsolutePath(), e);
         }
 
-        final File flowDir = new File(bucketDir, context.getFlowId());
+        final File flowDir = getChildLocation(bucketDir, getNormalizedIdPath(context.getFlowId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(flowDir);
         } catch (IOException e) {
@@ -86,27 +88,28 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         final String versionString = String.valueOf(context.getVersion());
-        final File versionDir = new File(flowDir, versionString);
+        final File versionDir = getChildLocation(flowDir, Paths.get(versionString));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(versionDir);
         } catch (IOException e) {
             throw new FlowPersistenceException("Error accessing version directory at " + versionDir.getAbsolutePath(), e);
         }
 
-        final File versionFile = new File(versionDir, versionString + SNAPSHOT_EXTENSION);
+        final String versionExtension = versionString + SNAPSHOT_EXTENSION;
+        final File versionFile = getChildLocation(versionDir, Paths.get(versionExtension));
         if (versionFile.exists()) {
             throw new FlowPersistenceException("Unable to save, a snapshot already exists with version " + versionString);
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Saving snapshot with filename {}", new Object[] {versionFile.getAbsolutePath()});
+            LOGGER.debug("Saving snapshot with filename {}", versionFile.getAbsolutePath());
         }
 
         try (final OutputStream out = new FileOutputStream(versionFile)) {
             out.write(content);
             out.flush();
         } catch (Exception e) {
-            throw new FlowPersistenceException("Unable to write snapshot to disk due to " + e.getMessage(), e);
+            throw new FlowPersistenceException("Unable to write snapshot to disk", e);
         }
     }
 
@@ -114,7 +117,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
     public synchronized byte[] getFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
         final File snapshotFile = getSnapshotFile(bucketId, flowId, version);
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Retrieving snapshot with filename {}", new Object[] {snapshotFile.getAbsolutePath()});
+            LOGGER.debug("Retrieving snapshot with filename {}", snapshotFile.getAbsolutePath());
         }
 
         if (!snapshotFile.exists()) {
@@ -130,9 +133,12 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
 
     @Override
     public synchronized void deleteAllFlowContent(final String bucketId, final String flowId) throws FlowPersistenceException {
-        final File flowDir = new File(flowStorageDir, bucketId + "/" + flowId);
+        final Path bucketIdPath = getNormalizedIdPath(bucketId);
+        final Path flowIdPath = getNormalizedIdPath(flowId);
+        final Path bucketFlowPath = bucketIdPath.resolve(flowIdPath);
+        final File flowDir = getChildLocation(flowStorageDir, bucketFlowPath);
         if (!flowDir.exists()) {
-            LOGGER.debug("Snapshot directory does not exist at {}", new Object[] {flowDir.getAbsolutePath()});
+            LOGGER.debug("Snapshot directory does not exist at {}", flowDir.getAbsolutePath());
             return;
         }
 
@@ -150,12 +156,12 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         // delete the directory for the bucket if there is nothing left
-        final File bucketDir = new File(flowStorageDir, bucketId);
+        final File bucketDir = getChildLocation(flowStorageDir, getNormalizedIdPath(bucketId));
         final File[] bucketFiles = bucketDir.listFiles();
-        if (bucketFiles.length == 0) {
+        if (bucketFiles == null || bucketFiles.length == 0) {
             final boolean deletedBucket = bucketDir.delete();
             if (!deletedBucket) {
-                LOGGER.error("Unable to delete bucket directory: " + flowDir.getAbsolutePath());
+                LOGGER.error("Unable to delete bucket directory: {}", flowDir.getAbsolutePath());
             }
         }
     }
@@ -164,7 +170,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
     public synchronized void deleteFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
         final File snapshotFile = getSnapshotFile(bucketId, flowId, version);
         if (!snapshotFile.exists()) {
-            LOGGER.debug("Snapshot file does not exist at {}", new Object[] {snapshotFile.getAbsolutePath()});
+            LOGGER.debug("Snapshot file does not exist at {}", snapshotFile.getAbsolutePath());
             return;
         }
 
@@ -174,13 +180,32 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Deleted snapshot at {}", new Object[] {snapshotFile.getAbsolutePath()});
+            LOGGER.debug("Deleted snapshot at {}", snapshotFile.getAbsolutePath());
         }
     }
 
     protected File getSnapshotFile(final String bucketId, final String flowId, final int version) {
-        final String snapshotFilename = bucketId + "/" + flowId + "/" + version + "/" + version + SNAPSHOT_EXTENSION;
-        return new File(flowStorageDir, snapshotFilename);
+        final String versionExtension = version + SNAPSHOT_EXTENSION;
+        final Path snapshotLocation = Paths.get(getNormalizedId(bucketId), getNormalizedId(flowId), Integer.toString(version), versionExtension);
+        return getChildLocation(flowStorageDir, snapshotLocation);
     }
 
+    private File getChildLocation(final File parentDir, final Path childLocation) {
+        final Path parentPath = parentDir.toPath().normalize();
+        final Path childPathNormalized = childLocation.normalize();
+        final Path childPath = parentPath.resolve(childPathNormalized);
+        if (childPath.startsWith(parentPath)) {
+            return childPath.toFile();
+        }
+        throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+    }
+
+    private Path getNormalizedIdPath(final String id) {
+        final String normalizedId = getNormalizedId(id);
+        return Paths.get(normalizedId).normalize();
+    }
+
+    private String getNormalizedId(final String input) {
+        return FileUtils.sanitizeFilename(input).trim().toLowerCase();
+    }
 }
