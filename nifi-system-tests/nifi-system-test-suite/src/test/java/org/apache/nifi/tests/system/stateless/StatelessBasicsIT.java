@@ -740,7 +740,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         final FlowRegistryClientEntity registryClient = registerClient();
 
         // Register the first version of the flow
-        final VersionControlInformationEntity vci = getClientUtil().startVersionControl(statelessGroup, registryClient, "First Bucket", "testChangeFlowVersion");
+        final VersionControlInformationEntity vci = getClientUtil().startVersionControl(statelessGroup, registryClient, "test-flows", "first-flow");
         waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(statelessGroup.getId())) );
 
         // Update the flow
