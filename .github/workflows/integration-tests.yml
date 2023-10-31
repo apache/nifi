@@ -22,12 +22,18 @@ on:
   push:
     paths:
       - '.github/workflows/integration-tests.yml'
+      - 'pom.xml'
+      - '**/*-assembly/pom.xml'
+      - '**/*-bom/pom.xml'
       - '**/test/**/*IT.java'
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
   pull_request:
     paths:
       - '.github/workflows/integration-tests.yml'
+      - 'pom.xml'
+      - '**/*-assembly/pom.xml'
+      - '**/*-bom/pom.xml'
       - '**/test/**/*IT.java'
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
