@@ -506,7 +506,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         }
 
         final long startTime = System.nanoTime();
-        try (final PublisherLease lease = pool.obtainPublisher()) {
+        try (final PublisherLease lease = obtainPublisher(context, pool)) {
             try {
                 if (useTransactions) {
                     lease.beginTransaction();
@@ -586,10 +586,16 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
+        }
+    }
+
+    private PublisherLease obtainPublisher(final ProcessContext context, final PublisherPool pool) {
+        try {
+            return pool.obtainPublisher();
         } catch (final KafkaException e) {
             getLogger().error("Failed to obtain Kafka Producer", e);
-            session.transfer(flowFiles);
             context.yield();
+            throw e;
         }
     }
 
