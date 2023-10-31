@@ -3,7 +3,6 @@ package org.apache.nifi.doris.util;
 public class Result {
     private String loadResult;
     private int statusCode;
-    private String executeStatus;
 
     public String getLoadResult() {
         return loadResult;
@@ -21,21 +20,11 @@ public class Result {
         this.statusCode = statusCode;
     }
 
-    public String getExecuteStatus() {
-        return executeStatus;
-    }
-
-    public void setExecuteStatus(String executeStatus) {
-        this.executeStatus = executeStatus;
-    }
-
-
     @Override
     public String toString() {
         return "Result{" +
                 "loadResult='" + loadResult + '\'' +
                 ", statusCode=" + statusCode +
-                ", executeStatus='" + executeStatus + '\'' +
                 '}';
     }
 }

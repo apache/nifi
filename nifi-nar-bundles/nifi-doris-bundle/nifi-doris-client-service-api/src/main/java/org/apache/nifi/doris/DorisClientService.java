@@ -26,8 +26,6 @@ import org.apache.nifi.doris.util.Result;
 import java.io.IOException;
 import java.util.HashMap;
 
-@Tags({"example"})
-@CapabilityDescription("Example Service API.")
 public interface DorisClientService extends ControllerService {
 
     public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns);
@@ -36,10 +34,6 @@ public interface DorisClientService extends ControllerService {
 
     public void select();
 
-    public Result insert(String jsonData, String database, String tableName);
-
-    public void delete();
-
-    public void update();
+    public Result putJson(String jsonData, String database, String tableName);
 
 }

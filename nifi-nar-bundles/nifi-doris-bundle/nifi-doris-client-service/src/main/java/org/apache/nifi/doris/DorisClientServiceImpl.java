@@ -49,31 +49,41 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @RequiresInstanceClassLoading
 @Tags({"doris", "client", "stream_lode"})
-@CapabilityDescription("Example ControllerService implementation of MyService.")
+@CapabilityDescription("A controller service for accessing an Apache Doris client.")
 public class DorisClientServiceImpl extends AbstractControllerService implements DorisClientService {
+    private String feHost;
+    private String userName;
+    private String password;
+    private String httpPort;
+    private String loginLabel;
+
+    private String loadUrlFormat;
+    private String loginActionUrlFormat;
+    private String httpTimeOut;
+    private ConfigurationContext context;
+    private String columnSeparator;
+    private String dataFormat;
+    private String stripOuterArray;
 
     public static final PropertyDescriptor FE_HOST = new PropertyDescriptor
-            .Builder().name("FE_HOST")
-            .displayName("fe_host")
-            .description("FE_HOST")
+            .Builder().name("Fe Host")
+            .description("Apache Doris Frontend address")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor
-            .Builder().name("USERNAME")
-            .displayName("user_name")
-            .description("USERNAME")
+            .Builder().name("Username")
+            .description("Connect to the Apache Doris username.Note that this user needs to have read and write access to the corresponding table")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
-            .Builder().name("PASSWORD")
-            .displayName("password")
-            .description("PASSWORD")
+            .Builder().name("Password")
+            .description("Password to connect to Apache Doris")
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -82,9 +92,8 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
 
 
     public static final PropertyDescriptor HTTP_PORT = new PropertyDescriptor
-            .Builder().name("HTTP_PORT")
-            .displayName("http_port")
-            .description("HTTP_PORT")
+            .Builder().name("Http Port")
+            .description("http server port on the FE")
             .required(false)
             .defaultValue("8030")
             .addValidator(StandardValidators.PORT_VALIDATOR)
@@ -92,9 +101,8 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor LOAD_URL_FORMAT = new PropertyDescriptor
-            .Builder().name("LOAD_URL")
-            .displayName("load_url")
-            .description("LOAD_URL")
+            .Builder().name("Load URL")
+            .description("Stream Load URL. The placeholders are, in turn, feHost, httpPort, destDatabase, destTableName, as described in the Apache Doris documentation")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("http://%s:%s/api/%s/%s/_stream_load")
@@ -102,9 +110,9 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor LOGIN_ACTION_URL_FORMAT = new PropertyDescriptor
-            .Builder().name("LOGIN_ACTION_URL_FORMAT")
-            .displayName("login_action_url_format")
-            .description("LOGIN_ACTION_URL_FORMAT")
+            .Builder().name("Login Action URL Format")
+            .description("For login services.This connection is invoked when the Service is in the onEnabled " +
+                    "state to test that the communication with the Doris server is normal")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("http://%s:%s/rest/v1/login")
@@ -112,9 +120,12 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor LABEL = new PropertyDescriptor
-            .Builder().name("LABEL")
-            .displayName("label")
-            .description("LABEL")
+            .Builder().name("Label")
+            .description("Doris import jobs can all set a Label. This Label is usually a user-defined string that has certain business logic properties.\n" +
+                    "The main purpose of Label is to uniquely identify an import task and ensure that the same Label will only be successfully imported once.\n" +
+                    "The Label mechanism can ensure that the imported data is not lost and not heavy. If the upstream data source can guarantee the At-Least-Once semantics, then with the Label mechanism of Doris, the Exactly-Once semantics can be guaranteed.\n" +
+                    "Label is unique under a database. The default retention period for labels is 3 days. That is, after 3 days, the finished labels are automatically cleaned up, after which the labels can be reused." +
+                    "Note that this label validates the user login and does nothing else")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("label-" + UUID.randomUUID())
@@ -122,17 +133,43 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .build();
 
 
-    public static final PropertyDescriptor FORMAT = new PropertyDescriptor
-            .Builder().name("FORMAT")
-            .displayName("format")
-            .description("FORMAT")
+    public static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor
+            .Builder().name("Data Format")
+            .description("The underlying format of the data, which defaults to json data")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("json")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
+    public static final PropertyDescriptor HTTP_TIME_OUT = new PropertyDescriptor
+            .Builder().name("Http Time Out")
+            .description("http connection timeout")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("10000")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor COLUMN_SEPARATOR = new PropertyDescriptor
+            .Builder().name("Column Separator")
+            .description("Column separator")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(",")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor STRIP_OUTER_ARRAY = new PropertyDescriptor
+            .Builder().name("Strip Outer Array")
+            .description("As it parses, Doris expands the array and parses each Object as a row.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("true")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
     private List<PropertyDescriptor> properties;
-    private ConfigurationContext context = null;
+
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -142,9 +179,12 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
         props.add(PASSWORD);
         props.add(HTTP_PORT);
         props.add(LABEL);
-        props.add(FORMAT);
+        props.add(DATA_FORMAT);
         props.add(LOAD_URL_FORMAT);
         props.add(LOGIN_ACTION_URL_FORMAT);
+        props.add(HTTP_TIME_OUT);
+        props.add(COLUMN_SEPARATOR);
+        props.add(STRIP_OUTER_ARRAY);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -173,6 +213,17 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
         this.context = context;
+        httpPort = context.getProperty(HTTP_PORT).evaluateAttributeExpressions().getValue();
+        loginLabel = context.getProperty(LABEL).evaluateAttributeExpressions().getValue();
+        feHost = context.getProperty(FE_HOST).evaluateAttributeExpressions().getValue();
+        userName = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        loadUrlFormat = context.getProperty(LOAD_URL_FORMAT).evaluateAttributeExpressions().getValue();
+        loginActionUrlFormat = context.getProperty(LOGIN_ACTION_URL_FORMAT).evaluateAttributeExpressions().getValue();
+        httpTimeOut = context.getProperty(HTTP_TIME_OUT).evaluateAttributeExpressions().getValue();
+        dataFormat = context.getProperty(DATA_FORMAT).evaluateAttributeExpressions().getValue();
+        columnSeparator = context.getProperty(COLUMN_SEPARATOR).evaluateAttributeExpressions().getValue();
+        stripOuterArray = context.getProperty(STRIP_OUTER_ARRAY).evaluateAttributeExpressions().getValue();
         testConnectivity(context);
     }
 
@@ -189,37 +240,20 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
 
     @Override
     public void testConnectivity(final ConfigurationContext context) throws IOException {
-        String feHost = null;
-        String userName = null;
-        String password = null;
-        String httpPort = null;
 
-        httpPort = context.getProperty(HTTP_PORT).evaluateAttributeExpressions().getValue();
-        String label = context.getProperty(LABEL).evaluateAttributeExpressions().getValue();
-        if (context.getProperty(FE_HOST).isSet()) {
-            feHost = context.getProperty(FE_HOST).evaluateAttributeExpressions().getValue();
-        }
-        if (context.getProperty(USERNAME).isSet()) {
-            userName = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        }
-        if (context.getProperty(PASSWORD).isSet()) {
-            password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
-        }
-        String loginActionUrlFormat = context.getProperty(LOGIN_ACTION_URL_FORMAT).evaluateAttributeExpressions().getValue();
         String loginUrl = String.format(loginActionUrlFormat, feHost, httpPort);
         HttpPost httpPost = new HttpPost(loginUrl);
         httpPost.removeHeaders(HttpHeaders.CONTENT_LENGTH);
         httpPost.removeHeaders(HttpHeaders.TRANSFER_ENCODING);
         httpPost.setHeader(HttpHeaders.EXPECT, "100-continue");
-        httpPost.setHeader(HttpHeaders.TIMEOUT, "10000");
+        httpPost.setHeader(HttpHeaders.TIMEOUT, httpTimeOut);
         httpPost.setHeader(HttpHeaders.AUTHORIZATION, basicAuthHeader(userName, password));
-        httpPost.setHeader("label", label);
+        httpPost.setHeader("label", loginLabel);
 
         CloseableHttpResponse response = client.execute(httpPost);
 
         if (response.getEntity() != null) {
             String loadResult = EntityUtils.toString(response.getEntity());
-            getLogger().error("------------------loadResult : {}-------------------", loadResult);
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode != 200) {
                 throw new RuntimeException(String.format("Doris Stream load failed. status: %s load result: %s", statusCode, loadResult));
@@ -231,35 +265,20 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
 
     @Override
     public HashMap<String, HttpPut> setClient(String destDatabase, String destTableName, String columns) {
-        String feHost = null;
-        String userName = null;
-        String password = null;
-        String httpPort = null;
 
         if (null == connect.get(destDatabase + destTableName)) {
-            httpPort = context.getProperty(HTTP_PORT).evaluateAttributeExpressions().getValue();
-            if (context.getProperty(FE_HOST).isSet()) {
-                feHost = context.getProperty(FE_HOST).evaluateAttributeExpressions().getValue();
-            }
-            if (context.getProperty(USERNAME).isSet()) {
-                userName = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-            }
-            if (context.getProperty(PASSWORD).isSet()) {
-                password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
-            }
-
-            String loadUrlFormat = context.getProperty(LOAD_URL_FORMAT).evaluateAttributeExpressions().getValue();
             String loadUrl = String.format(loadUrlFormat, feHost, httpPort, destDatabase, destTableName);
             HttpPut httpPut = new HttpPut(loadUrl);
             httpPut.removeHeaders(HttpHeaders.CONTENT_LENGTH);
             httpPut.removeHeaders(HttpHeaders.TRANSFER_ENCODING);
+            httpPut.setHeader(HttpHeaders.TIMEOUT, httpTimeOut);
             httpPut.setHeader(HttpHeaders.EXPECT, "100-continue");
             httpPut.setHeader(HttpHeaders.AUTHORIZATION, basicAuthHeader(userName, password));
 
-            //httpPut.setHeader("label", label);
-            httpPut.setHeader("column_separator", ",");
-            httpPut.setHeader("format", "json");
+            httpPut.setHeader("column_separator", columnSeparator);
+            httpPut.setHeader("format", dataFormat);
             httpPut.setHeader("columns", columns);
+            httpPut.setHeader("strip_outer_array", stripOuterArray);
             connect.put(destDatabase + destTableName, httpPut);
         }
         return connect;
@@ -279,7 +298,7 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
 
 
     @Override
-    public Result insert(String jsonData, String destDatabase, String destTableName) {
+    public Result putJson(String jsonData, String destDatabase, String destTableName) {
         try {
             HttpPut httpPut = connect.get(destDatabase + destTableName);
             Result result = new Result();
@@ -294,14 +313,7 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
                 result.setLoadResult(loadResult);
                 int statusCode = response.getStatusLine().getStatusCode();
                 result.setStatusCode(statusCode);
-                if (statusCode != 200) {
-                    throw new RuntimeException(String.format("Doris Stream load failed. status: %s load result: %s", statusCode, loadResult));
-                }
-                result.setExecuteStatus("success");
             } else {
-                result.setExecuteStatus("failure");
-                result.setStatusCode(-1);
-                result.setLoadResult(null);
                 throw new RuntimeException("Doris Stream load failed.");
             }
             return result;
@@ -313,16 +325,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-    }
-
-    @Override
-    public void delete() {
-
-    }
-
-    @Override
-    public void update() {
 
     }
 

@@ -23,16 +23,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.JSONPObject;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.doris.DorisClientService;
 import org.apache.nifi.doris.util.Result;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -59,11 +56,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-@Tags({"doris"})
-@CapabilityDescription("Provide a description test test")
-@SeeAlso({})
-@ReadsAttributes({@ReadsAttribute(attribute = "", description = "")})
-@WritesAttributes({@WritesAttribute(attribute = "", description = "")})
+@Tags({"Doris","CDC","StreamLoad","Apache Doris"})
+@CapabilityDescription("StreamLoad the json data to Apache Doris")
+@SupportsBatching
 public class PutDoris extends AbstractProcessor {
 
     private List<PropertyDescriptor> descriptors;
@@ -77,18 +72,20 @@ public class PutDoris extends AbstractProcessor {
 
     private String op;
 
+    final ObjectMapper mapper = new ObjectMapper();
+
     public static final PropertyDescriptor DORIS_CLIENT_SERVICE = new PropertyDescriptor
-            .Builder().name("DORIS_CLIENT_SERVICE")
-            .displayName("doris_client_service")
-            .description("DORIS_CLIENT_SERVICE")
+            .Builder().name("Doris Client Service")
+            .description("Used to create a Doris client, where the Doris client configuration needs to be configured")
             .required(true)
             .identifiesControllerService(DorisClientService.class)
             .build();
 
     public static final PropertyDescriptor SRC_DATABASE_NAME_KEY = new PropertyDescriptor
-            .Builder().name("DEST_DATABASE")
-            .displayName("dest_database")
-            .description("DEST_DATABASE")
+            .Builder().name("Src Database Name Key")
+            .description("The key in json data, the default value is database, " +
+                    "if your data does not come from a relational database (perhaps a kafka stream or other)," +
+                    " you can customize this field. See the ONETOONE configuration explanation for details")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("database")
@@ -96,9 +93,10 @@ public class PutDoris extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SRC_TABLE_NAME_KEY = new PropertyDescriptor
-            .Builder().name("SRC_TABLE_NAME_KEY")
-            .displayName("src_table_name_key")
-            .description("SRC_TABLE_NAME_KEY")
+            .Builder().name("Src Table Name Key")
+            .description("The key in json data, the default value is table_name, " +
+                    "if your data does not come from a relational database (perhaps a kafka stream or other)," +
+                    " you can customize this field. See the ONETOONE configuration explanation for details")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("table_name")
@@ -106,9 +104,10 @@ public class PutDoris extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor DELETE_SIGN = new PropertyDescriptor
-            .Builder().name("DELETE_SIGN")
-            .displayName("delete_sign")
-            .description("DELETE_SIGN")
+            .Builder().name("Delete Sign")
+            .description("__DORIS_DELETE_SIGN__ is a hidden column in doris that indicates whether the data of the row should be deleted or not," +
+                    "in cdc, __DORIS_DELETE_SIGN__ is true to indicate that the row should be deleted or false to indicate insertion. " +
+                    "See the Apache Doris documentation for more details")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("__DORIS_DELETE_SIGN__")
@@ -116,9 +115,10 @@ public class PutDoris extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor OP = new PropertyDescriptor
-            .Builder().name("OP")
-            .displayName("op")
-            .description("OP")
+            .Builder().name("Op Key")
+            .description("The key in json data, the default value is op. If you want to replace it with another field, you can change this value:\n" +
+                    "The PutDoris processor reads the value of op in the data and uses it to determine __DORIS_DELETE_SIGN__; " +
+                    "if op is delete, __DORIS_DELETE_SIGN__=true; otherwise, __DORIS_DELETE_SIGN__ is false")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("op")
@@ -127,25 +127,40 @@ public class PutDoris extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")
+            .description("Files that have been successfully written to Apache Doirs are transferred to this relationship")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("All FlowFiles that cannot be routed to the AMQP destination are routed to this relationship")
+            .description("Files that could not be written to Apache Doirs for some reason are transferred to this relationship")
             .build();
 
     public static final PropertyDescriptor ONETOONE = new PropertyDescriptor
-            .Builder().name("one-to-one")
-            .displayName("one-to-one")
-            .description("one-to-one")
+            .Builder().name("One To One")
+            .description("one-to-one means where did the data come from and be written to Apache Doris in which database and which form (sample srcDatabase. SrcTable: destDatabase destTable, srcDatabase. SrcTable1: destDatabase. DestTable1, foo...):\n" +
+                    "eg:\n" +
+                    "(Assume SRC_DATABASE_NAME_KEY=database and SRC_TABLE_NAME_KEY=table_name)\n" +
+                    "There are three json pieces of data in the queue\n" +
+                    "data1 -&gt;  {\"database\":\"db1\",\"table_name\":\"tab1\",\"field1\":\"a\",\"field2\":\"b\"}\n" +
+                    "data2 -&gt;  {\"database\":\"db1\",\"table_name\":\"tab2\",\"field1\":\"a\",\"field2\":\"b\"}\n" +
+                    "data3 -&gt;  {\"database\":\"db2\",\"table_name\":\"tab1\",\"field1\":\"a\",\"field2\":\"b\"}\n" +
+                    "\n" +
+                    "1. If not configured, SRC_DATABASE_NAME_KEY and SRC_TABLE_NAME_KEY will be used as the database and table to be written to\n" +
+                    "Result: data1 will be written to doris with database db1 and table tab1\n" +
+                    "        data2 is written to doris, whose database is db1 and whose table is tab2\n" +
+                    "        data3 is written to doris with db2 as database and tab1 as table\n" +
+                    "If configured, db1.tab1:db1_doris.tab_doris1,db1.tab2:db1_doris.tab_doris1,db2.tab1:db1_doris.tab_doris1\n" +
+                    "Result: data1 is written to doris with db1_doris as database and tab_doris1 as table\n" +
+                    "        data2 is written to doris with db1_doris as the database and tab_doris1 as the table\n" +
+                    "        data3 is written to doris with db1_doris as the database and tab_doris1 as the table\n" +
+                    "Note: If you configure ONETOONE, you need to configure all the data relationships to be synchronized in ONETOONE to prevent data confusion")
             .required(false)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(\\w+\\.\\w+:\\w+\\.\\w+)(,\\w+\\.\\w+:\\w+\\.\\w+)*")))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("BATCH_SIZE")
+            .name("Batch Size")
             .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
                     "Depending on your memory size, and data size per row set an appropriate batch size " +
                     "for the number of FlowFiles to process per client connection setup." +
@@ -198,7 +213,6 @@ public class PutDoris extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-
         List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles.isEmpty()) {
             return;
@@ -206,8 +220,6 @@ public class PutDoris extends AbstractProcessor {
 
         final Map<String, List<DorisFlowFile>> dorisFlowFiles = new HashMap<>();
         for (final FlowFile flowFile : flowFiles) {
-
-            final ObjectMapper mapper = new ObjectMapper();
             final AtomicReference<List<JsonNode>> rootNodeRef = new AtomicReference<>(null);
 
             session.read(flowFile, in -> {
@@ -226,11 +238,12 @@ public class PutDoris extends AbstractProcessor {
                             objectNode.put(deleteSign, false);
                             jnList.add(objectNode);
                         }
+                        rootNodeRef.set(jnList);
                     }
 
-
-                } catch (ProcessException pe) {
-                    //TODO:
+                } catch (final ProcessException pe) {
+                    getLogger().error("failed to process session due to {}", new Object[]{flowFile, pe});
+                    session.transfer(flowFile, REL_FAILURE);
                 } finally {
                     bufferedReader.close();
                 }
@@ -266,6 +279,7 @@ public class PutDoris extends AbstractProcessor {
                 }
 
                 if (dorisFlowFile == null) {
+                    getLogger().error("dorisFlowFile is null {}", new Object[]{dorisFlowFile});
                     session.transfer(flowFile, REL_FAILURE);
                 }
 
@@ -280,8 +294,8 @@ public class PutDoris extends AbstractProcessor {
             }
 
         }
-        final List<FlowFile> successes = new ArrayList<>();
 
+        final List<FlowFile> successes = new ArrayList<>();
 
         if (context.getProperty(ONETOONE).isSet()) {
             //srcDatabase.srcTable:destDatabase.destTable,srcDatabase.srcTable1:destDatabase.destTable1,foo...
@@ -295,14 +309,6 @@ public class PutDoris extends AbstractProcessor {
 
         //key -> destDbNameAndDestTabName , value -> List<>(jsonData)
         HashMap<String, List<String>> putJsonMap = new HashMap<>();
-
-        /**
-         *It is possible that a flowfile contains data for multiple tables, so if a table fails, you need to capture the flowfile for failure handling;
-         *If there are multiple tables in multiple flowfiles and one of the tables fails, all flowfiles corresponding to this table need to be obtained to handle the failure.
-         * The id of each flowfile determines whether the table information is from a flowfile
-         */
-        //key -> destDbNameAndDestTabName , value -> List<>(FlowFile)
-        HashMap<String, List<FlowFile>> flowFileMap = new HashMap<>();
 
         for (Map.Entry<String, List<DorisFlowFile>> stringListEntry : dorisFlowFiles.entrySet()) {
 
@@ -325,70 +331,38 @@ public class PutDoris extends AbstractProcessor {
                 }
                 jsonList.add(dorisFlowFile.getJsonNode().toString());
 
-                //Build the flowFileMap
-                List<FlowFile> flowFilesCurrent = flowFileMap.get(destDbAndTab);
-                if (null == flowFilesCurrent) {
-                    flowFilesCurrent = new ArrayList<>();
-                    flowFileMap.put(destDbAndTab, flowFilesCurrent);
-                }
-                flowFilesCurrent.add(dorisFlowFile.getFlowFile());
             }
 
         }
-
-
-        for (Map.Entry<String, List<FlowFile>> stringListEntry : flowFileMap.entrySet()) {
-            String key = stringListEntry.getKey();
-            List<FlowFile> flowFiles1 = flowFileMap.get(key);
-            List<FlowFile> flowFiles2 = removeDuplicateWithOrder(flowFiles1);
-
-            for (FlowFile flowFile : flowFiles2) {
-                System.out.println("key = " + key + "-> value = " + flowFile);
-            }
-
-
-        }
+        //Delete the original flowfile
+        session.remove(flowFiles);
 
         //Write the data to doris
         for (Map.Entry<String, List<String>> stringListEntry : putJsonMap.entrySet()) {
 
             String key = stringListEntry.getKey();
+            String destDatabase = key.split("\\.", -1)[0];
+            String destTableName = key.split("\\.", -1)[1];
+            List<String> value = putJsonMap.get(key);
+            String join = String.join("\n", value);
+            FlowFile putFlowFile = session.create();
+            session.write(putFlowFile, outputStream -> outputStream.write(join.getBytes()));
 
             try {
-                String destDatabase = key.split("\\.", -1)[0];
-                String destTableName = key.split("\\.", -1)[1];
-                Result insert = dorisClientService.insert(stringListEntry.getValue().toString(), destDatabase, destTableName);
-                successes.addAll(flowFileMap.get(key));
-            } catch (Exception e) {
-                session.rollback(true);
-                for (FlowFile flowFile : flowFileMap.get(key)) {
-                    session.transfer(session.penalize(flowFile), REL_FAILURE);
+                Result result = dorisClientService.putJson(stringListEntry.getValue().toString(), destDatabase, destTableName);
+                getLogger().info(result.getLoadResult().toString());
+                if (result.getStatusCode() != 200) {
+                    throw new RuntimeException(String.format("Doris Stream load failed. status: %s load result: %s", result.getStatusCode(), result.getLoadResult()));
                 }
+                if (!"Success".equalsIgnoreCase(mapper.readTree(result.getLoadResult()).get("Status").asText())) {
+                    throw new RuntimeException(String.format("Doris Stream load failed. status: %s load Message: %s", result.getStatusCode(), mapper.readTree(result.getLoadResult()).get("Message").asText()));
+                }
+
+                session.transfer(putFlowFile, REL_SUCCESS);
+            } catch (Exception e) {
+                getLogger().error(e.toString());
+                session.transfer(putFlowFile, REL_FAILURE);
             }
         }
-
-        for (Map.Entry<String, List<DorisFlowFile>> stringListEntry : dorisFlowFiles.entrySet()) {
-            for (FlowFile flowFile : successes) {
-                session.transfer(flowFile, REL_SUCCESS);
-                //final String details = "Put " + dorisFlowFile.getColumns().size() + " cells to HBase";
-                //session.getProvenanceReporter().send(dorisFlowFile.getFlowFile(), getTransitUri(putFlowFile), details, sendMillis);
-            }
-            //session.transfer(flowFile, REL_SUCCESS);
-
-
-        }
-    }
-
-    public static List<FlowFile> removeDuplicateWithOrder(List<FlowFile> list) {
-        Set set = new HashSet();
-        List newList = new ArrayList();
-        for (Iterator iter = list.iterator(); iter.hasNext(); ) {
-            Object element = iter.next();
-            if (set.add(element))
-                newList.add(element);
-        }
-        list.clear();
-        list.addAll(newList);
-        return list;
     }
 }
