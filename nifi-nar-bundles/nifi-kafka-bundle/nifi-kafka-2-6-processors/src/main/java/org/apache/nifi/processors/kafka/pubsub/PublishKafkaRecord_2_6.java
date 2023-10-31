@@ -587,7 +587,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
                 context.yield();
             }
         } catch (final KafkaException e) {
-            getLogger().error("Failed to obtain Kafka publisher; will yield Processor", e);
+            getLogger().error("Failed to obtain Kafka Producer", e);
             session.transfer(flowFiles);
             context.yield();
         }
