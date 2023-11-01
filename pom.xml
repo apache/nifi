@@ -119,7 +119,7 @@
         <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.15.0</org.apache.commons.io.version>
-        <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
+        <org.apache.commons.text.version>1.11.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.76</org.bouncycastle.version>
