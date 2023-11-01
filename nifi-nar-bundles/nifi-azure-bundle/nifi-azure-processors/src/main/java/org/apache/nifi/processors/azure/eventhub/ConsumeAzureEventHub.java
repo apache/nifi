@@ -148,14 +148,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .defaultValue("$Default")
             .required(true)
             .build();
-    static final PropertyDescriptor CONSUMER_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("event-hub-consumer-hostname")
-            .displayName("Consumer Hostname")
-            .description("DEPRECATED: This property is no longer used.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -291,7 +283,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
                 CONSUMER_GROUP,
-                CONSUMER_HOSTNAME,
                 RECORD_READER,
                 RECORD_WRITER,
                 INITIAL_OFFSET,
