@@ -213,3 +213,17 @@ export const navigateToComponent = createAction(
 );
 
 export const navigateWithoutTransform = createAction('[Canvas] Navigate Without Transform', props<{ url: string[] }>());
+
+/*
+    Palette actions
+ */
+
+export const setNavigationCollapsed = createAction(
+    '[Canvas] Set Navigation Collapsed',
+    props<{ navigationCollapsed: boolean }>()
+);
+
+export const setOperationCollapsed = createAction(
+    '[Canvas] Set Operation Collapsed',
+    props<{ operationCollapsed: boolean }>()
+);

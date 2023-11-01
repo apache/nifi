@@ -18,8 +18,21 @@
 import { createAction, props } from '@ngrx/store';
 import { CanvasTransform } from './index';
 
-export const setTransform = createAction('[Transform] Set Transform', props<{ transform: CanvasTransform }>());
+export const transformComplete = createAction(
+    '[Transform] Transform Complete',
+    props<{ transform: CanvasTransform }>()
+);
 
 export const restoreViewport = createAction('[Transform] Restore Viewport');
 
+export const translate = createAction('[Transform] Translate', props<{ translate: [number, number] }>());
+
+export const refreshBirdseyeView = createAction('[Transform] Refresh Birdseye View');
+
+export const zoomIn = createAction('[Transform] Zoom In');
+
+export const zoomOut = createAction('[Transform] Zoom Out');
+
 export const zoomFit = createAction('[Transform] Zoom Fit');
+
+export const zoomActual = createAction('[Transform] Zoom Actual');

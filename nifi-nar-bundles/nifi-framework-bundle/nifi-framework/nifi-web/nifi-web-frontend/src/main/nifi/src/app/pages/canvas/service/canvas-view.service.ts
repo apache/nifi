@@ -20,7 +20,7 @@ import * as d3 from 'd3';
 import * as WebFont from 'webfontloader';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
-import { setTransform } from '../state/transform/transform.actions';
+import { refreshBirdseyeView, transformComplete } from '../state/transform/transform.actions';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../state/transform/transform.reducer';
 import { ProcessGroupManager } from './manager/process-group-manager.service';
 import { FunnelManager } from './manager/funnel-manager.service';
@@ -49,6 +49,8 @@ export class CanvasView {
     private y: number = INITIAL_TRANSLATE.y;
 
     private behavior: any;
+
+    private birdseyeTranslateInProgress: boolean = false;
 
     constructor(
         private store: Store<CanvasState>,
@@ -99,10 +101,6 @@ export class CanvasView {
         this.behavior = d3
             .zoom()
             .scaleExtent([CanvasView.MIN_SCALE, CanvasView.MAX_SCALE])
-            .on('start', function () {
-                // hide the context menu
-                // nfContextMenu.hide();
-            })
             .on('zoom', function (event) {
                 // update the local translation and scale
                 if (!isNaN(event.transform.x)) {
@@ -120,27 +118,34 @@ export class CanvasView {
 
                 // refresh the canvas
                 refreshed = self.refresh({
-                    persist: false,
                     transition: self.shouldTransition(event.sourceEvent),
                     refreshComponents: false,
                     refreshBirdseye: false
                 });
             })
             .on('end', function (event) {
-                if (!self.isBirdseyeEvent(event.sourceEvent)) {
+                if (!self.isBirdseyeEvent()) {
                     // ensure the canvas was actually refreshed
                     if (refreshed) {
                         self.updateCanvasVisibility();
 
-                        // TODO
+                        // dispatch the current transform
+                        self.store.dispatch(
+                            transformComplete({
+                                transform: {
+                                    translate: {
+                                        x: self.x,
+                                        y: self.y
+                                    },
+                                    scale: self.k
+                                }
+                            })
+                        );
+
                         // refresh the birdseye
                         refreshed.then(function () {
-                            //   nfBirdseye.refresh();
+                            self.store.dispatch(refreshBirdseyeView());
                         });
-
-                        // TODO
-                        // persist the users view
-                        // nfCanvasUtils.persistUserView();
 
                         // reset the refreshed deferred
                         refreshed = null;
@@ -154,19 +159,6 @@ export class CanvasView {
 
                 // reset the panning flag
                 panning = false;
-
-                // dispatch the current transform
-                self.store.dispatch(
-                    setTransform({
-                        transform: {
-                            translate: {
-                                x: self.x,
-                                y: self.y
-                            },
-                            scale: self.k
-                        }
-                    })
-                );
             });
 
         // add the behavior to the canvas and disable dbl click zoom
@@ -174,23 +166,19 @@ export class CanvasView {
     }
 
     // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
-    private isBirdseyeEvent(sourceEvent: any): boolean {
-        if (sourceEvent?.subject) {
-            return sourceEvent.subject.source === 'birdseye';
-        } else {
-            return false;
-        }
+    private isBirdseyeEvent(): boolean {
+        return this.birdseyeTranslateInProgress;
     }
 
     // see if the scale has changed during this zoom event,
     // we want to only transition when zooming in/out as running
     // the transitions during pan events is undesirable
     private shouldTransition(sourceEvent: any): boolean {
-        if (sourceEvent) {
-            if (this.isBirdseyeEvent(sourceEvent)) {
-                return false;
-            }
+        if (this.birdseyeTranslateInProgress) {
+            return false;
+        }
 
+        if (sourceEvent) {
             return sourceEvent.type === 'wheel' || sourceEvent.type === 'mousewheel';
         } else {
             return true;
@@ -387,8 +375,31 @@ export class CanvasView {
      *
      * @param translate
      */
-    public translate(translate: any): void {
+    public translate(translate: [number, number]): void {
         this.behavior.translateBy(this.svg, translate[0], translate[1]);
+    }
+
+    public birdseyeDragStart(): void {
+        this.birdseyeTranslateInProgress = true;
+    }
+
+    public birdseyeDragEnd(): void {
+        this.birdseyeTranslateInProgress = false;
+
+        this.updateCanvasVisibility();
+
+        // dispatch the current transform
+        this.store.dispatch(
+            transformComplete({
+                transform: {
+                    translate: {
+                        x: this.x,
+                        y: this.y
+                    },
+                    scale: this.k
+                }
+            })
+        );
     }
 
     /**
@@ -471,17 +482,63 @@ export class CanvasView {
     }
 
     /**
+     * Zooms to the actual size (1 to 1).
+     */
+    actualSize(): void {
+        const translate = [this.x, this.y];
+        const scale: number = this.k;
+
+        // get the first selected component
+        const selection: any = this.canvasUtils.getSelection();
+
+        // box to zoom towards
+        let box;
+
+        const canvasContainer: any = document.getElementById('canvas-container');
+        const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
+
+        // if components have been selected position the view accordingly
+        if (!selection.empty()) {
+            // gets the data for the first component
+            const selectionBox = selection.node().getBoundingClientRect();
+
+            // get the bounding box for the selected components
+            box = {
+                x: selectionBox.left / scale - translate[0] / scale,
+                y: (selectionBox.top - canvasBoundingBox.top) / scale - translate[1] / scale,
+                width: selectionBox.width / scale,
+                height: selectionBox.height / scale,
+                scale: 1
+            };
+        } else {
+            // get the canvas normalized width and height
+            const screenWidth: number = canvasBoundingBox.width / scale;
+            const screenHeight: number = canvasBoundingBox.height / scale;
+
+            // center around the center of the screen accounting for the translation accordingly
+            box = {
+                x: screenWidth / 2 - translate[0] / scale,
+                y: screenHeight / 2 - translate[1] / scale,
+                width: 1,
+                height: 1,
+                scale: 1
+            };
+        }
+
+        // center as appropriate
+        this.centerBoundingBox(box);
+    }
+
+    /**
      * Refreshes the view based on the configured translation and scale.
      *
      * @param {object} options Options for the refresh operation
      */
     private async refresh({
-        persist = true,
         transition = false,
         refreshComponents = true,
         refreshBirdseye = true
     }: {
-        persist?: boolean;
         transition?: boolean;
         refreshComponents?: boolean;
         refreshBirdseye?: boolean;
@@ -489,16 +546,9 @@ export class CanvasView {
         const self: CanvasView = this;
 
         await new Promise<void>(function (resolve) {
-            // TODO
             // update component visibility
             if (refreshComponents) {
-                // nfGraph.updateVisibility();
-            }
-
-            // TODO
-            // persist if appropriate
-            if (persist) {
-                // nfCanvasUtils.persistUserView();
+                self.updateCanvasVisibility();
             }
 
             const t = [self.x, self.y];
@@ -513,10 +563,9 @@ export class CanvasView {
                         return 'translate(' + t + ') scale(' + s + ')';
                     })
                     .on('end', function () {
-                        // TODO
                         // refresh birdseye if appropriate
                         if (refreshBirdseye) {
-                            //   nfBirdseye.refresh();
+                            self.store.dispatch(refreshBirdseyeView());
                         }
 
                         resolve();
@@ -526,10 +575,9 @@ export class CanvasView {
                     return 'translate(' + t + ') scale(' + s + ')';
                 });
 
-                // TODO
                 // refresh birdseye if appropriate
                 if (refreshBirdseye) {
-                    //   nfBirdseye.refresh();
+                    self.store.dispatch(refreshBirdseyeView());
                 }
 
                 resolve();

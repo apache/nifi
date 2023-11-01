@@ -15,6 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div id="canvas-container" class="canvas-background h-full" [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
-<fd-context-menu #contextMenu menuId="root"></fd-context-menu>
-<graph-controls></graph-controls>
+<div class="graph-controls flex flex-col gap-y-0.5">
+    <navigation-control [shouldDockWhenCollapsed]="(operationCollapsed$ | async)!"></navigation-control>
+    <operation-control [shouldDockWhenCollapsed]="(navigationCollapsed$ | async)!"></operation-control>
+</div>

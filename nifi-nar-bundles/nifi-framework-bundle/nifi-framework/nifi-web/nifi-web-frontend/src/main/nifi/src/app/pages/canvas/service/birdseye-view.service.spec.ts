@@ -15,23 +15,19 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from '@ngrx/store';
-import { transformComplete } from './transform.actions';
-import { CanvasTransform } from './index';
+import { TestBed } from '@angular/core/testing';
 
-export const INITIAL_TRANSLATE = {
-    x: 0,
-    y: 0
-};
+import { BirdseyeView } from './birdseye-view.service';
 
-export const INITIAL_SCALE: number = 1;
+describe('BirdseyeView', () => {
+    let service: BirdseyeView;
 
-export const initialState: CanvasTransform = {
-    translate: INITIAL_TRANSLATE,
-    scale: INITIAL_SCALE
-};
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(BirdseyeView);
+    });
 
-export const transformReducer = createReducer(
-    initialState,
-    on(transformComplete, (state, { transform }) => transform)
-);
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
+});

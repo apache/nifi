@@ -128,11 +128,18 @@ export class CanvasUtils {
 
     /**
      * Returns whether the current group is not the root group.
+     */
+    public isNotRootGroup() {
+        return this.parentProcessGroupId != null;
+    }
+
+    /**
+     * Returns whether the current group is not the root group and the current selection is empty.
      *
      * @param {selection} selection         The selection of currently selected components
      */
-    public isNotRootGroup(selection: any) {
-        return this.parentProcessGroupId != null && selection.empty();
+    public isNotRootGroupAndEmptySelection(selection: any) {
+        return this.isNotRootGroup() && selection.empty();
     }
 
     /**

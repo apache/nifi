@@ -429,6 +429,15 @@ button.nifi-button:hover {
     border-color: #004849;
 }
 
+button.nifi-button:disabled {
+    cursor: not-allowed;
+    border: 1px solid #ccdadb;
+
+    i {
+        color: #ccdadb !important;
+    }
+}
+
 .pointer {
     cursor: pointer;
 }

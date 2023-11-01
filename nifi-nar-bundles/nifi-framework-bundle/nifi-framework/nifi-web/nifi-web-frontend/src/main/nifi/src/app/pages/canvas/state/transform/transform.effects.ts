@@ -24,6 +24,7 @@ import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
 import { CanvasView } from '../../service/canvas-view.service';
+import { BirdseyeView } from '../../service/birdseye-view.service';
 
 @Injectable()
 export class TransformEffects {
@@ -33,13 +34,14 @@ export class TransformEffects {
         private actions$: Actions,
         private store: Store<CanvasState>,
         private storage: Storage,
-        private canvasView: CanvasView
+        private canvasView: CanvasView,
+        private birdseyeView: BirdseyeView
     ) {}
 
-    setTransform$ = createEffect(
+    transformComplete$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(TransformActions.setTransform),
+                ofType(TransformActions.transformComplete),
                 map((action) => action.transform),
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([transform, processGroupId]) => {
@@ -85,12 +87,68 @@ export class TransformEffects {
         { dispatch: false }
     );
 
+    translate$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.translate),
+                map((action) => action.translate),
+                tap((translate: [number, number]) => {
+                    this.canvasView.translate(translate);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    refreshBirdseye$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.refreshBirdseyeView),
+                tap(() => {
+                    this.birdseyeView.refresh();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    zoomIn$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.zoomIn),
+                tap(() => {
+                    this.canvasView.zoomIn();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    zoomOut$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.zoomOut),
+                tap(() => {
+                    this.canvasView.zoomOut();
+                })
+            ),
+        { dispatch: false }
+    );
+
     zoomFit$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(TransformActions.zoomFit),
                 tap(() => {
                     this.canvasView.fit();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    zoomActual$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(TransformActions.zoomActual),
+                tap(() => {
+                    this.canvasView.actualSize();
                 })
             ),
         { dispatch: false }

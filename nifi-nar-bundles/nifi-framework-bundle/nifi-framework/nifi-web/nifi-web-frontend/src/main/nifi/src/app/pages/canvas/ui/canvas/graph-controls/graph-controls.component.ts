@@ -15,23 +15,19 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from '@ngrx/store';
-import { transformComplete } from './transform.actions';
-import { CanvasTransform } from './index';
+import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { CanvasState } from '../../../state';
+import { selectNavigationCollapsed, selectOperationCollapsed } from '../../../state/flow/flow.selectors';
 
-export const INITIAL_TRANSLATE = {
-    x: 0,
-    y: 0
-};
+@Component({
+    selector: 'graph-controls',
+    templateUrl: './graph-controls.component.html',
+    styleUrls: ['./graph-controls.component.scss']
+})
+export class GraphControls {
+    navigationCollapsed$ = this.store.select(selectNavigationCollapsed);
+    operationCollapsed$ = this.store.select(selectOperationCollapsed);
 
-export const INITIAL_SCALE: number = 1;
-
-export const initialState: CanvasTransform = {
-    translate: INITIAL_TRANSLATE,
-    scale: INITIAL_SCALE
-};
-
-export const transformReducer = createReducer(
-    initialState,
-    on(transformComplete, (state, { transform }) => transform)
-);
+    constructor(private store: Store<CanvasState>) {}
+}

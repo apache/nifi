@@ -55,6 +55,7 @@ import {
 import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
 import { ComponentType } from '../../../../state/shared';
+import { initialState } from '../../state/flow/flow.reducer';
 
 @Component({
     selector: 'fd-canvas',
@@ -102,7 +103,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
-                filter((processGroupId) => processGroupId != null),
+                filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
                 withLatestFrom(this.store.select(selectSkipTransform)),
@@ -120,7 +121,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
-                filter((processGroupId) => processGroupId != null),
+                filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
                 withLatestFrom(this.store.select(selectSkipTransform)),
@@ -138,7 +139,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
-                filter((processGroupId) => processGroupId != null),
+                filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
                 withLatestFrom(this.store.select(selectSkipTransform)),
@@ -156,7 +157,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
-                filter((processGroupId) => processGroupId != null),
+                filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleEditedComponent)),
                 // ensure there is a selected component
                 filter((selectedComponent) => selectedComponent != null),

@@ -15,23 +15,24 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from '@ngrx/store';
-import { transformComplete } from './transform.actions';
-import { CanvasTransform } from './index';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export const INITIAL_TRANSLATE = {
-    x: 0,
-    y: 0
-};
+import { OperationControl } from './operation-control.component';
 
-export const INITIAL_SCALE: number = 1;
+describe('OperationControl', () => {
+    let component: OperationControl;
+    let fixture: ComponentFixture<OperationControl>;
 
-export const initialState: CanvasTransform = {
-    translate: INITIAL_TRANSLATE,
-    scale: INITIAL_SCALE
-};
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [OperationControl]
+        });
+        fixture = TestBed.createComponent(OperationControl);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-export const transformReducer = createReducer(
-    initialState,
-    on(transformComplete, (state, { transform }) => transform)
-);
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

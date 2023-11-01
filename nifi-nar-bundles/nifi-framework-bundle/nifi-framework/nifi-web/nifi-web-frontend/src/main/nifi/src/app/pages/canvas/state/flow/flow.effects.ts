@@ -67,6 +67,7 @@ import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/processor/create-processor/create-processor.component';
 import { EditProcessor } from '../../ui/processor/edit-processor/edit-processor.component';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
+import { BirdseyeView } from '../../service/birdseye-view.service';
 
 @Injectable()
 export class FlowEffects {
@@ -77,6 +78,7 @@ export class FlowEffects {
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
+        private birdseyeView: BirdseyeView,
         private connectionManager: ConnectionManager,
         private router: Router,
         private dialog: MatDialog
@@ -146,6 +148,7 @@ export class FlowEffects {
             ofType(FlowActions.loadProcessGroupComplete),
             switchMap(() => {
                 this.canvasView.updateCanvasVisibility();
+                this.birdseyeView.refresh();
 
                 return of(FlowActions.setTransitionRequired({ transitionRequired: false }));
             })
@@ -332,6 +335,7 @@ export class FlowEffects {
             map((action) => action.response),
             switchMap((response) => {
                 this.canvasView.updateCanvasVisibility();
+                this.birdseyeView.refresh();
 
                 return of(
                     FlowActions.selectComponents({

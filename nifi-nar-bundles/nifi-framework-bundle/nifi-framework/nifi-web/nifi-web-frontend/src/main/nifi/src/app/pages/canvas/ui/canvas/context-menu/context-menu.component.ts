@@ -264,7 +264,7 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    return canvasUtils.isNotRootGroup(selection);
+                    return canvasUtils.isNotRootGroupAndEmptySelection(selection);
                 },
                 clazz: 'fa fa-level-up',
                 text: 'Leave group',

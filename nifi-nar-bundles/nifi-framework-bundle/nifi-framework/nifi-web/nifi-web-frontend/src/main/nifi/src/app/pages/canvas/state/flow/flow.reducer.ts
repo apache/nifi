@@ -31,6 +31,8 @@ import {
     loadProcessGroupSuccess,
     navigateWithoutTransform,
     setDragging,
+    setNavigationCollapsed,
+    setOperationCollapsed,
     setSkipTransform,
     setTransitionRequired,
     updateComponent,
@@ -117,6 +119,8 @@ export const initialState: FlowState = {
     saving: false,
     transitionRequired: false,
     skipTransform: false,
+    navigationCollapsed: false,
+    operationCollapsed: false,
     error: null,
     status: 'pending'
 };
@@ -349,5 +353,13 @@ export const flowReducer = createReducer(
     on(navigateWithoutTransform, (state, { url }) => ({
         ...state,
         skipTransform: true
+    })),
+    on(setNavigationCollapsed, (state, { navigationCollapsed }) => ({
+        ...state,
+        navigationCollapsed: navigationCollapsed
+    })),
+    on(setOperationCollapsed, (state, { operationCollapsed }) => ({
+        ...state,
+        operationCollapsed: operationCollapsed
     }))
 );

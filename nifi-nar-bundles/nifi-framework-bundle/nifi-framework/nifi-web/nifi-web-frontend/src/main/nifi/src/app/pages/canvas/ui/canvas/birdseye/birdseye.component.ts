@@ -15,23 +15,20 @@
  * limitations under the License.
  */
 
-import { createReducer, on } from '@ngrx/store';
-import { transformComplete } from './transform.actions';
-import { CanvasTransform } from './index';
+import { Component, OnInit } from '@angular/core';
+import { BirdseyeView } from '../../../service/birdseye-view.service';
 
-export const INITIAL_TRANSLATE = {
-    x: 0,
-    y: 0
-};
+@Component({
+    selector: 'birdseye',
+    templateUrl: './birdseye.component.html',
+    styleUrls: ['./birdseye.component.scss']
+})
+export class Birdseye implements OnInit {
+    constructor(private birdseyeView: BirdseyeView) {}
 
-export const INITIAL_SCALE: number = 1;
-
-export const initialState: CanvasTransform = {
-    translate: INITIAL_TRANSLATE,
-    scale: INITIAL_SCALE
-};
-
-export const transformReducer = createReducer(
-    initialState,
-    on(transformComplete, (state, { transform }) => transform)
-);
+    ngOnInit(): void {
+        const birdseye: any = document.getElementById('birdseye');
+        this.birdseyeView.init(birdseye);
+        this.birdseyeView.refresh();
+    }
+}

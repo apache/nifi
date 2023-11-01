@@ -20,9 +20,13 @@ import { CommonModule } from '@angular/common';
 import { CanvasComponent } from './canvas.component';
 import { ContextMenu } from './context-menu/context-menu.component';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
+import { GraphControls } from './graph-controls/graph-controls.component';
+import { NavigationControl } from './navigation-control/navigation-control.component';
+import { OperationControl } from './operation-control/operation-control.component';
+import { Birdseye } from './birdseye/birdseye.component';
 
 @NgModule({
-    declarations: [CanvasComponent, ContextMenu],
+    declarations: [CanvasComponent, ContextMenu, GraphControls, NavigationControl, Birdseye, OperationControl],
     exports: [CanvasComponent],
     imports: [CommonModule, CdkMenu, CdkMenuItem, CdkMenuTrigger, CdkContextMenuTrigger]
 })

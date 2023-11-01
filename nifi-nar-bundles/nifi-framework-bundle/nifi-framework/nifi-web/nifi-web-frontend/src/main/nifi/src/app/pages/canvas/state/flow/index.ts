@@ -204,6 +204,7 @@ export interface VersionControlTipInput {
 
 export interface ComponentEntity {
     id: string;
+    permissions: Permissions;
     position: Position;
     component: any;
 }
@@ -296,6 +297,8 @@ export interface FlowState {
     transitionRequired: boolean;
     skipTransform: boolean;
     saving: boolean;
+    navigationCollapsed: boolean;
+    operationCollapsed: boolean;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
