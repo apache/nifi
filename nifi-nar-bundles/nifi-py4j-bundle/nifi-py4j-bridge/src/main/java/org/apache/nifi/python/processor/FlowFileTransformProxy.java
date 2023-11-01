@@ -29,21 +29,20 @@ import py4j.Py4JNetworkException;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
 
-    private final PythonProcessorBridge bridge;
     private volatile FlowFileTransform transform;
 
-    public FlowFileTransformProxy(final PythonProcessorBridge bridge) {
-        super(bridge);
-        this.bridge = bridge;
+    public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+        super(processorType, bridgeFactory);
     }
-
 
     @OnScheduled
     public void setContext(final ProcessContext context) {
+        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
         final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
         if (optionalAdapter.isEmpty()) {
             throw new IllegalStateException(this + " is not finished initializing");

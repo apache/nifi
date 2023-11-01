@@ -17,6 +17,7 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.python.BoundObjectCounts;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
@@ -24,8 +25,12 @@ import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.python.processor.FlowFileTransform;
+import org.apache.nifi.python.processor.FlowFileTransformProxy;
 import org.apache.nifi.python.processor.PythonProcessorAdapter;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.python.processor.RecordTransform;
+import org.apache.nifi.python.processor.RecordTransformProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class StandardPythonBridge implements PythonBridge {
@@ -89,8 +95,7 @@ public class StandardPythonBridge implements PythonBridge {
         controllerProcess.getController().discoverExtensions(extensionsDirs, workDirPath);
     }
 
-    @Override
-    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    private PythonProcessorBridge createProcessorBridge(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
         ensureStarted();
 
         logger.debug("Creating Python Processor of type {}", type);
@@ -125,6 +130,25 @@ public class StandardPythonBridge implements PythonBridge {
         final ExtensionId extensionId = new ExtensionId(type, version);
         processorCountByType.merge(extensionId, 1, Integer::sum);
         return processorBridge;
+    }
+
+    @Override
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+        final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
+            .filter(details -> details.getProcessorType().equals(type))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type: " + type));
+
+        final String implementedInterface = processorDetails.getInterface();
+        final Supplier<PythonProcessorBridge> processorBridgeFactory = () -> createProcessorBridge(identifier, type, version, preferIsolatedProcess);
+
+        if (FlowFileTransform.class.getName().equals(implementedInterface)) {
+            return new FlowFileTransformProxy(type, processorBridgeFactory);
+        }
+        if (RecordTransform.class.getName().equals(implementedInterface)) {
+            return new RecordTransformProxy(type, processorBridgeFactory);
+        }
+        return null;
     }
 
     @Override
