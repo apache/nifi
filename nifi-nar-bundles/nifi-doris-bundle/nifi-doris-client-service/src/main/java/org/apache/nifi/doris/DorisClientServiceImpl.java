@@ -19,7 +19,11 @@ package org.apache.nifi.doris;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
@@ -123,8 +127,10 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .Builder().name("Label")
             .description("Doris import jobs can all set a Label. This Label is usually a user-defined string that has certain business logic properties.\n" +
                     "The main purpose of Label is to uniquely identify an import task and ensure that the same Label will only be successfully imported once.\n" +
-                    "The Label mechanism can ensure that the imported data is not lost and not heavy. If the upstream data source can guarantee the At-Least-Once semantics, then with the Label mechanism of Doris, the Exactly-Once semantics can be guaranteed.\n" +
-                    "Label is unique under a database. The default retention period for labels is 3 days. That is, after 3 days, the finished labels are automatically cleaned up, after which the labels can be reused." +
+                    "The Label mechanism can ensure that the imported data is not lost and not heavy. If the upstream data source can guarantee the At-Least-Once semantics," +
+                    " then with the Label mechanism of Doris, the Exactly-Once semantics can be guaranteed.\n" +
+                    "Label is unique under a database. The default retention period for labels is 3 days. That is, after 3 days, the finished labels are automatically cleaned up, " +
+                    "after which the labels can be reused." +
                     "Note that this label validates the user login and does nothing else")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

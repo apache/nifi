@@ -16,43 +16,36 @@
  */
 package org.apache.nifi.processors.doris;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.doris.DorisClientService;
 import org.apache.nifi.doris.util.Result;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.processor.ProcessSession;
 
-import java.io.*;
-import java.nio.charset.Charset;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -137,7 +130,8 @@ public class PutDoris extends AbstractProcessor {
 
     public static final PropertyDescriptor ONETOONE = new PropertyDescriptor
             .Builder().name("One To One")
-            .description("one-to-one means where did the data come from and be written to Apache Doris in which database and which form (sample srcDatabase. SrcTable: destDatabase destTable, srcDatabase. SrcTable1: destDatabase. DestTable1, foo...):\n" +
+            .description("one-to-one means where did the data come from and be written to Apache Doris in which " +
+                    "database and which form (sample srcDatabase. SrcTable: destDatabase destTable, srcDatabase. SrcTable1: destDatabase. DestTable1, foo...):\n" +
                     "eg:\n" +
                     "(Assume SRC_DATABASE_NAME_KEY=database and SRC_TABLE_NAME_KEY=table_name)\n" +
                     "There are three json pieces of data in the queue\n" +
@@ -353,7 +347,8 @@ public class PutDoris extends AbstractProcessor {
                     throw new RuntimeException(String.format("Doris Stream load failed. status: %s load result: %s", result.getStatusCode(), result.getLoadResult()));
                 }
                 if (!"Success".equalsIgnoreCase(mapper.readTree(result.getLoadResult()).get("Status").asText())) {
-                    throw new RuntimeException(String.format("Doris Stream load failed. status: %s load Message: %s", result.getStatusCode(), mapper.readTree(result.getLoadResult()).get("Message").asText()));
+                    throw new RuntimeException(String.format("Doris Stream load failed. status: %s load Message: %s",
+                            result.getStatusCode(), mapper.readTree(result.getLoadResult()).get("Message").asText()));
                 }
 
                 session.transfer(putFlowFile, REL_SUCCESS);

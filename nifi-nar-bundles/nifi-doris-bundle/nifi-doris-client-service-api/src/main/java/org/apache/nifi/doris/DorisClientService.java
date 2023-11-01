@@ -17,8 +17,6 @@
 package org.apache.nifi.doris;
 
 import org.apache.http.client.methods.HttpPut;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.doris.util.Result;
