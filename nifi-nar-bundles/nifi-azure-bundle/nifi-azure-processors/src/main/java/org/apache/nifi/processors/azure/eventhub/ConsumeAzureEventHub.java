@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.exception.AmqpErrorCondition;
+import com.azure.core.amqp.exception.AmqpException;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -505,12 +507,26 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
     private final Consumer<ErrorContext> errorProcessor = errorContext -> {
         final PartitionContext partitionContext = errorContext.getPartitionContext();
+        final Throwable throwable = errorContext.getThrowable();
+
+        if (throwable instanceof AmqpException) {
+            final AmqpException amqpException = (AmqpException) throwable;
+            if (amqpException.getErrorCondition() == AmqpErrorCondition.LINK_STOLEN) {
+                getLogger().info("Partition was stolen by another consumer instance from the consumer group. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+                        partitionContext.getFullyQualifiedNamespace(),
+                        partitionContext.getEventHubName(),
+                        partitionContext.getConsumerGroup(),
+                        partitionContext.getPartitionId());
+                return;
+            }
+        }
+
         getLogger().error("Receive Events failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
                 partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),
                 partitionContext.getPartitionId(),
-                errorContext.getThrowable()
+                throwable
         );
     };
 
