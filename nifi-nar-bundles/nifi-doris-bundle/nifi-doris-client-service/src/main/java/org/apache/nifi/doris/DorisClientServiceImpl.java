@@ -74,7 +74,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .description("Apache Doris Frontend address")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor
@@ -82,7 +81,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .description("Connect to the Apache Doris username.Note that this user needs to have read and write access to the corresponding table")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
@@ -91,7 +89,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
 
@@ -101,7 +98,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .defaultValue("8030")
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LOAD_URL_FORMAT = new PropertyDescriptor
@@ -110,7 +106,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("http://%s:%s/api/%s/%s/_stream_load")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LOGIN_ACTION_URL_FORMAT = new PropertyDescriptor
@@ -120,7 +115,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("http://%s:%s/rest/v1/login")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LABEL = new PropertyDescriptor
@@ -135,7 +129,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("label-" + UUID.randomUUID())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
 
@@ -145,7 +138,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("json")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor HTTP_TIME_OUT = new PropertyDescriptor
@@ -154,7 +146,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("10000")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor COLUMN_SEPARATOR = new PropertyDescriptor
@@ -163,7 +154,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(",")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor STRIP_OUTER_ARRAY = new PropertyDescriptor
@@ -172,7 +162,6 @@ public class DorisClientServiceImpl extends AbstractControllerService implements
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("true")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     private List<PropertyDescriptor> properties;
 

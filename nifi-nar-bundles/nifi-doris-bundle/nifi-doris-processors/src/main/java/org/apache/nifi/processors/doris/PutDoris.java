@@ -82,7 +82,6 @@ public class PutDoris extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("database")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SRC_TABLE_NAME_KEY = new PropertyDescriptor
@@ -93,7 +92,6 @@ public class PutDoris extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("table_name")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DELETE_SIGN = new PropertyDescriptor
@@ -104,7 +102,6 @@ public class PutDoris extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("__DORIS_DELETE_SIGN__")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor OP = new PropertyDescriptor
@@ -115,7 +112,6 @@ public class PutDoris extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("op")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -150,7 +146,6 @@ public class PutDoris extends AbstractProcessor {
                     "Note: If you configure ONETOONE, you need to configure all the data relationships to be synchronized in ONETOONE to prevent data confusion")
             .required(false)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(\\w+\\.\\w+:\\w+\\.\\w+)(,\\w+\\.\\w+:\\w+\\.\\w+)*")))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -162,7 +157,6 @@ public class PutDoris extends AbstractProcessor {
             .defaultValue("1")
             .required(false)
             .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-            .expressionLanguageSupported(true)
             .build();
 
 
