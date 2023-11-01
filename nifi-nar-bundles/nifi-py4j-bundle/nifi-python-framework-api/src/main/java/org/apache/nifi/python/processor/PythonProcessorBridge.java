@@ -18,10 +18,8 @@
 package org.apache.nifi.python.processor;
 
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
-import org.apache.nifi.processor.Processor;
 
 import java.util.Optional;
-import java.util.concurrent.Future;
 
 /**
  * A model object that is used to bridge the gap between what is necessary for the Framework to interact
@@ -33,12 +31,6 @@ public interface PythonProcessorBridge {
      * or an empty Optional if the adapter has not yet been initialized
      */
     Optional<PythonProcessorAdapter> getProcessorAdapter();
-
-    /**
-     * @return a proxy for the actual Processor implementation that will trigger the appropriate method on the Python side, or an empty Optional
-     * if the processor/adapter have not yet been initialized
-     */
-    Processor getProcessorProxy();
 
     /**
      * @return the name of the Processor implementation. This will not contain a 'python.' prefix.
@@ -57,7 +49,7 @@ public interface PythonProcessorBridge {
      * Initializes the Processor
      * @param context the initialization context
      */
-    Future<Void> initialize(PythonProcessorInitializationContext context);
+    void initialize(PythonProcessorInitializationContext context);
 
     /**
      * @return the current state of the Processor loading

@@ -878,6 +878,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             if (component instanceof final AsyncLoadedProcessor asyncLoadedProcessor) {
                 if (!asyncLoadedProcessor.isLoaded()) {
                     final String explanation = switch (asyncLoadedProcessor.getState()) {
+                        case INITIALIZING_ENVIRONMENT -> "Initializing runtime environment for the Processor.";
                         case DEPENDENCY_DOWNLOAD_FAILED -> "Failed to download one or more Processor dependencies. See logs for additional details.";
                         case DOWNLOADING_DEPENDENCIES -> "In the process of downloading third-party dependencies required by the Processor.";
                         case LOADING_PROCESSOR_CODE -> "In the process of loading Processor code";

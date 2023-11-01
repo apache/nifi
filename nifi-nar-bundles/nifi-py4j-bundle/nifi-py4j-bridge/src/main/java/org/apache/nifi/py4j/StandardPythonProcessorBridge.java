@@ -17,24 +17,16 @@
 
 package org.apache.nifi.py4j;
 
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.FlowFileTransform;
-import org.apache.nifi.python.processor.FlowFileTransformProxy;
 import org.apache.nifi.python.processor.PythonProcessorAdapter;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
-import org.apache.nifi.python.processor.PythonProcessorProxy;
-import org.apache.nifi.python.processor.RecordTransform;
-import org.apache.nifi.python.processor.RecordTransformProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 
@@ -45,7 +37,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private final ProcessorCreationWorkflow creationWorkflow;
     private final PythonProcessorDetails processorDetails;
     private volatile PythonProcessorAdapter adapter;
-    private final PythonProcessorProxy proxy;
     private final File workingDir;
     private final File moduleFile;
     private volatile long lastModified;
@@ -60,8 +51,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         this.workingDir = builder.workDir;
         this.moduleFile = builder.moduleFile;
         this.lastModified = this.moduleFile.lastModified();
-
-        this.proxy = createProxy();
     }
 
     @Override
@@ -70,57 +59,41 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     }
 
     @Override
-    public Future<Void> initialize(final PythonProcessorInitializationContext context) {
+    public void initialize(final PythonProcessorInitializationContext context) {
         this.initializationContext = context;
 
         final String threadName = "Initialize Python Processor %s (%s)".formatted(initializationContext.getIdentifier(), getProcessorType());
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-
-        Thread.ofVirtual().name(threadName).start(() -> initializePythonSide(future));
-        return future;
+        Thread.ofVirtual().name(threadName).start(this::initializePythonSide);
     }
 
     public LoadState getLoadState() {
         return loadState;
     }
 
-    private void initializePythonSide(final CompletableFuture<Void> future) {
+    private void initializePythonSide() {
         try {
-            try {
-                creationWorkflow.downloadDependencies();
-                loadState = LoadState.LOADING_PROCESSOR_CODE;
-            } catch (final Exception e) {
-                loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
-                throw e;
-            }
+            creationWorkflow.downloadDependencies();
+            loadState = LoadState.LOADING_PROCESSOR_CODE;
+        } catch (final Exception e) {
+            loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
+            throw e;
+        }
 
-            final PythonProcessorAdapter pythonProcessorAdapter;
-            try {
-                pythonProcessorAdapter = creationWorkflow.createProcessor();
-                pythonProcessorAdapter.initialize(initializationContext);
-                this.adapter = pythonProcessorAdapter;
-                this.proxy.onPythonSideInitialized(pythonProcessorAdapter);
-
-                loadState = LoadState.FINISHED_LOADING;
-            } catch (final Exception e) {
-                loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
-                throw e;
-            }
-
-            future.complete(null);
-        } catch (final Throwable t) {
-            future.completeExceptionally(t);
+        final PythonProcessorAdapter pythonProcessorAdapter;
+        try {
+            pythonProcessorAdapter = creationWorkflow.createProcessor();
+            pythonProcessorAdapter.initialize(initializationContext);
+            this.adapter = pythonProcessorAdapter;
+            loadState = LoadState.FINISHED_LOADING;
+        } catch (final Exception e) {
+            loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
+            throw e;
         }
     }
 
     @Override
     public String getProcessorType() {
         return processorDetails.getProcessorType();
-    }
-
-    @Override
-    public Processor getProcessorProxy() {
-        return proxy;
     }
 
     @Override
@@ -131,22 +104,10 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         }
 
         controller.reloadProcessor(getProcessorType(), processorDetails.getProcessorVersion(), workingDir.getAbsolutePath());
-        initializePythonSide(new CompletableFuture<>());
+        initializePythonSide();
         lastModified = moduleFile.lastModified();
 
         return true;
-    }
-
-    private PythonProcessorProxy createProxy() {
-        final String implementedInterface = processorDetails.getInterface();
-        if (FlowFileTransform.class.getName().equals(implementedInterface)) {
-            return new FlowFileTransformProxy(this);
-        }
-        if (RecordTransform.class.getName().equals(implementedInterface)) {
-            return new RecordTransformProxy(this);
-        }
-
-        throw new IllegalArgumentException("Python Processor does not implement any of the valid interfaces. Interface implemented: " + implementedInterface);
     }
 
 

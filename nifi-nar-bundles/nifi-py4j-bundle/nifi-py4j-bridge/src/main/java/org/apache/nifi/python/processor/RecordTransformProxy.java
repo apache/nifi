@@ -56,10 +56,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class RecordTransformProxy extends PythonProcessorProxy {
-    private final PythonProcessorBridge bridge;
     private volatile RecordTransform transform;
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -78,9 +78,8 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         .build();
 
 
-    public RecordTransformProxy(final PythonProcessorBridge bridge) {
-        super(bridge);
-        this.bridge = bridge;
+    public RecordTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+        super(processorType, bridgeFactory);
     }
 
     @Override
@@ -94,6 +93,8 @@ public class RecordTransformProxy extends PythonProcessorProxy {
 
     @OnScheduled
     public void setProcessContext(final ProcessContext context) {
+        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
+
         final Optional<PythonProcessorAdapter> adapterOptional = bridge.getProcessorAdapter();
         if (adapterOptional.isEmpty()) {
             throw new IllegalStateException(this + " is not finished initializing");

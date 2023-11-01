@@ -17,7 +17,9 @@
 
 package org.apache.nifi.components;
 
-public interface AsyncLoadedProcessor {
+import org.apache.nifi.processor.Processor;
+
+public interface AsyncLoadedProcessor extends Processor {
     default boolean isLoaded() {
         return getState() == LoadState.FINISHED_LOADING;
     }
@@ -25,6 +27,8 @@ public interface AsyncLoadedProcessor {
     LoadState getState();
 
     enum LoadState {
+        INITIALIZING_ENVIRONMENT,
+
         DOWNLOADING_DEPENDENCIES,
 
         LOADING_PROCESSOR_CODE,
