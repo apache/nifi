@@ -112,7 +112,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
     @Override
     public LoadState getState() {
         if (bridge == null) {
-            return LoadState.INITIALIZING_PYTHON_ENVIRONMENT;
+            return LoadState.INITIALIZING_ENVIRONMENT;
         }
 
         return bridge.getLoadState();

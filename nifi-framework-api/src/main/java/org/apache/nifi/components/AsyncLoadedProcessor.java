@@ -27,7 +27,7 @@ public interface AsyncLoadedProcessor extends Processor {
     LoadState getState();
 
     enum LoadState {
-        INITIALIZING_PYTHON_ENVIRONMENT,
+        INITIALIZING_ENVIRONMENT,
 
         DOWNLOADING_DEPENDENCIES,
 
