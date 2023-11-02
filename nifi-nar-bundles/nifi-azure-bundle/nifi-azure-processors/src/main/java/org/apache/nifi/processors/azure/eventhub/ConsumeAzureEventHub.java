@@ -512,11 +512,12 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         if (throwable instanceof AmqpException) {
             final AmqpException amqpException = (AmqpException) throwable;
             if (amqpException.getErrorCondition() == AmqpErrorCondition.LINK_STOLEN) {
-                getLogger().info("Partition was stolen by another consumer instance from the consumer group. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+                getLogger().info("Partition was stolen by another consumer instance from the consumer group. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]. {}",
                         partitionContext.getFullyQualifiedNamespace(),
                         partitionContext.getEventHubName(),
                         partitionContext.getConsumerGroup(),
-                        partitionContext.getPartitionId());
+                        partitionContext.getPartitionId(),
+                        amqpException.getMessage());
                 return;
             }
         }
