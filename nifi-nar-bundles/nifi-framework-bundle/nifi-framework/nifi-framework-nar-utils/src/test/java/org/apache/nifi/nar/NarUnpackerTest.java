@@ -52,7 +52,7 @@ public class NarUnpackerTest {
         final Path sourcePath = Paths.get("./src/test/resources");
         final Path targetPath = Paths.get("./target");
 
-        Files.walkFileTree(sourcePath, new SimpleFileVisitor<>() {
+        Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
 
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
