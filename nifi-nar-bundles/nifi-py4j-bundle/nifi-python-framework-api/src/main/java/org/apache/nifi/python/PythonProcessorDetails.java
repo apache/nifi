@@ -36,11 +36,6 @@ public interface PythonProcessorDetails {
     String getSourceLocation();
 
     /**
-     * @return the name of the Python Package Index (PyPi) package, or <code>null</code> if it is not available
-     */
-    String getPyPiPackageName();
-
-    /**
      * @return the Processor's capability description
      */
     String getCapabilityDescription();

@@ -18,8 +18,8 @@
 package org.apache.nifi.python.processor;
 
 import org.apache.nifi.NullSuppression;
-import org.apache.nifi.annotation.behavior.DefaultRunDuration;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -57,7 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class RecordTransformProxy extends PythonProcessorProxy {
     private final PythonProcessorBridge bridge;
     private volatile RecordTransform transform;

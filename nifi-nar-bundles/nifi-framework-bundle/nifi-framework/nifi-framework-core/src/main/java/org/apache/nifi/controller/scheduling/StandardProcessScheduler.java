@@ -542,7 +542,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         try {
             final Set<URL> additionalUrls = procNode.getAdditionalClasspathResources(procNode.getPropertyDescriptors());
-            flowController.getReloadComponent().reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), additionalUrls);
+            flowController.getReloadComponent().reload(procNode, procNode.getCanonicalClassName(), procNode.getBundleCoordinate(), additionalUrls);
         } catch (final ProcessorInstantiationException e) {
             // This shouldn't happen because we already have been able to instantiate the processor before
             LOG.error("Failed to replace instance of Processor for {} when terminating Processor", procNode);

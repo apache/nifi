@@ -17,6 +17,9 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.nifi.annotation.behavior.DefaultRunDuration;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AsyncLoadedProcessor;
@@ -36,6 +39,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
+@SupportsSensitiveDynamicProperties
 public abstract class PythonProcessorProxy extends AbstractProcessor implements AsyncLoadedProcessor {
     private final PythonProcessorBridge bridge;
     private volatile Set<Relationship> cachedRelationships = null;
@@ -94,8 +99,8 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
-        if (optionalAdapter.isEmpty()) {
+        final LoadState loadState = bridge.getLoadState();
+        if (loadState == LoadState.LOADING_PROCESSOR_CODE || loadState == LoadState.DOWNLOADING_DEPENDENCIES) {
             return List.of(new ValidationResult.Builder()
                 .subject("Processor")
                 .explanation("Processor has not yet completed initialization")
@@ -105,6 +110,16 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
 
         try {
             reload();
+
+            final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+            if (optionalAdapter.isEmpty()) {
+                return List.of(new ValidationResult.Builder()
+                    .subject("Processor")
+                    .explanation("Processor has not yet completed initialization")
+                    .valid(false)
+                    .build());
+            }
+
             return optionalAdapter.get().customValidate(validationContext);
         } catch (final Exception e) {
             getLogger().warn("Failed to perform validation for Python Processor {}; assuming invalid", this, e);
@@ -166,11 +181,6 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
         this.cachedDynamicDescriptors = dynamicDescriptors;
     }
 
-    @OnStopped
-    public void destroyCachedElements() {
-        this.cachedRelationships = null;
-        this.cachedDynamicDescriptors = null;
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -224,9 +234,18 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             getLogger().info("Successfully reloaded Processor");
         }
 
+        cachedPropertyDescriptors = null;
+        cachedRelationships = null;
         supportsDynamicProperties = bridge.getProcessorAdapter()
             .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"))
             .isDynamicPropertySupported();
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        cachedPropertyDescriptors = null;
+        cachedRelationships = null;
+        super.onPropertyModified(descriptor, oldValue, newValue);
     }
 
     protected Set<Relationship> getImplicitRelationships() {

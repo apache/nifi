@@ -177,7 +177,6 @@ public class PythonControllerInteractionIT {
             .orElseThrow(() -> new RuntimeException("Could not find ConvertCsvToExcel"));
 
         assertEquals("0.0.1-SNAPSHOT", convertCsvToExcel.getProcessorVersion());
-        assertNull(convertCsvToExcel.getPyPiPackageName());
         assertEquals(new File("target/python/extensions/ConvertCsvToExcel.py").getAbsolutePath(),
             new File(convertCsvToExcel.getSourceLocation()).getAbsolutePath());
     }

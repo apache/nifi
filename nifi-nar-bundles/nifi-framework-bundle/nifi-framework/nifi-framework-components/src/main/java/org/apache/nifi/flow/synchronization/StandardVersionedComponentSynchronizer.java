@@ -75,6 +75,7 @@ import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
+import org.apache.nifi.groups.FlowSynchronizationOptions.ComponentStopTimeoutAction;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.PropertyDecryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -93,11 +94,7 @@ import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.flow.FlowRegistryException;
-import org.apache.nifi.registry.flow.FlowSnapshotContainer;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -119,11 +116,9 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FlowDifferenceFilters;
-import org.apache.nifi.web.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -155,7 +150,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
-    private final Set<ComponentNode> createdExtensions = new HashSet<>();
+    private final List<CreatedExtension> createdExtensions = new ArrayList<>();
 
     private FlowSynchronizationOptions syncOptions;
     private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
@@ -251,16 +246,19 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         });
 
-        for (final ComponentNode extension : createdExtensions) {
+        for (final CreatedExtension createdExtension : createdExtensions) {
+            final ComponentNode extension = createdExtension.extension();
+            final Map<String, String> originalPropertyValues = createdExtension.propertyValues();
+
             final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
                 context.getControllerServiceProvider(), extension);
 
             if (extension instanceof final ProcessorNode processor) {
-                processor.migrateConfiguration(serviceFactory);
+                processor.migrateConfiguration(originalPropertyValues, serviceFactory);
             } else if (extension instanceof final ControllerServiceNode service) {
-                service.migrateConfiguration(serviceFactory);
+                service.migrateConfiguration(originalPropertyValues, serviceFactory);
             } else if (extension instanceof final ReportingTaskNode task) {
-                task.migrateConfiguration(serviceFactory);
+                task.migrateConfiguration(originalPropertyValues, serviceFactory);
             }
         }
 
@@ -1195,7 +1193,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         updateControllerService(newService, proposed, topLevelGroup);
-        createdExtensions.add(newService);
+        createdExtensions.add(new CreatedExtension(newService, proposed.getProperties()));
 
         return newService;
     }
@@ -2115,29 +2113,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
-    private Map<String, VersionedParameterContext> getVersionedParameterContexts(final VersionedFlowCoordinates versionedFlowCoordinates) {
-        final String registryId = determineRegistryId(versionedFlowCoordinates);
-        final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);
-        if (flowRegistry == null) {
-            throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + registryId);
-        }
-
-        final String bucketId = versionedFlowCoordinates.getBucketId();
-        final String flowId = versionedFlowCoordinates.getFlowId();
-        final int flowVersion = versionedFlowCoordinates.getVersion();
-
-        try {
-            final FlowSnapshotContainer snapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getAnonymousContext(), bucketId, flowId, flowVersion, false);
-            final RegisteredFlowSnapshot childSnapshot = snapshotContainer.getFlowSnapshot();
-            return childSnapshot.getParameterContexts();
-        } catch (final FlowRegistryException e) {
-            throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
-        } catch (final IOException ioe) {
-            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow");
-        }
-    }
-
     @Override
     public void synchronize(final Funnel funnel, final VersionedFunnel proposed, final ProcessGroup group, final FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException, InterruptedException {
@@ -2404,7 +2379,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         destination.addProcessor(procNode);
         updateProcessor(procNode, proposed, topLevelGroup);
 
-        createdExtensions.add(procNode);
+        createdExtensions.add(new CreatedExtension(procNode, proposed.getProperties()));
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
@@ -2573,6 +2548,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 if (intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && reportingTaskNode.getScheduledState() == ScheduledState.DISABLED) {
                     return;
                 }
+
                 synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(reportingTaskNode, intendedState);
             }
         } catch (final Exception e) {
@@ -2637,14 +2613,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             return stopProcessor(processor, timeout);
         } catch (final TimeoutException te) {
-            switch (synchronizationOptions.getComponentStopTimeoutAction()) {
-                case THROW_TIMEOUT_EXCEPTION:
-                    throw te;
-                case TERMINATE:
-                default:
-                    processor.terminate();
-                    return true;
+            if (synchronizationOptions.getComponentStopTimeoutAction() == ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION) {
+                throw te;
             }
+
+            processor.terminate();
+            return true;
         } finally {
             notifyScheduledStateChange((ComponentNode) processor, synchronizationOptions, org.apache.nifi.flow.ScheduledState.ENABLED);
         }
@@ -3309,9 +3283,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         final Optional<Connectable> addedComponent = connectableAdditionTracker.getComponent(group.getIdentifier(), connectableComponent.getId());
-        if (addedComponent.isPresent()) {
-            LOG.debug("Found Connectable in Process Group {} as newly added component {}", group, addedComponent.get());
-        }
+        addedComponent.ifPresent(value -> LOG.debug("Found Connectable in Process Group {} as newly added component {}", group, value));
 
         return addedComponent.orElse(null);
     }
@@ -3402,7 +3374,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
                     .findAny();
 
-                if (!rpgOption.isPresent()) {
+                if (rpgOption.isEmpty()) {
                     throw new IllegalArgumentException("Connection refers to a Port with ID " + id + " within Remote Process Group with ID "
                         + rpgId + " but could not find a Remote Process Group corresponding to that ID");
                 }
@@ -3428,7 +3400,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
                     .findAny();
 
-                if (!rpgOption.isPresent()) {
+                if (rpgOption.isEmpty()) {
                     throw new IllegalArgumentException("Connection refers to a Port with ID " + id + " within Remote Process Group with ID "
                         + rpgId + " but could not find a Remote Process Group corresponding to that ID");
                 }
@@ -3487,7 +3459,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final BundleCoordinate coordinate = toCoordinate(reportingTask.getBundle());
         final ReportingTaskNode taskNode = context.getFlowManager().createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask);
-        createdExtensions.add(taskNode);
+        createdExtensions.add(new CreatedExtension(taskNode, reportingTask.getProperties()));
 
         return taskNode;
     }
@@ -3732,4 +3704,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return getVersionedControllerService(group.getParent(), versionedComponentId);
     }
 
+    private record CreatedExtension(ComponentNode extension, Map<String, String> propertyValues) {
+    }
 }

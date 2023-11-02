@@ -13,15 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import ast
 import importlib
-import sys
 import importlib.util  # Note requires Python 3.4+
 import inspect
 import logging
-import subprocess
-import ast
+import os
 import pkgutil
+import subprocess
+import sys
 from pathlib import Path
 
 logger = logging.getLogger("org.apache.nifi.py4j.ExtensionManager")
@@ -44,7 +44,13 @@ class ExtensionDetails:
     class Java:
         implements = ['org.apache.nifi.python.PythonProcessorDetails']
 
-    def __init__(self, gateway, type, interfaces, version='Unknown', dependencies=None, source_location=None, package_name=None, description=None, tags=None):
+    def __init__(self, gateway, type, interfaces,
+                 version='Unknown',
+                 dependencies=None,
+                 source_location=None,
+                 description=None,
+                 tags=None):
+
         self.gateway = gateway
         self.type = type
 
@@ -60,7 +66,6 @@ class ExtensionDetails:
         self.version = version
         self.dependencies = dependencies
         self.source_location = source_location
-        self.package_name = package_name
         self.description = description
         self.tags = tags
 
@@ -72,9 +77,6 @@ class ExtensionDetails:
 
     def getSourceLocation(self):
         return self.source_location
-
-    def getPyPiPackageName(self):
-        return self.package_name
 
     def getDependencies(self):
         list = self.gateway.jvm.java.util.ArrayList()
@@ -180,7 +182,8 @@ class ExtensionManager:
 
         # Delete the file that tells us that the dependencies have been downloaded. We do this only when reloading a processor
         # because we want to ensure that download any new dependencies
-        completion_marker_file = self.__get_download_complete_marker_file(work_dir, processor_type, version)
+        details = self.processor_details[id]
+        completion_marker_file = self.__get_download_complete_marker_file(work_dir, details)
         if os.path.exists(completion_marker_file):
             os.remove(completion_marker_file)
 
@@ -188,7 +191,6 @@ class ExtensionManager:
         self.__gather_extension_details(module_file, work_dir)
 
         # Reload the processor class itself
-        details = self.processor_details[id]
         processor_class = self.__load_extension_module(module_file, details.local_dependencies)
 
         # Update our cache so that when the processor is created again, the new class will be used
@@ -232,17 +234,21 @@ class ExtensionManager:
 
 
     def __discover_extensions_from_paths(self, paths, work_dir, require_nifi_prefix):
-        for finder, name, ispkg in pkgutil.iter_modules(paths):
-            if not require_nifi_prefix or name.startswith('nifi_'):
-                module_file = '<Unknown Module File>'
-                try:
-                    module = finder.find_module(name)
-                    module_file = module.path
-                    logger.info('Discovered extension %s' % module_file)
+        if paths is None:
+            paths = []
 
-                    self.__gather_extension_details(module_file, work_dir)
-                except Exception:
-                    logger.error("Failed to load Python extensions from module file {0}. This module will be ignored.".format(module_file), exc_info=True)
+        for path in paths:
+            for finder, name, ispkg in pkgutil.iter_modules([path]):
+                if not require_nifi_prefix or name.startswith('nifi_'):
+                    module_file = '<Unknown Module File>'
+                    try:
+                        module = finder.find_module(name)
+                        module_file = module.path
+                        logger.info('Discovered extension %s' % module_file)
+
+                        self.__gather_extension_details(module_file, work_dir)
+                    except Exception:
+                        logger.error("Failed to load Python extensions from module file {0}. This module will be ignored.".format(module_file), exc_info=True)
 
 
     def __gather_extension_details(self, module_file, work_dir, local_dependencies=None):
@@ -280,7 +286,7 @@ class ExtensionManager:
         classes_and_details = self.__get_processor_classes_and_details(module_file)
         for classname, details in classes_and_details.items():
             id = ExtensionId(classname, details.version)
-            logger.info("Found local dependencies {0} for {1}".format(local_dependencies, classname))
+            logger.info(f"For {classname} found local dependencies {local_dependencies}")
 
             details.local_dependencies = local_dependencies
 
@@ -291,8 +297,9 @@ class ExtensionManager:
             self.module_files_by_extension_type[id] = module_file
 
 
-    def __get_download_complete_marker_file(self, work_dir, extension_type, version):
-        return os.path.join(work_dir, 'extensions', extension_type, version, 'dependency-download.complete')
+    def __get_download_complete_marker_file(self, work_dir, processor_details):
+        version = processor_details.version
+        return os.path.join(work_dir, 'extensions', processor_details.type, version, 'dependency-download.complete')
 
 
     def __get_dependencies_for_extension_type(self, extension_type, version):
@@ -462,9 +469,8 @@ class ExtensionManager:
 
     def import_external_dependencies(self, processor_details, work_dir):
         class_name = processor_details.getProcessorType()
-        extension_version = processor_details.getProcessorVersion()
 
-        completion_marker_file = self.__get_download_complete_marker_file(work_dir, class_name, extension_version)
+        completion_marker_file = self.__get_download_complete_marker_file(work_dir, processor_details)
         target_dir = os.path.dirname(completion_marker_file)
 
         if not os.path.exists(target_dir):
@@ -473,6 +479,21 @@ class ExtensionManager:
         if os.path.exists(completion_marker_file):
             logger.info("All dependencies have already been imported for {0}".format(class_name))
             return True
+
+        python_cmd = os.getenv("PYTHON_CMD")
+        if processor_details.source_location is not None:
+            package_dir = os.path.dirname(processor_details.source_location)
+            requirements_file = os.path.join(package_dir, 'requirements.txt')
+            if os.path.exists(requirements_file):
+                args = [python_cmd, '-m', 'pip', 'install', '--target', target_dir, '-r', requirements_file]
+
+                logger.info(f"Importing dependencies from requirements file for package {package_dir} to {target_dir} using command {args}")
+                result = subprocess.run(args)
+
+                if result.returncode == 0:
+                    logger.info(f"Successfully imported requirements for package {package_dir} to {target_dir}")
+                else:
+                    raise RuntimeError(f"Failed to import requirements for package {package_dir} from requirements.txt file: process exited with status code {result}")
 
         dependencies = processor_details.getDependencies()
         if len(dependencies) > 0:
@@ -498,34 +519,49 @@ class ExtensionManager:
 
     def __load_extension_module(self, file, local_dependencies):
         # If there are any local dependencies (i.e., other python files in the same directory), load those modules first
-        if local_dependencies is not None:
-            for local_dependency in local_dependencies:
-                if local_dependency == file:
-                    continue
+        if local_dependencies is not None and len(local_dependencies) > 0:
+            to_load = [dep for dep in local_dependencies]
+            if file in to_load:
+                to_load.remove(file)
 
-                logger.debug(f"Loading local dependency {local_dependency} before loading {file}")
-                self.__load_extension_module(local_dependency, None)
+            # There is almost certainly a better way to do this. But we need to load all modules that are 'local dependencies'. I.e., all
+            # modules in the same directory/package. But Python does not appear to give us a simple way to do this. We could have a situation in which
+            # we have:
+            # Module A depends on B
+            # Module C depends on B
+            # Module B has no dependencies
+            # But we don't know the order of the dependencies so if we attempt to import Module A or C first, we get an ImportError because Module B hasn't
+            # been imported. To address this, we create a queue of dependencies. If we attempt to import one and it fails, we insert it at the front of the queue
+            # so that it will be tried again after trying all dependencies. After we attempt to load a dependency 10 times, we give up and re-throw the error.
+            attempts = {}
+            for dep in to_load:
+                attempts[dep] = 0
 
+            while len(to_load) > 0:
+                local_dependency = to_load.pop()
+
+                try:
+                    logger.debug(f"Loading local dependency {local_dependency} before loading {file}")
+                    self.__load_extension_module(local_dependency, None)
+                except:
+                    previous_attempts = attempts[local_dependency]
+                    if previous_attempts >= 10:
+                        raise
+
+                    attempts[local_dependency] = previous_attempts + 1
+                    logger.debug(f"Failed to load local dependency {local_dependency}. Will try again after all have been attempted", exc_info=True)
+                    to_load.insert(0, local_dependency)
 
         # Determine the module name
         moduleName = Path(file).name.split('.py')[0]
 
         # Create the module specification
         moduleSpec = importlib.util.spec_from_file_location(moduleName, file)
-        logger.debug('Module Spec: %s' % moduleSpec)
+        logger.debug(f"Module Spec: {moduleSpec}")
 
         # Create the module from the specification
         module = importlib.util.module_from_spec(moduleSpec)
-        logger.debug('Module: %s' % module)
-
-        # Initialize the JvmHolder class with the gateway jvm.
-        # This must be done before executing the module to ensure that the nifiapi module
-        # is able to access the JvmHolder.jvm variable. This enables the nifiapi.properties.StandardValidators, etc. to be used
-        # However, we have to delay the import until this point, rather than adding it to the top of the ExtensionManager class
-        # because we need to ensure that we've fetched the appropriate dependencies for the pyenv environment for the extension point.
-        from nifiapi.__jvm__ import JvmHolder
-        JvmHolder.jvm = self.gateway.jvm
-        JvmHolder.gateway = self.gateway
+        logger.debug(f"Module: {module}")
 
         # Load the module
         sys.modules[moduleName] = module
