@@ -18,30 +18,21 @@ package org.apache.nifi.parquet;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -54,9 +45,6 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -85,43 +73,43 @@ public class TestParquetReader {
     @Test
     public void testReadUsers() throws IOException {
         final int numUsers = 10;
-        final File parquetFile = createUsersParquetFile(numUsers);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, emptyMap());
 
         assertEquals(numUsers, results.size());
         IntStream.range(0, numUsers)
-                .forEach(i -> assertEquals(createUser(i), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i), convertRecordToUser(results.get(i))));
     }
 
     @Test
     public void testReadUsersPartiallyWithLimitedRecordCount() throws IOException {
         final int numUsers = 25;
         final int expectedRecords = 3;
-        final File parquetFile = createUsersParquetFile(numUsers);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_COUNT, "3"));
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
-                .forEach(i -> assertEquals(createUser(i), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i), convertRecordToUser(results.get(i))));
     }
 
     @Test
     public void testReadUsersPartiallyWithOffset() throws IOException {
         final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 5;
-        final File parquetFile = createUsersParquetFile(numUsers);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, singletonMap(ParquetAttribute.RECORD_OFFSET, "1000020"));
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
-                .forEach(i -> assertEquals(createUser(i + 1000020), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i + 1000020), convertRecordToUser(results.get(i))));
     }
 
     @Test
     public void testReadUsersPartiallyWithOffsetAndLimitedRecordCount() throws IOException {
         final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 2;
-        final File parquetFile = createUsersParquetFile(numUsers);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, Map.of(
                 ParquetAttribute.RECORD_OFFSET, "1000020",
                 ParquetAttribute.RECORD_COUNT, "2"
@@ -129,7 +117,65 @@ public class TestParquetReader {
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
-                .forEach(i -> assertEquals(createUser(i + 1000020), convertRecordToUser(results.get(i))));
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i + 1000020), convertRecordToUser(results.get(i))));
+    }
+
+    @Test
+    public void testReadUsersPartiallyWithLimitedRecordCountWithinFileRange() throws IOException {
+        final int numUsers = 1000;
+        final int expectedRecords = 3;
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(
+                parquetFile,
+                Map.of(
+                        ParquetAttribute.RECORD_COUNT, "3",
+                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
+                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
+                )
+        );
+
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i + 663), convertRecordToUser(results.get(i))));
+    }
+
+    @Test
+    public void testReadUsersPartiallyWithOffsetWithinFileRange() throws IOException {
+        final int numUsers = 1000;
+        final int expectedRecords = 5;
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(
+                parquetFile,
+                Map.of(
+                        ParquetAttribute.RECORD_OFFSET, "321",
+                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
+                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
+                )
+        );
+
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i + 984), convertRecordToUser(results.get(i))));
+    }
+
+    @Test
+    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCountWithinFileRange() throws IOException {
+        final int numUsers = 1000;
+        final int expectedRecords = 2;
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
+        final List<Record> results = getRecords(
+                parquetFile,
+                Map.of(
+                        ParquetAttribute.RECORD_OFFSET, "321",
+                        ParquetAttribute.RECORD_COUNT, "2",
+                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
+                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
+                )
+        );
+
+        assertEquals(expectedRecords, results.size());
+        IntStream.range(0, expectedRecords)
+                .forEach(i -> assertEquals(ParquetTestUtils.createUser(i + 984), convertRecordToUser(results.get(i))));
     }
 
     @Test
@@ -224,41 +270,6 @@ public class TestParquetReader {
                 MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]""");
     }
 
-    private File createUsersParquetFile(int numUsers) throws IOException {
-        return createUsersParquetFile(IntStream
-                .range(0, numUsers)
-                .mapToObj(this::createUser)
-                .collect(toList())
-        );
-    }
-
-    private File createUsersParquetFile(Collection<Map<String, Object>> users) throws IOException {
-        final Schema schema = getSchema();
-        final File parquetFile = new File("target/TestParquetReader-testReadUsers-" + System.currentTimeMillis());
-
-        // write some users to the parquet file...
-        try (final ParquetWriter<GenericRecord> writer = createParquetWriter(schema, parquetFile)) {
-            users.forEach(user -> {
-                final GenericRecord record = new GenericData.Record(schema);
-                user.forEach(record::put);
-                try {
-                    writer.write(record);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-        return parquetFile;
-    }
-
-    private Map<String, Object> createUser(int i) {
-        return Map.of(
-                "name", "Bob" + i,
-                "favorite_number", i,
-                "favorite_color", "blue" + i
-        );
-    }
-
     private List<Record> getRecords(File parquetFile, Map<String, String> variables)
             throws IOException {
         final List<Record> results;
@@ -279,23 +290,6 @@ public class TestParquetReader {
             }).takeWhile(Objects::nonNull).toList();
         }
         return results;
-    }
-
-    private Schema getSchema() throws IOException {
-        final File schemaFile = new File(SCHEMA_PATH);
-        final String schemaString = IOUtils.toString(new FileInputStream(schemaFile), StandardCharsets.UTF_8);
-        return new Schema.Parser().parse(schemaString);
-    }
-
-    private ParquetWriter<GenericRecord> createParquetWriter(final Schema schema, final File parquetFile) throws IOException {
-        final Configuration conf = new Configuration();
-        final Path parquetPath = new Path(parquetFile.getPath());
-
-        return AvroParquetWriter.<GenericRecord>builder(HadoopOutputFile.fromPath(parquetPath, conf))
-                        .withSchema(schema)
-                        .withConf(conf)
-                        .withRowGroupSize(8192L)
-                        .build();
     }
 
     private Map<String, Object> convertRecordToUser(Record record) {

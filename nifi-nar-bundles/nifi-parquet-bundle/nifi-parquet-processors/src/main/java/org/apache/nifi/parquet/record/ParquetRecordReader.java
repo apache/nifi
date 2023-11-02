@@ -66,12 +66,20 @@ public class ParquetRecordReader implements RecordReader {
                 .map(Long::parseLong)
                 .orElse(null);
 
+        final long fileStartOffset = Optional.ofNullable(variables.get(ParquetAttribute.FILE_RANGE_START_OFFSET))
+                .map(Long::parseLong)
+                .orElse(0L);
+        final long fileEndOffset = Optional.ofNullable(variables.get(ParquetAttribute.FILE_RANGE_END_OFFSET))
+                .map(Long::parseLong)
+                .orElse(Long.MAX_VALUE);
+
         this.inputStream = inputStream;
 
         final InputFile inputFile = new NifiParquetInputFile(inputStream, inputLength);
 
         final Builder<GenericRecord> builder = AvroParquetReader.<GenericRecord>builder(inputFile)
-                .withConf(configuration);
+                .withConf(configuration)
+                .withFileRange(fileStartOffset, fileEndOffset);
 
         if (offset != null) {
             builder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));

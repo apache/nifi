@@ -43,6 +43,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parquet.ParquetTestUtils;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
@@ -227,6 +228,97 @@ public class FetchParquetTest {
         flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
 
         assertEquals("Bob0,0,blue0\n", flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithOffsetWithinFileRange() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
+        final File parquetDir = parquetFile.getParentFile();
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+        attributes.put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+        attributes.put(ParquetAttribute.RECORD_OFFSET, "325");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob988,988,blue988\n", flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithCountWithinFileRange() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
+        final File parquetDir = parquetFile.getParentFile();
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+        attributes.put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+        attributes.put(ParquetAttribute.RECORD_COUNT, "1");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob663,663,blue663\n", flowFileContent);
+    }
+
+    @Test
+    public void testFetchParquetToCSVWithOffsetAndCountWithinFileRange() throws IOException, InitializationException {
+        configure(proc);
+
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
+        final File parquetDir = parquetFile.getParentFile();
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+        attributes.put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+        attributes.put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+        attributes.put(ParquetAttribute.RECORD_OFFSET, "3");
+        attributes.put(ParquetAttribute.RECORD_COUNT, "1");
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+
+        // the mock record writer will write the header for each record so replace those to get down to just the records
+        String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
+        flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
+
+        assertEquals("Bob666,666,blue666\n", flowFileContent);
     }
 
     @Test

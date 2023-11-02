@@ -20,6 +20,8 @@ package org.apache.nifi.parquet.utils;
 public final class ParquetAttribute {
     public static final String RECORD_OFFSET = "record.offset";
     public static final String RECORD_COUNT = "record.count";
+    public static final String FILE_RANGE_START_OFFSET = "parquet.file.range.startOffset";
+    public static final String FILE_RANGE_END_OFFSET = "parquet.file.range.endOffset";
 
     private ParquetAttribute() {
     }

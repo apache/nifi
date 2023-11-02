@@ -79,9 +79,6 @@ public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override
     public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path) throws IOException {
-        final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
-        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(inputFile).withConf(conf);
-
         final Long offset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.RECORD_OFFSET))
                 .map(Long::parseLong)
                 .orElse(null);
@@ -89,6 +86,18 @@ public class FetchParquet extends AbstractFetchHDFSRecord {
         final Long count = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.RECORD_COUNT))
                 .map(Long::parseLong)
                 .orElse(null);
+
+        final long fileStartOffset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.FILE_RANGE_START_OFFSET))
+                .map(Long::parseLong)
+                .orElse(0L);
+        final long fileEndOffset = Optional.ofNullable(flowFile.getAttribute(ParquetAttribute.FILE_RANGE_END_OFFSET))
+                .map(Long::parseLong)
+                .orElse(Long.MAX_VALUE);
+
+        final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
+        final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader.<GenericRecord>builder(inputFile)
+                .withConf(conf)
+                .withFileRange(fileStartOffset, fileEndOffset);
 
         if (offset != null) {
             readerBuilder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));

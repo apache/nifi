@@ -16,8 +16,19 @@
  */
 package org.apache.nifi.parquet;
 
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -27,6 +38,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parquet.record.WriteParquetResult;
+import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.parquet.utils.ParquetConfig;
 import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -36,15 +48,6 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 @Tags({"parquet", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Parquet format.")
@@ -107,7 +110,19 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
                 throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
             }
 
-            return new WriteParquetResult(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema, variables), out, parquetConfig, logger);
+            // These attributes should not be carried over to a newly written Parquet RecordSet, because then
+            // processors reading FlowFiles with any of these, might try to jump to non-existing locations.
+            final Set<String> propertiesToBeCleared = Set.of(
+                    ParquetAttribute.RECORD_OFFSET,
+                    ParquetAttribute.FILE_RANGE_START_OFFSET,
+                    ParquetAttribute.FILE_RANGE_END_OFFSET
+            );
+            final Map<String, String> filteredVariables = variables.entrySet()
+                    .stream()
+                    .filter(entry -> !propertiesToBeCleared.contains(entry.getKey()))
+                    .collect(toMap(Entry::getKey, Entry::getValue));
+
+            return new WriteParquetResult(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema, filteredVariables), out, parquetConfig, logger);
 
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
