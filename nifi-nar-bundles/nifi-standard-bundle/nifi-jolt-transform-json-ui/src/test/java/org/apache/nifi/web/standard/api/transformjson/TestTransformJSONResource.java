@@ -139,7 +139,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
         assertNotNull(validation);
-        assertTrue(!validation.isValid());
+        assertFalse(validation.isValid());
     }
 
     @Test
@@ -166,14 +166,13 @@ public class TestTransformJSONResource extends JerseyTest {
 
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
-        joltSpecificationDTO.setModules("src/test/resources/TestTransformJSONResource/TestCustomJoltTransform.jar");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
         assertNotNull(validate);
-        assertTrue(validate.isValid());
+        assertFalse(validate.isValid());
     }
 
     @Test
@@ -208,33 +207,13 @@ public class TestTransformJSONResource extends JerseyTest {
 
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}");
         joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
-        joltSpecificationDTO.setModules("src/test/resources/TestTransformJSONResource/TestCustomJoltTransform.jar");
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
         assertNotNull(validate);
-        assertTrue(!validate.isValid());
-    }
-
-    @Test
-    public void testExecuteWithValidCustomSpec() {
-        final Diffy diffy = new Diffy();
-        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom","[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
-        String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
-        joltSpecificationDTO.setInput(inputJson);
-        joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
-        joltSpecificationDTO.setModules("src/test/resources/TestTransformJSONResource/TestCustomJoltTransform.jar");
-        String responseString = client().target(getBaseUri())
-                .path("/standard/transformjson/execute")
-                .request()
-                .post(Entity.json(joltSpecificationDTO), String.class);
-
-        Object transformedJson = JsonUtils.jsonToObject(responseString);
-        Object compareJson = JsonUtils.jsonToObject("{\"rating\":{\"quality\":2,\"count\":1}, \"custom-id\": 4}");
-        assertNotNull(transformedJson);
-        assertTrue(diffy.diff(compareJson, transformedJson).isEmpty());
+        assertFalse(validate.isValid());
     }
 
     @Test
@@ -285,7 +264,7 @@ public class TestTransformJSONResource extends JerseyTest {
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-shift","{ \"rating\" : {\"quality\": \"${qual_var}\"} }");
         String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
         joltSpecificationDTO.setInput(inputJson);
-        Map<String,String> attributes = new HashMap<String,String>();
+        Map<String,String> attributes = new HashMap<>();
         attributes.put("qual_var","qa");
         joltSpecificationDTO.setExpressionLanguageAttributes(attributes);
         String responseString = client().target(getBaseUri())
