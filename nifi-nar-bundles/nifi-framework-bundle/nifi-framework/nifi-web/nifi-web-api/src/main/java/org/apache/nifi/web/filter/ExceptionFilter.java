@@ -17,8 +17,6 @@
 package org.apache.nifi.web.filter;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -44,20 +42,12 @@ public class ExceptionFilter implements Filter {
 
         try {
             filterChain.doFilter(req, resp);
-        } catch (RequestRejectedException e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("An exception was caught performing the HTTP request security filter check and the stacktrace has been suppressed from the response");
-            }
+        } catch (final RequestRejectedException e) {
+            logger.warn("Client request rejected", e);
 
-            HttpServletResponse filteredResponse = (HttpServletResponse) resp;
+            final HttpServletResponse filteredResponse = (HttpServletResponse) resp;
             filteredResponse.setStatus(500);
-            filteredResponse.getWriter().write(e.getMessage());
-
-            StringWriter sw = new StringWriter();
-            sw.write("Exception caught by ExceptionFilter:\n");
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            logger.error(sw.toString());
+            filteredResponse.getWriter().write("Client request rejected");
         }
     }
 
