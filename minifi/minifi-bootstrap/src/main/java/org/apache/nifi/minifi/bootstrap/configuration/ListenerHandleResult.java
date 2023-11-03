@@ -49,7 +49,7 @@ public class ListenerHandleResult {
         if (failureCause == null) {
             return getDescriptor() + " successfully handled the configuration change";
         } else {
-            return getDescriptor() + " FAILED to handle the configuration change due to: '" + failureCause.getMessage() + "'";
+            return getDescriptor() + " FAILED to handle the configuration change";
         }
     }
 }
