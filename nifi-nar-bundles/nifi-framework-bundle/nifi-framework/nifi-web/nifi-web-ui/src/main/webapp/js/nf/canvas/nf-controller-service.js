@@ -2507,13 +2507,14 @@
                     if (nfCommon.isDefinedAndNotNull(options.nfActions) ) {
                         var cb = function() {
                             $('#disable-controller-service-dialog').modal('hide');
+                            $('#controller-service-configuration').modal('hide');
                             $("#controller-configuration-status-bar").statusbar('hideButtons');
                             nfControllerService.showConfiguration(serviceTable, controllerServiceEntity);
                         };
 
                         var selection = nfCanvasUtils.getSelectionById(controllerServiceEntity.id);
                         $("#controller-configuration-status-bar").statusbar('buttons',[{
-                            buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Stop & Configure</span>',
+                            buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Disable & Configure</span>',
                             clazz: 'button button-icon auto-width',
                             color: {
                                 hover: '#C7D2D7',

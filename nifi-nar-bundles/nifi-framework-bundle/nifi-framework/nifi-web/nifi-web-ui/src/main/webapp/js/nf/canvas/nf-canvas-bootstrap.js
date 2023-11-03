@@ -377,6 +377,7 @@
                         supportsStatusBar : true,
                         nfActions : nfActions
                     });
+
                     nfReportingTask.init(nfSettings);
                     nfFlowAnalysisRule.init(nfSettings);
                     nfParameterProvider.init({
