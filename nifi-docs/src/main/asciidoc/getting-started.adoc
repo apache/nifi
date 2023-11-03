@@ -602,6 +602,9 @@ are currently queued across the entire flow, as well as the total size of those 
 
 If the NiFi instance is in a cluster, we will also see an indicator here telling us how many nodes are in the cluster and how many are currently
 connected. In this case, the number of active threads and the queue size are indicative of all the sum of all nodes that are currently connected.
+It is important to note that active threads only captures threads by objects that are in the graph (processors, processor groups, remote processor groups, funnels, etc.).
+When broken down by node in the cluster (Global Menu -> Cluster), the active thread count is more comprehensive and includes these as well as any
+other threads (reporting tasks, controller services, etc.)
 
 === Component Statistics
 
