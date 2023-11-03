@@ -20,6 +20,8 @@ import {
     CreateComponent,
     CreateComponentResponse,
     CreatePort,
+    CreateProcessGroup,
+    CreateProcessGroupRequest,
     CreateProcessor,
     DeleteComponent,
     DeleteComponentResponse,
@@ -34,7 +36,8 @@ import {
     UpdateComponent,
     UpdateComponentFailure,
     UpdateComponentResponse,
-    UpdatePositions
+    UpdatePositions,
+    UploadProcessGroup
 } from './index';
 
 /*
@@ -117,6 +120,21 @@ export const createComponentRequest = createAction(
 export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponent }>());
 
 export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponent }>());
+
+export const openNewProcessGroupDialog = createAction(
+    '[Canvas] Open New Process Group Dialog',
+    props<{ request: CreateProcessGroupRequest }>()
+);
+
+export const createProcessGroup = createAction(
+    '[Canvas] Create Process Group',
+    props<{ request: CreateProcessGroup }>()
+);
+
+export const uploadProcessGroup = createAction(
+    '[Canvas] Upload Process Group',
+    props<{ request: UploadProcessGroup }>()
+);
 
 export const openNewProcessorDialog = createAction(
     '[Canvas] Open New Processor Dialog',

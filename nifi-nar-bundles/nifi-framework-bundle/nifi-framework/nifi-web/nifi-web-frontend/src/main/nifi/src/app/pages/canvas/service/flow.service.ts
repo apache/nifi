@@ -19,7 +19,16 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
-import { CreateComponent, CreatePort, CreateProcessor, DeleteComponent, Snippet, UpdateComponent } from '../state/flow';
+import {
+    CreateComponent,
+    CreatePort,
+    CreateProcessGroup,
+    CreateProcessor,
+    DeleteComponent,
+    Snippet,
+    UpdateComponent,
+    UploadProcessGroup
+} from '../state/flow';
 import { ComponentType } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
@@ -74,6 +83,10 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }
 
+    getParameterContexts(): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/parameter-contexts`);
+    }
+
     getCurrentUser(): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }
@@ -109,6 +122,39 @@ export class FlowService {
                 bundle: createProcessor.processorBundle
             }
         });
+    }
+
+    createProcessGroup(processGroupId: string = 'root', createProcessGroup: CreateProcessGroup): Observable<any> {
+        const payload: any = {
+            revision: createProcessGroup.revision,
+            component: {
+                position: createProcessGroup.position,
+                name: createProcessGroup.name
+            }
+        };
+
+        if (createProcessGroup.parameterContextId) {
+            payload.component.parameterContext = {
+                id: createProcessGroup.parameterContextId
+            };
+        }
+
+        return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/process-groups`, payload);
+    }
+
+    uploadProcessGroup(processGroupId: string = 'root', uploadProcessGroup: UploadProcessGroup): Observable<any> {
+        const payload = new FormData();
+        payload.append('id', processGroupId);
+        payload.append('groupName', uploadProcessGroup.name);
+        payload.append('positionX', uploadProcessGroup.position.x.toString());
+        payload.append('positionY', uploadProcessGroup.position.y.toString());
+        payload.append('clientId', uploadProcessGroup.revision.clientId);
+        payload.append('file', uploadProcessGroup.flowDefinition);
+
+        return this.httpClient.post(
+            `${FlowService.API}/process-groups/${processGroupId}/process-groups/upload`,
+            payload
+        );
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {

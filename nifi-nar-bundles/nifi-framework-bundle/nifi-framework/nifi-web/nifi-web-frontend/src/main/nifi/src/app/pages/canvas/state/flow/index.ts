@@ -17,6 +17,7 @@
 
 import { Position } from '../shared';
 import { BulletinEntity, Bundle, ComponentType, DocumentedType, Permissions } from '../../../../state/shared';
+import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
 export const flowFeatureKey = 'flowState';
 
@@ -66,6 +67,11 @@ export interface CreateComponent {
     revision: any;
 }
 
+export interface CreateProcessGroupRequest {
+    request: CreateComponent;
+    parameterContexts: ParameterContextEntity[];
+}
+
 export interface CreateProcessorDialogRequest {
     request: CreateComponent;
     processorTypes: DocumentedType[];
@@ -74,6 +80,16 @@ export interface CreateProcessorDialogRequest {
 export interface CreateProcessor extends CreateComponent {
     processorType: string;
     processorBundle: Bundle;
+}
+
+export interface CreateProcessGroup extends CreateComponent {
+    name: string;
+    parameterContextId: string;
+}
+
+export interface UploadProcessGroup extends CreateComponent {
+    name: string;
+    flowDefinition: File;
 }
 
 export interface CreatePort extends CreateComponent {

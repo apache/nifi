@@ -23,6 +23,7 @@ import {
     createFunnel,
     createLabel,
     createPort,
+    createProcessGroup,
     createProcessor,
     deleteComponentsSuccess,
     flowApiError,
@@ -39,7 +40,8 @@ import {
     updateComponentFailure,
     updateComponentSuccess,
     updateProcessor,
-    updateProcessorSuccess
+    updateProcessorSuccess,
+    uploadProcessGroup
 } from './flow.actions';
 import { FlowState } from './index';
 import { ComponentType } from '../../../../state/shared';
@@ -164,7 +166,7 @@ export const flowReducer = createReducer(
         error: null,
         status: 'pending' as const
     })),
-    on(createProcessor, createPort, createFunnel, createLabel, (state) => ({
+    on(createProcessor, createProcessGroup, uploadProcessGroup, createPort, createFunnel, createLabel, (state) => ({
         ...state,
         saving: true
     })),

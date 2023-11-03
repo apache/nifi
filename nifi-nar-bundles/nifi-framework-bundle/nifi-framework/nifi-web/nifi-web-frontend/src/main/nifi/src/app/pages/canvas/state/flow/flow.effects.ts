@@ -68,6 +68,7 @@ import { CreateProcessor } from '../../ui/processor/create-processor/create-proc
 import { EditProcessor } from '../../ui/processor/edit-processor/edit-processor.component';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
+import { CreateProcessGroup } from '../../ui/process-group/create-process-group/create-process-group.component';
 
 @Injectable()
 export class FlowEffects {
@@ -175,6 +176,18 @@ export class FlowEffects {
                 switch (request.type) {
                     case ComponentType.Processor:
                         return of(FlowActions.openNewProcessorDialog({ request }));
+                    case ComponentType.ProcessGroup:
+                        return from(this.flowService.getParameterContexts()).pipe(
+                            map((response) =>
+                                FlowActions.openNewProcessGroupDialog({
+                                    request: {
+                                        request,
+                                        parameterContexts: response.parameterContexts
+                                    }
+                                })
+                            ),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        );
                     case ComponentType.Funnel:
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:
@@ -220,6 +233,68 @@ export class FlowEffects {
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessor(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openNewProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewProcessGroupDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(CreateProcessGroup, {
+                            data: request,
+                            panelClass: 'medium-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createProcessGroup),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    uploadProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.uploadProcessGroup),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.uploadProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
                         FlowActions.createComponentSuccess({
                             response: {
