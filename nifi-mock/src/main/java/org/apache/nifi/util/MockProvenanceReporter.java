@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -28,8 +24,15 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.upload.FileResource;
+import org.apache.nifi.provenance.upload.UploadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class MockProvenanceReporter implements ProvenanceReporter {
     private static final Logger logger = LoggerFactory.getLogger(MockProvenanceReporter.class);
@@ -212,6 +215,32 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
+            if (force) {
+                sharedSessionState.addProvenanceEvents(Collections.singleton(record));
+            } else {
+                events.add(record);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to generate Provenance Event due to " + e);
+            if (logger.isDebugEnabled()) {
+                logger.error("", e);
+            }
+        }
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final UploadContext uploadContext) {
+        final String transitUri = uploadContext.getTransitUri();
+        final String details = uploadContext.getDetails();
+        final long transmissionMillis = uploadContext.getTransmissionMillis();
+        final boolean force = uploadContext.isForce();
+
+        try {
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .build();
             if (force) {
                 sharedSessionState.addProvenanceEvents(Collections.singleton(record));
             } else {
@@ -542,5 +571,4 @@ public class MockProvenanceReporter implements ProvenanceReporter {
         builder.setComponentType(processorType);
         return builder;
     }
-
 }

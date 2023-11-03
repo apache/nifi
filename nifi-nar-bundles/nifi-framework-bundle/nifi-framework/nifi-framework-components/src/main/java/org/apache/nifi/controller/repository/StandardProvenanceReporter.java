@@ -24,6 +24,9 @@ import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.upload.FileResource;
+import org.apache.nifi.provenance.upload.UploadContext;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +53,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     private long bytesFetched = 0L;
 
     public StandardProvenanceReporter(final Predicate<FlowFile> flowfileKnownCheck, final String processorId, final String processorType,
-        final ProvenanceEventRepository repository, final ProvenanceEventEnricher enricher) {
+                                      final ProvenanceEventRepository repository, final ProvenanceEventEnricher enricher) {
         this.flowfileKnownCheck = flowfileKnownCheck;
         this.processorId = processorId;
         this.processorType = processorType;
@@ -119,7 +122,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
      * be created by the session itself, as well as by the Processor
      *
      * @param parents parents
-     * @param child child
+     * @param child   child
      * @return record
      */
     @Override
@@ -204,10 +207,10 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.FETCH)
-                .setTransitUri(transitUri)
-                .setEventDuration(transmissionMillis)
-                .setDetails(details)
-                .build();
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .build();
 
             events.add(record);
 
@@ -269,6 +272,37 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             flowFilesSent++;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
+            if (logger.isDebugEnabled()) {
+                logger.error("", e);
+            }
+        }
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final UploadContext uploadContext) {
+        final String transitUri = uploadContext.getTransitUri();
+        final String enrichedDetails = StringUtils.isNotBlank(uploadContext.getDetails()) ? uploadContext.getDetails() + " " + fileResource.toString()
+                : fileResource.toString();
+        final long transmissionMillis = uploadContext.getTransmissionMillis();
+        final boolean force = uploadContext.isForce();
+
+        try {
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(enrichedDetails)
+                    .build();
+
+            if (force) {
+                repository.registerEvent(record);
+            } else {
+                events.add(record);
+            }
+
+            bytesSent += fileResource.getSize();
+            flowFilesSent++;
+        } catch (final Exception e) {
+            logger.error("Failed to generate Provenance Event due to ", e);
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }

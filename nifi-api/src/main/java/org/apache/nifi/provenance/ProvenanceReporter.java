@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.provenance;
 
-import java.util.Collection;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.upload.FileResource;
+import org.apache.nifi.provenance.upload.UploadContext;
+
+import java.util.Collection;
 
 /**
  * ProvenanceReporter generates and records Provenance-related events. A
@@ -314,6 +317,18 @@ public interface ProvenanceReporter {
      * will be recorded only on a successful session commit.
      */
     void send(FlowFile flowFile, String transitUri, String details, long transmissionMillis, boolean force);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was received
+     * @param fileResource the FileResource that was uploaded
+     * @param uploadContext contains parameters to emit an {@link ProvenanceEventType#UPLOAD UPLOAD} event
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, UploadContext uploadContext);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}
@@ -675,7 +690,6 @@ public interface ProvenanceReporter {
      * @param details any relevant details about the CREATE event
      */
     void create(FlowFile flowFile, String details);
-
     /**
      * @return the number of FlowFiles for which there was a RECEIVE event
      */
