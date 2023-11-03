@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.Relationship;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.Relationship;
 
 /**
  * Holder for provenance relevant information
@@ -821,6 +822,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
                 case RECEIVE:
                 case FETCH:
                 case SEND:
+                case UPLOAD:
                     assertSet(transitUri, "Transit URI");
                     break;
                 case ROUTE:

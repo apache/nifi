@@ -1003,7 +1003,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                             // the representation of the FlowFile as it is committed, as this is the only way in which it really
                             // exists in our system -- all other representations are volatile representations that have not been
                             // exposed.
-                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, rawEvent.getEventType() != ProvenanceEventType.SEND, commitNanos);
+                            final boolean isUpdateAttributes = rawEvent.getEventType() != ProvenanceEventType.SEND && rawEvent.getEventType() != ProvenanceEventType.UPLOAD;
+                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, isUpdateAttributes, commitNanos);
                         } else if (autoTermIterator != null && autoTermIterator.hasNext()) {
                             return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true, commitNanos);
                         }

@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -28,8 +24,14 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.FileResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class MockProvenanceReporter implements ProvenanceReporter {
     private static final Logger logger = LoggerFactory.getLogger(MockProvenanceReporter.class);
@@ -222,6 +224,32 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }
+        }
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri) {
+        upload(flowFile, fileResource, transitUri, null, -1L, true);
+
+    }
+
+    @Override
+    public void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force) {
+        try {
+            final String fileResourceDetails = fileResource.toString();
+            final String enrichedDetails = details == null ? fileResourceDetails : details + " " + fileResourceDetails;
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(enrichedDetails)
+                    .build();
+            if (force) {
+                sharedSessionState.addProvenanceEvents(Collections.singleton(record));
+            } else {
+                events.add(record);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to generate Provenance Event", e);
         }
     }
 
@@ -542,5 +570,4 @@ public class MockProvenanceReporter implements ProvenanceReporter {
         builder.setComponentType(processorType);
         return builder;
     }
-
 }
