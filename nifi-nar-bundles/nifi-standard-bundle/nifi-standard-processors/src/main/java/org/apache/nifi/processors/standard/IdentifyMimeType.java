@@ -47,6 +47,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -170,6 +171,15 @@ public class IdentifyMimeType extends AbstractProcessor {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
         this.relationships = Collections.unmodifiableSet(rels);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        if (!config.hasProperty(CONFIG_STRATEGY)) {
+            if (config.isPropertySet(MIME_CONFIG_FILE) || config.isPropertySet(MIME_CONFIG_BODY)) {
+                config.setProperty(CONFIG_STRATEGY, REPLACE.getValue());
+            }
+        }
     }
 
     @OnScheduled
