@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.schema.access;
+package org.apache.nifi.confluent.schemaregistry;
 
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -29,50 +35,72 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalLong;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestConfluentSchemaRegistryWriter {
+class ConfluentEncodedSchemaReferenceWriterTest {
+    private static final String SERVICE_ID = ConfluentEncodedSchemaReferenceWriter.class.getSimpleName();
 
-    @Test
-    public void testValidateValidSchema() throws SchemaNotFoundException {
-        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).build();
-        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+    private static final byte MAGIC_BYTE = 0;
 
-        final SchemaAccessWriter schemaAccessWriter = new ConfluentSchemaRegistryWriter();
-        schemaAccessWriter.validateSchema(recordSchema);
+    private static final int VERSION = 2;
+
+    private static final long ID = 123456;
+
+    private ConfluentEncodedSchemaReferenceWriter writer;
+
+    @BeforeEach
+    void setRunner() throws InitializationException {
+        writer = new ConfluentEncodedSchemaReferenceWriter();
+
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner.addControllerService(SERVICE_ID, writer);
+        runner.enableControllerService(writer);
     }
 
     @Test
-    public void testValidateInvalidSchema() {
+    void testValidateValidSchema() {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(ID).version(VERSION).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        assertDoesNotThrow(() -> writer.validateSchema(recordSchema));
+    }
+
+    @Test
+    void testValidateInvalidSchema() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
-        final SchemaAccessWriter schemaAccessWriter = new ConfluentSchemaRegistryWriter();
-        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
+        assertThrows(SchemaNotFoundException.class, () -> writer.validateSchema(recordSchema));
     }
 
     @Test
-    public void testWriteHeader() throws IOException {
-        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).build();
+    void testWriteHeader() throws IOException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(ID).version(VERSION).build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        final SchemaAccessWriter schemaAccessWriter = new ConfluentSchemaRegistryWriter();
-        schemaAccessWriter.writeHeader(recordSchema, out);
+        writer.writeHeader(recordSchema, out);
 
         try (final ByteArrayInputStream bytesIn = new ByteArrayInputStream(out.toByteArray());
              final DataInputStream in = new DataInputStream(bytesIn)) {
-            assertEquals(0, in.readByte());
-            assertEquals((int) schemaIdentifier.getIdentifier().getAsLong(), in.readInt());
+            assertEquals(MAGIC_BYTE, in.readByte());
+
+            final OptionalLong identifier = schemaIdentifier.getIdentifier();
+            assertTrue(identifier.isPresent());
+
+            final long id = identifier.getAsLong();
+            assertEquals(id, in.readInt());
         }
     }
 
     private RecordSchema createRecordSchema(final SchemaIdentifier schemaIdentifier) {
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstField", RecordFieldType.STRING.getDataType()));
         return new SimpleRecordSchema(fields, schemaIdentifier);
     }
 }

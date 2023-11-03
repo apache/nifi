@@ -51,11 +51,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
@@ -108,7 +106,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(SchemaApplicationStrategy.SELECTED_PART.getValue())
             .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, SCHEMA_REFERENCE_READER_PROPERTY)
             .allowableValues(SchemaApplicationStrategy.class)
             .build();
 

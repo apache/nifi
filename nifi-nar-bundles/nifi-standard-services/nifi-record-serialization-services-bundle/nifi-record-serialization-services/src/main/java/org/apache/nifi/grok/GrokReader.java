@@ -176,7 +176,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
         this.recordSchemaFromGrok = createRecordSchema(groks);
 
-        final String schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+        final String schemaAccess = context.getProperty(getSchemaAccessStrategyDescriptor()).getValue();
         if (STRING_FIELDS_FROM_GROK_EXPRESSION.getValue().equals(schemaAccess)) {
             this.recordSchema = recordSchemaFromGrok;
         } else {

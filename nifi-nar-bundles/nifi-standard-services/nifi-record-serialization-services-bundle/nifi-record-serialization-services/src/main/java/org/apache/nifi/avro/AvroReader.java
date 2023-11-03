@@ -95,7 +95,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
 
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
-        final String schemaAccessStrategy = getConfigurationContext().getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+        final String schemaAccessStrategy = getConfigurationContext().getProperty(getSchemaAccessStrategyDescriptor()).getValue();
         if (EMBEDDED_AVRO_SCHEMA.getValue().equals(schemaAccessStrategy)) {
             return new AvroReaderWithEmbeddedSchema(in);
         } else {
