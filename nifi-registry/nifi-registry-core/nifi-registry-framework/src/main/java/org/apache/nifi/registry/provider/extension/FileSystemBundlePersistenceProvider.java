@@ -39,7 +39,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * An {@link BundlePersistenceProvider} that uses local file-system for storage.
@@ -52,6 +57,8 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
 
     static final String NAR_EXTENSION = ".nar";
     static final String CPP_EXTENSION = ".cpp";
+
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
     private File bundleStorageDir;
 
@@ -71,8 +78,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         try {
             bundleStorageDir = new File(bundleStorageDirValue);
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bundleStorageDir);
-            LOGGER.info("Configured BundlePersistenceProvider with Extension Bundle Storage Directory {}",
-                    new Object[] {bundleStorageDir.getAbsolutePath()});
+            LOGGER.info("Configured BundlePersistenceProvider with Extension Bundle Storage Directory {}", bundleStorageDir.getAbsolutePath());
         } catch (IOException e) {
             throw new ProviderCreationException(e);
         }
@@ -107,7 +113,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Writing extension bundle to {}", new Object[]{bundleFile.getAbsolutePath()});
+            LOGGER.debug("Writing extension bundle to {}", bundleFile.getAbsolutePath());
         }
 
         try (final OutputStream out = new FileOutputStream(bundleFile)) {
@@ -124,7 +130,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
 
         final File bundleFile = getBundleFile(versionCoordinate);
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Reading extension bundle from {}", new Object[]{bundleFile.getAbsolutePath()});
+            LOGGER.debug("Reading extension bundle from {}", bundleFile.getAbsolutePath());
         }
 
         try (final InputStream in = new FileInputStream(bundleFile);
@@ -142,7 +148,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
     public synchronized void deleteBundleVersion(final BundleVersionCoordinate versionCoordinate) throws BundlePersistenceException {
         final File bundleFile = getBundleFile(versionCoordinate);
         if (!bundleFile.exists()) {
-            LOGGER.warn("Extension bundle content does not exist at {}", new Object[] {bundleFile.getAbsolutePath()});
+            LOGGER.warn("Extension bundle content does not exist at {}", bundleFile.getAbsolutePath());
             return;
         }
 
@@ -152,7 +158,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Deleted extension bundle content at {}", new Object[] {bundleFile.getAbsolutePath()});
+            LOGGER.debug("Deleted extension bundle content at {}", bundleFile.getAbsolutePath());
         }
     }
 
@@ -160,7 +166,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
     public synchronized void deleteAllBundleVersions(final BundleCoordinate bundleCoordinate) throws BundlePersistenceException {
         final File bundleDir = getBundleDirectory(bundleStorageDir, bundleCoordinate);
         if (!bundleDir.exists()) {
-            LOGGER.warn("Extension bundle directory does not exist at {}", new Object[] {bundleDir.getAbsolutePath()});
+            LOGGER.warn("Extension bundle directory does not exist at {}", bundleDir.getAbsolutePath());
             return;
         }
 
@@ -207,7 +213,8 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         final String groupId = bundleCoordinate.getGroupId();
         final String artifactId = bundleCoordinate.getArtifactId();
 
-        return new File(bundleStorageDir, sanitize(bucketId) + "/" + sanitize(groupId) + "/" + sanitize(artifactId));
+        final Path artifactPath = getArtifactPath(bucketId, groupId, artifactId);
+        return getChildLocation(bundleStorageDir, artifactPath);
     }
 
     static File getBundleVersionDirectory(final File bundleStorageDir, final BundleVersionCoordinate versionCoordinate) {
@@ -216,7 +223,9 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         final String artifactId = versionCoordinate.getArtifactId();
         final String version = versionCoordinate.getVersion();
 
-        return new File(bundleStorageDir, sanitize(bucketId) + "/" + sanitize(groupId) + "/" + sanitize(artifactId) + "/" + sanitize(version));
+        final Path artifactPath = getArtifactPath(bucketId, groupId, artifactId);
+        final Path versionPath = Paths.get(sanitize(version)).normalize();
+        return getChildLocation(bundleStorageDir, artifactPath.resolve(versionPath));
     }
 
     static File getBundleFile(final File parentDir, final BundleVersionCoordinate versionCoordinate) {
@@ -227,7 +236,11 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
 
         final String bundleFileExtension = getBundleFileExtension(bundleType);
         final String bundleFilename = sanitize(artifactId) + "-" + sanitize(version) + bundleFileExtension;
-        return new File(parentDir, bundleFilename);
+        return getChildLocation(parentDir, Paths.get(bundleFilename));
+    }
+
+    static Path getArtifactPath(final String bucketId, final String groupId, final String artifactId) {
+        return Paths.get(getNormalizedBucketId(bucketId), sanitize(groupId), sanitize(artifactId)).normalize();
     }
 
     static String sanitize(final String input) {
@@ -246,4 +259,24 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         }
     }
 
+    private static String getNormalizedBucketId(final String id) {
+        final String sanitized = FileUtils.sanitizeFilename(id).trim().toLowerCase();
+        final Matcher matcher = NUMBER_PATTERN.matcher(sanitized);
+        if (matcher.matches()) {
+            final int normalized = Integer.parseInt(sanitized);
+            return Integer.toString(normalized);
+        } else {
+            final UUID normalized = UUID.fromString(id);
+            return normalized.toString();
+        }
+    }
+
+    private static File getChildLocation(final File parentDir, final Path childLocation) {
+        final Path parentPath = parentDir.toPath().normalize();
+        final Path childPath = parentPath.resolve(childLocation.normalize());
+        if (childPath.startsWith(parentPath)) {
+            return childPath.toFile();
+        }
+        throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+    }
 }
