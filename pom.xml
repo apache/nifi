@@ -29,6 +29,7 @@
         <module>nifi-framework-api</module>
         <module>nifi-server-api</module>
         <module>nifi-bootstrap</module>
+        <module>nifi-code-coverage</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
         <module>nifi-assembly</module>
@@ -903,6 +904,11 @@
                     <groupId>org.jvnet.jaxb2.maven2</groupId>
                     <artifactId>maven-jaxb2-plugin</artifactId>
                     <version>0.15.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.11</version>
                 </plugin>
             </plugins>
         </pluginManagement>
