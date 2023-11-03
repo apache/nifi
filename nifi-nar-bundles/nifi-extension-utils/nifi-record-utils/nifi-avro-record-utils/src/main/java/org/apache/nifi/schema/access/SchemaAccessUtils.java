@@ -38,12 +38,6 @@ public class SchemaAccessUtils {
     public static final AllowableValue SCHEMA_TEXT_PROPERTY = new AllowableValue("schema-text-property", "Use 'Schema Text' Property",
             "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. "
                     + "If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions.");
-    public static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
-            "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
-                    + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, "
-                    + "found at https://github.com/hortonworks/registry");
-    public static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
-            "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
     public static final AllowableValue INHERIT_RECORD_SCHEMA = new AllowableValue("inherit-record-schema", "Inherit Record Schema",
         "The schema used to write records will be the same schema that was given to the Record when the Record was created.");
     public static final AllowableValue CONFLUENT_ENCODED_SCHEMA = new AllowableValue("confluent-encoded", "Confluent Content-Encoded Schema Reference",
@@ -56,7 +50,7 @@ public class SchemaAccessUtils {
             .name("schema-access-strategy")
             .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
-            .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, CONFLUENT_ENCODED_SCHEMA)
             .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
             .required(true)
             .build();
@@ -67,7 +61,7 @@ public class SchemaAccessUtils {
             .description("Specifies the Controller Service to use for the Schema Registry")
             .identifiesControllerService(SchemaRegistry.class)
             .required(false)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, CONFLUENT_ENCODED_SCHEMA)
             .build();
 
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
@@ -160,8 +154,7 @@ public class SchemaAccessUtils {
     }
 
     private static boolean isSchemaRegistryRequired(final String schemaAccessValue) {
-        return HWX_CONTENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue) || SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue)
-            || HWX_SCHEMA_REF_ATTRIBUTES.getValue().equalsIgnoreCase(schemaAccessValue) || CONFLUENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue);
+        return SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue) || CONFLUENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue);
     }
 
 
@@ -175,10 +168,6 @@ public class SchemaAccessUtils {
             return new InheritSchemaFromRecord();
         } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
-        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
-            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
-        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
-            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
         } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
             return new ConfluentSchemaRegistryStrategy(schemaRegistry);
         }

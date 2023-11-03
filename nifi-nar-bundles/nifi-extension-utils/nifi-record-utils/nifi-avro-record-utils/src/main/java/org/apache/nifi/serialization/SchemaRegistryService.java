@@ -36,17 +36,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
@@ -62,8 +58,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     protected volatile SchemaAccessStrategy schemaAccessStrategy;
     private static InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
-        SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA));
+    private final List<AllowableValue> strategies = List.of(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, CONFLUENT_ENCODED_SCHEMA);
 
     protected PropertyDescriptor getSchemaAcessStrategyDescriptor() {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
@@ -137,7 +132,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     }
 
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        return strategyList;
+        return strategies;
     }
 
     protected Set<SchemaField> getSuppliedSchemaFields(final ValidationContext validationContext) {
