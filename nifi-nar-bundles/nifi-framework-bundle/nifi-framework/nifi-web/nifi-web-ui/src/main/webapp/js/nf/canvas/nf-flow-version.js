@@ -200,7 +200,7 @@
 
             if (nfCommon.isDefinedAndNotNull(registriesResponse.registries) && registriesResponse.registries.length > 0) {
                 registriesResponse.registries.sort(function (a, b) {
-                    return a.registry.name > b.registry.name;
+                    return a.component.name > b.component.name;
                 });
 
                 $.each(registriesResponse.registries, function (_, registryEntity) {
