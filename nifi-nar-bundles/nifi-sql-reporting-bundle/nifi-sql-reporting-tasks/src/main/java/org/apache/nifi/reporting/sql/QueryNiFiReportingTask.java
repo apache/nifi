@@ -90,7 +90,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
     @Override
     public void onTrigger(ReportingContext context) {
         final StopWatch stopWatch = new StopWatch(true);
-        String sql = context.getProperty(QueryMetricsUtil.QUERY).getValue();
+        String sql = context.getProperty(QueryMetricsUtil.QUERY).evaluateAttributeExpressions().getValue();
         try {
             sql = processStartAndEndTimes(context, sql, BULLETIN_START_TIME, BULLETIN_END_TIME);
             sql = processStartAndEndTimes(context, sql, PROVENANCE_START_TIME, PROVENANCE_END_TIME);
