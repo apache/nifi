@@ -76,11 +76,11 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
     public static final String DEFAULT_HEADERS_KEY_PREFIX = "consume.amqp";
 
-    public static final AllowableValue HEADERS_FORMAT_COMMA_SEPARATED_STRING = new AllowableValue("Comma Separated String", "Comma Separated String",
+    public static final AllowableValue HEADERS_FORMAT_COMMA_SEPARATED_STRING = new AllowableValue("Comma-Separated String", "Comma-Separated String",
             "Put all headers as a string with the specified separator in the attribute 'amqp$headers'.");
     public static final AllowableValue HEADERS_FORMAT_JSON_STRING = new AllowableValue("JSON String", "JSON String",
             "Format all headers as JSON string and output in the attribute 'amqp$headers'. It will include keys with null value as well.");
-    public static final AllowableValue HEADERS_FORMAT_ATTRIBUTES = new AllowableValue("Flow file attributes", "Flow file attributes",
+    public static final AllowableValue HEADERS_FORMAT_ATTRIBUTES = new AllowableValue("FlowFile Attributes", "FlowFile Attributes",
             "Put each header as attribute of the flow file with a prefix specified in the properties");
 
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
@@ -124,7 +124,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     public static final PropertyDescriptor HEADER_KEY_PREFIX = new PropertyDescriptor.Builder()
         .name("header.key.prefix")
         .displayName("Header Key Prefix")
-        .description("Text to be prefixed to header keys as the are added to the flowfile attributes. Processor will append '.' to the value")
+        .description("Text to be prefixed to header keys as the are added to the FlowFile attributes. Processor will append '.' to the value of this property")
         .defaultValue(DEFAULT_HEADERS_KEY_PREFIX)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .dependsOn(HEADER_FORMAT, HEADERS_FORMAT_ATTRIBUTES)
@@ -134,8 +134,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
         .name("header.separator")
         .displayName("Header Separator")
-        .description("The character that is used to separate key-value for header in String. The value must only one character."
-                + "Otherwise you will get an error message")
+        .description("The character that is used to separate key-value for header in String. The value must be only one character."
+                )
         .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
         .defaultValue(",")
         .dependsOn(HEADER_FORMAT, HEADERS_FORMAT_COMMA_SEPARATED_STRING)
@@ -208,7 +208,9 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
             final BasicProperties amqpProperties = response.getProps();
             final Envelope envelope = response.getEnvelope();
-            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(HEADER_FORMAT).toString(), context.getProperty(HEADER_KEY_PREFIX).toString(),
+            final String headerFormat = context.getProperty(HEADER_FORMAT).getValue();
+            final String headerKeyPrefix = context.getProperty(HEADER_KEY_PREFIX).getValue();
+            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, headerFormat, headerKeyPrefix,
                     context.getProperty(REMOVE_CURLY_BRACES).asBoolean(), context.getProperty(HEADER_SEPARATOR).toString());
             flowFile = session.putAllAttributes(flowFile, attributes);
 

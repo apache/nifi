@@ -175,7 +175,7 @@ public class ConsumeAMQPTest {
         headersMap.put("foo3", "null");
         headersMap.put("foo4", null);
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode EXPECTED_JSON = objectMapper.valueToTree(headersMap);
+        JsonNode expectedJson = objectMapper.valueToTree(headersMap);
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -195,7 +195,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
             JsonNode jsonNode = objectMapper.readTree(headers);
-            assertEquals(EXPECTED_JSON, jsonNode);
+            assertEquals(expectedJson, jsonNode);
         }
     }
 
@@ -210,7 +210,7 @@ public class ConsumeAMQPTest {
         final Map<String, Object> headersMap = new HashMap<>(expectedHeadersMap);
         headersMap.put("foo4", null);
 
-        final String HEADER_PREFIX = "test.header";
+        final String headerPrefix = "test.header";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -223,7 +223,7 @@ public class ConsumeAMQPTest {
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_ATTRIBUTES);
-            runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX,HEADER_PREFIX);
+            runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX,headerPrefix);
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
@@ -231,7 +231,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             successFF.assertAttributeNotExists("amqp$headers");
             expectedHeadersMap.forEach((key, value) ->{
-                successFF.assertAttributeEquals(HEADER_PREFIX+"."+key,value.toString());
+                successFF.assertAttributeEquals(headerPrefix + "." + key, value.toString());
             } );
         }
     }
