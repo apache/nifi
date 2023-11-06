@@ -88,6 +88,8 @@ import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationSt
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
 public class JSLTTransformJSON extends AbstractProcessor {
 
+    public static String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
+
     public static final PropertyDescriptor JSLT_TRANSFORM = new PropertyDescriptor.Builder()
             .name("jslt-transform-transformation")
             .displayName("JSLT Transformation")
@@ -111,11 +113,13 @@ public class JSLTTransformJSON extends AbstractProcessor {
     public static final PropertyDescriptor RESULT_FILTER = new PropertyDescriptor.Builder()
             .name("jslt-transform-result-filter")
             .displayName("Transform Result Filter")
-            .description("An optional filter of output results using another JSLT, allowing you to change the default filter."
-                    + " The default filter is \". != null and . != {} and . != []\" which excludes objects with null values, empty objects and empty arrays")
+            .description("A filter of output results using another JSLT. This property allows you to change the built-in filter,"
+                    + " which removes objects with null values, empty objects and empty arrays from the output."
+                    + " Use a filter such as \"1 == 1\" to disable all filtering.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT, ResourceType.FILE)
-            .required(false)
+            .required(true)
+            .defaultValue(JSLT_FILTER_DEFAULT)
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
@@ -195,9 +199,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
 
         final PropertyValue filterProperty = validationContext.getProperty(RESULT_FILTER);
-        if (filterProperty.isSet()) {
-            results.add(validateJSLT(RESULT_FILTER, filterProperty));
-        }
+        results.add(validateJSLT(RESULT_FILTER, filterProperty));
 
         return results;
     }
@@ -327,7 +329,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     private Expression getJstlExpression(String transform, String jsltFilter) {
         Parser parser = new Parser(new StringReader(transform))
                 .withSource("<inline>");
-        if (jsltFilter != null && !jsltFilter.isEmpty()) {
+        if (jsltFilter != null && !jsltFilter.isEmpty() && !jsltFilter.equals(JSLT_FILTER_DEFAULT)) {
             parser = parser.withObjectFilter(jsltFilter);
         }
         return parser.compile();

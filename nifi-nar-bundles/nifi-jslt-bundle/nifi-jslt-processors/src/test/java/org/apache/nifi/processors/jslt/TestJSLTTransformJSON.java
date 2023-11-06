@@ -163,6 +163,12 @@ public class TestJSLTTransformJSON {
         runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
     }
 
+    @Test
+    public void testTransformWithNoFilter() {
+        runner.setProperty(JSLTTransformJSON.RESULT_FILTER, "1 == 1");
+        runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
+    }
+
     // This test verifies transformCache cleanup does not throw an exception
     @Test
     public void testShutdown() {
