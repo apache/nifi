@@ -3045,10 +3045,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 if (controllerNode.isActive())
                     throw new IllegalStateException("Cannot move controller service. Referenced controller services " + controllerNode + " is enabled");
             }
-            if (node instanceof ReportingTaskNode taskNode) {
-                if (taskNode.isRunning())
-                    throw new IllegalStateException("Cannot move controller service. Referenced task " + taskNode + " is running");
-            }
         }
     }
 

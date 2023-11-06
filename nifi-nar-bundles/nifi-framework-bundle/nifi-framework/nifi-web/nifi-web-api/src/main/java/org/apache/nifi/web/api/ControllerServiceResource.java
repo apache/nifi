@@ -682,7 +682,7 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     /**
-     * Moves the specified Controller Service to paren/child process groups.
+     * Moves the specified Controller Service to parent/child process groups.
      *
      * @param httpServletRequest      request
      * @param id                      The id of the controller service to update.
