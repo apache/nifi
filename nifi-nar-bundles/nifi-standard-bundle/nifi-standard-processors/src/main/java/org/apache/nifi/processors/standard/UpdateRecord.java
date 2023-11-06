@@ -130,7 +130,7 @@ import java.util.stream.Stream;
         "Replacement Value Strategy" = "Literal Value"
 
         A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to update.
-        The value is an Expression Language expression that references the `field.name` variable. For example, to change the date/time format of \
+        The value is an Expression Language expression that references the `field.value` variable. For example, to change the date/time format of \
         a field named `txDate` from `year-month-day` format to `month/day/year` format, we add a property named `/txDate` with a value of \
         `${field.value:toDate('yyyy-MM-dd'):format('MM/dd/yyyy')}`. We could also change the timezone of a timestamp field (and insert the timezone for clarity) by using a value of \
         `${field.value:toDate('yyyy-MM-dd HH:mm:ss', 'UTC-0400'):format('yyyy-MM-dd HH:mm:ss Z', 'UTC')}`.

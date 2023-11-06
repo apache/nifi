@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 
@@ -63,31 +64,69 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         this.initializationContext = context;
 
         final String threadName = "Initialize Python Processor %s (%s)".formatted(initializationContext.getIdentifier(), getProcessorType());
-        Thread.ofVirtual().name(threadName).start(this::initializePythonSide);
+        Thread.ofVirtual().name(threadName).start(() -> initializePythonSide(true));
     }
 
     public LoadState getLoadState() {
         return loadState;
     }
 
-    private void initializePythonSide() {
-        try {
-            creationWorkflow.downloadDependencies();
-            loadState = LoadState.LOADING_PROCESSOR_CODE;
-        } catch (final Exception e) {
-            loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
-            throw e;
+    private void initializePythonSide(final boolean continualRetry) {
+        long sleepMillis = 1_000L;
+        while (true) {
+            loadState = LoadState.DOWNLOADING_DEPENDENCIES;
+
+            try {
+                creationWorkflow.downloadDependencies();
+                logger.info("Successfully downloaded dependencies for Python Processor {} ({})", initializationContext.getIdentifier(), getProcessorType());
+                break;
+            } catch (final Exception e) {
+                loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
+                if (!continualRetry) {
+                    throw e;
+                }
+
+                sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
+                logger.error("Failed to download dependencies for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+
+                try {
+                    Thread.sleep(sleepMillis);
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ex);
+                    throw e;
+                }
+            }
         }
 
-        final PythonProcessorAdapter pythonProcessorAdapter;
-        try {
-            pythonProcessorAdapter = creationWorkflow.createProcessor();
-            pythonProcessorAdapter.initialize(initializationContext);
-            this.adapter = pythonProcessorAdapter;
-            loadState = LoadState.FINISHED_LOADING;
-        } catch (final Exception e) {
-            loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
-            throw e;
+        while (true) {
+            loadState = LoadState.LOADING_PROCESSOR_CODE;
+
+            try {
+                final PythonProcessorAdapter pythonProcessorAdapter = creationWorkflow.createProcessor();
+                pythonProcessorAdapter.initialize(initializationContext);
+                this.adapter = pythonProcessorAdapter;
+                loadState = LoadState.FINISHED_LOADING;
+                logger.info("Successfully loaded Python Processor {} ({})", initializationContext.getIdentifier(), getProcessorType());
+                break;
+            } catch (final Exception e) {
+                loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
+
+                if (!continualRetry) {
+                    throw e;
+                }
+
+                sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
+                logger.error("Failed to load code for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+
+                try {
+                    Thread.sleep(sleepMillis);
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ex);
+                    throw e;
+                }
+            }
         }
     }
 
@@ -104,7 +143,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         }
 
         controller.reloadProcessor(getProcessorType(), processorDetails.getProcessorVersion(), workingDir.getAbsolutePath());
-        initializePythonSide();
+        initializePythonSide(false);
         lastModified = moduleFile.lastModified();
 
         return true;
