@@ -347,7 +347,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static final PropertyDescriptor USE_DATABASE_TABLE_COLUMN_DATATYPE = new Builder()
             .name("put-db-record-use-database-table-column-datatype")
-            .displayName("Use database table column data types")
+            .displayName("Use Database Table Column Data Types")
             .description("Enabling this option will cause all column values to be formatted using database table column data types.")
             .allowableValues("true", "false")
             .defaultValue("true")
@@ -748,10 +748,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             }
                         }
 
-                        final boolean use_database_table_column_datatype = context.getProperty(USE_DATABASE_TABLE_COLUMN_DATATYPE).asBoolean();
+                        final boolean useDatabaseTableColumnDatatype = context.getProperty(USE_DATABASE_TABLE_COLUMN_DATATYPE).asBoolean();
 
                         // Convert (if necessary) from field data type to column data type
-                        if ((fieldSqlType != sqlType) && use_database_table_column_datatype) {
+                        if ((fieldSqlType != sqlType) && useDatabaseTableColumnDatatype) {
                             try {
                                 DataType targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType);
                                 // If sqlType is unsupported, fall back to the fieldSqlType instead
