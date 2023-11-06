@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
@@ -152,9 +153,14 @@ public class StandardDataFlow implements Serializable, DataFlow {
         }
 
         try {
+            final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder()
+                    .maxStringLength(Integer.MAX_VALUE)
+                    .build();
+
             final ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
 
             return objectMapper.readValue(flow, VersionedDataflow.class);
         } catch (final Exception e) {
