@@ -17,6 +17,7 @@
 package org.apache.nifi.services.azure.data.explorer;
 
 import java.io.InputStream;
+import java.time.Duration;
 
 public class KustoIngestionRequest {
 
@@ -25,16 +26,11 @@ public class KustoIngestionRequest {
     private InputStream inputStream;
     private String dataFormat;
     private String mappingName;
-
     private String databaseName;
-
     private String tableName;
-
     private String ignoreFirstRecord;
-
-    private String ingestionStatusPollingTimeout;
-
-    private String ingestionStatusPollingInterval;
+    private Duration ingestionStatusPollingTimeout;
+    private Duration ingestionStatusPollingInterval;
 
     public KustoIngestionRequest(boolean isStreamingEnabled,
                                  boolean pollOnIngestionStatus,
@@ -44,8 +40,8 @@ public class KustoIngestionRequest {
                                  String dataFormat,
                                  String mappingName,
                                  String ignoreFirstRecord,
-                                 String ingestionStatusPollingTimeout,
-                                 String ingestionStatusPollingInterval) {
+                                 Duration ingestionStatusPollingTimeout,
+                                 Duration ingestionStatusPollingInterval) {
         this.streamingEnabled = isStreamingEnabled;
         this.inputStream = inputStream;
         this.pollOnIngestionStatus = pollOnIngestionStatus;
@@ -90,11 +86,11 @@ public class KustoIngestionRequest {
         return mappingName;
     }
 
-    public String getIngestionStatusPollingTimeout() {
+    public Duration getIngestionStatusPollingTimeout() {
         return ingestionStatusPollingTimeout;
     }
 
-    public String getIngestionStatusPollingInterval() {
+    public Duration getIngestionStatusPollingInterval() {
         return ingestionStatusPollingInterval;
     }
 }

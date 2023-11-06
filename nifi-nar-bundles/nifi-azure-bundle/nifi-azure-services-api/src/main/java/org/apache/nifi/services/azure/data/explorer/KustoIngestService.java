@@ -18,11 +18,18 @@ package org.apache.nifi.services.azure.data.explorer;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.controller.ControllerService;
 
 import java.net.URISyntaxException;
 
 @Tags({"azure", "adx", "explorer", "kusto", "ingest"})
 @CapabilityDescription("Connection-Service for Azure ADX (Kusto) ingestion cluster to ingest data.")
-public interface KustoIngestService extends KustoQueryService {
+public interface KustoIngestService extends ControllerService {
     KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) throws URISyntaxException;
+
+    KustoIngestQueryResponse executeQuery(String databaseName, String query);
+
+    KustoIngestQueryResponse checkIfStreamingIsEnabled(String databaseName, String query);
+
+    KustoIngestQueryResponse checkIfIngestorPrivilegeIsEnabled(String databaseName, String query);
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.services.azure.data.explorer;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.KustoResultColumn;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -44,14 +45,15 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
@@ -109,7 +111,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             APPLICATION_TENANT_ID,
             CLUSTER_URI));
 
-    public static final Pair<String, String> NIFI_SINK = Pair.of("processor", "nifi-sink");
+    public static final Pair<String, String> NIFI_SINK = Pair.of("processor", StandardKustoIngestService.class.getSimpleName());
 
     private volatile QueuedIngestClient queuedIngestClient;
 
@@ -124,7 +126,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     /**
      * @param context the configuration context
-     * @throws InitializationException if unable to create a database connection
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException, URISyntaxException {
@@ -224,10 +225,12 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                 ingestionResult = queuedIngestClient.ingestFromStream(info, ingestionProperties);
             }
             if (kustoIngestionRequest.pollOnIngestionStatus()) {
-                List<IngestionStatus> statuses;
+                List<IngestionStatus> statuses = initializeKustoIngestionStatusAsPending();
                 long startTime = System.currentTimeMillis();
-                long timeoutMillis = Long.parseLong(kustoIngestionRequest.getIngestionStatusPollingTimeout()) * 1000L;
-                while (true) {
+                long timeoutMillis = kustoIngestionRequest.getIngestionStatusPollingTimeout().toMillis();
+                // Calculate the end time based on the timeout duration
+                long endTime = startTime + timeoutMillis;
+                while (System.currentTimeMillis() < endTime) {
                     // Get the status of the ingestion operation
                     List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
                     if (statuses1.get(0).status == OperationStatus.Succeeded
@@ -236,13 +239,12 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                         statuses = statuses1;
                         break;
                     }
-                    // Check if the timeout has been exceeded
-                    if (System.currentTimeMillis() - startTime >= timeoutMillis) {
-                        throw new ProcessException("Timeout exceeded while waiting for ingestion status");
-                    }
-
-                    // Sleep for 5 seconds before checking again
-                    Thread.sleep(Integer.parseInt(kustoIngestionRequest.getIngestionStatusPollingInterval()) * 1000L);
+                    // Sleep for before checking again
+                    Thread.sleep(kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis());
+                }
+                // Check if the timeout has been exceeded
+                if (System.currentTimeMillis() - startTime >= timeoutMillis) {
+                    throw new ProcessException(String.format("Timeout of %s exceeded while waiting for ingestion status", kustoIngestionRequest.getIngestionStatusPollingTimeout()));
                 }
                 return KustoIngestionResult.fromString(statuses.get(0).status.toString());
             } else {
@@ -254,6 +256,12 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             Thread.currentThread().interrupt(); //Restore interrupted status
             throw new ProcessException("Azure Data Explorer Ingest interrupted", e);
         }
+    }
+
+    protected List<IngestionStatus> initializeKustoIngestionStatusAsPending(){
+        IngestionStatus ingestionStatus = new IngestionStatus();
+        ingestionStatus.status = OperationStatus.Pending;
+        return Collections.singletonList(ingestionStatus);
     }
 
     private ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,
@@ -268,7 +276,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             builder = ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, appId);
         }
 
-
         builder.setConnectorDetails("Kusto.Nifi.Sink", StandardKustoIngestService.class.getPackage().getImplementationVersion(), null, null, false, null, NIFI_SINK);
         return builder;
     }
@@ -282,23 +289,58 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     }
 
     @Override
-    public KustoQueryResponse executeQuery(String databaseName, String query) {
+    public KustoIngestQueryResponse executeQuery(String databaseName, String query) {
         Objects.requireNonNull(databaseName, "Database Name required");
         Objects.requireNonNull(query, "Query required");
-        KustoQueryResponse kustoQueryResponse;
+        KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
             KustoResultSetTable kustoResultSetTable = this.executionClient.execute(databaseName, query).getPrimaryResults();
-            if(kustoResultSetTable.hasNext()){
+            Map<Integer, List<String>> response = new HashMap<>();
+            int rowCount = 0;
+
+            // Add the received values to the new ingestion resources
+            while (kustoResultSetTable.hasNext()) {
                 kustoResultSetTable.next();
-                kustoQueryResponse = new KustoQueryResponse(kustoResultSetTable.getData());
-            } else {
-                kustoQueryResponse = new KustoQueryResponse(new ArrayList<>());
+                List<String> rowData = new ArrayList<>();
+                for (KustoResultColumn columnName : kustoResultSetTable.getColumns()) {
+                    String data = kustoResultSetTable.getString(columnName.getOrdinal());
+                    rowData.add(data);
+                }
+                response.put(rowCount++, rowData);
             }
+            kustoIngestQueryResponse = new KustoIngestQueryResponse(response);
         } catch (DataServiceException | DataClientException e) {
             getLogger().error("Azure Data Explorer Ingest execution failed", e);
-            kustoQueryResponse = new KustoQueryResponse(true, e.getMessage());
+            kustoIngestQueryResponse = new KustoIngestQueryResponse(true, e.getMessage());
         }
-        return kustoQueryResponse;
+        return kustoIngestQueryResponse;
+    }
+
+    @Override
+    public KustoIngestQueryResponse checkIfStreamingIsEnabled(String databaseName, String query) {
+        KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
+        kustoIngestQueryResponse.setStreamingPolicyEnabled(false);
+        if (!kustoIngestQueryResponse.getQueryResult().isEmpty()) {
+            List<String> row = kustoIngestQueryResponse.getQueryResult().get(0);
+            if (!row.isEmpty()) {
+                String streamingPolicy = row.get(2);
+                if (!streamingPolicy.isEmpty()) {
+                    kustoIngestQueryResponse.setStreamingPolicyEnabled(true);
+                }
+            }
+        }
+        return kustoIngestQueryResponse;
+    }
+
+    @Override
+    public KustoIngestQueryResponse checkIfIngestorPrivilegeIsEnabled(String databaseName, String query) {
+        KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
+        if (kustoIngestQueryResponse.isError()) {
+            kustoIngestQueryResponse.setIngestorRoleEnabled(false);
+        }else {
+            kustoIngestQueryResponse.setIngestorRoleEnabled(true);
+        }
+        return kustoIngestQueryResponse;
     }
 
     private IngestionMapping.IngestionMappingKind setDataFormatAndMapping(String dataFormat, IngestionProperties ingestionProperties) {

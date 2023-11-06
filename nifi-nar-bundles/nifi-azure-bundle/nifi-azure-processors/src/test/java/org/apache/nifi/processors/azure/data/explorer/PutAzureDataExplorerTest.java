@@ -17,9 +17,9 @@
 package org.apache.nifi.processors.azure.data.explorer;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.azure.data.explorer.KustoIngestQueryResponse;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestService;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionResult;
-import org.apache.nifi.services.azure.data.explorer.KustoQueryResponse;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.when;
 
@@ -54,7 +56,7 @@ public class PutAzureDataExplorerTest {
     private KustoIngestService kustoIngestService;
 
     @Mock
-    private List<List<Object>> queryResult;
+    private Map<Integer,List<String>> queryResult;
 
     private TestRunner runner;
 
@@ -65,12 +67,12 @@ public class PutAzureDataExplorerTest {
         when(kustoIngestService.getIdentifier()).thenReturn(SERVICE_ID);
         runner.addControllerService(SERVICE_ID, kustoIngestService);
         runner.enableControllerService(kustoIngestService);
-        queryResult = new ArrayList<>();
-        List<Object> row = new ArrayList<>();
+        queryResult = new HashMap<>();
+        List<String> row = new ArrayList<>();
         row.add("test1");
         row.add("test2");
         row.add("test3");
-        queryResult.add(row);
+        queryResult.put(0,row);
     }
 
     @Test
@@ -87,7 +89,7 @@ public class PutAzureDataExplorerTest {
     }
 
     @Test
-    void testRunSuccessNonTransactional() throws URISyntaxException {
+    void testRunSuccessQueuedIngestion() throws URISyntaxException {
         runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
         runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
@@ -96,8 +98,9 @@ public class PutAzureDataExplorerTest {
 
         runner.enqueue(EMPTY);
 
-        KustoQueryResponse kustoQueryResponse = Mockito.mock(KustoQueryResponse.class);
-        when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
+        kustoQueryResponse.setIngestorRoleEnabled(true);
+        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
@@ -107,7 +110,7 @@ public class PutAzureDataExplorerTest {
     }
 
     @Test
-    void testRunFailureNonTransactional() throws URISyntaxException {
+    void testRunFailureQueuedIngestion() throws URISyntaxException {
         runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
         runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
@@ -116,8 +119,33 @@ public class PutAzureDataExplorerTest {
 
         runner.enqueue(EMPTY);
 
-        KustoQueryResponse kustoQueryResponse = Mockito.mock(KustoQueryResponse.class);
-        when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
+        kustoQueryResponse.setIngestorRoleEnabled(true);
+        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.FAILED;
+        when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.FAILURE);
+    }
+
+    @Test
+    void testRunSuccessStreamingIngestion() throws URISyntaxException{
+        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
+        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
+        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, Boolean.TRUE.toString());
+
+        runner.enqueue(EMPTY);
+
+        KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
+        kustoQueryResponse.setStreamingPolicyEnabled(true);
+        kustoQueryResponse.setIngestorRoleEnabled(true);
+        when(kustoIngestService.checkIfStreamingIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
@@ -127,39 +155,21 @@ public class PutAzureDataExplorerTest {
     }
 
     @Test
-    void testRunSuccessStreaming() throws URISyntaxException{
+    void testRunFailureStreamingIngestion() throws URISyntaxException{
         runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
         runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
         runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
         runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
-        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, "true");
+        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, Boolean.TRUE.toString());
 
         runner.enqueue(EMPTY);
 
-        KustoQueryResponse kustoQueryResponse = new KustoQueryResponse(queryResult);
-        when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
-        final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
-        when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutAzureDataExplorer.SUCCESS);
-    }
-
-    @Test
-    void testRunSuccessStreamingFailure() throws URISyntaxException{
-        runner.setProperty(PutAzureDataExplorer.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(PutAzureDataExplorer.TABLE_NAME, TABLE_NAME);
-        runner.setProperty(PutAzureDataExplorer.MAPPING_NAME, MAPPING_NAME);
-        runner.setProperty(PutAzureDataExplorer.DATA_FORMAT, DATA_FORMAT);
-        runner.setProperty(PutAzureDataExplorer.ADX_SERVICE, SERVICE_ID);
-        runner.setProperty(PutAzureDataExplorer.IS_STREAMING_ENABLED, "true");
-
-        runner.enqueue(EMPTY);
-
-        KustoQueryResponse kustoQueryResponse = new KustoQueryResponse(queryResult);
-        when(kustoIngestService.executeQuery(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
+        kustoQueryResponse.setStreamingPolicyEnabled(true);
+        kustoQueryResponse.setIngestorRoleEnabled(true);
+        when(kustoIngestService.checkIfStreamingIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.FAILED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 

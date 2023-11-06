@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.data.explorer;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -27,40 +28,35 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestDataFormat;
+import org.apache.nifi.services.azure.data.explorer.KustoIngestQueryResponse;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestService;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionRequest;
 import org.apache.nifi.services.azure.data.explorer.KustoIngestionResult;
-import org.apache.nifi.services.azure.data.explorer.KustoQueryResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"Azure", "Kusto", "ADX", "Explorer", "Data"})
 @CapabilityDescription("The PutAzureDataExplorer acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster.")
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final String FETCH_TABLE_COMMAND = "%s | count";
     public static final String STREAMING_POLICY_SHOW_COMMAND = ".show %s %s policy streamingingestion";
     public static final String DATABASE = "database";
-
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
-    private transient KustoIngestService service;
-    private boolean streamingEnabled;
-    private boolean pollOnIngestionStatus;
-
     public static final AllowableValue IGNORE_FIRST_RECORD_YES = new AllowableValue(
             "YES", "YES",
             "Ignore first record during ingestion");
@@ -77,7 +73,6 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
             .displayName("Table Name")
@@ -86,7 +81,6 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-
     public static final PropertyDescriptor MAPPING_NAME = new PropertyDescriptor
             .Builder().name("Ingest Mapping name")
             .displayName("Ingest Mapping name")
@@ -94,25 +88,23 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
-            .Builder().name("Streaming enabled")
-            .displayName("Streaming enabled")
+            .Builder().name("Streaming Enabled")
+            .displayName("Streaming Enabled")
             .description("This property determines whether we want to stream data to ADX.")
             .required(false)
-            .allowableValues("true", "false")
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("false")
+            .defaultValue(Boolean.FALSE.toString())
             .build();
-
     public static final PropertyDescriptor POLL_ON_INGESTION_STATUS = new PropertyDescriptor
-            .Builder().name("Poll on ingestion status")
-            .displayName("Whether to Poll on ingestion status")
+            .Builder().name("Poll On Ingestion Status")
+            .displayName("Whether To Poll On Ingestion Status")
             .description("This property determines whether we want to poll on ingestion status after an ingestion to ADX is completed")
             .required(false)
-            .allowableValues("true", "false")
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("false")
+            .defaultValue(Boolean.FALSE.toString())
             .build();
     public static final PropertyDescriptor ADX_SERVICE = new PropertyDescriptor
             .Builder().name("Kusto Ingest Service")
@@ -121,8 +113,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(KustoIngestService.class)
             .build();
-
-    static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor.Builder()
             .name("Data Format")
             .displayName("Data Format")
             .description("The format of the data that is sent to Azure Data Explorer.")
@@ -130,8 +121,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .allowableValues(KustoIngestDataFormat.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
-    static final PropertyDescriptor IGNORE_FIRST_RECORD = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor IGNORE_FIRST_RECORD = new PropertyDescriptor.Builder()
             .name("Ingestion Ignore First Record")
             .displayName("Ingestion Ignore First Record")
             .description("Defines whether ignore first record while ingestion.")
@@ -139,47 +129,48 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .allowableValues(IGNORE_FIRST_RECORD_YES, IGNORE_FIRST_RECORD_NO)
             .defaultValue(IGNORE_FIRST_RECORD_NO.getValue())
             .build();
-
-    static final PropertyDescriptor ROUTE_PARTIALLY_SUCCESSFUL_INGESTION = new PropertyDescriptor.Builder()
-            .name("Route partially successful ingestion records")
-            .displayName("Route partially successful ingestion records")
-            .description("Defines where to route partially successful ingestion records.")
+    public static final PropertyDescriptor INGESTION_STATUS_POLLING_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Ingest Status Polling Timeout")
+            .displayName("Ingest Status Polling Timeout")
+            .description("Defines the value of timeout for polling on ingestion status")
             .required(false)
-            .allowableValues("Success", "Failure")
-            .defaultValue("Failure")
+            .dependsOn(POLL_ON_INGESTION_STATUS, Boolean.TRUE.toString())
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 m")
             .build();
-
-    static final PropertyDescriptor INGESTION_STATUS_POLLING_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Timeout for polling on ingestion status")
-            .displayName("Timeout for polling on ingestion status in seconds")
-            .description("Defines the value of timeout for polling on ingestion status in seconds")
-            .required(false)
-            .dependsOn(POLL_ON_INGESTION_STATUS, "true")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("600")
-            .build();
-
-    static final PropertyDescriptor INGESTION_STATUS_POLLING_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Ingestion status polling interval")
-            .displayName("Ingestion status polling interval in seconds")
+    public static final PropertyDescriptor INGESTION_STATUS_POLLING_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Ingest Status Polling Interval")
+            .displayName("Ingest Status Polling Interval")
             .description("Defines the value of timeout for polling on ingestion status in seconds.")
             .required(false)
-            .dependsOn(POLL_ON_INGESTION_STATUS, "true")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("5")
+            .dependsOn(POLL_ON_INGESTION_STATUS, Boolean.TRUE.toString())
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("5 s")
             .build();
-
     public static final Relationship SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Relationship for success")
+            .name("Success")
+            .description("Relationship For Success")
             .build();
     public static final Relationship FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Relationship for failure")
+            .name("Failure")
+            .description("Relationship For Failure")
             .build();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
+    public static final PropertyDescriptor ROUTE_PARTIALLY_SUCCESSFUL_INGESTION = new PropertyDescriptor.Builder()
+            .name("Route Partially Successful Ingestion Records")
+            .displayName("Route Partially Successful Ingestion Records")
+            .description("Defines where to route partially successful ingestion records.")
+            .required(false)
+            .allowableValues(SUCCESS.getName(), FAILURE.getName())
+            .defaultValue(FAILURE.getName())
+            .build();
+    private static final List<PropertyDescriptor> descriptors;
+    private static final Set<Relationship> relationships;
+    private transient KustoIngestService service;
+    private boolean streamingEnabled;
+    private boolean pollOnIngestionStatus;
+
+    static  {
         final List<PropertyDescriptor> descriptorList = new ArrayList<>();
         descriptorList.add(ADX_SERVICE);
         descriptorList.add(DATABASE_NAME);
@@ -192,12 +183,12 @@ public class PutAzureDataExplorer extends AbstractProcessor {
         descriptorList.add(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION);
         descriptorList.add(INGESTION_STATUS_POLLING_TIMEOUT);
         descriptorList.add(INGESTION_STATUS_POLLING_INTERVAL);
-        this.descriptors = Collections.unmodifiableList(descriptorList);
+        descriptors = Collections.unmodifiableList(descriptorList);
 
         final Set<Relationship> relationshipSet = new HashSet<>();
         relationshipSet.add(SUCCESS);
         relationshipSet.add(FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationshipSet);
+        relationships = Collections.unmodifiableSet(relationshipSet);
     }
 
     @Override
@@ -213,14 +204,14 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         service = context.getProperty(ADX_SERVICE).asControllerService(KustoIngestService.class);
-        if (checkIfIngestorRoleDoesntExist(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(TABLE_NAME).getValue())) {
-            getLogger().error("User might not have ingestor privileges, table validation will be skipped for all table mappings.");
-            throw new ProcessException("User might not have ingestor privileges, table validation will be skipped for all table mappings. ");
+        if (!checkIfIngestorRoleExistInADX(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(TABLE_NAME).getValue())) {
+            throw new ProcessException(
+                    String.format("User does not have ingestor privileges for database %s and table %s", context.getProperty(DATABASE_NAME).getValue(), context.getProperty(TABLE_NAME).getValue())
+            );
         }
         streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
         if (streamingEnabled && !checkIfStreamingPolicyIsEnabledInADX(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(DATABASE_NAME).getValue())) {
-            getLogger().error("Streaming policy is not enabled in database {}", context.getProperty(DATABASE_NAME).getValue());
-            throw new ProcessException("Streaming policy is not enabled in database {}" + context.getProperty(DATABASE_NAME).getValue());
+            throw new ProcessException(String.format("Streaming policy is not enabled in database %s",context.getProperty(DATABASE_NAME).getValue()));
         }
     }
 
@@ -231,79 +222,70 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             return;
         }
 
+        Relationship transferRelationship = Relationship.SELF;
+
         String databaseName = context.getProperty(DATABASE_NAME).getValue();
         String tableName = context.getProperty(TABLE_NAME).getValue();
         String dataFormat = context.getProperty(DATA_FORMAT).getValue();
         String mappingName = context.getProperty(MAPPING_NAME).getValue();
         String routePartiallySuccessfulIngestion = context.getProperty(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION).getValue();
-        String ingestionStatusPollingTimeout = context.getProperty(INGESTION_STATUS_POLLING_TIMEOUT).getValue();
-        String ingestionStatusPollingInterval = context.getProperty(INGESTION_STATUS_POLLING_INTERVAL).getValue();
+        Duration ingestionStatusPollingTimeout = Duration.ofSeconds(context.getProperty(INGESTION_STATUS_POLLING_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
+        Duration ingestionStatusPollingInterval = Duration.ofSeconds(context.getProperty(INGESTION_STATUS_POLLING_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
         String ignoreFirstRecord = context.getProperty(IGNORE_FIRST_RECORD).getValue();
         streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
         pollOnIngestionStatus = context.getProperty(POLL_ON_INGESTION_STATUS).evaluateAttributeExpressions().asBoolean();
 
-        boolean isError = false;
-
         // ingestion into ADX
         try (final InputStream inputStream = session.read(flowFile)) {
-            StringBuilder ingestLogString = new StringBuilder().append("Ingesting with: ")
-                    .append("dataFormat - ").append(dataFormat).append("|")
-                    .append("ingestionMappingName - ").append(mappingName).append("|")
-                    .append("databaseName - ").append(databaseName).append("|")
-                    .append("tableName - ").append(tableName).append("|")
-                    .append("pollOnIngestionStatus - ").append(pollOnIngestionStatus).append("|")
-                    .append("ingestionStatusPollingTimeout - ").append(ingestionStatusPollingTimeout).append("|")
-                    .append("ingestionStatusPollingInterval - ").append(ingestionStatusPollingInterval).append("|")
-                    .append("routePartiallySuccessfulIngestion - ").append(routePartiallySuccessfulIngestion);
-            getLogger().debug(ingestLogString.toString());
+            getLogger().debug("Ingesting with: dataFormat - {} | ingestionMappingName - {} | databaseName - {} | tableName - {} | " +
+                            "pollOnIngestionStatus - {} | ingestionStatusPollingTimeout - {} | ingestionStatusPollingInterval - {} | " +
+                            "routePartiallySuccessfulIngestion - {}",
+                    dataFormat, mappingName, databaseName, tableName, pollOnIngestionStatus,
+                    ingestionStatusPollingTimeout, ingestionStatusPollingInterval, routePartiallySuccessfulIngestion);
 
             KustoIngestionResult result = service.ingestData(
                     new KustoIngestionRequest(streamingEnabled, pollOnIngestionStatus, inputStream, databaseName,
                             tableName, dataFormat, mappingName, ignoreFirstRecord, ingestionStatusPollingTimeout, ingestionStatusPollingInterval)
             );
-            getLogger().info("Ingest Status Polling Enabled {} and Ingest Status Polling Enabled {} ", pollOnIngestionStatus, result.toString());
+            getLogger().debug("Ingest Status Polling Enabled {} and Ingest Status Polling Enabled {} ", pollOnIngestionStatus, result);
 
             if (result == KustoIngestionResult.SUCCEEDED) {
                 getLogger().info("Ingest Completed - {}", result.getStatus());
+                transferRelationship = SUCCESS;
             } else if (result == KustoIngestionResult.FAILED) {
                 getLogger().error("Ingest Failed - {}", result.getStatus());
-                isError = true;
+                transferRelationship = FAILURE;
             } else if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
                 getLogger().warn("Ingest Partially succeeded - {}", result.getStatus());
                 flowFile = session.putAttribute(flowFile, "ingestion_status", "partial_success");
-                if (StringUtils.equalsIgnoreCase(routePartiallySuccessfulIngestion, "Failure")) {
-                    isError = true;
+                if (StringUtils.equalsIgnoreCase(routePartiallySuccessfulIngestion, FAILURE.getName())) {
+                    transferRelationship = FAILURE;
+                }else {
+                    transferRelationship = SUCCESS;
                 }
             }
-
         } catch (IOException | URISyntaxException e) {
             getLogger().error("Azure Data Explorer Ingest processing failed", e);
-            isError = true;
+            transferRelationship = FAILURE;
         }
 
-        if (isError) {
-            getLogger().error("Ingest processing failed {}", flowFile);
-            session.transfer(flowFile, FAILURE);
-        }else {
-            getLogger().info("Ingest processing completed {}", flowFile);
+        if (transferRelationship == SUCCESS) {
             session.transfer(flowFile, SUCCESS);
+        } else {
+            session.transfer(flowFile, FAILURE);
         }
     }
 
     protected boolean checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {
-        KustoQueryResponse kustoQueryResponse = service.executeQuery(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
-        if (kustoQueryResponse.isError()) {
-            throw new ProcessException(String.format("Error occurred while checking if streaming policy is enabled for the table for entity %s in database %s",entityName,database));
+        KustoIngestQueryResponse kustoIngestQueryResponse = service.checkIfStreamingIsEnabled(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
+        if (kustoIngestQueryResponse.isError()) {
+            throw new ProcessException(String.format("Error occurred while checking if streaming policy is enabled for the table for entity %s in database %s", entityName, database));
         }
-        List<List<Object>> queryResult = kustoQueryResponse.getQueryResult();;
-        if ( queryResult.get(0) !=null && queryResult.get(0).get(2)!=null && StringUtils.isNotEmpty(queryResult.get(0).get(2).toString())) {
-            return true;
-        }
-        return false;
+        return kustoIngestQueryResponse.isStreamingPolicyEnabled();
     }
 
-    protected boolean checkIfIngestorRoleDoesntExist(String databaseName, String tableName) {
-        KustoQueryResponse kustoQueryResponse = service.executeQuery(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
-        return kustoQueryResponse.isError();
+    protected boolean checkIfIngestorRoleExistInADX(String databaseName, String tableName) {
+        KustoIngestQueryResponse kustoIngestQueryResponse = service.checkIfIngestorPrivilegeIsEnabled(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
+        return kustoIngestQueryResponse.isIngestorRoleEnabled();
     }
 }
