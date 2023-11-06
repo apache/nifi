@@ -36,9 +36,7 @@
                     </div>
                     <div class="flex flex-col">
                         <div class="operation-context-name">{{ getContextName(selection) }}</div>
-                        <div *ngIf="selection.size() === 1" class="operation-context-type">
-                            {{ getContextType(selection) }}
-                        </div>
+                        <div class="operation-context-type">{{ getContextType(selection) }}</div>
                     </div>
                 </div>
                 <div class="operation-context-id">{{ getContextId(selection) }}</div>

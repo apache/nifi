@@ -17,5 +17,5 @@
 
 <div class="graph-controls flex flex-col gap-y-0.5">
     <navigation-control [shouldDockWhenCollapsed]="(operationCollapsed$ | async)!"></navigation-control>
-    <operation-control [shouldDockWhenCollapsed]="(navigationCollapsed$ | async)!"></operation-control>
+    <operation-control [shouldDockWhenCollapsed]="(navigationCollapsed$ | async)!" [breadcrumbEntity]="(breadcrumbEntity$ | async)!"></operation-control>
 </div>

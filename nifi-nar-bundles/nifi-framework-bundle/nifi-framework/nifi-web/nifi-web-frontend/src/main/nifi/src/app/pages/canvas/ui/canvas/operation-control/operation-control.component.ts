@@ -22,7 +22,7 @@ import { CanvasState } from '../../../state';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { initialState } from '../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../service/storage.service';
-import { DeleteComponent } from '../../../state/flow';
+import { BreadcrumbEntity, DeleteComponent } from '../../../state/flow';
 
 @Component({
     selector: 'operation-control',
@@ -34,6 +34,7 @@ export class OperationControl {
     private static readonly OPERATION_KEY: string = 'operation-control';
 
     @Input() shouldDockWhenCollapsed!: boolean;
+    @Input() breadcrumbEntity!: BreadcrumbEntity;
 
     operationCollapsed: boolean = initialState.operationCollapsed;
 
@@ -68,9 +69,17 @@ export class OperationControl {
     }
 
     getContextIcon(selection: any): string {
-        if (selection.size() === 0 || selection.size() > 1) {
+        if (selection.size() === 0) {
+            if (this.breadcrumbEntity.parentBreadcrumb == null) {
+                return 'icon-drop';
+            } else {
+                return 'icon-group';
+            }
+        } else if (selection.size() > 1) {
             return 'icon-drop';
-        } else if (this.canvasUtils.isProcessor(selection)) {
+        }
+
+        if (this.canvasUtils.isProcessor(selection)) {
             return 'icon-processor';
         } else if (this.canvasUtils.isInputPort(selection)) {
             return 'icon-port-in';
@@ -84,13 +93,18 @@ export class OperationControl {
             return 'icon-group';
         } else if (this.canvasUtils.isRemoteProcessGroup(selection)) {
             return 'icon-group-remote';
+        } else {
+            return 'icon-connect';
         }
-        return '';
     }
 
     getContextName(selection: any): string {
         if (selection.size() === 0) {
-            return '';
+            if (this.breadcrumbEntity.permissions.canRead) {
+                return this.breadcrumbEntity.breadcrumb.name;
+            } else {
+                return this.breadcrumbEntity.id;
+            }
         } else if (selection.size() > 1) {
             return 'Multiple components selected';
         }
@@ -110,6 +124,12 @@ export class OperationControl {
     }
 
     getContextType(selection: any): string {
+        if (selection.size() === 0) {
+            return 'Process Group';
+        } else if (selection.size() > 1) {
+            return '';
+        }
+
         if (this.canvasUtils.isProcessor(selection)) {
             return 'Processor';
         } else if (this.canvasUtils.isInputPort(selection)) {
@@ -131,7 +151,7 @@ export class OperationControl {
 
     getContextId(selection: any): string {
         if (selection.size() === 0) {
-            return 'current pg id';
+            return this.breadcrumbEntity.id;
         } else if (selection.size() > 1) {
             return '';
         }

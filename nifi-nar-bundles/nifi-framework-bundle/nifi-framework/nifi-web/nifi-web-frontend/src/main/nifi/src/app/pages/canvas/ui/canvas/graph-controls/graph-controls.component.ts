@@ -18,7 +18,11 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
-import { selectNavigationCollapsed, selectOperationCollapsed } from '../../../state/flow/flow.selectors';
+import {
+    selectBreadcrumbs,
+    selectNavigationCollapsed,
+    selectOperationCollapsed
+} from '../../../state/flow/flow.selectors';
 
 @Component({
     selector: 'graph-controls',
@@ -28,6 +32,7 @@ import { selectNavigationCollapsed, selectOperationCollapsed } from '../../../st
 export class GraphControls {
     navigationCollapsed$ = this.store.select(selectNavigationCollapsed);
     operationCollapsed$ = this.store.select(selectOperationCollapsed);
+    breadcrumbEntity$ = this.store.select(selectBreadcrumbs);
 
     constructor(private store: Store<CanvasState>) {}
 }
