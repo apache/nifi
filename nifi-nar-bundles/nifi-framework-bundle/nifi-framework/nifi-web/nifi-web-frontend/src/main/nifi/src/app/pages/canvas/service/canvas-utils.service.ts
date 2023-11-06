@@ -30,7 +30,7 @@ import { initialState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
-import { Permissions } from '../../../state/shared';
+import { ComponentType, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({
@@ -115,6 +115,13 @@ export class CanvasUtils {
             this.isOutputPort(selection) ||
             (this.isInputPort(selection) && this.parentProcessGroupId !== null)
         );
+    }
+
+    /**
+     * Removes the temporary if necessary.
+     */
+    removeTempEdge(): void {
+        d3.select('path.connector').remove();
     }
 
     /**
@@ -459,6 +466,50 @@ export class CanvasUtils {
             destinationId = connection.destinationGroupId;
         }
         return destinationId;
+    }
+
+    /**
+     * Determines the connectable type for the specified source.
+     *
+     * @argument {type} ComponentType      The component type
+     */
+    getConnectableTypeForSource(type: ComponentType): string {
+        switch (type) {
+            case ComponentType.Processor:
+                return 'PROCESSOR';
+            case ComponentType.RemoteProcessGroup:
+                return 'REMOTE_OUTPUT_PORT';
+            case ComponentType.ProcessGroup:
+                return 'OUTPUT_PORT';
+            case ComponentType.InputPort:
+                return 'INPUT_PORT';
+            case ComponentType.Funnel:
+                return 'FUNNEL';
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Determines the connectable type for the specified destination.
+     *
+     * @argument {type} ComponentType      The component type
+     */
+    getConnectableTypeForDestination(type: ComponentType): string {
+        switch (type) {
+            case ComponentType.Processor:
+                return 'PROCESSOR';
+            case ComponentType.RemoteProcessGroup:
+                return 'REMOTE_INPUT_PORT';
+            case ComponentType.ProcessGroup:
+                return 'INPUT_PORT';
+            case ComponentType.OutputPort:
+                return 'OUTPUT_PORT';
+            case ComponentType.Funnel:
+                return 'FUNNEL';
+            default:
+                return '';
+        }
     }
 
     /**

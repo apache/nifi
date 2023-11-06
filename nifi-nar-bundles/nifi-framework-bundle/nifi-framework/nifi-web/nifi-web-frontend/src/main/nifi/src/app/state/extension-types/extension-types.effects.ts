@@ -34,13 +34,15 @@ export class ExtensionTypesEffects {
             switchMap(() =>
                 combineLatest([
                     this.extensionTypesService.getProcessorTypes(),
-                    this.extensionTypesService.getControllerServiceTypes()
+                    this.extensionTypesService.getControllerServiceTypes(),
+                    this.extensionTypesService.getPrioritizers()
                 ]).pipe(
-                    map(([processorTypes, controllerServiceTypes]) =>
+                    map(([processorTypes, controllerServiceTypes, prioritizerTypes]) =>
                         ExtensionTypesActions.loadExtensionTypesForCanvasSuccess({
                             response: {
                                 processorTypes: processorTypes.processorTypes,
-                                controllerServiceTypes: controllerServiceTypes.controllerServiceTypes
+                                controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
+                                prioritizers: prioritizerTypes.prioritizerTypes
                             }
                         })
                     ),

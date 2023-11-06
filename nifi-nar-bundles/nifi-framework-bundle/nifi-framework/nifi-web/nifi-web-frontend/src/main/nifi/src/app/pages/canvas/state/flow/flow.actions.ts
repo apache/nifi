@@ -19,9 +19,12 @@ import { createAction, props } from '@ngrx/store';
 import {
     CreateComponent,
     CreateComponentResponse,
+    CreateConnection,
+    CreateConnectionDialogRequest,
+    CreateConnectionRequest,
     CreatePort,
     CreateProcessGroup,
-    CreateProcessGroupRequest,
+    CreateProcessGroupDialogRequest,
     CreateProcessor,
     DeleteComponent,
     DeleteComponentResponse,
@@ -123,7 +126,7 @@ export const createLabel = createAction('[Canvas] Create Label', props<{ request
 
 export const openNewProcessGroupDialog = createAction(
     '[Canvas] Open New Process Group Dialog',
-    props<{ request: CreateProcessGroupRequest }>()
+    props<{ request: CreateProcessGroupDialogRequest }>()
 );
 
 export const createProcessGroup = createAction(
@@ -142,6 +145,18 @@ export const openNewProcessorDialog = createAction(
 );
 
 export const createProcessor = createAction('[Canvas] Create Processor', props<{ request: CreateProcessor }>());
+
+export const getDefaultsAndOpenNewConnectionDialog = createAction(
+    '[Canvas] Get Defaults And Open New Connection Dialog',
+    props<{ request: CreateConnectionRequest }>()
+);
+
+export const openNewConnectionDialog = createAction(
+    '[Canvas] Open New Connection Dialog',
+    props<{ request: CreateConnectionDialogRequest }>()
+);
+
+export const createConnection = createAction('[Canvas] Create Connection', props<{ request: CreateConnection }>());
 
 export const openNewPortDialog = createAction('[Canvas] Open New Port Dialog', props<{ request: CreateComponent }>());
 

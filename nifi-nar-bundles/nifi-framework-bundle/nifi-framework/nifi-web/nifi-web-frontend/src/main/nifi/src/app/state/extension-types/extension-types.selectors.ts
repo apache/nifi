@@ -30,6 +30,11 @@ export const selectControllerServiceTypes = createSelector(
     (state: ExtensionTypesState) => state.controllerServiceTypes
 );
 
+export const selectPrioritizerTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.prioritizerTypes
+);
+
 export const selectReportingTaskTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.reportingTaskTypes

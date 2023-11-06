@@ -28,6 +28,7 @@ import {
 export const initialState: ExtensionTypesState = {
     processorTypes: [],
     controllerServiceTypes: [],
+    prioritizerTypes: [],
     reportingTaskTypes: [],
     flowAnalysisRuleTypes: [],
     parameterProviderTypes: [],
@@ -45,6 +46,7 @@ export const extensionTypesReducer = createReducer(
         ...state,
         processorTypes: response.processorTypes,
         controllerServiceTypes: response.controllerServiceTypes,
+        prioritizerTypes: response.prioritizers,
         error: null,
         status: 'success' as const
     })),

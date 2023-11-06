@@ -160,6 +160,7 @@ export class DraggableBehavior {
                 if (group.empty()) {
                     self.updateComponentsPosition(dragSelection);
                 } else {
+                    // TODO - move components
                     // updateComponentsGroup(group);
                 }
 

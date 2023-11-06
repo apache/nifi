@@ -17,7 +17,7 @@
 
 import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { CreateProcessGroupRequest } from '../../../state/flow';
+import { CreateProcessGroupDialogRequest } from '../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../state/flow/flow.actions';
@@ -73,7 +73,7 @@ export class CreateProcessGroup {
     flowDefinition: File | null = null;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessGroupRequest,
+        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessGroupDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
         private nifiCommon: NiFiCommon

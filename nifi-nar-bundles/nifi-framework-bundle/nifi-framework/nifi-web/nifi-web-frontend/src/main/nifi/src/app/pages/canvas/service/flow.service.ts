@@ -21,6 +21,7 @@ import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 import {
     CreateComponent,
+    CreateConnection,
     CreatePort,
     CreateProcessGroup,
     CreateProcessor,
@@ -95,6 +96,10 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/connections/${id}`);
     }
 
+    getProcessGroup(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/process-groups/${id}`);
+    }
+
     createFunnel(processGroupId: string = 'root', createFunnel: CreateComponent): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/funnels`, {
             revision: createFunnel.revision,
@@ -122,6 +127,13 @@ export class FlowService {
                 bundle: createProcessor.processorBundle
             }
         });
+    }
+
+    createConnection(processGroupId: string = 'root', createConnection: CreateConnection): Observable<any> {
+        return this.httpClient.post(
+            `${FlowService.API}/process-groups/${processGroupId}/connections`,
+            createConnection.payload
+        );
     }
 
     createProcessGroup(processGroupId: string = 'root', createProcessGroup: CreateProcessGroup): Observable<any> {

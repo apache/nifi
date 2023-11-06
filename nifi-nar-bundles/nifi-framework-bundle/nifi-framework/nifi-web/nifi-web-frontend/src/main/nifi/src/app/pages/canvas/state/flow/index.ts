@@ -67,7 +67,25 @@ export interface CreateComponent {
     revision: any;
 }
 
-export interface CreateProcessGroupRequest {
+export interface CreateConnectionRequest {
+    source: SelectedComponent;
+    destination: SelectedComponent;
+}
+
+export interface CreateConnectionDialogRequest {
+    request: CreateConnectionRequest;
+    defaults: {
+        flowfileExpiration: string;
+        objectThreshold: number;
+        dataSizeThreshold: string;
+    };
+}
+
+export interface CreateConnection {
+    payload: any;
+}
+
+export interface CreateProcessGroupDialogRequest {
     request: CreateComponent;
     parameterContexts: ParameterContextEntity[];
 }
@@ -237,6 +255,13 @@ export interface BreadcrumbEntity {
     versionedFlowState: string;
     breadcrumb: Breadcrumb;
     parentBreadcrumb?: BreadcrumbEntity;
+}
+
+export interface Relationship {
+    autoTerminate: boolean;
+    description: string;
+    name: string;
+    retry: boolean;
 }
 
 export interface Flow {

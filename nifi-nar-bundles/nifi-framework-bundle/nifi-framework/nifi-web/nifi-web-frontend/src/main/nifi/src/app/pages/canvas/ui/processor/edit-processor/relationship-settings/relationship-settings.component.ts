@@ -27,13 +27,7 @@ import { NiFiCommon } from '../../../../../../service/nifi-common.service';
 import { NifiTooltipDirective } from '../../../../../../ui/common/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { MatIconModule } from '@angular/material/icon';
-
-export interface Relationship {
-    autoTerminate: boolean;
-    retry: boolean;
-    name: string;
-    description: string;
-}
+import { Relationship } from '../../../../state/flow';
 
 export interface RelationshipConfiguration {
     relationships: Relationship[];
@@ -69,6 +63,8 @@ export interface RelationshipConfiguration {
     ]
 })
 export class RelationshipSettings implements ControlValueAccessor {
+    protected readonly TextTip = TextTip;
+
     relationships!: Relationship[];
     backoffMechanism!: 'PENALIZE_FLOWFILE' | 'YIELD_PROCESSOR';
     maxBackoffPeriod!: string;
@@ -123,17 +119,11 @@ export class RelationshipSettings implements ControlValueAccessor {
     }
 
     private serializeRelationshipConfiguration(): RelationshipConfiguration {
-        const ret = {
+        return {
             relationships: [...this.relationships],
             backoffMechanism: this.backoffMechanism,
             maxBackoffPeriod: this.maxBackoffPeriod,
             retryCount: this.retryCount
         };
-
-        console.log('relationship config changed', ret);
-
-        return ret;
     }
-
-    protected readonly TextTip = TextTip;
 }

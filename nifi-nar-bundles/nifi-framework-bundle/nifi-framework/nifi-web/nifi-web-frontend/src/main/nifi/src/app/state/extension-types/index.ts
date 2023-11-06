@@ -22,6 +22,7 @@ export const extensionTypesFeatureKey = 'extensionTypes';
 export interface LoadExtensionTypesForCanvasResponse {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];
+    prioritizers: DocumentedType[];
 }
 
 export interface LoadExtensionTypesForSettingsResponse {
@@ -38,6 +39,7 @@ export interface CreateExtensionRequest {
 export interface ExtensionTypesState {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];
+    prioritizerTypes: DocumentedType[];
     reportingTaskTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];

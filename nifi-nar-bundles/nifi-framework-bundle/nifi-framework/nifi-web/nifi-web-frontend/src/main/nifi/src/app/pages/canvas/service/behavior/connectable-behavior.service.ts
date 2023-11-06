@@ -20,7 +20,7 @@ import * as d3 from 'd3';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
-import { selectComponents } from '../../state/flow/flow.actions';
+import { getDefaultsAndOpenNewConnectionDialog, selectComponents } from '../../state/flow/flow.actions';
 import { ConnectionManager } from '../manager/connection-manager.service';
 import { Position } from '../../state/shared';
 
@@ -179,21 +179,21 @@ export class ConnectableBehavior {
                 // get the add connect img
                 const addConnect: any = d3.select(this);
 
-                // get the connector, if it the current point is not over a new destination
+                // get the connector, if the current point is not over a new destination
                 // the connector will be removed. otherwise it will be removed after the
                 // connection has been configured/cancelled
                 const connector: any = d3.select('path.connector');
                 const connectorData: any = connector.datum();
+
+                // get the source
+                const source: any = d3.select('#id-' + connectorData.sourceId);
+                const sourceData: any = source.datum();
 
                 // get the destination
                 const destination: any = d3.select('g.connectable-destination');
 
                 // we are not over a new destination
                 if (destination.empty()) {
-                    // get the source to determine if we are still over it
-                    const source: any = d3.select('#id-' + connectorData.sourceId);
-                    const sourceData: any = source.datum();
-
                     // get the mouse position relative to the source
                     const position: any = d3.pointer(event, source.node());
 
@@ -222,19 +222,22 @@ export class ConnectableBehavior {
                     // create the connection
                     const destinationData = destination.datum();
 
-                    // TODO
-                    // $.ajax({
-                    //     type: 'GET',
-                    //     url: config.urls.api + '/process-groups/' + encodeURIComponent(destinationData.component.parentGroupId),
-                    //     dataType: 'json'
-                    // }).done(function (response) {
-                    //     var defaultSettings = {
-                    //         flowfileExpiration: response.component.defaultFlowFileExpiration,
-                    //         objectThreshold: response.component.defaultBackPressureObjectThreshold,
-                    //         dataSizeThreshold: response.component.defaultBackPressureDataSizeThreshold,
-                    //     };
-                    //     nfConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id, defaultSettings);
-                    // });
+                    self.store.dispatch(
+                        getDefaultsAndOpenNewConnectionDialog({
+                            request: {
+                                source: {
+                                    id: sourceData.id,
+                                    componentType: sourceData.type,
+                                    entity: sourceData
+                                },
+                                destination: {
+                                    id: destinationData.id,
+                                    componentType: destinationData.type,
+                                    entity: destinationData
+                                }
+                            }
+                        })
+                    );
                 }
             });
     }

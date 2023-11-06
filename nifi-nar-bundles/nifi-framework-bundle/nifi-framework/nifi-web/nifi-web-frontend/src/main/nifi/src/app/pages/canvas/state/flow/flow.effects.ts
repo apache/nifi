@@ -69,6 +69,7 @@ import { EditProcessor } from '../../ui/processor/edit-processor/edit-processor.
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { CreateProcessGroup } from '../../ui/process-group/create-process-group/create-process-group.component';
+import { CreateConnection } from '../../ui/connection/create-connection/create-connection.component';
 
 @Injectable()
 export class FlowEffects {
@@ -299,6 +300,86 @@ export class FlowEffects {
                         FlowActions.createComponentSuccess({
                             response: {
                                 type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    getDefaultsAndOpenNewConnectionDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.getDefaultsAndOpenNewConnectionDialog),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, currentProcessGroupId]) =>
+                from(this.flowService.getProcessGroup(currentProcessGroupId)).pipe(
+                    map((response) =>
+                        FlowActions.openNewConnectionDialog({
+                            request: {
+                                request,
+                                defaults: {
+                                    flowfileExpiration: response.component.defaultFlowFileExpiration,
+                                    objectThreshold: response.component.defaultBackPressureObjectThreshold,
+                                    dataSizeThreshold: response.component.defaultBackPressureDataSizeThreshold
+                                }
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openNewConnectionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewConnectionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(CreateConnection, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    dialogReference.componentInstance.getChildOutputPorts = (groupId: string): Observable<any> => {
+                        return this.flowService.getFlow(groupId).pipe(
+                            take(1),
+                            map((response) => response.processGroupFlow.flow.outputPorts)
+                        );
+                    };
+
+                    dialogReference.componentInstance.getChildInputPorts = (groupId: string): Observable<any> => {
+                        return this.flowService.getFlow(groupId).pipe(
+                            take(1),
+                            map((response) => response.processGroupFlow.flow.inputPorts)
+                        );
+                    };
+
+                    dialogReference.afterClosed().subscribe(() => {
+                        this.canvasUtils.removeTempEdge();
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createConnection),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createConnection(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: ComponentType.Connection,
                                 payload: response
                             }
                         })
