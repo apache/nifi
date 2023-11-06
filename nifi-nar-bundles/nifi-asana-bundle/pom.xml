@@ -72,6 +72,12 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <!-- Override grpc-context from Asana -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-context</artifactId>
+                <version>1.59.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

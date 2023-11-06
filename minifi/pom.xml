@@ -455,6 +455,18 @@ limitations under the License.
                 <artifactId>guava</artifactId>
                 <version>32.1.2-jre</version>
             </dependency>
+
+            <!-- Override Commons Compiler 3.1.9 from calcite-core -->
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>commons-compiler</artifactId>
+                <version>3.1.10</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>3.1.10</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
