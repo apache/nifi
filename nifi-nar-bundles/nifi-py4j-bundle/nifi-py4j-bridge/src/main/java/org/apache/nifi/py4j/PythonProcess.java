@@ -235,7 +235,7 @@ public class PythonProcess {
     private void installDebugPy() throws IOException {
         final String pythonCommand = processConfig.getPythonCommand();
 
-        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--upgrade", "debugpy", "--target",
+        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--no-cache-dir", "--upgrade", "debugpy", "--target",
             virtualEnvHome.getAbsolutePath());
         processBuilder.directory(virtualEnvHome);
 

@@ -485,7 +485,7 @@ class ExtensionManager:
             package_dir = os.path.dirname(processor_details.source_location)
             requirements_file = os.path.join(package_dir, 'requirements.txt')
             if os.path.exists(requirements_file):
-                args = [python_cmd, '-m', 'pip', 'install', '--target', target_dir, '-r', requirements_file]
+                args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir, '-r', requirements_file]
 
                 logger.info(f"Importing dependencies from requirements file for package {package_dir} to {target_dir} using command {args}")
                 result = subprocess.run(args)
@@ -498,7 +498,7 @@ class ExtensionManager:
         dependencies = processor_details.getDependencies()
         if len(dependencies) > 0:
             python_cmd = os.getenv("PYTHON_CMD")
-            args = [python_cmd, '-m', 'pip', 'install', '--target', target_dir]
+            args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir]
             for dep in dependencies:
                 args.append(dep)
 
