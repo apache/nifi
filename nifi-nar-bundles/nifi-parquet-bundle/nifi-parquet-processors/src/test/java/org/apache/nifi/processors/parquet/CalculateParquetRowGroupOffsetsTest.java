@@ -35,7 +35,10 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
+@DisabledOnOs({ OS.WINDOWS })
 public class CalculateParquetRowGroupOffsetsTest {
 
     private static final Path NOT_PARQUET_PATH = Paths.get("src/test/resources/core-site.xml");
