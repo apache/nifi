@@ -69,7 +69,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>5.15.15</version>
+            <version>5.15.16</version>
             <exclusions>
                 <!-- -->
                 <exclusion>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-broker</artifactId>
-            <version>5.15.15</version>
+            <version>5.15.16</version>
             <scope>test</scope>
         </dependency>
         <dependency>
