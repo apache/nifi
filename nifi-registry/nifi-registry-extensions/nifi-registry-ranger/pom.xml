@@ -48,12 +48,6 @@
                 <artifactId>jetty-webapp</artifactId>
                 <version>${jetty.version}</version>
             </dependency>
-            <!-- Override zookeeper -->
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>${zookeeper.version}</version>
-            </dependency>
             <!-- Override SolrJ 8.6.3 from Ranger -->
             <dependency>
                 <groupId>org.apache.solr</groupId>

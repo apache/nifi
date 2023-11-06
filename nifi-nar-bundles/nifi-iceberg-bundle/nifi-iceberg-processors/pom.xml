@@ -187,6 +187,14 @@
                     <artifactId>hbase-client</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-mapreduce</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop2-compat</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>co.cask.tephra</groupId>
                     <artifactId>tephra-api</artifactId>
                 </exclusion>
