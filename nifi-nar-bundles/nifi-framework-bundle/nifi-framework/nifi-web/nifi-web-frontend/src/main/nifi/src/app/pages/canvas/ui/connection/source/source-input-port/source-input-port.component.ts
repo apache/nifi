@@ -24,8 +24,8 @@ import { Component, Input } from '@angular/core';
     styleUrls: ['./source-input-port.component.scss']
 })
 export class SourceInputPort {
-    @Input() set inputPort(inputPort: any) {
-        this.name = inputPort.component.name;
+    @Input() set inputPortName(inputPortName: string) {
+        this.name = inputPortName;
     }
     @Input() groupName!: string;
 

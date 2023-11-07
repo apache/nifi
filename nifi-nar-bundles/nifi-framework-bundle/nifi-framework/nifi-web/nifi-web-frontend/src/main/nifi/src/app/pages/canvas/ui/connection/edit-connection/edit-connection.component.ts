@@ -17,7 +17,7 @@
 
 import { Component, Inject, Input } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { BreadcrumbEntity, CreateConnectionDialogRequest, SelectedComponent } from '../../../state/flow';
+import { BreadcrumbEntity, EditConnection } from '../../../state/flow';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { selectBreadcrumbs, selectSaving } from '../../../state/flow/flow.selectors';
@@ -38,7 +38,7 @@ import { selectPrioritizerTypes } from '../../../../../state/extension-types/ext
 import { Prioritizers } from '../prioritizers/prioritizers.component';
 import { SourceProcessor } from '../source/source-processor/source-processor.component';
 import { DestinationFunnel } from '../destination/destination-funnel/destination-funnel.component';
-import { createConnection } from '../../../state/flow/flow.actions';
+import { updateConnection } from '../../../state/flow/flow.actions';
 import { Client } from '../../../../../service/client.service';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { SourceFunnel } from '../source/source-funnel/source-funnel.component';
@@ -52,7 +52,7 @@ import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/
 import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
 
 @Component({
-    selector: 'create-connection',
+    selector: 'edit-connection',
     standalone: true,
     imports: [
         ExtensionCreation,
@@ -84,19 +84,46 @@ import { DestinationRemoteProcessGroup } from '../destination/destination-remote
         SourceRemoteProcessGroup,
         DestinationRemoteProcessGroup
     ],
-    templateUrl: './create-connection.component.html',
-    styleUrls: ['./create-connection.component.scss']
+    templateUrl: './edit-connection.component.html',
+    styleUrls: ['./edit-connection.component.scss']
 })
-export class CreateConnection {
+export class EditConnectionComponent {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
-        if (this.source.componentType == ComponentType.ProcessGroup) {
-            this.childOutputPorts$ = getChildOutputPorts(this.source.id);
+        if (this.sourceType == ComponentType.ProcessGroup) {
+            this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
         }
     }
 
     @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<any>) {
-        if (this.destination.componentType == ComponentType.ProcessGroup) {
-            this.childInputPorts$ = getChildInputPorts(this.destination.id);
+        if (this.destinationType == ComponentType.ProcessGroup) {
+            this.childInputPorts$ = getChildInputPorts(this.destinationGroupId);
+        }
+    }
+
+    @Input() set selectProcessor(selectProcessor: (id: string) => Observable<any>) {
+        if (this.sourceType == ComponentType.Processor) {
+            this.sourceProcessor$ = selectProcessor(this.source.id);
+        }
+        if (this.destinationType == ComponentType.Processor && this.destinationId) {
+            this.destinationProcessor$ = selectProcessor(this.destinationId);
+        }
+    }
+
+    @Input() set selectProcessGroup(selectProcessGroup: (id: string) => Observable<any>) {
+        if (this.sourceType == ComponentType.ProcessGroup) {
+            this.sourceProcessGroup$ = selectProcessGroup(this.source.groupId);
+        }
+        if (this.destinationType == ComponentType.ProcessGroup) {
+            this.destinationProcessGroup$ = selectProcessGroup(this.destinationGroupId);
+        }
+    }
+
+    @Input() set selectRemoteProcessGroup(selectRemoteProcessGroup: (id: string) => Observable<any>) {
+        if (this.sourceType == ComponentType.RemoteProcessGroup) {
+            this.sourceRemoteProcessGroup$ = selectRemoteProcessGroup(this.source.groupId);
+        }
+        if (this.destinationType == ComponentType.RemoteProcessGroup) {
+            this.destinationRemoteProcessGroup$ = selectRemoteProcessGroup(this.destinationGroupId);
         }
     }
 
@@ -153,55 +180,99 @@ export class CreateConnection {
         }
     ];
 
-    createConnectionForm: FormGroup;
-    source: SelectedComponent;
-    destination: SelectedComponent;
+    editConnectionForm: FormGroup;
 
+    source: any;
+    sourceType: ComponentType | null;
+
+    previousDestination: any;
+
+    destinationType: ComponentType | null;
+    destinationId: string | null = null;
+    destinationGroupId: string;
+    destinationName: string;
+
+    sourceProcessor$!: Observable<any> | null;
+    destinationProcessor$!: Observable<any> | null;
+    sourceProcessGroup$!: Observable<any> | null;
+    destinationProcessGroup$!: Observable<any> | null;
+    sourceRemoteProcessGroup$!: Observable<any> | null;
+    destinationRemoteProcessGroup$!: Observable<any> | null;
     childOutputPorts$!: Observable<any> | null;
     childInputPorts$!: Observable<any> | null;
 
     loadBalancePartitionAttributeRequired: boolean = false;
+    initialPartitionAttribute: string;
     loadBalanceCompressionRequired: boolean = false;
+    initialCompression: string;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateConnectionDialogRequest,
+        @Inject(MAT_DIALOG_DATA) private dialogRequest: EditConnection,
         private formBuilder: FormBuilder,
         private store: Store<NiFiState>,
         private canvasUtils: CanvasUtils,
         private client: Client
     ) {
-        this.source = dialogRequest.request.source;
-        this.destination = dialogRequest.request.destination;
+        const connection: any = dialogRequest.entity.component;
 
-        this.createConnectionForm = this.formBuilder.group({
-            name: new FormControl(''),
-            flowFileExpiration: new FormControl(dialogRequest.defaults.flowfileExpiration, Validators.required),
-            backPressureObjectThreshold: new FormControl(dialogRequest.defaults.objectThreshold, Validators.required),
+        this.source = connection.source;
+        this.sourceType = this.canvasUtils.getComponentTypeForSource(this.source.type);
+
+        // set the destination details accordingly so the proper component can be loaded.
+        // the user may be editing a connection or changing the destination
+        if (dialogRequest.newDestination) {
+            const newDestination: any = dialogRequest.newDestination;
+            this.destinationType = newDestination.type;
+            this.destinationGroupId = newDestination.groupId;
+            this.destinationName = newDestination.name;
+            if (newDestination.id) {
+                this.destinationId = newDestination.id;
+            }
+
+            this.previousDestination = connection.destination;
+        } else {
+            this.destinationType = this.canvasUtils.getComponentTypeForDestination(connection.destination.type);
+            this.destinationGroupId = connection.destination.groupId;
+            this.destinationId = connection.destination.id;
+            this.destinationName = connection.destination.name;
+        }
+
+        this.editConnectionForm = this.formBuilder.group({
+            name: new FormControl(connection.name),
+            flowFileExpiration: new FormControl(connection.flowFileExpiration, Validators.required),
+            backPressureObjectThreshold: new FormControl(connection.backPressureObjectThreshold, Validators.required),
             backPressureDataSizeThreshold: new FormControl(
-                dialogRequest.defaults.dataSizeThreshold,
+                connection.backPressureDataSizeThreshold,
                 Validators.required
             ),
-            loadBalanceStrategy: new FormControl('DO_NOT_LOAD_BALANCE', Validators.required),
-            prioritizers: new FormControl([])
+            loadBalanceStrategy: new FormControl(connection.loadBalanceStrategy, Validators.required),
+            prioritizers: new FormControl(connection.prioritizers)
         });
 
-        if (this.source.componentType == ComponentType.Processor) {
-            this.createConnectionForm.addControl('relationships', new FormControl([], Validators.required));
+        if (this.sourceType == ComponentType.Processor) {
+            this.editConnectionForm.addControl(
+                'relationships',
+                new FormControl(connection.selectedRelationships, Validators.required)
+            );
+        }
+
+        if (this.sourceType == ComponentType.ProcessGroup || this.sourceType == ComponentType.RemoteProcessGroup) {
+            this.editConnectionForm.addControl(
+                'source',
+                new FormControl({ value: this.source.id, disabled: true }, Validators.required)
+            );
         }
 
         if (
-            this.source.componentType == ComponentType.ProcessGroup ||
-            this.source.componentType == ComponentType.RemoteProcessGroup
+            this.destinationType == ComponentType.ProcessGroup ||
+            this.destinationType == ComponentType.RemoteProcessGroup
         ) {
-            this.createConnectionForm.addControl('source', new FormControl(null, Validators.required));
+            this.editConnectionForm.addControl('destination', new FormControl(this.destinationId, Validators.required));
         }
 
-        if (
-            this.destination.componentType == ComponentType.ProcessGroup ||
-            this.destination.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            this.createConnectionForm.addControl('destination', new FormControl(null, Validators.required));
-        }
+        this.initialPartitionAttribute = connection.loadBalancePartitionAttribute;
+        this.initialCompression = connection.loadBalanceCompression;
+        this.loadBalanceChanged(connection.loadBalanceStrategy);
     }
 
     getCurrentGroupName(breadcrumbs: BreadcrumbEntity): string {
@@ -220,95 +291,78 @@ export class CreateConnection {
 
     loadBalanceChanged(value: string): void {
         if (value == 'PARTITION_BY_ATTRIBUTE') {
-            this.createConnectionForm.addControl('partitionAttribute', new FormControl('', Validators.required));
+            this.editConnectionForm.addControl(
+                'partitionAttribute',
+                new FormControl(this.initialPartitionAttribute, Validators.required)
+            );
             this.loadBalancePartitionAttributeRequired = true;
         } else {
-            this.createConnectionForm.removeControl('partitionAttribute');
+            this.editConnectionForm.removeControl('partitionAttribute');
             this.loadBalancePartitionAttributeRequired = false;
         }
 
         if (value == 'DO_NOT_LOAD_BALANCE') {
             this.loadBalanceCompressionRequired = false;
-            this.createConnectionForm.removeControl('compression');
+            this.editConnectionForm.removeControl('compression');
         } else {
             this.loadBalanceCompressionRequired = true;
-            this.createConnectionForm.addControl(
+            this.editConnectionForm.addControl(
                 'compression',
-                new FormControl('DO_NOT_COMPRESS', Validators.required)
+                new FormControl(this.initialCompression, Validators.required)
             );
         }
     }
 
-    createConnection(currentProcessGroupId: string): void {
+    editConnection(): void {
+        const d: any = this.dialogRequest.entity;
+
         const payload: any = {
-            revision: {
-                version: 0,
-                clientId: this.client.getClientId()
-            },
+            revision: this.client.getRevision(d),
             component: {
-                backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
-                backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
-                flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
-                loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
-                name: this.createConnectionForm.get('name')?.value,
-                prioritizers: this.createConnectionForm.get('prioritizers')?.value
+                id: d.id,
+                backPressureDataSizeThreshold: this.editConnectionForm.get('backPressureDataSizeThreshold')?.value,
+                backPressureObjectThreshold: this.editConnectionForm.get('backPressureObjectThreshold')?.value,
+                flowFileExpiration: this.editConnectionForm.get('flowFileExpiration')?.value,
+                loadBalanceStrategy: this.editConnectionForm.get('loadBalanceStrategy')?.value,
+                name: this.editConnectionForm.get('name')?.value,
+                prioritizers: this.editConnectionForm.get('prioritizers')?.value
             }
         };
 
-        if (this.source.componentType == ComponentType.Processor) {
-            payload.component.selectedRelationships = this.createConnectionForm.get('relationships')?.value;
+        if (this.sourceType == ComponentType.Processor) {
+            payload.component.selectedRelationships = this.editConnectionForm.get('relationships')?.value;
         }
 
         if (
-            this.source.componentType == ComponentType.ProcessGroup ||
-            this.source.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            payload.component.source = {
-                groupId: this.source.id,
-                id: this.createConnectionForm.get('source')?.value,
-                type: this.canvasUtils.getConnectableTypeForSource(this.source.componentType)
-            };
-        } else {
-            payload.component.source = {
-                groupId: currentProcessGroupId,
-                id: this.source.entity.id,
-                type: this.canvasUtils.getConnectableTypeForSource(this.source.componentType)
-            };
-        }
-
-        if (
-            this.destination.componentType == ComponentType.ProcessGroup ||
-            this.destination.componentType == ComponentType.RemoteProcessGroup
+            this.destinationType == ComponentType.ProcessGroup ||
+            this.destinationType == ComponentType.RemoteProcessGroup
         ) {
             payload.component.destination = {
-                groupId: this.destination.id,
-                id: this.createConnectionForm.get('destination')?.value,
-                type: this.canvasUtils.getConnectableTypeForDestination(this.destination.componentType)
-            };
-        } else {
-            payload.component.destination = {
-                groupId: currentProcessGroupId,
-                id: this.destination.id,
-                type: this.canvasUtils.getConnectableTypeForDestination(this.destination.componentType)
+                groupId: this.destinationGroupId,
+                id: this.editConnectionForm.get('destination')?.value,
+                type: this.canvasUtils.getConnectableTypeForDestination(this.destinationType)
             };
         }
 
         if (this.loadBalancePartitionAttributeRequired) {
-            payload.component.loadBalancePartitionAttribute =
-                this.createConnectionForm.get('partitionAttribute')?.value;
+            payload.component.loadBalancePartitionAttribute = this.editConnectionForm.get('partitionAttribute')?.value;
         } else {
             payload.component.loadBalancePartitionAttribute = '';
         }
 
         if (this.loadBalanceCompressionRequired) {
-            payload.component.loadBalanceCompression = this.createConnectionForm.get('compression')?.value;
+            payload.component.loadBalanceCompression = this.editConnectionForm.get('compression')?.value;
         } else {
             payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
         }
 
         this.store.dispatch(
-            createConnection({
+            updateConnection({
                 request: {
+                    id: this.dialogRequest.entity.id,
+                    type: ComponentType.Connection,
+                    uri: this.dialogRequest.entity.uri,
+                    previousDestination: this.previousDestination,
                     payload
                 }
             })

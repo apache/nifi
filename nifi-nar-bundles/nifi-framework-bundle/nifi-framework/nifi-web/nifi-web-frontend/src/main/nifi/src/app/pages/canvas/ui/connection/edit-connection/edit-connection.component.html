@@ -15,60 +15,60 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Create Connection</h2>
-<form class="create-connection-form" [formGroup]="createConnectionForm" *ngIf="breadcrumbs$ | async as breadcrumbs">
+<h2 mat-dialog-title>Edit Connection</h2>
+<form class="edit-connection-form" [formGroup]="editConnectionForm">
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Details">
-                <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full" [ngSwitch]="source.componentType">
+                <div class="tab-content py-4 flex gap-x-4" *ngIf="breadcrumbs$ | async as breadcrumbs">
+                    <div class="w-full" [ngSwitch]="sourceType">
                         <ng-container *ngSwitchCase="ComponentType.Processor">
                             <source-processor
                                 [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [processor]="source.entity"
+                                [processor]="(sourceProcessor$ | async)!"
                                 formControlName="relationships"></source-processor>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.ProcessGroup">
                             <source-process-group
                                 [outputPorts]="(childOutputPorts$ | async)!"
-                                [processGroup]="source.entity"
+                                [processGroup]="(sourceProcessGroup$ | async)!"
                                 formControlName="source"></source-process-group>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.RemoteProcessGroup">
                             <source-remote-process-group
-                                [remoteProcessGroup]="source.entity"
+                                [remoteProcessGroup]="(sourceRemoteProcessGroup$ | async)!"
                                 formControlName="source"></source-remote-process-group>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.InputPort">
                             <source-input-port
                                 [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [inputPortName]="source.entity.component.name"></source-input-port>
+                                [inputPortName]="source.name"></source-input-port>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.Funnel">
                             <source-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></source-funnel>
                         </ng-container>
                     </div>
-                    <div class="w-full" [ngSwitch]="destination.componentType">
+                    <div class="w-full" [ngSwitch]="destinationType">
                         <ng-container *ngSwitchCase="ComponentType.Processor">
                             <destination-processor
                                 [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [processor]="destination.entity"></destination-processor>
+                                [processor]="(destinationProcessor$ | async)!"></destination-processor>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.ProcessGroup">
                             <destination-process-group
                                 [inputPorts]="(childInputPorts$ | async)!"
-                                [processGroup]="destination.entity"
+                                [processGroup]="(destinationProcessGroup$ | async)!"
                                 formControlName="destination"></destination-process-group>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.RemoteProcessGroup">
                             <destination-remote-process-group
-                                [remoteProcessGroup]="destination.entity"
+                                [remoteProcessGroup]="(destinationRemoteProcessGroup$ | async)!"
                                 formControlName="destination"></destination-remote-process-group>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.OutputPort">
                             <destination-output-port
                                 [groupName]="getCurrentGroupName(breadcrumbs)"
-                                [outputPortName]="destination.entity.component.name"></destination-output-port>
+                                [outputPortName]="destinationName"></destination-output-port>
                         </ng-container>
                         <ng-container *ngSwitchCase="ComponentType.Funnel">
                             <destination-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></destination-funnel>
@@ -162,14 +162,14 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="accent" mat-raised-button mat-dialog-close="CANCELLED">Cancel</button>
         <button
-            [disabled]="createConnectionForm.invalid || saving.value"
+            [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
             type="button"
             color="primary"
-            (click)="createConnection(breadcrumbs.id)"
+            (click)="editConnection()"
             mat-raised-button>
-            <span *nifiSpinner="saving.value">Add</span>
+            <span *nifiSpinner="saving.value">Apply</span>
         </button>
     </mat-dialog-actions>
 </form>

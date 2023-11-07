@@ -51,10 +51,12 @@ import { TextTipInput } from '../../../../../../state/shared';
 })
 export class SourceProcessGroup implements ControlValueAccessor {
     @Input() set processGroup(processGroup: any) {
-        if (processGroup.permissions.canRead) {
-            this.groupName = processGroup.component.name;
-        } else {
-            this.groupName = processGroup.id;
+        if (processGroup) {
+            if (processGroup.permissions.canRead) {
+                this.groupName = processGroup.component.name;
+            } else {
+                this.groupName = processGroup.id;
+            }
         }
     }
 
@@ -107,7 +109,6 @@ export class SourceProcessGroup implements ControlValueAccessor {
     }
 
     setDisabledState(isDisabled: boolean): void {
-        // TODO - update component to disable controls accordingly
         this.isDisabled = isDisabled;
     }
 

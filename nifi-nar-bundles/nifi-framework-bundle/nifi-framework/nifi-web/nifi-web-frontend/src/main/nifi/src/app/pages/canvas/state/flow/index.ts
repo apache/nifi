@@ -57,6 +57,21 @@ export interface LoadConnectionSuccess {
     connection: any;
 }
 
+export interface LoadProcessorSuccess {
+    id: string;
+    processor: any;
+}
+
+export interface LoadInputPortSuccess {
+    id: string;
+    inputPort: any;
+}
+
+export interface LoadRemoteProcessGroupSuccess {
+    id: string;
+    remoteProcessGroup: any;
+}
+
 /*
   Component Requests
  */
@@ -131,6 +146,15 @@ export interface EditComponent {
     entity: any;
 }
 
+export interface EditConnection extends EditComponent {
+    newDestination?: {
+        type: ComponentType | null;
+        id?: string;
+        groupId: string;
+        name: string;
+    };
+}
+
 export interface UpdateComponent {
     requestId?: number;
     id: string;
@@ -152,6 +176,14 @@ export interface UpdateComponentFailure {
     id: string;
     type: ComponentType;
     restoreOnFailure?: any;
+}
+
+export interface UpdateConnection extends UpdateComponent {
+    previousDestination?: any;
+}
+
+export interface UpdateConnectionSuccess extends UpdateComponentResponse {
+    previousDestination?: any;
 }
 
 export interface UpdatePositions {

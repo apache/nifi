@@ -43,13 +43,17 @@ import {
     LoadProcessGroupResponse,
     Snippet,
     UpdateComponentFailure,
-    UpdateComponentResponse
+    UpdateComponentResponse,
+    UpdateConnectionSuccess
 } from './index';
-import { Store } from '@ngrx/store';
+import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId,
+    selectProcessGroup,
+    selectProcessor,
+    selectRemoteProcessGroup,
     selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
@@ -58,7 +62,6 @@ import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
 import { ComponentType, NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../../state/shared';
 import { Router } from '@angular/router';
-import { selectUrl } from '../../../../state/router/router.selectors';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasView } from '../../service/canvas-view.service';
@@ -70,6 +73,8 @@ import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { CreateProcessGroup } from '../../ui/process-group/create-process-group/create-process-group.component';
 import { CreateConnection } from '../../ui/connection/create-connection/create-connection.component';
+import { EditConnectionComponent } from '../../ui/connection/edit-connection/edit-connection.component';
+import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -493,7 +498,7 @@ export class FlowEffects {
                 this.canvasView.updateCanvasVisibility();
                 this.birdseyeView.refresh();
 
-                return of(
+                const actions: any[] = [
                     FlowActions.selectComponents({
                         request: {
                             components: [
@@ -504,7 +509,14 @@ export class FlowEffects {
                             ]
                         }
                     })
-                );
+                ];
+
+                // if the component that was just created is a connection, reload the source and destination if necessary
+                if (response.type == ComponentType.Connection) {
+                    actions.push(FlowActions.loadComponentsForConnection({ connection: response.payload }));
+                }
+
+                return actions;
             })
         )
     );
@@ -530,6 +542,8 @@ export class FlowEffects {
                 switch (request.type) {
                     case ComponentType.Processor:
                         return of(FlowActions.openEditProcessorDialog({ request }));
+                    case ComponentType.Connection:
+                        return of(FlowActions.openEditConnectionDialog({ request }));
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
@@ -545,8 +559,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditPortDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectUrl)),
-                tap(([request, currentUrl]) => {
+                tap((request) => {
                     this.dialog
                         .open(EditPort, {
                             data: request,
@@ -554,15 +567,19 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
-                            // determine the parent url (TODO: not sure how best to access
-                            // the current activated route for use in navigate below). Could
-                            // possible subscribe to router events but router-state does not
-                            // seem to surface the activated route
-                            const url: string[] = currentUrl.split('/');
-                            url.pop();
-
                             this.store.dispatch(FlowActions.clearFlowApiError());
-                            this.router.navigate(url);
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
                         });
                 })
             ),
@@ -574,8 +591,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectUrl)),
-                tap(([request, currentUrl]) => {
+                tap((request) => {
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         data: request,
                         panelClass: 'large-dialog'
@@ -649,6 +665,69 @@ export class FlowEffects {
                     });
 
                     editDialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.entity.id,
+                                            componentType: request.type
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditConnectionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditConnectionDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const editDialogReference = this.dialog.open(EditConnectionComponent, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.getChildOutputPorts = (groupId: string): Observable<any> => {
+                        return this.flowService.getFlow(groupId).pipe(
+                            take(1),
+                            map((response) => response.processGroupFlow.flow.outputPorts)
+                        );
+                    };
+                    editDialogReference.componentInstance.getChildInputPorts = (groupId: string): Observable<any> => {
+                        return this.flowService.getFlow(groupId).pipe(
+                            take(1),
+                            map((response) => response.processGroupFlow.flow.inputPorts)
+                        );
+                    };
+
+                    editDialogReference.componentInstance.selectProcessor = (id: string) => {
+                        return this.store.select(selectProcessor(id));
+                    };
+                    editDialogReference.componentInstance.selectProcessGroup = (id: string) => {
+                        return this.store.select(selectProcessGroup(id));
+                    };
+                    editDialogReference.componentInstance.selectRemoteProcessGroup = (id: string) => {
+                        return this.store.select(selectRemoteProcessGroup(id));
+                    };
+
+                    editDialogReference.afterClosed().subscribe((response) => {
+                        if (response == 'CANCELLED') {
+                            this.connectionManager.renderConnection(request.entity.id, {
+                                updatePath: true,
+                                updateLabel: false
+                            });
+                        }
+
                         this.store.dispatch(FlowActions.clearFlowApiError());
                         this.store.dispatch(
                             FlowActions.selectComponents({
@@ -786,6 +865,168 @@ export class FlowEffects {
                     catchError((error) => of(FlowActions.flowApiError({ error })))
                 )
             )
+        )
+    );
+
+    loadComponentsForConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadComponentsForConnection),
+            map((action) => action.connection),
+            switchMap((connection: any) => {
+                const actions: any[] = [];
+
+                const processTerminal = function (type: ComponentType | null, terminal: any) {
+                    switch (type) {
+                        case ComponentType.Processor:
+                            actions.push(FlowActions.loadProcessor({ id: terminal.id }));
+                            break;
+                        case ComponentType.InputPort:
+                            actions.push(FlowActions.loadInputPort({ id: terminal.id }));
+                            break;
+                        case ComponentType.RemoteProcessGroup:
+                            actions.push(FlowActions.loadRemoteProcessGroup({ id: terminal.groupId }));
+                            break;
+                    }
+                };
+
+                processTerminal(
+                    this.canvasUtils.getComponentTypeForSource(connection.component.source.type),
+                    connection.component.source
+                );
+                processTerminal(
+                    this.canvasUtils.getComponentTypeForDestination(connection.component.destination.type),
+                    connection.component.destination
+                );
+
+                return actions;
+            })
+        )
+    );
+
+    loadProcessor$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadProcessor),
+            map((action) => action.id),
+            mergeMap((id) =>
+                from(this.flowService.getProcessor(id)).pipe(
+                    map((response) => {
+                        return FlowActions.loadProcessorSuccess({
+                            response: {
+                                id: id,
+                                processor: response
+                            }
+                        });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
+        )
+    );
+
+    loadInputPort$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadInputPort),
+            map((action) => action.id),
+            mergeMap((id) =>
+                from(this.flowService.getInputPort(id)).pipe(
+                    map((response) => {
+                        return FlowActions.loadInputPortSuccess({
+                            response: {
+                                id: id,
+                                inputPort: response
+                            }
+                        });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
+        )
+    );
+
+    loadRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadRemoteProcessGroup),
+            map((action) => action.id),
+            mergeMap((id) =>
+                from(this.flowService.getRemoteProcessGroup(id)).pipe(
+                    map((response) => {
+                        return FlowActions.loadRemoteProcessGroupSuccess({
+                            response: {
+                                id: id,
+                                remoteProcessGroup: response
+                            }
+                        });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error })))
+                )
+            )
+        )
+    );
+
+    updateConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateConnection),
+            map((action) => action.request),
+            mergeMap((request) => {
+                return from(this.flowService.updateComponent(request)).pipe(
+                    map((response) => {
+                        const updateComponentResponse: UpdateConnectionSuccess = {
+                            requestId: request.requestId,
+                            id: request.id,
+                            type: request.type,
+                            response: response,
+                            previousDestination: request.previousDestination
+                        };
+                        return FlowActions.updateConnectionSuccess({ response: updateComponentResponse });
+                    }),
+                    catchError((error) => {
+                        this.connectionManager.renderConnection(request.id, {
+                            updatePath: true,
+                            updateLabel: false
+                        });
+
+                        const updateComponentFailure: UpdateComponentFailure = {
+                            id: request.id,
+                            type: request.type,
+                            restoreOnFailure: request.restoreOnFailure,
+                            error: error.error
+                        };
+                        return of(FlowActions.updateComponentFailure({ response: updateComponentFailure }));
+                    })
+                );
+            })
+        )
+    );
+
+    updateConnectionSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updateConnectionSuccess),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            map((action) => action.response),
+            switchMap((response) => {
+                const actions: Action[] = [FlowActions.loadComponentsForConnection({ connection: response.response })];
+
+                if (response.previousDestination) {
+                    const type = this.canvasUtils.getComponentTypeForDestination(response.previousDestination.type);
+                    switch (type) {
+                        case ComponentType.Processor:
+                            actions.push(FlowActions.loadProcessor({ id: response.previousDestination.id }));
+                            break;
+                        case ComponentType.InputPort:
+                            actions.push(FlowActions.loadInputPort({ id: response.previousDestination.id }));
+                            break;
+                        case ComponentType.RemoteProcessGroup:
+                            actions.push(
+                                FlowActions.loadRemoteProcessGroup({ id: response.previousDestination.groupId })
+                            );
+                            break;
+                    }
+                }
+
+                return actions;
+            })
         )
     );
 
@@ -1102,6 +1343,23 @@ export class FlowEffects {
                 ofType(FlowActions.centerSelectedComponent),
                 tap(() => {
                     this.canvasView.centerSelectedComponent();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    showOkDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.showOkDialog),
+                tap((request) => {
+                    this.dialog.open(OkDialog, {
+                        data: {
+                            title: request.title,
+                            message: request.message
+                        },
+                        panelClass: 'medium-dialog'
+                    });
                 })
             ),
         { dispatch: false }

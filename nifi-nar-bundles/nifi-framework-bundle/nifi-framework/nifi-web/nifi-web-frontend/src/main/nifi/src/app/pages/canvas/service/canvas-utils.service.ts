@@ -491,6 +491,28 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines the component type for the specified source.
+     *
+     * @argument {connectableType} string      The connectable type
+     */
+    getComponentTypeForSource(connectableType: string): ComponentType | null {
+        switch (connectableType) {
+            case 'PROCESSOR':
+                return ComponentType.Processor;
+            case 'REMOTE_OUTPUT_PORT':
+                return ComponentType.RemoteProcessGroup;
+            case 'OUTPUT_PORT':
+                return ComponentType.ProcessGroup;
+            case 'INPUT_PORT':
+                return ComponentType.InputPort;
+            case 'FUNNEL':
+                return ComponentType.Funnel;
+            default:
+                return null;
+        }
+    }
+
+    /**
      * Determines the connectable type for the specified destination.
      *
      * @argument {type} ComponentType      The component type
@@ -509,6 +531,28 @@ export class CanvasUtils {
                 return 'FUNNEL';
             default:
                 return '';
+        }
+    }
+
+    /**
+     * Determines the component type for the specified destination.
+     *
+     * @argument {type} ComponentType      The component type
+     */
+    getComponentTypeForDestination(connectableType: string): ComponentType | null {
+        switch (connectableType) {
+            case 'PROCESSOR':
+                return ComponentType.Processor;
+            case 'REMOTE_INPUT_PORT':
+                return ComponentType.RemoteProcessGroup;
+            case 'INPUT_PORT':
+                return ComponentType.ProcessGroup;
+            case 'OUTPUT_PORT':
+                return ComponentType.OutputPort;
+            case 'FUNNEL':
+                return ComponentType.Funnel;
+            default:
+                return null;
         }
     }
 

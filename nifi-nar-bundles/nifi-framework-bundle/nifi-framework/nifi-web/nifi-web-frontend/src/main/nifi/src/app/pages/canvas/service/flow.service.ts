@@ -92,6 +92,18 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }
 
+    getProcessor(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/processors/${id}`);
+    }
+
+    getInputPort(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/input-ports/${id}`);
+    }
+
+    getRemoteProcessGroup(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/remote-process-groups/${id}`);
+    }
+
     getConnection(id: string): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/connections/${id}`);
     }

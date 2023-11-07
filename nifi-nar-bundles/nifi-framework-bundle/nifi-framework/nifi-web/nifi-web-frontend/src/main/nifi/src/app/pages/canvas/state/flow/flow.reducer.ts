@@ -20,6 +20,7 @@ import {
     clearFlowApiError,
     createComponentComplete,
     createComponentSuccess,
+    createConnection,
     createFunnel,
     createLabel,
     createPort,
@@ -28,8 +29,11 @@ import {
     deleteComponentsSuccess,
     flowApiError,
     loadConnectionSuccess,
+    loadInputPortSuccess,
     loadProcessGroup,
     loadProcessGroupSuccess,
+    loadProcessorSuccess,
+    loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
     setDragging,
     setNavigationCollapsed,
@@ -39,6 +43,8 @@ import {
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
+    updateConnection,
+    updateConnectionSuccess,
     updateProcessor,
     updateProcessorSuccess,
     uploadProcessGroup
@@ -154,6 +160,36 @@ export const flowReducer = createReducer(
             }
         });
     }),
+    on(loadProcessorSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.flow.processGroupFlow.flow.processors.findIndex(
+                (f: any) => response.id === f.id
+            );
+            if (componentIndex > -1) {
+                draftState.flow.processGroupFlow.flow.processors[componentIndex] = response.processor;
+            }
+        });
+    }),
+    on(loadInputPortSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.flow.processGroupFlow.flow.inputPorts.findIndex(
+                (f: any) => response.id === f.id
+            );
+            if (componentIndex > -1) {
+                draftState.flow.processGroupFlow.flow.inputPorts[componentIndex] = response.inputPort;
+            }
+        });
+    }),
+    on(loadRemoteProcessGroupSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.flow.processGroupFlow.flow.remoteProcessGroups.findIndex(
+                (f: any) => response.id === f.id
+            );
+            if (componentIndex > -1) {
+                draftState.flow.processGroupFlow.flow.remoteProcessGroups[componentIndex] = response.remoteProcessGroup;
+            }
+        });
+    }),
     on(flowApiError, (state, { error }) => ({
         ...state,
         dragging: false,
@@ -166,10 +202,19 @@ export const flowReducer = createReducer(
         error: null,
         status: 'pending' as const
     })),
-    on(createProcessor, createProcessGroup, uploadProcessGroup, createPort, createFunnel, createLabel, (state) => ({
-        ...state,
-        saving: true
-    })),
+    on(
+        createProcessor,
+        createProcessGroup,
+        uploadProcessGroup,
+        createConnection,
+        createPort,
+        createFunnel,
+        createLabel,
+        (state) => ({
+            ...state,
+            saving: true
+        })
+    ),
     on(createComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
@@ -210,11 +255,11 @@ export const flowReducer = createReducer(
         dragging: false,
         saving: false
     })),
-    on(updateComponent, updateProcessor, (state) => ({
+    on(updateComponent, updateProcessor, updateConnection, (state) => ({
         ...state,
         saving: true
     })),
-    on(updateComponentSuccess, updateProcessorSuccess, (state, { response }) => {
+    on(updateComponentSuccess, updateProcessorSuccess, updateConnectionSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (response.type) {
@@ -295,9 +340,9 @@ export const flowReducer = createReducer(
                         };
                     }
                 }
-
-                draftState.saving = false;
             }
+
+            draftState.saving = false;
         });
     }),
     on(deleteComponentsSuccess, (state, { response }) => {

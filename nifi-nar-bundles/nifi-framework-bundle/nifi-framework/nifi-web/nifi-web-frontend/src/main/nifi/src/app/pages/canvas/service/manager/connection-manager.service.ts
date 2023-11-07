@@ -23,17 +23,22 @@ import { Client } from '../../../../service/client.service';
 import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import * as d3 from 'd3';
 import {
+    selectAnySelectedComponentIds,
     selectConnections,
     selectCurrentProcessGroupId,
     selectFlowLoadingStatus,
-    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { initialState } from '../../state/flow/flow.reducer';
 import { TransitionBehavior } from '../behavior/transition-behavior.service';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
-import { updateComponent } from '../../state/flow/flow.actions';
+import {
+    openEditConnectionDialog,
+    showOkDialog,
+    updateComponent,
+    updateConnection
+} from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { Dimension, Position } from '../../state/shared';
@@ -41,6 +46,7 @@ import { ComponentType } from '../../../../state/shared';
 import { UpdateComponent } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -91,7 +97,8 @@ export class ConnectionManager {
         private nifiCommon: NiFiCommon,
         private client: Client,
         private selectableBehavior: SelectableBehavior,
-        private transitionBehavior: TransitionBehavior
+        private transitionBehavior: TransitionBehavior,
+        private quickSelectBehavior: QuickSelectBehavior
     ) {}
 
     /**
@@ -356,6 +363,8 @@ export class ConnectionManager {
             restoreOnFailure: restoreOnFailure
         };
 
+        // updateConnection is not needed here because we don't need any
+        // of the side effects that reload source and destination components
         this.store.dispatch(
             updateComponent({
                 request: updateConnection
@@ -379,11 +388,17 @@ export class ConnectionManager {
         const percentUseCount: number = d.status.aggregateSnapshot.percentUseCount;
 
         if (percentUseCount != null) {
-            const objectThreshold: number = d.component.backPressureObjectThreshold;
             const predictions: any = d.status.aggregateSnapshot.predictions;
-
             const percentUseCountClamped: number = Math.min(Math.max(percentUseCount, 0), 100);
-            tooltipLines.push(`Queue: ${percentUseCountClamped}% full (based on ${objectThreshold} object threshold)`);
+
+            if (d.permissions.canRead) {
+                const objectThreshold: number = d.component.backPressureObjectThreshold;
+                tooltipLines.push(
+                    `Queue: ${percentUseCountClamped}% full (based on ${objectThreshold} object threshold)`
+                );
+            } else {
+                tooltipLines.push(`Queue: ${percentUseCountClamped}% full`);
+            }
 
             if (predictions != null) {
                 const predictedPercentCount: number = predictions.predictedPercentCount;
@@ -423,13 +438,17 @@ export class ConnectionManager {
         const percentUseBytes: number = d.status.aggregateSnapshot.percentUseBytes;
 
         if (percentUseBytes != null) {
-            const dataSizeThreshold: string = d.component.backPressureDataSizeThreshold;
             const predictions: any = d.status.aggregateSnapshot.predictions;
-
             const percentUseBytesClamped: number = Math.min(Math.max(percentUseBytes, 0), 100);
-            tooltipLines.push(
-                `Queue: ${percentUseBytesClamped}% full (based on ${dataSizeThreshold} data size threshold)`
-            );
+
+            if (d.permissions.canRead) {
+                const dataSizeThreshold: string = d.component.backPressureDataSizeThreshold;
+                tooltipLines.push(
+                    `Queue: ${percentUseBytesClamped}% full (based on ${dataSizeThreshold} data size threshold)`
+                );
+            } else {
+                tooltipLines.push(`Queue: ${percentUseBytesClamped}% full`);
+            }
 
             if (predictions != null) {
                 const predictedPercentBytes: number = predictions.predictedPercentBytes;
@@ -493,6 +512,47 @@ export class ConnectionManager {
             .on('mousedown.selection', function (this: any, event: MouseEvent) {
                 // select the connection when clicking the selectable path
                 self.selectableBehavior.select(event, d3.select(this.parentNode));
+            })
+            .on('dblclick', function (this: any, event: MouseEvent, d: any) {
+                if (d.permissions.canWrite && d.permissions.canRead) {
+                    const position = d3.pointer(event, this.parentNode);
+
+                    // find where to put this bend point
+                    const bendIndex = self.getNearestSegment(
+                        {
+                            x: position[0],
+                            y: position[1]
+                        },
+                        d
+                    );
+
+                    // copy the original to restore if necessary
+                    const bends = d.component.bends.slice();
+
+                    // add it to the collection of points
+                    bends.splice(bendIndex, 0, {
+                        x: position[0],
+                        y: position[1]
+                    });
+
+                    const connectionAddedBend: any = {
+                        id: d.id,
+                        bends: bends
+                    };
+
+                    // update the label index if necessary
+                    const labelIndex = d.component.labelIndex;
+                    if (bends.length === 1) {
+                        connectionAddedBend.labelIndex = 0;
+                    } else if (bendIndex <= labelIndex) {
+                        connectionAddedBend.labelIndex = labelIndex + 1;
+                    }
+
+                    // save the new state
+                    self.save(d, connectionAddedBend);
+
+                    event.stopPropagation();
+                }
             });
 
         return connection;
@@ -535,51 +595,6 @@ export class ConnectionManager {
             updated.select('path.connection-path').classed('unauthorized', function (d: any) {
                 return d.permissions.canRead === false;
             });
-
-            // update connection behavior
-            updated
-                .select('path.connection-path-selectable')
-                .on('dblclick', function (this: any, event: MouseEvent, d: any) {
-                    if (d.permissions.canWrite && d.permissions.canRead) {
-                        const position = d3.pointer(event, this.parentNode);
-
-                        // find where to put this bend point
-                        const bendIndex = self.getNearestSegment(
-                            {
-                                x: position[0],
-                                y: position[1]
-                            },
-                            d
-                        );
-
-                        // copy the original to restore if necessary
-                        const bends = d.component.bends.slice();
-
-                        // add it to the collection of points
-                        bends.splice(bendIndex, 0, {
-                            x: position[0],
-                            y: position[1]
-                        });
-
-                        const connectionAddedBend: any = {
-                            id: d.id,
-                            bends: bends
-                        };
-
-                        // update the label index if necessary
-                        const labelIndex = d.component.labelIndex;
-                        if (bends.length === 1) {
-                            connectionAddedBend.labelIndex = 0;
-                        } else if (bendIndex <= labelIndex) {
-                            connectionAddedBend.labelIndex = labelIndex + 1;
-                        }
-
-                        // save the new state
-                        self.save(d, connectionAddedBend);
-
-                        event.stopPropagation();
-                    }
-                });
         }
 
         updated.each(function (this: any, d: any) {
@@ -774,11 +789,12 @@ export class ConnectionManager {
                             const destinationComponentId =
                                 self.canvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
-                                // TODO
-                                // nfDialog.showOkDialog({
-                                //   headerText: 'Connection',
-                                //   dialogContent: 'Looping connections must have at least two bend points.'
-                                // });
+                                this.store.dispatch(
+                                    showOkDialog({
+                                        title: 'Connection',
+                                        message: 'Looping connections must have at least two bend points.'
+                                    })
+                                );
                                 return;
                             }
 
@@ -855,8 +871,7 @@ export class ConnectionManager {
                                 self.selectableBehavior.select(event, d3.select(this.parentNode));
                             });
 
-                        // TODO
-                        //   .call(nfQuickSelect.activate);
+                        self.quickSelectBehavior.activate(connectionLabelContainer);
 
                         // connection label
                         connectionLabelContainer
@@ -1538,7 +1553,7 @@ export class ConnectionManager {
                         connectionLabelContainer.call(self.labelDrag);
                     }
 
-                    // TODO update the connection status
+                    // update the connection status
                     self.updateConnectionStatus(connection);
                 } else {
                     if (!connectionLabelContainer.empty()) {
@@ -1908,8 +1923,6 @@ export class ConnectionManager {
                 // get the corresponding connection
                 const connection: any = d3.select(this.parentNode);
                 const connectionData: any = connection.datum();
-                const previousDestinationComponentId: string =
-                    self.canvasUtils.getConnectionDestinationComponentId(connectionData);
 
                 // attempt to select a new destination
                 const destination: any = d3.select('g.connectable-destination');
@@ -1921,94 +1934,78 @@ export class ConnectionManager {
                         updateLabel: false
                     });
                 } else {
+                    const destinationData: any = destination.datum();
+
                     // prompt for the new port if appropriate
                     if (
                         self.canvasUtils.isProcessGroup(destination) ||
                         self.canvasUtils.isRemoteProcessGroup(destination)
                     ) {
-                        // TODO - user will select new port and updated connect details will be set accordingly
-                        // nfConnectionConfiguration.showConfiguration(connection, destination).done(function () {
-                        //     // reload the previous destination
-                        //     nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationComponentId);
-                        // }).fail(function () {
-                        //     // reset the connection
-                        //     connection.call(updateConnections, {
-                        //         'updatePath': true,
-                        //         'updateLabel': false
-                        //     });
-                        // });
+                        // when the new destination is a group, show the edit connection dialog
+                        // to allow the user to select the desired port
+                        self.store.dispatch(
+                            openEditConnectionDialog({
+                                request: {
+                                    type: ComponentType.Connection,
+                                    uri: connectionData.uri,
+                                    entity: { ...connectionData },
+                                    newDestination: {
+                                        type: destinationData.type,
+                                        groupId: destinationData.id,
+                                        name: destinationData.permissions.canRead
+                                            ? destinationData.component.name
+                                            : destinationData.id
+                                    }
+                                }
+                            })
+                        );
                     } else {
-                        // TODO - get the destination details
-                        // const destinationData: any = destination.datum();
-                        // const destinationType = self.canvasUtils.getConnectableTypeForDestination(destination);
-                        //
-                        // var connectionEntity = {
-                        //     'revision': nfClient.getRevision(connectionData),
-                        //     'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-                        //     'component': {
-                        //         'id': connectionData.id,
-                        //         'destination': {
-                        //             'id': destinationData.id,
-                        //             'groupId': nfCanvasUtils.getGroupId(),
-                        //             'type': destinationType
-                        //         }
-                        //     }
-                        // };
-                        //
-                        // // if this is a self loop and there are less than 2 bends, add them
-                        // if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
-                        //     var rightCenter = {
-                        //         x: destinationData.position.x + (destinationData.dimensions.width),
-                        //         y: destinationData.position.y + (destinationData.dimensions.height / 2)
-                        //     };
-                        //     var xOffset = nfConnection.config.selfLoopXOffset;
-                        //     var yOffset = nfConnection.config.selfLoopYOffset;
-                        //
-                        //     connectionEntity.component.bends = [];
-                        //     connectionEntity.component.bends.push({
-                        //         'x': (rightCenter.x + xOffset),
-                        //         'y': (rightCenter.y - yOffset)
-                        //     });
-                        //     connectionEntity.component.bends.push({
-                        //         'x': (rightCenter.x + xOffset),
-                        //         'y': (rightCenter.y + yOffset)
-                        //     });
-                        // }
-                        //
-                        // $.ajax({
-                        //     type: 'PUT',
-                        //     url: connectionData.uri,
-                        //     data: JSON.stringify(connectionEntity),
-                        //     dataType: 'json',
-                        //     contentType: 'application/json'
-                        // }).done(function (response) {
-                        //     var updatedConnectionData = response.component;
-                        //
-                        //     // refresh to update the label
-                        //     nfConnection.set(response);
-                        //
-                        //     // reload the previous destination and the new source/destination
-                        //     nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationComponentId);
-                        //
-                        //     var sourceComponentId = nfCanvasUtils.getConnectionSourceComponentId(response);
-                        //     var destinationComponentId = nfCanvasUtils.getConnectionSourceComponentId(response);
-                        //     nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
-                        // }).fail(function (xhr, status, error) {
-                        //     if (xhr.status === 400 || xhr.status === 401 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
-                        //         nfDialog.showOkDialog({
-                        //             headerText: 'Connection',
-                        //             dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        //         });
-                        //
-                        //         // reset the connection
-                        //         connection.call(updateConnections, {
-                        //             'updatePath': true,
-                        //             'updateLabel': false
-                        //         });
-                        //     } else {
-                        //         nfErrorHandler.handleAjaxError(xhr, status, error);
-                        //     }
-                        // });
+                        const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
+                            destinationData.type
+                        );
+
+                        const payload: any = {
+                            revision: self.client.getRevision(connectionData),
+                            // TODO - 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                            component: {
+                                id: connectionData.id,
+                                destination: {
+                                    id: destinationData.id,
+                                    groupId: self.currentProcessGroupId,
+                                    type: destinationType
+                                }
+                            }
+                        };
+
+                        // if this is a self loop and there are less than 2 bends, add them
+                        if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
+                            const rightCenter: any = {
+                                x: destinationData.position.x + destinationData.dimensions.width,
+                                y: destinationData.position.y + destinationData.dimensions.height / 2
+                            };
+
+                            payload.component.bends = [];
+                            payload.component.bends.push({
+                                x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                y: rightCenter.y - ConnectionManager.SELF_LOOP_Y_OFFSET
+                            });
+                            payload.component.bends.push({
+                                x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
+                            });
+                        }
+
+                        self.store.dispatch(
+                            updateConnection({
+                                request: {
+                                    id: connectionData.id,
+                                    type: ComponentType.Connection,
+                                    uri: connectionData.uri,
+                                    previousDestination: connectionData.component.destination,
+                                    payload
+                                }
+                            })
+                        );
                     }
                 }
 
@@ -2207,10 +2204,14 @@ export class ConnectionManager {
     }
 
     public render({ updatePath = false, updateLabel = true }: ConnectionRenderOptions = {}): void {
-        this.updateConnections(this.selectAll(), {
-            updatePath: updatePath,
-            updateLabel: updateLabel
-        });
+        this.updateConnections(this.selectAll(), { updatePath, updateLabel });
+    }
+
+    public renderConnection(
+        id: string,
+        { updatePath = false, updateLabel = true }: ConnectionRenderOptions = {}
+    ): void {
+        this.updateConnections(this.connectionContainer.select('#id-' + id), { updatePath, updateLabel });
     }
 
     public renderConnectionForComponent(
@@ -2225,10 +2226,7 @@ export class ConnectionManager {
         });
 
         componentConnections.forEach((componentConnection) => {
-            this.updateConnections(d3.select('#id-' + componentConnection.id), {
-                updatePath: updatePath,
-                updateLabel: updateLabel
-            });
+            this.renderConnection(componentConnection.id, { updatePath: true, updateLabel });
         });
     }
 

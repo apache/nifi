@@ -24,7 +24,7 @@
     <ng-template #fromOutput>
         <mat-form-field>
             <mat-label>From Output</mat-label>
-            <mat-select [(ngModel)]="selectedOutputPort" (selectionChange)="handleChanged()">
+            <mat-select [(ngModel)]="selectedOutputPort" (selectionChange)="handleChanged()" [disabled]="isDisabled">
                 <ng-container *ngFor="let item of outputPortItems">
                     <ng-container *ngIf="item.description; else noDescription">
                         <mat-option

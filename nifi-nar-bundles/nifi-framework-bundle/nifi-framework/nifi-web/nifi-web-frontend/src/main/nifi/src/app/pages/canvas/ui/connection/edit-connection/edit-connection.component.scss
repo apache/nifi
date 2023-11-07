@@ -15,21 +15,22 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+@use '@angular/material' as mat;
 
-@Component({
-    selector: 'destination-output-port',
-    standalone: true,
-    templateUrl: './destination-output-port.component.html',
-    styleUrls: ['./destination-output-port.component.scss']
-})
-export class DestinationOutputPort {
-    @Input() set outputPortName(outputPortName: string) {
-        this.name = outputPortName;
+.edit-connection-form {
+    @include mat.button-density(-1);
+
+    .mdc-dialog__content {
+        padding: 0 16px;
+        font-size: 14px;
+
+        .tab-content {
+            height: 475px;
+            overflow-y: auto;
+        }
     }
-    @Input() groupName!: string;
 
-    name!: string;
-
-    constructor() {}
+    .mat-mdc-form-field {
+        width: 100%;
+    }
 }

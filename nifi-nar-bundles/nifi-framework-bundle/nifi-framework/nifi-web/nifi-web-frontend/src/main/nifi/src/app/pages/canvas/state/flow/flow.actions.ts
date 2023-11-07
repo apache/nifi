@@ -30,15 +30,21 @@ import {
     DeleteComponentResponse,
     EditComponent,
     EditComponentRequest,
+    EditConnection,
     EnterProcessGroupRequest,
     LoadConnectionSuccess,
+    LoadInputPortSuccess,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    LoadProcessorSuccess,
+    LoadRemoteProcessGroupSuccess,
     NavigateToComponentRequest,
     SelectComponents,
     UpdateComponent,
     UpdateComponentFailure,
     UpdateComponentResponse,
+    UpdateConnection,
+    UpdateConnectionSuccess,
     UpdatePositions,
     UploadProcessGroup
 } from './index';
@@ -89,6 +95,32 @@ export const loadConnection = createAction('[Canvas] Load Connection', props<{ i
 export const loadConnectionSuccess = createAction(
     '[Canvas] Load Connection Success',
     props<{ response: LoadConnectionSuccess }>()
+);
+
+export const loadComponentsForConnection = createAction(
+    '[Canvas] Load Components For Connection',
+    props<{ connection: any }>()
+);
+
+export const loadProcessor = createAction('[Canvas] Load Processor', props<{ id: string }>());
+
+export const loadProcessorSuccess = createAction(
+    '[Canvas] Load Processor Success',
+    props<{ response: LoadProcessorSuccess }>()
+);
+
+export const loadInputPort = createAction('[Canvas] Load Input Port', props<{ id: string }>());
+
+export const loadInputPortSuccess = createAction(
+    '[Canvas] Load Input Port Success',
+    props<{ response: LoadInputPortSuccess }>()
+);
+
+export const loadRemoteProcessGroup = createAction('[Canvas] Load Remote Process Group', props<{ id: string }>());
+
+export const loadRemoteProcessGroupSuccess = createAction(
+    '[Canvas] Load Remote Process Group Success',
+    props<{ response: LoadRemoteProcessGroupSuccess }>()
 );
 
 /*
@@ -190,6 +222,11 @@ export const openEditProcessorDialog = createAction(
     props<{ request: EditComponent }>()
 );
 
+export const openEditConnectionDialog = createAction(
+    '[Canvas] Open Edit Connection Dialog',
+    props<{ request: EditConnection }>()
+);
+
 export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
 
 export const updateComponentSuccess = createAction(
@@ -207,6 +244,13 @@ export const updateProcessor = createAction('[Canvas] Update Processor', props<{
 export const updateProcessorSuccess = createAction(
     '[Canvas] Update Processor Success',
     props<{ response: UpdateComponentResponse }>()
+);
+
+export const updateConnection = createAction('[Canvas] Update Connection', props<{ request: UpdateConnection }>());
+
+export const updateConnectionSuccess = createAction(
+    '[Canvas] Update Connection Success',
+    props<{ response: UpdateConnectionSuccess }>()
 );
 
 export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositions }>());
@@ -260,3 +304,9 @@ export const setOperationCollapsed = createAction(
     '[Canvas] Set Operation Collapsed',
     props<{ operationCollapsed: boolean }>()
 );
+
+/*
+    General
+ */
+
+export const showOkDialog = createAction('[Canvas] Show Ok Dialog', props<{ title: string; message: string }>());

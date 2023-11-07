@@ -15,21 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@Component({
-    selector: 'destination-output-port',
-    standalone: true,
-    templateUrl: './destination-output-port.component.html',
-    styleUrls: ['./destination-output-port.component.scss']
-})
-export class DestinationOutputPort {
-    @Input() set outputPortName(outputPortName: string) {
-        this.name = outputPortName;
-    }
-    @Input() groupName!: string;
+import { EditConnectionComponent } from './edit-connection.component';
 
-    name!: string;
+describe('EditConnectionComponent', () => {
+    let component: EditConnectionComponent;
+    let fixture: ComponentFixture<EditConnectionComponent>;
 
-    constructor() {}
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [EditConnectionComponent]
+        });
+        fixture = TestBed.createComponent(EditConnectionComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

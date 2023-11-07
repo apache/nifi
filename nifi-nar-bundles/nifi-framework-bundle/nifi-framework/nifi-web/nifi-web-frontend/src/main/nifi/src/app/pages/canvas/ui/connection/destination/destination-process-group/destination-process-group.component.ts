@@ -106,7 +106,6 @@ export class DestinationProcessGroup implements ControlValueAccessor {
     }
 
     setDisabledState(isDisabled: boolean): void {
-        // TODO - update component to disable controls accordingly
         this.isDisabled = isDisabled;
     }
 

@@ -23,7 +23,7 @@
     <ng-template #toInput>
         <mat-form-field>
             <mat-label>To Input</mat-label>
-            <mat-select [(ngModel)]="selectedInputPort" (selectionChange)="handleChanged()">
+            <mat-select [(ngModel)]="selectedInputPort" (selectionChange)="handleChanged()" [disabled]="isDisabled">
                 <ng-container *ngFor="let item of inputPortItems">
                     <ng-container *ngIf="item.description; else noDescription">
                         <mat-option

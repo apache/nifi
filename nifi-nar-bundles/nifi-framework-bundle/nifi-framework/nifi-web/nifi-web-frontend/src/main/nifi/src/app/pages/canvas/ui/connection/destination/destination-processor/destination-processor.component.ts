@@ -25,11 +25,17 @@ import { Component, Input } from '@angular/core';
 })
 export class DestinationProcessor {
     @Input() set processor(processor: any) {
-        this.name = processor.component.name;
+        if (processor) {
+            if (processor.permissions.canRead) {
+                this.processorName = processor.component.name;
+            } else {
+                this.processorName = processor.id;
+            }
+        }
     }
     @Input() groupName!: string;
 
-    name!: string;
+    processorName!: string;
 
     constructor() {}
 }

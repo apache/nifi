@@ -51,23 +51,25 @@ import { TextTipInput } from '../../../../../../state/shared';
 })
 export class SourceRemoteProcessGroup implements ControlValueAccessor {
     @Input() set remoteProcessGroup(remoteProcessGroup: any) {
-        const rpg = remoteProcessGroup.component;
-        const outputPorts: any[] = rpg.contents.outputPorts;
+        if (remoteProcessGroup) {
+            const rpg = remoteProcessGroup.component;
+            const outputPorts: any[] = rpg.contents.outputPorts;
 
-        if (outputPorts) {
-            this.noPorts = outputPorts.length == 0;
+            if (outputPorts) {
+                this.noPorts = outputPorts.length == 0;
 
-            this.outputPortItems = outputPorts.map((outputPort) => {
-                return {
-                    value: outputPort.id,
-                    text: outputPort.name,
-                    disabled: outputPort.exists === false,
-                    description: outputPort.comments
-                };
-            });
+                this.outputPortItems = outputPorts.map((outputPort) => {
+                    return {
+                        value: outputPort.id,
+                        text: outputPort.name,
+                        disabled: outputPort.exists === false,
+                        description: outputPort.comments
+                    };
+                });
+            }
+
+            this.groupName = rpg.name;
         }
-
-        this.groupName = rpg.name;
     }
 
     protected readonly TextTip = TextTip;
@@ -94,7 +96,6 @@ export class SourceRemoteProcessGroup implements ControlValueAccessor {
     }
 
     setDisabledState(isDisabled: boolean): void {
-        // TODO - update component to disable controls accordingly
         this.isDisabled = isDisabled;
     }
 

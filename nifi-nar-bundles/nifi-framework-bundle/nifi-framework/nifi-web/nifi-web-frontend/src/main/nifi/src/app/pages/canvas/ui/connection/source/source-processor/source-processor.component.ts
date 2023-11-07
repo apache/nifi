@@ -22,8 +22,9 @@ import { NgForOf, NgIf } from '@angular/common';
 import { Relationship } from '../../../../state/flow';
 
 export interface RelationshipItem {
-    relationship: Relationship;
+    relationshipName: string;
     selected: boolean;
+    available: boolean;
 }
 
 @Component({
@@ -42,9 +43,11 @@ export interface RelationshipItem {
 })
 export class SourceProcessor implements ControlValueAccessor {
     @Input() set processor(processor: any) {
-        this.name = processor.component.name;
-        this.relationships = processor.component.relationships;
-        this.processRelationships();
+        if (processor) {
+            this.name = processor.component.name;
+            this.relationships = processor.component.relationships;
+            this.processRelationships();
+        }
     }
     @Input() groupName!: string;
 
@@ -65,9 +68,22 @@ export class SourceProcessor implements ControlValueAccessor {
         if (this.relationships && this.selectedRelationships) {
             this.relationshipItems = this.relationships.map((relationship) => {
                 return {
-                    relationship,
-                    selected: this.selectedRelationships.includes(relationship.name)
+                    relationshipName: relationship.name,
+                    selected: this.selectedRelationships.includes(relationship.name),
+                    available: true
                 };
+            });
+
+            const unavailableRelationships: string[] = this.selectedRelationships.filter(
+                (selectedRelationship) =>
+                    !this.relationships.some((relationship) => relationship.name == selectedRelationship)
+            );
+            unavailableRelationships.forEach((unavailableRelationship) => {
+                this.relationshipItems.push({
+                    relationshipName: unavailableRelationship,
+                    selected: true,
+                    available: false
+                });
             });
         }
     }
@@ -102,6 +118,6 @@ export class SourceProcessor implements ControlValueAccessor {
     }
 
     private serializeSelectedRelationships(): string[] {
-        return this.relationshipItems.filter((item) => item.selected).map((item) => item.relationship.name);
+        return this.relationshipItems.filter((item) => item.selected).map((item) => item.relationshipName);
     }
 }
