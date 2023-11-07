@@ -235,31 +235,40 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
-        context.getFlowManager().withParameterContextResolution(() -> {
-            try {
-                final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
+        // Pause component scheduling until after all properties have been migrated. This will ensure that we are able to migrate them
+        // before enabling any Controller Services or starting any properties.
+        context.getComponentScheduler().pause();
+        try {
+            context.getFlowManager().withParameterContextResolution(() -> {
+                try {
+                    final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
                         ? new HashMap<>() : versionedExternalFlow.getParameterProviders();
-                final ProcessGroup topLevelGroup = syncOptions.getTopLevelGroupId() != null ? context.getFlowManager().getGroup(syncOptions.getTopLevelGroupId()) : group;
-                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), parameterProviderReferences, topLevelGroup, syncOptions.isUpdateSettings());
-            } catch (final ProcessorInstantiationException pie) {
-                throw new RuntimeException(pie);
+                    final ProcessGroup topLevelGroup = syncOptions.getTopLevelGroupId() != null ? context.getFlowManager().getGroup(syncOptions.getTopLevelGroupId()) : group;
+                    synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(),
+                        parameterProviderReferences, topLevelGroup, syncOptions.isUpdateSettings());
+                } catch (final ProcessorInstantiationException pie) {
+                    throw new RuntimeException(pie);
+                }
+            });
+
+            for (final CreatedExtension createdExtension : createdExtensions) {
+                final ComponentNode extension = createdExtension.extension();
+                final Map<String, String> originalPropertyValues = createdExtension.propertyValues();
+
+                final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
+                    context.getControllerServiceProvider(), extension);
+
+                if (extension instanceof final ProcessorNode processor) {
+                    processor.migrateConfiguration(originalPropertyValues, serviceFactory);
+                } else if (extension instanceof final ControllerServiceNode service) {
+                    service.migrateConfiguration(originalPropertyValues, serviceFactory);
+                } else if (extension instanceof final ReportingTaskNode task) {
+                    task.migrateConfiguration(originalPropertyValues, serviceFactory);
+                }
             }
-        });
-
-        for (final CreatedExtension createdExtension : createdExtensions) {
-            final ComponentNode extension = createdExtension.extension();
-            final Map<String, String> originalPropertyValues = createdExtension.propertyValues();
-
-            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
-                context.getControllerServiceProvider(), extension);
-
-            if (extension instanceof final ProcessorNode processor) {
-                processor.migrateConfiguration(originalPropertyValues, serviceFactory);
-            } else if (extension instanceof final ControllerServiceNode service) {
-                service.migrateConfiguration(originalPropertyValues, serviceFactory);
-            } else if (extension instanceof final ReportingTaskNode task) {
-                task.migrateConfiguration(originalPropertyValues, serviceFactory);
-            }
+        } finally {
+            // Resume component scheduler, now that properties have been migrated, so that any components that are intended to be scheduled are.
+            context.getComponentScheduler().resume();
         }
 
         group.onComponentModified();
