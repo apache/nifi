@@ -57,7 +57,6 @@ import org.bson.codecs.DecoderContext;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonReader;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -80,7 +79,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
     static final PropertyDescriptor ORDERED = new PropertyDescriptor.Builder()
             .name("Ordered")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .description("Ordered execution of bulk-writes & break on error - otherwise arbitrary order & continue on error")
+            .description("Ordered execution of bulk-writes and break on error - otherwise arbitrary order and continue on error")
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -145,15 +144,12 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         ClientSession clientSession = null;
         try {
             final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-            // Read the contents of the FlowFile into a byte array
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            session.exportTo(flowFile, os);
 
             // parse
             final BsonArrayCodec arrayCodec = new BsonArrayCodec();
             final DecoderContext decoderContext = DecoderContext.builder().build();
             final BsonArray updateItems;
-            try (final Reader reader = new InputStreamReader(session.read(flowFile))) {
+            try (final Reader reader = new InputStreamReader(session.read(flowFile), charset)) {
                 updateItems = arrayCodec.decode(new JsonReader(reader), decoderContext);
             }
 
@@ -199,15 +195,15 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
             getLogger().error("Failed to bulk-update {} into MongoDB", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
-            try {
-                if (clientSession != null) {
+            if (clientSession != null) {
+                try {
                     if (clientSession.hasActiveTransaction()) {
                         clientSession.abortTransaction();
                     }
                     clientSession.close();
+                } catch (Exception ee) {
+                    getLogger().warn("Cannot rollback client session", ee); // (but no further action)
                 }
-            } catch (Exception ee) {
-                getLogger().warn("Cannot rollback client session", ee); // (but no further action)
             }
         }
     }
