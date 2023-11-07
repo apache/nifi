@@ -32,28 +32,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Tags({"1Password"})
-@CapabilityDescription("Fetches parameters from 1Password.")
+@CapabilityDescription("Fetches parameters from 1Password Connect Server")
 public class OnePasswordParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
 
 
     public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-client-service-provider")
+            .name("Web Client Service Provider")
             .displayName("Web Client Service Provider")
             .description("Controller service for HTTP client operations.")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
             .build();
     public static final PropertyDescriptor CONNECT_SERVER = new PropertyDescriptor.Builder()
-            .name("connect-server")
-            .displayName("1Password Connect Server")
+            .name("Connect Server")
+            .displayName("Connect Server")
             .description("HTTP endpoint of the 1Password Connect Server to connect to. Example: http://localhost:8080")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -78,14 +78,15 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+            WEB_CLIENT_SERVICE_PROVIDER,
+            CONNECT_SERVER,
+            ACCESS_TOKEN
+    );
+
     @Override
     protected void init(final ParameterProviderInitializationContext config) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(WEB_CLIENT_SERVICE_PROVIDER);
-        properties.add(CONNECT_SERVER);
-        properties.add(ACCESS_TOKEN);
-
-        this.properties = Collections.unmodifiableList(properties);
+        this.properties = DESCRIPTORS;
     }
 
     @Override
@@ -103,29 +104,54 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
 
         try {
-            final HttpResponseEntity getVaultList = webClientServiceProvider.getWebClientService()
-                                                            .get()
-                                                            .uri(URI.create(connectServer + GET_VAULTS))
-                                                            .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
-                                                            .header(CONTENT_TYPE, APPLICATION_JSON)
-                                                            .retrieve();
-
-            final JsonNode vaultList = OBJECT_MAPPER.readTree(getVaultList.body());
+            final JsonNode vaultList = getVaultList(connectServer, accessToken);
 
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                    .verificationStepName("Listing Vault(s)")
-                    .explanation(String.format("Listed %s vault(s).", vaultList.size()))
+                    .verificationStepName("Listing Vaults")
+                    .explanation(String.format("Listed Vaults [%d]", vaultList.size()))
                     .build());
         } catch (final IllegalArgumentException | IOException e) {
-            verificationLogger.error("Failed to list vault(s)", e);
+            verificationLogger.error("Listing Vaults failed", e);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.FAILED)
-                    .verificationStepName("Listing Vault(s)")
-                    .explanation("Failed to list vault(s): " + e.getMessage())
+                    .verificationStepName("Listing Vaults")
+                    .explanation("Listing Vaults failed: " + e.getMessage())
                     .build());
         }
         return results;
+    }
+
+    private JsonNode getVaultList(String connectServer, String accessToken) throws IOException {
+        final HttpResponseEntity getVaultList = webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(URI.create(connectServer + GET_VAULTS))
+                .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .retrieve();
+        return OBJECT_MAPPER.readTree(getVaultList.body());
+    }
+
+    private JsonNode getItemList(String connectServer, String accessToken, String vaultID) throws IOException {
+        final HttpResponseEntity getVaultItems = webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items"))
+                .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .retrieve();
+
+        return OBJECT_MAPPER.readTree(getVaultItems.body());
+    }
+
+    private JsonNode getItemDetails(String connectServer, String accessToken, String vaultID, String itemID) throws IOException {
+        final HttpResponseEntity getItemDetails = webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items/" + itemID))
+                .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .retrieve();
+
+        return OBJECT_MAPPER.readTree(getItemDetails.body());
     }
 
     @Override
@@ -138,57 +164,35 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
 
         try {
-            final HttpResponseEntity getVaultList = webClientServiceProvider.getWebClientService()
-                                                            .get()
-                                                            .uri(URI.create(connectServer + GET_VAULTS))
-                                                            .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
-                                                            .header(CONTENT_TYPE, APPLICATION_JSON)
-                                                            .retrieve();
-
-            final JsonNode vaultList = OBJECT_MAPPER.readTree(getVaultList.body());
+            final JsonNode vaultList = getVaultList(connectServer, accessToken);
             final Iterator<JsonNode> vaultIterator = vaultList.elements();
 
             // we iterate though each vault
-            while(vaultIterator.hasNext()) {
+            while (vaultIterator.hasNext()) {
                 final JsonNode vault = vaultIterator.next();
                 final String vaultName = vault.get("name").asText();
                 final String vaultID = vault.get("id").asText();
 
                 final List<Parameter> parameters = new ArrayList<Parameter>();
 
-                final HttpResponseEntity getVaultItems = webClientServiceProvider.getWebClientService()
-                                                                .get()
-                                                                .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items"))
-                                                                .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
-                                                                .header(CONTENT_TYPE, APPLICATION_JSON)
-                                                                .retrieve();
-
-                final JsonNode itemList = OBJECT_MAPPER.readTree(getVaultItems.body());
+                final JsonNode itemList = getItemList(connectServer, accessToken, vaultID);
                 final Iterator<JsonNode> itemIterator = itemList.elements();
 
                 // we iterate though the items
-                while(itemIterator.hasNext()) {
+                while (itemIterator.hasNext()) {
                     final JsonNode item = itemIterator.next();
                     final String itemID = item.get("id").asText();
-
-                    final HttpResponseEntity getItemDetails = webClientServiceProvider.getWebClientService()
-                                                                    .get()
-                                                                    .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items/" + itemID))
-                                                                    .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
-                                                                    .header(CONTENT_TYPE, APPLICATION_JSON)
-                                                                    .retrieve();
-
-                    final JsonNode itemDetails = OBJECT_MAPPER.readTree(getItemDetails.body());
+                    final JsonNode itemDetails = getItemDetails(connectServer, accessToken, vaultID, itemID);
                     final String itemName = itemDetails.get("title").asText();
                     final Iterator<JsonNode> itemFields = itemDetails.get("fields").elements();
 
                     // we iterate through the fields
-                    while(itemFields.hasNext()) {
+                    while (itemFields.hasNext()) {
                         final JsonNode field = itemFields.next();
                         final String fieldId = field.get("id").asText();
                         final JsonNode fieldValue = field.get("value");
 
-                        if(fieldValue != null) {
+                        if (fieldValue != null) {
                             final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(itemName + "_" + fieldId).build();
                             parameters.add(new Parameter(parameterDescriptor, fieldValue.asText(), null, true));
                         }
@@ -201,7 +205,7 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
             }
 
         } catch (final IllegalArgumentException | IOException e) {
-            throw new RuntimeException("Failed to retrieve vault's items", e);
+            throw new RuntimeException("Failed to retrieve items for one or more Vaults", e);
         }
 
         final AtomicInteger groupedParameterCount = new AtomicInteger(0);
@@ -210,7 +214,7 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
             groupedParameterCount.addAndGet(group.getParameters().size());
             groupNames.add(group.getGroupName());
         });
-        getLogger().info("Fetched {} parameters.  Group names: {}", groupedParameterCount.get(), groupNames);
+        getLogger().info("Fetched {} parameters with Group Names: {}", groupedParameterCount.get(), groupNames);
         return parameterGroups;
     }
 }
