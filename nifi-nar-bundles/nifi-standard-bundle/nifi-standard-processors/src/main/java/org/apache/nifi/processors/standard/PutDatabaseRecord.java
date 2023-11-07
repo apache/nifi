@@ -613,6 +613,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
         final int timeoutMillis = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final boolean useDatabaseTableColumnDatatype = context.getProperty(USE_DATABASE_TABLE_COLUMN_DATATYPE).asBoolean();
 
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
@@ -747,8 +748,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 sqlType = -156;
                             }
                         }
-
-                        final boolean useDatabaseTableColumnDatatype = context.getProperty(USE_DATABASE_TABLE_COLUMN_DATATYPE).asBoolean();
 
                         // Convert (if necessary) from field data type to column data type
                         if ((fieldSqlType != sqlType) && useDatabaseTableColumnDatatype) {
