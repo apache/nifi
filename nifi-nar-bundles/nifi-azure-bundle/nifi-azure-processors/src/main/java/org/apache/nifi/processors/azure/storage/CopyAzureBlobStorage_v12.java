@@ -66,12 +66,10 @@ import reactor.core.publisher.Mono;
 import java.text.DecimalFormat;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -123,25 +121,26 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     private final static int GENERATE_SAS_EXPIRY_HOURS = 24;
 
     public static final PropertyDescriptor SOURCE_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("source-storage-credentials-service")
+            .name("Source Storage Credentials")
             .displayName("Source Storage Credentials")
-            .description("Controller Service used to obtain Azure Blob Storage Credentials to read blob data ")
+            .description("Credentials Service used to obtain Azure Blob Storage Credentials to read Source Blob information")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
             .build();
 
-    public static final PropertyDescriptor SOURCE_CONTAINER = new PropertyDescriptor.Builder()
-            .name("source-container-name")
+    public static final PropertyDescriptor SOURCE_CONTAINER_NAME = new PropertyDescriptor.Builder()
+            .name("Source Container Name")
             .displayName("Source Container Name")
-            .description("Name of the Azure storage container to copy from.")
+            .description("Name of the Azure storage container that will be copied")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
     public static final PropertyDescriptor SOURCE_BLOB_NAME = new PropertyDescriptor.Builder()
-            .name("source-blob-name")
+            .name("Source Blob Name")
             .displayName("Source Blob Name")
+            .description("Name of the Azure blob that will be copied")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -153,40 +152,37 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .displayName("Destination Storage Credentials")
             .build();
 
-    public static final PropertyDescriptor DESTINATION_CONTAINER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DESTINATION_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
             .displayName("Destination Container Name")
-            .description("Name of the Azure storage container to copy into; defaults to source container name.")
+            .description("Name of the Azure storage container destination defaults to the Source Container Name when not specified")
             .required(false)
             .build();
 
     public static final PropertyDescriptor DESTINATION_BLOB_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BLOB_NAME)
             .displayName("Destination Blob Name")
-            .description("The full name of the destination blob; defaults to source blob name.")
+            .description("The full name of the destination blob defaults to the Source Blob Name when not specified")
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SOURCE_STORAGE_CREDENTIALS_SERVICE,
-            SOURCE_CONTAINER,
+            SOURCE_CONTAINER_NAME,
             SOURCE_BLOB_NAME,
             DESTINATION_STORAGE_CREDENTIALS_SERVICE,
+            DESTINATION_CONTAINER_NAME,
             DESTINATION_BLOB_NAME,
-            DESTINATION_CONTAINER,
             AzureStorageUtils.CONFLICT_RESOLUTION,
             AzureStorageUtils.CREATE_CONTAINER,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
-    private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(ProcessContext context) {
-        return context.getProperty(SOURCE_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
-    }
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -194,10 +190,10 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             return;
         }
 
-        final String sourceContainerName = context.getProperty(SOURCE_CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final String sourceContainerName = context.getProperty(SOURCE_CONTAINER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String sourceBlobName = context.getProperty(SOURCE_BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String destinationContainerName = Optional.ofNullable(
-                context.getProperty(DESTINATION_CONTAINER).evaluateAttributeExpressions(flowFile).getValue()
+                context.getProperty(DESTINATION_CONTAINER_NAME).evaluateAttributeExpressions(flowFile).getValue()
         ).orElse(sourceContainerName);
         final String destinationBlobName = Optional.ofNullable(
                 context.getProperty(DESTINATION_BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue()
@@ -208,16 +204,16 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
         final long startNanos = System.nanoTime();
         try {
-            BlobServiceClient storageClient = getStorageClient(context, DESTINATION_STORAGE_CREDENTIALS_SERVICE, flowFile);
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(destinationContainerName);
-            if (createContainer && !containerClient.exists()) {
-                containerClient.create();
+            final BlobServiceClient destinationServiceClient = getStorageClient(context, DESTINATION_STORAGE_CREDENTIALS_SERVICE, flowFile);
+            final BlobContainerClient destinationContainerClient = destinationServiceClient.getBlobContainerClient(destinationContainerName);
+            if (createContainer && !destinationContainerClient.exists()) {
+                destinationContainerClient.create();
             }
 
-            BlobClient blobClient = containerClient.getBlobClient(destinationBlobName);
-            final Map<String, String> attributes = new HashMap<>();
-            applyStandardBlobAttributes(attributes, blobClient);
-            final boolean ignore = conflictResolution == AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION;
+            final BlobClient destinationBlobClient = destinationContainerClient.getBlobClient(destinationBlobName);
+            final Map<String, String> attributes = new LinkedHashMap<>();
+            applyStandardBlobAttributes(attributes, destinationBlobClient);
+            final boolean ignoreStrategyEnabled = conflictResolution == AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION;
 
             final BlobRequestConditions destinationRequestConditions = new BlobRequestConditions();
 
@@ -227,11 +223,11 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 }
 
                 final AzureStorageCredentialsService_v12 sourceCredentialsService = getCopyFromCredentialsService(context);
-                BlobServiceClient sourceStorageClient = getStorageClient(context, SOURCE_STORAGE_CREDENTIALS_SERVICE, flowFile);
-                BlobContainerClient sourceContainerClient = sourceStorageClient.getBlobContainerClient(sourceContainerName);
-                BlobClient sourceBlobClient = sourceContainerClient.getBlobClient(sourceBlobName);
+                final BlobServiceClient sourceServiceClient = getStorageClient(context, SOURCE_STORAGE_CREDENTIALS_SERVICE, flowFile);
+                final BlobContainerClient sourceContainerClient = sourceServiceClient.getBlobContainerClient(sourceContainerName);
+                final BlobClient sourceBlobClient = sourceContainerClient.getBlobClient(sourceBlobName);
 
-                AzureStorageCredentialsDetails_v12 credentialsDetails = sourceCredentialsService.getCredentialsDetails(flowFile.getAttributes());
+                AzureStorageCredentialsDetails_v12 sourceCredentialsDetails = sourceCredentialsService.getCredentialsDetails(flowFile.getAttributes());
                 String sourceUrl = sourceBlobClient.getBlobUrl();
                 final BlobProperties sourceBlobProperties = sourceBlobClient.getProperties();
                 final long blobSize = sourceBlobProperties.getBlobSize();
@@ -240,29 +236,29 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 sourceRequestConditions.setIfMatch(sourceBlobProperties.getETag());
 
                 final HttpAuthorization httpAuthorization;
-                final String sasToken = (credentialsDetails.getCredentialsType() == AzureStorageCredentialsType.ACCOUNT_KEY)
+                final String sasToken = (sourceCredentialsDetails.getCredentialsType() == AzureStorageCredentialsType.ACCOUNT_KEY)
                         ? generateSas(sourceContainerClient)
-                        : credentialsDetails.getSasToken();
-                if (sasToken != null) {
+                        : sourceCredentialsDetails.getSasToken();
+                if (sasToken == null) {
+                    httpAuthorization = getHttpAuthorization(sourceCredentialsDetails);
+                } else {
                     sourceUrl += "?" + sasToken;
                     httpAuthorization = null;
-                } else {
-                    httpAuthorization = getHttpAuthorization(credentialsDetails);
                 }
 
-                copy(blobClient, httpAuthorization, sourceUrl, blobSize, sourceRequestConditions, destinationRequestConditions);
-                applyBlobMetadata(attributes, blobClient);
+                copy(destinationBlobClient, httpAuthorization, sourceUrl, blobSize, sourceRequestConditions, destinationRequestConditions);
+                applyBlobMetadata(attributes, destinationBlobClient);
 
-                if (ignore) {
-                    attributes.put(ATTR_NAME_IGNORED, "false");
+                if (ignoreStrategyEnabled) {
+                    attributes.put(ATTR_NAME_IGNORED, Boolean.FALSE.toString());
                 }
             } catch (BlobStorageException e) {
                 final BlobErrorCode errorCode = e.getErrorCode();
                 flowFile = session.putAttribute(flowFile, ATTR_NAME_ERROR_CODE, e.getErrorCode().toString());
 
-                if (errorCode == BlobErrorCode.BLOB_ALREADY_EXISTS && ignore) {
+                if (errorCode == BlobErrorCode.BLOB_ALREADY_EXISTS && ignoreStrategyEnabled) {
                     getLogger().info("Blob already exists: remote blob not modified. Transferring {} to success", flowFile);
-                    attributes.put(ATTR_NAME_IGNORED, "true");
+                    attributes.put(ATTR_NAME_IGNORED, Boolean.TRUE.toString());
                 } else {
                     throw e;
                 }
@@ -281,23 +277,15 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         }
     }
 
-    private static String generateSas(final BlobContainerClient sourceContainerClient) {
-        BlobContainerSasPermission permissions = new BlobContainerSasPermission().setCreatePermission(true).setWritePermission(true).setAddPermission(true).setReadPermission(true);
-        OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
-        OffsetDateTime expiryTime = utc.plus(CopyAzureBlobStorage_v12.GENERATE_SAS_EXPIRY_HOURS, ChronoUnit.HOURS);
-        BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
-        return sourceContainerClient.generateSas(signatureValues);
-    }
-
-    private void copy(final BlobClient blobClient,
+    private void copy(final BlobClient destinationBlobClient,
                       final HttpAuthorization httpAuthorization,
                       final String sourceUrl,
-                      long blobSize,
+                      final long blobSize,
                       final BlobRequestConditions sourceRequestConditions,
                       final BlobRequestConditions destinationRequestConditions) {
-        BlockBlobClient blockBlobClient = blobClient.getBlockBlobClient();
+        final BlockBlobClient blockBlobClient = destinationBlobClient.getBlockBlobClient();
 
-        // If the blob size is below the limit, we use the one-shot upload endpoint.
+        // If the blob size is below the limit, use the one-shot upload endpoint
         if (blobSize < MAX_UPLOAD_BLOB_BYTES_LONG) {
             final BlobUploadFromUrlOptions options = new BlobUploadFromUrlOptions(sourceUrl);
             if (httpAuthorization != null) {
@@ -314,12 +302,14 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         int blockId = 1;
         final List<String> blockIds = new ArrayList<>();
 
-        // Upload each block sequentially until we've uploaded the entire blob.
+        // Upload each block in sequential chunks
         while (true) {
             long count = Math.min(blobSize - offset, MAX_STAGE_BLOCK_BYTES_LONG);
-            if (count == 0) break;
+            if (count == 0) {
+                break;
+            }
 
-            // The zero-padded block ID must be base64-encoded as per the protocol.
+            // The zero-padded block ID must be base64-encoded as per the protocol
             final String zeroPadded = df.format(blockId);
             final String base64BlockId = Base64.getEncoder().encodeToString(zeroPadded.getBytes());
 
@@ -346,6 +336,18 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         if (statusCode != HTTP_ACCEPTED) {
             throw new ProcessException(String.format("Failed committing block list: HTTP %d", statusCode));
         }
+    }
+
+    private static String generateSas(final BlobContainerClient sourceContainerClient) {
+        final BlobContainerSasPermission permissions = new BlobContainerSasPermission().setCreatePermission(true).setWritePermission(true).setAddPermission(true).setReadPermission(true);
+        final OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        final OffsetDateTime expiryTime = now.plusHours(CopyAzureBlobStorage_v12.GENERATE_SAS_EXPIRY_HOURS);
+        final BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
+        return sourceContainerClient.generateSas(signatureValues);
+    }
+
+    private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(ProcessContext context) {
+        return context.getProperty(SOURCE_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
     }
 
     private static HttpAuthorization getHttpAuthorization(final AzureStorageCredentialsDetails_v12 credentialsDetails) {
@@ -375,7 +377,10 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         final TokenRequestContext tokenRequestContext = new TokenRequestContext();
         tokenRequestContext.setScopes(Collections.singletonList(STORAGE_SCOPE));
         final AccessToken accessToken = credential.getToken(tokenRequestContext).block();
-        final String authorization = accessToken.getToken();
-        return new HttpAuthorization("Bearer", authorization);
+        if (accessToken == null) {
+            throw new IllegalStateException("Storage Access Token not retrieved");
+        }
+        final String token = accessToken.getToken();
+        return new HttpAuthorization("Bearer", token);
     }
 }

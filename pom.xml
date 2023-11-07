@@ -1142,6 +1142,7 @@
                                 !ITPutAzureDataLakeStorage,
                                 !ITFetchAzureDataLakeStorage,
                                 !ITListAzureDataLakeStorage,
+                                !ITCopyAzureBlobStorage_v12,
                                 !ITFetchAzureBlobStorage_v12,
                                 !ITPutAzureBlobStorage_v12,
                                 !ITDeleteAzureDataLakeStorage,

@@ -52,7 +52,7 @@ public class ITCopyAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @BeforeEach
     public void setUp() {
-        runner.setProperty(CopyAzureBlobStorage_v12.SOURCE_CONTAINER, getContainerName());
+        runner.setProperty(CopyAzureBlobStorage_v12.SOURCE_CONTAINER_NAME, getContainerName());
         runner.setProperty(CopyAzureBlobStorage_v12.SOURCE_BLOB_NAME, BLOB_NAME);
     }
 
