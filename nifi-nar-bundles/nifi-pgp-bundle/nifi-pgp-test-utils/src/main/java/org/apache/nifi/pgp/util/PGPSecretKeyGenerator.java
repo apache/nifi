@@ -47,15 +47,13 @@ public class PGPSecretKeyGenerator {
 
     private static final String DSA_KEY_ALGORITHM = "DSA";
 
-    private static final int DSA_KEY_SIZE = 1024;
+    private static final int DSA_KEY_SIZE = 2048;
 
     private static final String ELGAMAL_KEY_ALGORITHM = "ELGAMAL";
 
     private static final String KEY_IDENTITY = PGPSecretKey.class.getSimpleName();
 
     private static final int KEY_ENCRYPTION_ALGORITHM = PGPEncryptedData.AES_256;
-
-    private static final int HASH_ALGORITHM = HashAlgorithmTags.SHA1;
 
     /**
      * Generate Secret Keyring containing DSA and ElGamal Key Pairs
@@ -122,10 +120,11 @@ public class PGPSecretKeyGenerator {
     }
 
     private static PGPContentSignerBuilder getContentSignerBuilder(final int algorithm) {
-        return new JcaPGPContentSignerBuilder(algorithm, HASH_ALGORITHM);
+        return new JcaPGPContentSignerBuilder(algorithm, HashAlgorithmTags.SHA256);
     }
 
     private static PGPDigestCalculator getDigestCalculator() throws PGPException {
-        return new JcaPGPDigestCalculatorProviderBuilder().build().get(HASH_ALGORITHM);
+        // RFC 4880 Section 5.5.3 requires SHA-1 for Secret-Key hash calculation
+        return new JcaPGPDigestCalculatorProviderBuilder().build().get(HashAlgorithmTags.SHA1);
     }
 }
