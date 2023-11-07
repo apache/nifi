@@ -115,7 +115,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .displayName("Transform Result Filter")
             .description("A filter of output results using another JSLT. This property allows you to change the built-in filter,"
                     + " which removes objects with null values, empty objects and empty arrays from the output."
-                    + " Use a filter such as \"1 == 1\" to disable all filtering.")
+                    + " Use a filter such as \"true\" to disable all filtering.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT, ResourceType.FILE)
             .required(true)

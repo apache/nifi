@@ -165,7 +165,7 @@ public class TestJSLTTransformJSON {
 
     @Test
     public void testTransformWithNoFilter() {
-        runner.setProperty(JSLTTransformJSON.RESULT_FILTER, "1 == 1");
+        runner.setProperty(JSLTTransformJSON.RESULT_FILTER, "true");
         runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
     }
 
