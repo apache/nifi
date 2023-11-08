@@ -60,9 +60,9 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
         assertEquals(3, collection.countDocuments());
-        Document doc1 = collection.find(new Document().append("_id", "doc_1")).first();
+        Document doc1 = collection.find(new Document().append("_id", "doc_2")).first();
         assertNotNull(doc1);
-        assertEquals(3, doc1.getInteger("c", 0));
+        assertEquals(4, doc1.getInteger("c", 0));
     }
 
     @Test
