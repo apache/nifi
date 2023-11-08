@@ -14,6 +14,9 @@
 # limitations under the License.
 
 from nifiapi.properties import PropertyDescriptor, StandardValidators, PropertyDependency, ExpressionLanguageScope
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+
 
 # Embedding Functions
 ONNX_ALL_MINI_LM_L6_V2 = "ONNX all-MiniLM-L6-v2 Model"
@@ -99,13 +102,19 @@ SENTENCE_TRANSFORMER_MODEL_NAME = PropertyDescriptor(
 )
 SENTENCE_TRANSFORMER_DEVICE = PropertyDescriptor(
     name="Sentence Transformer Device Type",
-    description="The type of device to use for performing the embeddings using the Sentence Transformer, such as 'cpu', 'cuda', 'mps', 'cuda:0', etc. If not specified, a GPU will be used if "
-                + "possible, otherwise a CPU.",
+    description="""The type of device to use for performing the embeddings using the Sentence Transformer, such as 'cpu', 'cuda', 'mps', 'cuda:0', etc. 
+                   If not specified, a GPU will be used if possible, otherwise a CPU.""",
     validators=[StandardValidators.NON_EMPTY_VALIDATOR],
     required=False,
     dependencies=[PropertyDependency(EMBEDDING_FUNCTION, SENTENCE_TRANSFORMERS)]
 )
-
+EMBEDDING_MODEL = PropertyDescriptor(
+    name="Embedding Model",
+    description="Specifies which embedding model should be used in order to create embeddings from incoming Documents. Default model is OpenAI.",
+    allowable_values=[HUGGING_FACE, OPENAI],
+    default_value=OPENAI,
+    required=True
+)
 PROPERTIES = [
     EMBEDDING_FUNCTION,
     HUGGING_FACE_MODEL_NAME,
@@ -117,7 +126,8 @@ PROPERTIES = [
     OPENAI_API_TYPE,
     OPENAI_API_VERSION,
     SENTENCE_TRANSFORMER_MODEL_NAME,
-    SENTENCE_TRANSFORMER_DEVICE
+    SENTENCE_TRANSFORMER_DEVICE,
+    EMBEDDING_MODEL
 ]
 
 
@@ -145,3 +155,14 @@ def create_embedding_function(context):
     model_name = context.getProperty(SENTENCE_TRANSFORMER_MODEL_NAME).getValue()
     device = context.getProperty(SENTENCE_TRANSFORMER_DEVICE).getValue()
     return SentenceTransformerEmbeddingFunction(model_name=model_name, device=device)
+
+
+def create_embedding_service(context):
+    embedding_service = context.getProperty(EMBEDDING_MODEL).getValue()
+
+    if embedding_service == OPENAI:
+        openai_api_key = context.getProperty(OPENAI_API_KEY).getValue()
+        return OpenAIEmbeddings(openai_api_key=openai_api_key)
+    else:
+        huggingface_api_key = context.getProperty(HUGGING_FACE_API_KEY).getValue()
+        return HuggingFaceInferenceAPIEmbeddings(api_key=huggingface_api_key)
