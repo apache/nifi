@@ -30,12 +30,14 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app_%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+            <!-- Control the maximum size of each log file before rolling over -->
             <maxFileSize>100MB</maxFileSize>
-            <!-- keep 30 log files worth of history -->
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
-            <totalSizeCap>100GB</totalSizeCap>
-            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <!-- Control the total size of all log archive files for this appender -->
+            <totalSizeCap>3GB</totalSizeCap>
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
@@ -54,10 +56,13 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-user_%d.log</fileNamePattern>
-            <!-- keep 30 log files worth of history -->
+            <!-- Control the maximum size of each log file before rolling over -->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <!-- Control the total size of all log archive files for this appender -->
+            <totalSizeCap>3GB</totalSizeCap>
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -69,9 +74,13 @@
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request_%d.log</fileNamePattern>
+            <!-- Control the maximum size of each log file before rolling over -->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <!-- Control the total size of all log archive files for this appender -->
+            <totalSizeCap>3GB</totalSizeCap>
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -89,10 +98,13 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-bootstrap_%d.log</fileNamePattern>
-            <!-- keep 5 log files worth of history -->
-            <maxHistory>5</maxHistory>
-            <totalSizeCap>100MB</totalSizeCap>
-            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <!-- Control the maximum size of each log file before rolling over -->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
+            <maxHistory>30</maxHistory>
+            <!-- Control the total size of all log archive files for this appender -->
+            <totalSizeCap>3GB</totalSizeCap>
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -104,11 +116,13 @@
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation_%d.%i.log</fileNamePattern>
+            <!-- Control the maximum size of each log file before rolling over is lower for deprecations -->
             <maxFileSize>10MB</maxFileSize>
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>10</maxHistory>
+            <!-- Control the total size of all log archive files for this appender is lower as deprecations are repetitive -->
             <totalSizeCap>100MB</totalSizeCap>
-            <totalSizeCap>5GB</totalSizeCap>
-            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -129,11 +143,13 @@
                     To ZIP rolled files, replace '.log' with '.log.zip'.
                     -->
                     <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app-${logFileSuffix}_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+                    <!-- Control the maximum size of each log file before rolling over -->
                     <maxFileSize>100MB</maxFileSize>
-                    <!-- keep 30 log files worth of history -->
+                    <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
                     <maxHistory>30</maxHistory>
-                    <totalSizeCap>100GB</totalSizeCap>
-                    <!-- This is supposed to force log cleanup when the service starts/restarts -->
+                    <!-- Control the total size of all log archive files for this appender -->
+                    <totalSizeCap>3GB</totalSizeCap>
+                    <!-- Log files exceeding maximum settings will be rolled on startup -->
                     <cleanHistoryOnStart>true</cleanHistoryOnStart>
                 </rollingPolicy>
                 <immediateFlush>true</immediateFlush>
