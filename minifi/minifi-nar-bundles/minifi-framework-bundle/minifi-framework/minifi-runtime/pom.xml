@@ -28,6 +28,11 @@ limitations under the License.
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-commons-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-framework-api</artifactId>
             <scope>provided</scope>
         </dependency>

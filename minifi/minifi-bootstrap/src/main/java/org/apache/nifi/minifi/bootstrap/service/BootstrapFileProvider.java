@@ -115,7 +115,7 @@ public class BootstrapFileProvider {
             throw new FileNotFoundException(bootstrapConfigFile.getAbsolutePath());
         }
 
-        Properties bootstrapProperties = new Properties();
+        Properties bootstrapProperties = BootstrapProperties.getInstance();
         try (FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
             bootstrapProperties.load(fis);
         }

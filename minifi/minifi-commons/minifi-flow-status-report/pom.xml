@@ -21,7 +21,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>minifi-utils</artifactId>
+    <artifactId>minifi-flow-status-report</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>

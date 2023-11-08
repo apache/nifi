@@ -18,7 +18,6 @@ package org.apache.nifi.minifi;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -31,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.minifi.util.MultiSourceMinifiProperties;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarClassLoadersHolder;
@@ -218,7 +218,7 @@ public class MiNiFi {
     public static void main(String[] args) {
         logger.info("Launching MiNiFi...");
         try {
-            NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, (Map<String, String>) null);
+            NiFiProperties niFiProperties = MultiSourceMinifiProperties.getInstance();
             new MiNiFi(niFiProperties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi due to " + t, t);
