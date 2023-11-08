@@ -18,48 +18,73 @@
 package org.apache.nifi.uuid5;
 
 import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-
-// This is based on an unreleased implementation in Apache Commons Id.
-// See http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
+/**
+ * UUID Version 5 generator based on RFC 4122 Section 4.3 with SHA-1 hash algorithm for names
+ */
 public class Uuid5Util {
-    public static String fromString(String value, String namespace) {
-        final UUID nsUUID = namespace == null ? new UUID(0, 0) : UUID.fromString(namespace);
-        final byte[] nsBytes =
-                ByteBuffer.wrap(new byte[16])
-                        .putLong(nsUUID.getMostSignificantBits())
-                        .putLong(nsUUID.getLeastSignificantBits())
-                        .array();
+    private static final String NAME_DIGEST_ALGORITHM = "SHA-1";
 
-        final byte[] subjectBytes = value.getBytes();
-        final byte[] nameBytes = ArrayUtils.addAll(nsBytes, subjectBytes);
-        final byte[] nameHash = DigestUtils.sha1(nameBytes);
-        final byte[] uuidBytes = Arrays.copyOf(nameHash, 16);
+    private static final int NAMESPACE_LENGTH = 16;
 
-        uuidBytes[6] &= 0x0F;
-        uuidBytes[6] |= 0x50;
-        uuidBytes[8] &= 0x3f;
-        uuidBytes[8] |= 0x80;
+    private static final int ENCODED_LENGTH = 32;
 
-        final String encoded = Hex.encodeHexString(Objects.requireNonNull(uuidBytes));
-        final StringBuffer sb = new StringBuffer(encoded);
+    private static final char SEPARATOR = '-';
 
-        while (sb.length() != 32) {
-            sb.insert(0, "0");
+    /**
+     * Generate UUID Version 5 based on SHA-1 hash of name with optional UUID namespace
+     *
+     * @param name Name for deterministic UUID generation with SHA-1 hash
+     * @param namespace Optional namespace defaults to 0 when not provided
+     * @return UUID string consisting of 36 lowercase characters
+     */
+    public static String fromString(final String name, final String namespace) {
+        Objects.requireNonNull(name, "Name required");
+        final UUID namespaceId = namespace == null ? new UUID(0, 0) : UUID.fromString(namespace);
+
+        final byte[] subject = name.getBytes();
+        final int nameLength = NAMESPACE_LENGTH + subject.length;
+        final ByteBuffer nameBuffer = ByteBuffer.allocate(nameLength);
+        nameBuffer.putLong(namespaceId.getMostSignificantBits());
+        nameBuffer.putLong(namespaceId.getLeastSignificantBits());
+        nameBuffer.put(subject);
+
+        final byte[] nameHash = getNameHash(nameBuffer.array());
+        final byte[] nameUuid = Arrays.copyOf(nameHash, NAMESPACE_LENGTH);
+
+        nameUuid[6] &= 0x0F;
+        nameUuid[6] |= 0x50;
+        nameUuid[8] &= 0x3f;
+        nameUuid[8] |= (byte) 0x80;
+
+        final String encoded = HexFormat.of().formatHex(nameUuid);
+        final StringBuilder builder = new StringBuilder(encoded);
+
+        while (builder.length() != ENCODED_LENGTH) {
+            builder.insert(0, "0");
         }
 
-        sb.ensureCapacity(32);
-        sb.insert(8, '-');
-        sb.insert(13, '-');
-        sb.insert(18, '-');
-        sb.insert(23, '-');
+        builder.ensureCapacity(ENCODED_LENGTH);
+        builder.insert(8, SEPARATOR);
+        builder.insert(13, SEPARATOR);
+        builder.insert(18, SEPARATOR);
+        builder.insert(23, SEPARATOR);
 
-        return sb.toString();
+        return builder.toString();
+    }
+
+    private static byte[] getNameHash(final byte[] name) {
+        try {
+            final MessageDigest messageDigest = MessageDigest.getInstance(NAME_DIGEST_ALGORITHM);
+            return messageDigest.digest(name);
+        } catch (final NoSuchAlgorithmException e) {
+            throw new IllegalStateException("UUID Name Digest Algorithm not found", e);
+        }
     }
 }
