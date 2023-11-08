@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.schema.access;
+package org.apache.nifi.confluent.schemaregistry;
 
-import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -25,57 +30,61 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.OptionalLong;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestConfluentSchemaRegistryStrategy extends AbstractSchemaAccessStrategyTest {
+class ConfluentEncodedSchemaReferenceReaderTest {
+    private static final String SERVICE_ID = ConfluentEncodedSchemaReferenceReader.class.getSimpleName();
+
+    private static final byte MAGIC_BYTE = 0;
+
+    private static final int INVALID_MAGIC_BYTE = 1;
+
+    private static final int ID = 123456;
+
+    private ConfluentEncodedSchemaReferenceReader reader;
+
+    @BeforeEach
+    void setRunner() throws InitializationException {
+        reader = new ConfluentEncodedSchemaReferenceReader();
+
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner.addControllerService(SERVICE_ID, reader);
+        runner.enableControllerService(reader);
+    }
 
     @Test
-    public void testGetSchemaWithValidEncoding() throws IOException, SchemaNotFoundException {
-        final SchemaAccessStrategy schemaAccessStrategy = new ConfluentSchemaRegistryStrategy(schemaRegistry);
-
-        final int schemaId = 123456;
-
+    public void testGetSchemaIdentifier() throws IOException, SchemaNotFoundException {
         try (final ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
              final DataOutputStream out = new DataOutputStream(bytesOut)) {
-            out.write(0);
-            out.writeInt(schemaId);
+            out.write(MAGIC_BYTE);
+            out.writeInt(ID);
             out.flush();
 
             try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
+                final SchemaIdentifier schemaIdentifier = reader.getSchemaIdentifier(Collections.emptyMap(), in);
 
-                // the confluent strategy will read the id from the input stream
-                final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
-                        .schemaVersionId((long)schemaId)
-                        .build();
-
-                when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
-                        .thenReturn(recordSchema);
-
-                final RecordSchema retrievedSchema = schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema);
-                assertNotNull(retrievedSchema);
+                final OptionalLong schemaVersionId = schemaIdentifier.getSchemaVersionId();
+                assertTrue(schemaVersionId.isPresent());
+                assertEquals(schemaVersionId.getAsLong(), ID);
             }
         }
     }
 
     @Test
-    public void testGetSchemaWithInvalidEncoding() {
-        final SchemaAccessStrategy schemaAccessStrategy = new ConfluentSchemaRegistryStrategy(schemaRegistry);
-
-        final int schemaId = 123456;
-
+    public void testGetSchemaIdentifierInvalid() {
         assertThrows(SchemaNotFoundException.class, () -> {
             try (final ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
                  final DataOutputStream out = new DataOutputStream(bytesOut)) {
-                out.write(1); // write an invalid magic byte
-                out.writeInt(schemaId);
+                out.write(INVALID_MAGIC_BYTE);
+                out.writeInt(ID);
                 out.flush();
 
                 try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
-                    schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema);
+                    reader.getSchemaIdentifier(Collections.emptyMap(), in);
                 }
             }
         });
