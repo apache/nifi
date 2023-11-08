@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-import com.google.cloud.ReadChannel;
-import com.google.cloud.RestorableState;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -25,8 +23,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -35,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.gcp.util.MockReadChannel;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
@@ -130,7 +127,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         }
     }
 
-
     @Override
     public AbstractGCSProcessor getProcessor() {
         return new FetchGCSObject() {
@@ -146,65 +142,10 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         };
     }
 
-    private static class MockReadChannel implements ReadChannel {
-        private final byte[] toRead;
-        private int position = 0;
-        private boolean finished;
-        private boolean isOpen;
-
-        private MockReadChannel(String textToRead) {
-            this.toRead = textToRead.getBytes();
-            this.isOpen = true;
-            this.finished = false;
-        }
-
-        @Override
-        public void close() {
-            this.isOpen = false;
-        }
-
-        @Override
-        public void seek(long l) throws IOException {
-
-        }
-
-        @Override
-        public void setChunkSize(int i) {
-
-        }
-
-        @Override
-        public RestorableState<ReadChannel> capture() {
-            return null;
-        }
-
-        @Override
-        public int read(ByteBuffer dst) throws IOException {
-            if (this.finished) {
-                return -1;
-            } else {
-                if (dst.remaining() > this.toRead.length) {
-                    this.finished = true;
-                }
-                int toWrite = Math.min(this.toRead.length - position, dst.remaining());
-
-                dst.put(this.toRead, this.position, toWrite);
-                this.position += toWrite;
-
-                return toWrite;
-            }
-        }
-
-        @Override
-        public boolean isOpen() {
-            return this.isOpen;
-        }
-    }
-
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
-        runner.setProperty(FetchGCSObject.KEY, String.valueOf(KEY));
+        runner.setProperty(FetchGCSObject.KEY, KEY);
     }
 
     @Test
@@ -248,7 +189,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(new MockReadChannel(CONTENT));
-
 
         runner.enqueue("");
 
