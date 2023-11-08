@@ -115,9 +115,9 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .displayName("Transform Result Filter")
             .description("A filter of output results using another JSLT. This property allows you to change the built-in filter,"
                     + " which removes objects with null values, empty objects and empty arrays from the output."
+                    + " This JSLT must return true/false"
                     + " Use a filter such as \"true\" to disable all filtering.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT, ResourceType.FILE)
             .required(true)
             .defaultValue(JSLT_FILTER_DEFAULT)
             .build();
@@ -357,6 +357,9 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
     private String readTransform(final PropertyValue propertyValue) {
         final ResourceReference resourceReference = propertyValue.asResource();
+        if (resourceReference == null) {
+            return propertyValue.getValue();
+        }
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
             return reader.lines().collect(Collectors.joining());
         } catch (final IOException e) {
