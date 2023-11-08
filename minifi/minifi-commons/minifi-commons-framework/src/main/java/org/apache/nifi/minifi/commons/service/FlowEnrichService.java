@@ -107,15 +107,10 @@ public class FlowEnrichService {
             rootGroup.setInstanceIdentifier(randomUUID().toString());
         }
 
-        rootGroup.getControllerServices().forEach(cs -> cs.setScheduledState(ENABLED));
+        rootGroup.getControllerServices().forEach(controllerService -> controllerService.setScheduledState(ENABLED));
 
         Optional<VersionedControllerService> commonSslControllerService = createCommonSslControllerService();
-        commonSslControllerService
-            .ifPresent(sslControllerService -> {
-                List<VersionedControllerService> currentControllerServices = new ArrayList<>(versionedDataflow.getControllerServices());
-                currentControllerServices.add(sslControllerService);
-                versionedDataflow.setControllerServices(currentControllerServices);
-            });
+        commonSslControllerService.ifPresent(versionedDataflow.getControllerServices()::add);
 
         commonSslControllerService
             .filter(__ -> parseBoolean(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_USE_PARENT_SSL.getKey())))
@@ -123,12 +118,7 @@ public class FlowEnrichService {
             .ifPresent(commonSslControllerServiceInstanceId -> overrideProcessorsSslControllerService(rootGroup, commonSslControllerServiceInstanceId));
 
         createProvenanceReportingTask(commonSslControllerService.map(VersionedComponent::getInstanceIdentifier).orElse(EMPTY))
-            .ifPresent(provenanceReportingTask -> {
-                List<VersionedReportingTask> currentReportingTasks = new ArrayList<>(versionedDataflow.getReportingTasks());
-                currentReportingTasks.add(provenanceReportingTask);
-                versionedDataflow.setReportingTasks(currentReportingTasks);
-            });
-
+            .ifPresent(versionedDataflow.getReportingTasks()::add);
         byte[] enrichedFlow = toByteArray(versionedDataflow);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Enriched flow with content: \n{}", new String(enrichedFlow, UTF_8));
@@ -165,7 +155,7 @@ public class FlowEnrichService {
         sslControllerService.setName(COMMON_SSL_CONTEXT_SERVICE_NAME);
         sslControllerService.setComments(EMPTY);
         sslControllerService.setType(STANDARD_RESTRICTED_SSL_CONTEXT_SERVICE);
-        sslControllerService.setScheduledState(ScheduledState.ENABLED);
+        sslControllerService.setScheduledState(ENABLED);
         sslControllerService.setBulletinLevel(LogLevel.WARN.name());
         sslControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
         sslControllerService.setBundle(createBundle(SSL_CONTEXT_SERVICE_NAR));
