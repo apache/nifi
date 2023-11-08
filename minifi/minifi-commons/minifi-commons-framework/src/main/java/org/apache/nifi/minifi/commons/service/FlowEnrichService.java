@@ -26,6 +26,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.flow.ScheduledState.ENABLED;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -90,6 +91,9 @@ public class FlowEnrichService {
         }
 
         VersionedDataflow versionedDataflow = parseVersionedDataflow(flowCandidate);
+        versionedDataflow.setReportingTasks(ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new));
+        versionedDataflow.setRegistries(ofNullable(versionedDataflow.getRegistries()).orElseGet(ArrayList::new));
+        versionedDataflow.setControllerServices(ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new));
 
         Optional<Integer> maxConcurrentThreads = ofNullable(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS.getKey()))
             .map(Integer::parseInt);
@@ -103,10 +107,12 @@ public class FlowEnrichService {
             rootGroup.setInstanceIdentifier(randomUUID().toString());
         }
 
+        rootGroup.getControllerServices().forEach(cs -> cs.setScheduledState(ENABLED));
+
         Optional<VersionedControllerService> commonSslControllerService = createCommonSslControllerService();
         commonSslControllerService
             .ifPresent(sslControllerService -> {
-                List<VersionedControllerService> currentControllerServices = ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new);
+                List<VersionedControllerService> currentControllerServices = new ArrayList<>(versionedDataflow.getControllerServices());
                 currentControllerServices.add(sslControllerService);
                 versionedDataflow.setControllerServices(currentControllerServices);
             });
@@ -118,7 +124,7 @@ public class FlowEnrichService {
 
         createProvenanceReportingTask(commonSslControllerService.map(VersionedComponent::getInstanceIdentifier).orElse(EMPTY))
             .ifPresent(provenanceReportingTask -> {
-                List<VersionedReportingTask> currentReportingTasks = ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new);
+                List<VersionedReportingTask> currentReportingTasks = new ArrayList<>(versionedDataflow.getReportingTasks());
                 currentReportingTasks.add(provenanceReportingTask);
                 versionedDataflow.setReportingTasks(currentReportingTasks);
             });
