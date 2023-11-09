@@ -158,36 +158,35 @@ export class ProcessGroupManager {
             .filter(function (d: any) {
                 return d.permissions.canWrite && d.permissions.canRead;
             })
-            .on('mouseover.drop', function () {
-                // TODO
+            .on('mouseover.drop', function (this: any) {
                 // Using mouseover/out to workaround chrome issue #122746
-                // get the target and ensure its not already been marked for drop
-                // const target = d3.select(this);
-                // if (!target.classed('drop')) {
-                //     const targetData = target.datum();
-                //
-                //     // see if there is a selection being dragged
-                //     const drag = d3.select('rect.drag-selection');
-                //     if (!drag.empty()) {
-                //         // filter the current selection by this group
-                //         const selection = nfCanvasUtils.getSelection().filter(function (d) {
-                //             return targetData.id === d.id;
-                //         });
-                //
-                //         // ensure this group isn't in the selection
-                //         if (selection.empty()) {
-                //             // mark that we are hovering over a drop area if appropriate
-                //             target.classed('drop', function () {
-                //                 // get the current selection and ensure its disconnected
-                //                 return nfConnection.isDisconnected(nfCanvasUtils.getSelection());
-                //             });
-                //         }
-                //     }
-                // }
+                // get the target and ensure it's not already been marked for drop
+                const target: any = d3.select(this);
+                if (!target.classed('drop')) {
+                    const targetData: any = target.datum();
+
+                    // see if there is a selection being dragged
+                    const drag = d3.select('rect.drag-selection');
+                    if (!drag.empty()) {
+                        // filter the current selection by this group
+                        const selection = self.canvasUtils.getSelection().filter(function (d: any) {
+                            return targetData.id === d.id;
+                        });
+
+                        // ensure this group isn't in the selection
+                        if (selection.empty()) {
+                            // mark that we are hovering over a drop area if appropriate
+                            target.classed('drop', function () {
+                                // get the current selection and ensure its disconnected
+                                return self.canvasUtils.isDisconnected(self.canvasUtils.getSelection());
+                            });
+                        }
+                    }
+                }
             })
-            .on('mouseout.drop', function () {
+            .on('mouseout.drop', function (this: any) {
                 // mark that we are no longer hovering over a drop area unconditionally
-                // d3.select(this).classed('drop', false);
+                d3.select(this).classed('drop', false);
             });
 
         return processGroup;

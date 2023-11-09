@@ -28,6 +28,8 @@ import {
     createProcessor,
     deleteComponentsSuccess,
     flowApiError,
+    groupComponents,
+    groupComponentsSuccess,
     loadConnectionSuccess,
     loadInputPortSuccess,
     loadProcessGroup,
@@ -206,6 +208,7 @@ export const flowReducer = createReducer(
         createProcessor,
         createProcessGroup,
         uploadProcessGroup,
+        groupComponents,
         createConnection,
         createPort,
         createFunnel,
@@ -215,7 +218,7 @@ export const flowReducer = createReducer(
             saving: true
         })
     ),
-    on(createComponentSuccess, (state, { response }) => {
+    on(createComponentSuccess, groupComponentsSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             let collection: any[] | null = null;
             switch (response.type) {

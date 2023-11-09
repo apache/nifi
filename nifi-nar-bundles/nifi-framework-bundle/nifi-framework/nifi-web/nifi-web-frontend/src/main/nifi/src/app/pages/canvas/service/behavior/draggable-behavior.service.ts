@@ -22,10 +22,10 @@ import { CanvasState } from '../../state';
 import { INITIAL_SCALE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
-import { updatePositions } from '../../state/flow/flow.actions';
+import { moveComponents, showOkDialog, updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { UpdateComponent } from '../../state/flow';
+import { MoveComponent, UpdateComponent } from '../../state/flow';
 import { Position } from '../../state/shared';
 import { ComponentType } from '../../../../state/shared';
 
@@ -160,8 +160,7 @@ export class DraggableBehavior {
                 if (group.empty()) {
                     self.updateComponentsPosition(dragSelection);
                 } else {
-                    // TODO - move components
-                    // updateComponentsGroup(group);
+                    self.updateComponentsGroup(group);
                 }
 
                 // remove the drag selection
@@ -196,11 +195,12 @@ export class DraggableBehavior {
 
         // ensure every component is writable
         if (!this.canvasUtils.canModify(selectedConnections) || !this.canvasUtils.canModify(selectedComponents)) {
-            // TODO
-            // nfDialog.showOkDialog({
-            //   headerText: 'Component Position',
-            //   dialogContent: 'Must be authorized to modify every component selected.'
-            // });
+            this.store.dispatch(
+                showOkDialog({
+                    title: 'Component Position',
+                    message: 'Must be authorized to modify every component selected.'
+                })
+            );
             return;
         }
 
@@ -242,33 +242,55 @@ export class DraggableBehavior {
         );
     }
 
-    // /**
-    //  * Updates the parent group of all selected components.
-    //  *
-    //  * @param {selection} the destination group
-    //  */
-    // var updateComponentsGroup = function (group) {
-    //   // get the selection and deselect the components being moved
-    //   var selection = d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
-    //
-    //   if (nfCanvasUtils.canModify(selection) === false) {
-    //     nfDialog.showOkDialog({
-    //       headerText: 'Component Position',
-    //       dialogContent: 'Must be authorized to modify every component selected.'
-    //     });
-    //     return;
-    //   }
-    //   if (nfCanvasUtils.canModify(group) === false) {
-    //     nfDialog.showOkDialog({
-    //       headerText: 'Component Position',
-    //       dialogContent: 'Not authorized to modify the destination group.'
-    //     });
-    //     return;
-    //   }
-    //
-    //   // move the seleciton into the group
-    //   nfCanvasUtils.moveComponents(selection, group);
-    // };
+    /**
+     * Updates the parent group of all selected components.
+     *
+     * @param {selection} the destination group
+     */
+    private updateComponentsGroup(group: any) {
+        // get the selection and deselect the components being moved
+        const selection: any = d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
+
+        if (!this.canvasUtils.canModify(selection)) {
+            this.store.dispatch(
+                showOkDialog({
+                    title: 'Component Position',
+                    message: 'Must be authorized to modify every component selected.'
+                })
+            );
+            return;
+        }
+        if (!this.canvasUtils.canModify(group)) {
+            this.store.dispatch(
+                showOkDialog({
+                    title: 'Component Position',
+                    message: 'Not authorized to modify the destination group.'
+                })
+            );
+            return;
+        }
+
+        const groupData: any = group.datum();
+        const components: MoveComponent[] = [];
+        selection.each(function (d: any) {
+            components.push({
+                id: d.id,
+                type: d.type,
+                uri: d.uri,
+                entity: d
+            });
+        });
+
+        // move the selection into the group
+        this.store.dispatch(
+            moveComponents({
+                request: {
+                    components,
+                    groupId: groupData.id
+                }
+            })
+        );
+    }
 
     private updateComponentPosition(d: any, delta: Position): UpdateComponent {
         const newPosition = {

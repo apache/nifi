@@ -19,7 +19,6 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import { navigateWithoutTransform, updateProcessor } from './flow.actions';
 import {
     asyncScheduler,
     catchError,
@@ -75,6 +74,7 @@ import { CreateProcessGroup } from '../../ui/process-group/create-process-group/
 import { CreateConnection } from '../../ui/connection/create-connection/create-connection.component';
 import { EditConnectionComponent } from '../../ui/connection/edit-connection/edit-connection.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
+import { GroupComponents } from '../../ui/process-group/group-components/group-components.component';
 
 @Injectable()
 export class FlowEffects {
@@ -312,6 +312,91 @@ export class FlowEffects {
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
+        )
+    );
+
+    getParameterContextsAndOpenGroupComponentsDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.getParameterContextsAndOpenGroupComponentsDialog),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, currentProcessGroupId]) =>
+                from(this.flowService.getParameterContexts()).pipe(
+                    map((response) =>
+                        FlowActions.openGroupComponentsDialog({
+                            request: {
+                                request,
+                                parameterContexts: response.parameterContexts
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openGroupComponentsDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openGroupComponentsDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(GroupComponents, {
+                            data: request,
+                            panelClass: 'medium-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    groupComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.groupComponents),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.groupComponentsSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response,
+                                components: request.components
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    groupComponentsSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.groupComponentsSuccess),
+            map((action) => action.response),
+            tap(() => this.dialog.closeAll()),
+            switchMap((response) => [
+                FlowActions.createComponentComplete({
+                    response: {
+                        type: response.type,
+                        payload: response.payload
+                    }
+                }),
+                FlowActions.moveComponents({
+                    request: {
+                        groupId: response.payload.id,
+                        components: response.components
+                    }
+                })
+            ])
         )
     );
 
@@ -653,7 +738,7 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.editProcessor.pipe(take(1)).subscribe((payload: any) => {
                         this.store.dispatch(
-                            updateProcessor({
+                            FlowActions.updateProcessor({
                                 request: {
                                     id: request.entity.id,
                                     uri: request.uri,
@@ -1085,6 +1170,80 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    moveComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.moveComponents),
+            map((action) => action.request),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            mergeMap(([request, processGroupId]) => {
+                const components: any[] = request.components;
+
+                const snippet: Snippet = components.reduce(
+                    (snippet, component) => {
+                        switch (component.type) {
+                            case ComponentType.Processor:
+                                snippet.processors[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.InputPort:
+                                snippet.inputPorts[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.OutputPort:
+                                snippet.outputPorts[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.ProcessGroup:
+                                snippet.processGroups[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.RemoteProcessGroup:
+                                snippet.remoteProcessGroups[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.Funnel:
+                                snippet.funnels[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.Label:
+                                snippet.labels[component.id] = this.client.getRevision(component.entity);
+                                break;
+                            case ComponentType.Connection:
+                                snippet.connections[component.id] = this.client.getRevision(component.entity);
+                                break;
+                        }
+                        return snippet;
+                    },
+                    {
+                        parentGroupId: processGroupId,
+                        processors: {},
+                        funnels: {},
+                        inputPorts: {},
+                        outputPorts: {},
+                        remoteProcessGroups: {},
+                        processGroups: {},
+                        connections: {},
+                        labels: {}
+                    } as Snippet
+                );
+
+                return from(this.flowService.createSnippet(snippet)).pipe(
+                    switchMap((response) => this.flowService.moveSnippet(response.snippet.id, request.groupId)),
+                    map((response) => {
+                        const deleteResponses: DeleteComponentResponse[] = [];
+
+                        // prepare the delete responses with all requested components that are now deleted
+                        components.forEach((request) => {
+                            deleteResponses.push({
+                                id: request.id,
+                                type: request.type
+                            });
+                        });
+
+                        return FlowActions.deleteComponentsSuccess({
+                            response: deleteResponses
+                        });
+                    }),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
+    );
+
     deleteComponent$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.deleteComponents),
@@ -1200,6 +1359,17 @@ export class FlowEffects {
         )
     );
 
+    deleteComponentsSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.deleteComponentsSuccess),
+                tap(() => {
+                    this.birdseyeView.refresh();
+                })
+            ),
+        { dispatch: false }
+    );
+
     enterProcessGroup$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -1252,7 +1422,7 @@ export class FlowEffects {
                     ids.push(...selected);
                     commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
-                return of(navigateWithoutTransform({ url: commands }));
+                return of(FlowActions.navigateWithoutTransform({ url: commands }));
             })
         )
     );
@@ -1274,7 +1444,7 @@ export class FlowEffects {
                     const ids: string[] = selected.filter((id) => !idsToRemove.includes(id));
                     commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
-                return of(navigateWithoutTransform({ url: commands }));
+                return of(FlowActions.navigateWithoutTransform({ url: commands }));
             })
         )
     );
@@ -1297,7 +1467,7 @@ export class FlowEffects {
                     const ids: string[] = request.components.map((selectedComponent) => selectedComponent.id);
                     commands = ['/process-groups', processGroupId, 'bulk', ids.join(',')];
                 }
-                return of(navigateWithoutTransform({ url: commands }));
+                return of(FlowActions.navigateWithoutTransform({ url: commands }));
             })
         )
     );
@@ -1307,7 +1477,7 @@ export class FlowEffects {
             ofType(FlowActions.deselectAllComponents),
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
-                return of(navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
+                return of(FlowActions.navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
             })
         )
     );

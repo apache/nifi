@@ -158,6 +158,24 @@ export interface CreateProcessGroupDialogRequest {
     parameterContexts: ParameterContextEntity[];
 }
 
+export interface GroupComponentsRequest {
+    position: Position;
+    moveComponents: MoveComponent[];
+}
+
+export interface GroupComponentsDialogRequest {
+    request: GroupComponentsRequest;
+    parameterContexts: ParameterContextEntity[];
+}
+
+export interface GroupComponents extends CreateProcessGroup {
+    components: MoveComponent[];
+}
+
+export interface GroupComponentsSuccess extends CreateComponentResponse {
+    components: MoveComponent[];
+}
+
 export interface CreateProcessorDialogRequest {
     request: CreateComponent;
     processorTypes: DocumentedType[];
@@ -243,6 +261,18 @@ export interface UpdatePositions {
     requestId: number;
     componentUpdates: UpdateComponent[];
     connectionUpdates: UpdateComponent[];
+}
+
+export interface MoveComponent {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    entity: any;
+}
+
+export interface MoveComponents {
+    components: MoveComponent[];
+    groupId: string;
 }
 
 export interface DeleteComponent {

@@ -16,13 +16,18 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { deleteComponents, navigateToEditComponent, setOperationCollapsed } from '../../../state/flow/flow.actions';
+import {
+    deleteComponents,
+    getParameterContextsAndOpenGroupComponentsDialog,
+    navigateToEditComponent,
+    setOperationCollapsed
+} from '../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { initialState } from '../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../service/storage.service';
-import { BreadcrumbEntity, DeleteComponent } from '../../../state/flow';
+import { BreadcrumbEntity, DeleteComponent, MoveComponent } from '../../../state/flow';
 
 @Component({
     selector: 'operation-control',
@@ -240,12 +245,29 @@ export class OperationControl {
     }
 
     canGroup(selection: any): boolean {
-        // TODO - canGroup
-        return false;
+        return this.canvasUtils.isDisconnected(selection);
     }
 
     group(selection: any): void {
-        // TODO - group
+        const moveComponents: MoveComponent[] = [];
+        selection.each(function (d: any) {
+            moveComponents.push({
+                id: d.id,
+                type: d.type,
+                uri: d.uri,
+                entity: d
+            });
+        });
+
+        // move the selection into the group
+        this.store.dispatch(
+            getParameterContextsAndOpenGroupComponentsDialog({
+                request: {
+                    moveComponents,
+                    position: this.canvasUtils.getOrigin(selection)
+                }
+            })
+        );
     }
 
     canColor(selection: any): boolean {

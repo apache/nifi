@@ -23,12 +23,14 @@ import {
     centerSelectedComponent,
     deleteComponents,
     enterProcessGroup,
+    getParameterContextsAndOpenGroupComponentsDialog,
     leaveProcessGroup,
+    moveComponents,
     navigateToEditComponent,
     reloadFlow
 } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { DeleteComponent } from '../../../state/flow';
+import { DeleteComponent, MoveComponent } from '../../../state/flow';
 
 export interface ContextMenuItemDefinition {
     isSeparator?: boolean;
@@ -688,24 +690,59 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canMoveToParent
-                    return false;
+                    return canvasUtils.isNotRootGroup();
                 },
                 clazz: 'fa fa-arrows',
                 text: 'Move to parent group',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - moveIntoParent
+                action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
+                    const components: MoveComponent[] = [];
+                    selection.each(function (d: any) {
+                        components.push({
+                            id: d.id,
+                            type: d.type,
+                            uri: d.uri,
+                            entity: d
+                        });
+                    });
+
+                    // move the selection into the group
+                    store.dispatch(
+                        moveComponents({
+                            request: {
+                                components,
+                                // @ts-ignore
+                                groupId: canvasUtils.getParentProcessGroupId()
+                            }
+                        })
+                    );
                 }
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canGroup
-                    return false;
+                    return canvasUtils.isDisconnected(selection);
                 },
                 clazz: 'icon icon-group',
                 text: 'Group',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - group
+                action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
+                    const moveComponents: MoveComponent[] = [];
+                    selection.each(function (d: any) {
+                        moveComponents.push({
+                            id: d.id,
+                            type: d.type,
+                            uri: d.uri,
+                            entity: d
+                        });
+                    });
+
+                    // move the selection into the group
+                    store.dispatch(
+                        getParameterContextsAndOpenGroupComponentsDialog({
+                            request: {
+                                moveComponents,
+                                position: canvasUtils.getOrigin(selection)
+                            }
+                        })
+                    );
                 }
             },
             {
@@ -937,7 +974,7 @@ export class ContextMenu implements OnInit {
     menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
         if (menuItem.action) {
             const selection = this.canvasUtils.getSelection();
-            menuItem.action(this.store, selection, event);
+            menuItem.action(this.store, selection, this.canvasUtils, event);
         }
     }
 }

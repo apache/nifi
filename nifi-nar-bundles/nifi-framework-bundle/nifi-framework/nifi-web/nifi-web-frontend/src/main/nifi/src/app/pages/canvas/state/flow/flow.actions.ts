@@ -32,12 +32,17 @@ import {
     EditComponentRequest,
     EditConnection,
     EnterProcessGroupRequest,
+    GroupComponents,
+    GroupComponentsDialogRequest,
+    GroupComponentsRequest,
+    GroupComponentsSuccess,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     LoadProcessorSuccess,
     LoadRemoteProcessGroupSuccess,
+    MoveComponents,
     NavigateToComponentRequest,
     SelectComponents,
     UpdateComponent,
@@ -171,6 +176,23 @@ export const uploadProcessGroup = createAction(
     props<{ request: UploadProcessGroup }>()
 );
 
+export const getParameterContextsAndOpenGroupComponentsDialog = createAction(
+    '[Canvas] Get Parameter Contexts And Open Group Components Dialog',
+    props<{ request: GroupComponentsRequest }>()
+);
+
+export const openGroupComponentsDialog = createAction(
+    '[Canvas] Open Group Components Dialog',
+    props<{ request: GroupComponentsDialogRequest }>()
+);
+
+export const groupComponents = createAction('[Canvas] Group Components', props<{ request: GroupComponents }>());
+
+export const groupComponentsSuccess = createAction(
+    '[Canvas] Group Components Success',
+    props<{ response: GroupComponentsSuccess }>()
+);
+
 export const openNewProcessorDialog = createAction(
     '[Canvas] Open New Processor Dialog',
     props<{ request: CreateComponent }>()
@@ -259,6 +281,8 @@ export const updatePositionComplete = createAction(
     '[Canvas] Update Position Complete',
     props<{ response: UpdateComponentResponse }>()
 );
+
+export const moveComponents = createAction('[Canvas] Move Components', props<{ request: MoveComponents }>());
 
 /*
     Delete Component Actions

@@ -218,6 +218,17 @@ export class FlowService {
         return this.httpClient.post(`${FlowService.API}/snippets`, { snippet });
     }
 
+    moveSnippet(snippetId: string, groupId: string): Observable<any> {
+        const payload: any = {
+            // 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            snippet: {
+                id: snippetId,
+                parentGroupId: groupId
+            }
+        };
+        return this.httpClient.put(`${FlowService.API}/snippets/${snippetId}`, payload);
+    }
+
     deleteSnippet(snippetId: string): Observable<any> {
         return this.httpClient.delete(`${FlowService.API}/snippets/${snippetId}`);
     }

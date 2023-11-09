@@ -120,7 +120,7 @@ export class CanvasUtils {
     /**
      * Removes the temporary if necessary.
      */
-    removeTempEdge(): void {
+    public removeTempEdge(): void {
         d3.select('path.connector').remove();
     }
 
@@ -136,8 +136,15 @@ export class CanvasUtils {
     /**
      * Returns whether the current group is not the root group.
      */
-    public isNotRootGroup() {
+    public isNotRootGroup(): boolean {
         return this.parentProcessGroupId != null;
+    }
+
+    /**
+     * Returns the parent group id or null if current is root.
+     */
+    public getParentProcessGroupId(): string | null {
+        return this.parentProcessGroupId;
     }
 
     /**
@@ -554,6 +561,94 @@ export class CanvasUtils {
             default:
                 return null;
         }
+    }
+
+    /**
+     * Determines if the specified selection is disconnected from other nodes.
+     *
+     * @argument {selection} selection          The selection
+     */
+    public isDisconnected(selection: any): boolean {
+        // if nothing is selected return
+        if (selection.empty()) {
+            return false;
+        }
+
+        const self: CanvasUtils = this;
+
+        const connections: Map<string, any> = new Map<string, any>();
+        const components: Map<string, any> = new Map<string, any>();
+
+        let isDisconnected: boolean = true;
+
+        // include connections
+        selection
+            .filter(function (d: any) {
+                return d.type === 'Connection';
+            })
+            .each(function (d: any) {
+                connections.set(d.id, d);
+            });
+
+        // include components and ensure their connections are included
+        selection
+            .filter(function (d: any) {
+                return d.type !== 'Connection';
+            })
+            .each(function (d: any) {
+                components.set(d.id, d.component);
+
+                // check all connections of this component
+                self.getComponentConnections(d.id).forEach((connection) => {
+                    if (!connections.has(connection.id)) {
+                        isDisconnected = false;
+                    }
+                });
+            });
+
+        if (isDisconnected) {
+            // go through each connection to ensure its source and destination are included
+            connections.forEach(function (connection, id) {
+                if (isDisconnected) {
+                    // determine whether this connection and its components are included within the selection
+                    isDisconnected =
+                        components.has(self.getConnectionSourceComponentId(connection)) &&
+                        components.has(self.getConnectionDestinationComponentId(connection));
+                }
+            });
+        }
+
+        return isDisconnected;
+    }
+
+    /**
+     * Gets the origin of the bounding box for the specified selection. Returns
+     * (0, 0) if the selection is empty or only contains connections.
+     *
+     * @argument {selection} selection      The selection
+     */
+    getOrigin(selection: any): Position {
+        const self: CanvasUtils = this;
+        let x: number | undefined;
+        let y: number | undefined;
+
+        selection.each(function (this: any, d: any) {
+            const selected: any = d3.select(this);
+            if (!self.isConnection(selected)) {
+                if (x == null || d.position.x < x) {
+                    x = d.position.x;
+                }
+                if (y == null || d.position.y < y) {
+                    y = d.position.y;
+                }
+            }
+        });
+
+        if (x == null || y == null) {
+            return { x: 0, y: 0 };
+        }
+
+        return { x, y };
     }
 
     /**
