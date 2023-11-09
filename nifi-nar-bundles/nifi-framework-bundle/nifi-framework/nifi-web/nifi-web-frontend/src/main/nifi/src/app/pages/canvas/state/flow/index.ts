@@ -16,7 +16,14 @@
  */
 
 import { Position } from '../shared';
-import { BulletinEntity, Bundle, ComponentType, DocumentedType, Permissions } from '../../../../state/shared';
+import {
+    BulletinEntity,
+    Bundle,
+    ComponentType,
+    DocumentedType,
+    Permissions,
+    SelectOption
+} from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
 
 export const flowFeatureKey = 'flowState';
@@ -86,6 +93,52 @@ export interface CreateConnectionRequest {
     source: SelectedComponent;
     destination: SelectedComponent;
 }
+
+export const loadBalanceStrategies: SelectOption[] = [
+    {
+        text: 'Do not load balance',
+        value: 'DO_NOT_LOAD_BALANCE',
+        description: 'Do not load balance FlowFiles between nodes in the cluster.'
+    },
+    {
+        text: 'Partition by attribute',
+        value: 'PARTITION_BY_ATTRIBUTE',
+        description:
+            'Determine which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. ' +
+            'All FlowFiles that have the same value for said Attribute will be sent to the same node in the cluster.'
+    },
+    {
+        text: 'Round robin',
+        value: 'ROUND_ROBIN',
+        description:
+            'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the ' +
+            'cluster is not able to receive data as fast as other nodes, that node may be skipped in one or more iterations ' +
+            'in order to maximize throughput of data distribution across the cluster.'
+    },
+    {
+        text: 'Single node',
+        value: 'SINGLE_NODE',
+        description: 'All FlowFiles will be sent to the same node. Which node they are sent to is not defined.'
+    }
+];
+
+export const loadBalanceCompressionStrategies: SelectOption[] = [
+    {
+        text: 'Do not compress',
+        value: 'DO_NOT_COMPRESS',
+        description: 'FlowFiles will not be compressed'
+    },
+    {
+        text: 'Compress attributes only',
+        value: 'COMPRESS_ATTRIBUTES_ONLY',
+        description: "FlowFiles' attributes will be compressed, but the FlowFiles' contents will not be"
+    },
+    {
+        text: 'Compress attributes and content',
+        value: 'COMPRESS_ATTRIBUTES_AND_CONTENT',
+        description: "FlowFiles' attributes and content will be compressed"
+    }
+];
 
 export interface CreateConnectionDialogRequest {
     request: CreateConnectionRequest;

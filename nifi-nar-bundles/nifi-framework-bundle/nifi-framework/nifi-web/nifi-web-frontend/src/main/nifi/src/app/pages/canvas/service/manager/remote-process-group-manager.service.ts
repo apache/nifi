@@ -665,7 +665,6 @@ export class RemoteProcessGroupManager {
     }
 
     private removeRemoteProcessGroups(removed: any) {
-        // removed.call(removeTooltips).remove();
         removed.remove();
     }
 

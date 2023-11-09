@@ -24,7 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiTooltipDirective } from '../../../../../../ui/common/nifi-tooltip.directive';
-import { TextTipInput } from '../../../../../../state/shared';
+import { SelectOption, TextTipInput } from '../../../../../../state/shared';
 
 @Component({
     selector: 'destination-remote-process-group',
@@ -61,8 +61,8 @@ export class DestinationRemoteProcessGroup implements ControlValueAccessor {
                 return {
                     value: inputPort.id,
                     text: inputPort.name,
-                    disabled: inputPort.exists === false,
-                    description: inputPort.comments
+                    description: inputPort.comments,
+                    disabled: inputPort.exists === false
                 };
             });
         }
@@ -78,7 +78,7 @@ export class DestinationRemoteProcessGroup implements ControlValueAccessor {
     onChange!: (outputPort: string) => void;
 
     groupName!: string;
-    inputPortItems!: any[];
+    inputPortItems!: SelectOption[];
     selectedInputPort!: string;
 
     noPorts: boolean = false;
@@ -101,8 +101,9 @@ export class DestinationRemoteProcessGroup implements ControlValueAccessor {
         this.selectedInputPort = selectedInputPort;
     }
 
-    getSelectOptionTipData(option: any): TextTipInput {
+    getSelectOptionTipData(option: SelectOption): TextTipInput {
         return {
+            // @ts-ignore
             text: option.description
         };
     }

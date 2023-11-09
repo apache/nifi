@@ -24,7 +24,7 @@ import { selectParentProcessGroupId, selectSaving } from '../../../state/flow/fl
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from 'src/app/pages/canvas/state/flow/flow.actions';
 import { CreateComponent } from '../../../state/flow';
-import { ComponentType } from '../../../../../state/shared';
+import { ComponentType, SelectOption, TextTipInput } from '../../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -32,6 +32,8 @@ import { Banner } from '../../common/banner/banner.component';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
 
 @Component({
     selector: 'create-port',
@@ -47,7 +49,8 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
         NgForOf,
         MatButtonModule,
         AsyncPipe,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        NifiTooltipDirective
     ],
     templateUrl: './create-port.component.html',
     styleUrls: ['./create-port.component.scss']
@@ -55,11 +58,13 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 export class CreatePort {
     saving$ = this.store.select(selectSaving);
 
+    protected readonly TextTip = TextTip;
+
     createPortForm: FormGroup;
     isRootProcessGroup: boolean = false;
     portTypeLabel: string;
 
-    allowRemoteAccessOptions = [
+    allowRemoteAccessOptions: SelectOption[] = [
         {
             text: 'Local connections',
             value: 'false',
@@ -97,6 +102,13 @@ export class CreatePort {
             .subscribe((parentProcessGroupId) => {
                 this.isRootProcessGroup = parentProcessGroupId == null;
             });
+    }
+
+    getSelectOptionTipData(option: SelectOption): TextTipInput {
+        return {
+            // @ts-ignore
+            text: option.description
+        };
     }
 
     createPort() {

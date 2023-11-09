@@ -256,6 +256,13 @@ export interface AllowableValueEntity {
     allowableValue: AllowableValue;
 }
 
+export interface SelectOption {
+    text: string;
+    value: string | null;
+    description?: string;
+    disabled?: boolean;
+}
+
 export interface PropertyDependency {
     propertyName: string;
     dependentValues: string[];

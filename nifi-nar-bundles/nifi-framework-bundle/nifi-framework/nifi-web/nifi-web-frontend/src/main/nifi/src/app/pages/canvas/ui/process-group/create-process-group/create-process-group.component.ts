@@ -21,7 +21,7 @@ import { CreateProcessGroupDialogRequest } from '../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../state/flow/flow.actions';
-import { TextTipInput } from '../../../../../state/shared';
+import { SelectOption, TextTipInput } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/flow/flow.selectors';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { Banner } from '../../common/banner/banner.component';
@@ -67,7 +67,7 @@ export class CreateProcessGroup {
     @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     createProcessGroupForm: FormGroup;
-    parameterContextsOptions: any[] = [];
+    parameterContextsOptions: SelectOption[] = [];
 
     flowNameAttached: string | null = null;
     flowDefinition: File | null = null;
@@ -101,8 +101,9 @@ export class CreateProcessGroup {
         });
     }
 
-    getParameterContextOptionTipData(option: any): TextTipInput {
+    getParameterContextOptionTipData(option: SelectOption): TextTipInput {
         return {
+            // @ts-ignore
             text: option.description
         };
     }

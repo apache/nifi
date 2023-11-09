@@ -28,7 +28,7 @@
                     <ng-container *ngIf="item.description; else noDescription">
                         <mat-option
                             [value]="item.value"
-                            [disabled]="item.disabled"
+                            [disabled]="item.disabled == true"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             [tooltipInputData]="getSelectOptionTipData(item)"

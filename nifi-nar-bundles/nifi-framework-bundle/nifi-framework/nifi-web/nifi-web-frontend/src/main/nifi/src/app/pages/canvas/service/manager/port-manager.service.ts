@@ -479,8 +479,6 @@ export class PortManager {
     }
 
     private removePorts(removed: any) {
-        // TODO
-        // removed.call(removeTooltips).remove();
         removed.remove();
     }
 

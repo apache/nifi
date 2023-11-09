@@ -17,7 +17,13 @@
 
 import { Component, Inject, Input } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { BreadcrumbEntity, CreateConnectionDialogRequest, SelectedComponent } from '../../../state/flow';
+import {
+    BreadcrumbEntity,
+    CreateConnectionDialogRequest,
+    loadBalanceCompressionStrategies,
+    loadBalanceStrategies,
+    SelectedComponent
+} from '../../../state/flow';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { selectBreadcrumbs, selectSaving } from '../../../state/flow/flow.selectors';
@@ -32,7 +38,7 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { ComponentType, TextTipInput } from '../../../../../state/shared';
+import { ComponentType, SelectOption, TextTipInput } from '../../../../../state/shared';
 import { NiFiState } from '../../../../../state';
 import { selectPrioritizerTypes } from '../../../../../state/extension-types/extension-types.selectors';
 import { Prioritizers } from '../prioritizers/prioritizers.component';
@@ -107,52 +113,6 @@ export class CreateConnection {
     availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
     breadcrumbs$ = this.store.select(selectBreadcrumbs);
 
-    loadBalanceStrategies = [
-        {
-            text: 'Do not load balance',
-            value: 'DO_NOT_LOAD_BALANCE',
-            description: 'Do not load balance FlowFiles between nodes in the cluster.'
-        },
-        {
-            text: 'Partition by attribute',
-            value: 'PARTITION_BY_ATTRIBUTE',
-            description:
-                'Determine which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. ' +
-                'All FlowFiles that have the same value for said Attribute will be sent to the same node in the cluster.'
-        },
-        {
-            text: 'Round robin',
-            value: 'ROUND_ROBIN',
-            description:
-                'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the ' +
-                'cluster is not able to receive data as fast as other nodes, that node may be skipped in one or more iterations ' +
-                'in order to maximize throughput of data distribution across the cluster.'
-        },
-        {
-            text: 'Single node',
-            value: 'SINGLE_NODE',
-            description: 'All FlowFiles will be sent to the same node. Which node they are sent to is not defined.'
-        }
-    ];
-
-    loadBalanceCompressionStrategies = [
-        {
-            text: 'Do not compress',
-            value: 'DO_NOT_COMPRESS',
-            description: 'FlowFiles will not be compressed'
-        },
-        {
-            text: 'Compress attributes only',
-            value: 'COMPRESS_ATTRIBUTES_ONLY',
-            description: "FlowFiles' attributes will be compressed, but the FlowFiles' contents will not be"
-        },
-        {
-            text: 'Compress attributes and content',
-            value: 'COMPRESS_ATTRIBUTES_AND_CONTENT',
-            description: "FlowFiles' attributes and content will be compressed"
-        }
-    ];
-
     createConnectionForm: FormGroup;
     source: SelectedComponent;
     destination: SelectedComponent;
@@ -212,8 +172,9 @@ export class CreateConnection {
         }
     }
 
-    getSelectOptionTipData(option: any): TextTipInput {
+    getSelectOptionTipData(option: SelectOption): TextTipInput {
         return {
+            // @ts-ignore
             text: option.description
         };
     }
@@ -314,4 +275,7 @@ export class CreateConnection {
             })
         );
     }
+
+    protected readonly loadBalanceStrategies = loadBalanceStrategies;
+    protected readonly loadBalanceCompressionStrategies = loadBalanceCompressionStrategies;
 }

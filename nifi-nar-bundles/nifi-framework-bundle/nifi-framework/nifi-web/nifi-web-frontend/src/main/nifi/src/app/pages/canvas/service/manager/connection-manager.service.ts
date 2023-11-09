@@ -42,8 +42,8 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { Dimension, Position } from '../../state/shared';
-import { ComponentType } from '../../../../state/shared';
-import { UpdateComponent } from '../../state/flow';
+import { ComponentType, SelectOption } from '../../../../state/shared';
+import { loadBalanceStrategies, UpdateComponent } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
@@ -1472,26 +1472,43 @@ export class ConnectionManager {
                         .select('title')
                         .text(function () {
                             if (d.permissions.canRead) {
-                                return '';
-                                // var loadBalanceStrategy = nfCommon.getComboOptionText(nfCommon.loadBalanceStrategyOptions, d.component.loadBalanceStrategy);
-                                // if ('PARTITION_BY_ATTRIBUTE' === d.component.loadBalanceStrategy) {
-                                //   loadBalanceStrategy += ' (' + d.component.loadBalancePartitionAttribute + ')';
-                                // }
-                                //
-                                // var loadBalanceCompression = 'no compression';
-                                // switch (d.component.loadBalanceCompression) {
-                                //   case 'COMPRESS_ATTRIBUTES_ONLY':
-                                //     loadBalanceCompression = '\'Attribute\' compression';
-                                //     break;
-                                //   case 'COMPRESS_ATTRIBUTES_AND_CONTENT':
-                                //     loadBalanceCompression = '\'Attribute and content\' compression';
-                                //     break;
-                                // }
-                                // var loadBalanceStatus = 'LOAD_BALANCE_ACTIVE' === d.component.loadBalanceStatus ? ' Actively balancing...' : '';
-                                // return 'Load Balance is configured'
-                                //   + ' with \'' + loadBalanceStrategy + '\' strategy'
-                                //   + ' and ' + loadBalanceCompression + '.'
-                                //   + loadBalanceStatus;
+                                let loadBalanceStrategyText: string = '';
+
+                                const loadBalanceStrategyOption: SelectOption | undefined = loadBalanceStrategies.find(
+                                    (option) => option.value == d.component.loadBalanceStrategy
+                                );
+                                if (loadBalanceStrategyOption) {
+                                    loadBalanceStrategyText = loadBalanceStrategyOption.text;
+                                }
+
+                                if ('PARTITION_BY_ATTRIBUTE' === d.component.loadBalanceStrategy) {
+                                    loadBalanceStrategyText += ' (' + d.component.loadBalancePartitionAttribute + ')';
+                                }
+
+                                let loadBalanceCompression: string = 'no compression';
+                                switch (d.component.loadBalanceCompression) {
+                                    case 'COMPRESS_ATTRIBUTES_ONLY':
+                                        loadBalanceCompression = "'Attribute' compression";
+                                        break;
+                                    case 'COMPRESS_ATTRIBUTES_AND_CONTENT':
+                                        loadBalanceCompression = "'Attribute and content' compression";
+                                        break;
+                                }
+
+                                const loadBalanceStatus: string =
+                                    'LOAD_BALANCE_ACTIVE' === d.component.loadBalanceStatus
+                                        ? ' Actively balancing...'
+                                        : '';
+                                return (
+                                    'Load Balance is configured' +
+                                    " with '" +
+                                    loadBalanceStrategyText +
+                                    "' strategy" +
+                                    ' and ' +
+                                    loadBalanceCompression +
+                                    '.' +
+                                    loadBalanceStatus
+                                );
                             } else {
                                 return '';
                             }
@@ -1805,7 +1822,6 @@ export class ConnectionManager {
             return;
         }
 
-        // removed.call(removeTooltips).remove();
         removed.remove();
     }
 

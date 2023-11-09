@@ -26,12 +26,20 @@
         <mat-form-field *ngIf="!isRootProcessGroup">
             <mat-label>Receive From</mat-label>
             <mat-select formControlName="newPortAllowRemoteAccess">
-                <mat-option
-                    *ngFor="let option of allowRemoteAccessOptions"
-                    [value]="option.value"
-                    [matTooltip]="option.description"
-                    >{{ option.text }}</mat-option
-                >
+                <ng-container *ngFor="let option of allowRemoteAccessOptions">
+                    <mat-option
+                        *ngIf="option.description; else noDescription"
+                        [value]="option.value"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        [tooltipInputData]="getSelectOptionTipData(option)"
+                        [delayClose]="false"
+                        >{{ option.text }}</mat-option
+                    >
+                    <ng-template #noDescription>
+                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                    </ng-template>
+                </ng-container>
             </mat-select>
         </mat-form-field>
     </mat-dialog-content>

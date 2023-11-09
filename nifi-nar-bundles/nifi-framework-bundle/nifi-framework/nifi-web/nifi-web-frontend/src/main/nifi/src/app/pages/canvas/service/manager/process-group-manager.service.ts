@@ -190,9 +190,6 @@ export class ProcessGroupManager {
                 // d3.select(this).classed('drop', false);
             });
 
-        // TODO
-        // .call(nfConnectable.activate);
-
         return processGroup;
     }
 
@@ -1307,7 +1304,6 @@ export class ProcessGroupManager {
             return;
         }
 
-        // removed.call(removeTooltips).remove();
         removed.remove();
     }
 

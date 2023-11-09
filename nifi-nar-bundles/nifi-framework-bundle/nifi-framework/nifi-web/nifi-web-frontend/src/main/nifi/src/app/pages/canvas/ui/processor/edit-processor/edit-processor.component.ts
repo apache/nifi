@@ -30,6 +30,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Property,
+    SelectOption,
     TextTipInput
 } from '../../../../../state/shared';
 import { Client } from '../../../../../service/client.service';
@@ -103,7 +104,7 @@ export class EditProcessor {
         }
     ];
 
-    schedulingStrategies = [
+    schedulingStrategies: SelectOption[] = [
         {
             text: 'Timer driven',
             value: 'TIMER_DRIVEN',
@@ -116,7 +117,7 @@ export class EditProcessor {
         }
     ];
 
-    executionStrategies = [
+    executionStrategies: SelectOption[] = [
         {
             text: 'All nodes',
             value: 'ALL',
@@ -221,8 +222,9 @@ export class EditProcessor {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    getSelectOptionTipData(option: any): TextTipInput {
+    getSelectOptionTipData(option: SelectOption): TextTipInput {
         return {
+            // @ts-ignore
             text: option.description
         };
     }
@@ -255,7 +257,7 @@ export class EditProcessor {
         }
     }
 
-    executionStrategyDisabled(option: any): boolean {
+    executionStrategyDisabled(option: SelectOption): boolean {
         return option.value == 'ALL' && this.request.entity.component.executionNodeRestricted === true;
     }
 
