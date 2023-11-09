@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Shared requirements
-openai
+openai==0.28.1
 
 # Chroma requirements
 chromadb==0.4.14
@@ -26,4 +26,4 @@ requests
 # Pinecone requirements
 pinecone-client
 tiktoken
-langchain
+langchain==0.0.331
