@@ -232,6 +232,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return false;
     }
 
+    /**
+     * Overwrite current Component properties using provided values with values decrypted when necessary by the caller
+     *
+     * @param properties Map of Property Name to Value
+     */
     protected void overwriteProperties(final Map<String, String> properties) {
         // Update properties.
         final Map<String, String> updatedProperties = new HashMap<>(properties);
