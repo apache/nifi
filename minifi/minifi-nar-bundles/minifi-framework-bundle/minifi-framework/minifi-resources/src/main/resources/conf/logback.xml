@@ -30,11 +30,11 @@
             -->
             <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}_%d{yyyy-MM-dd_HH}.%i.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}.gz</fileNamePattern>
             <!-- Control the maximum size of each log file before rolling over -->
-            <maxFileSize>1MB</maxFileSize>
+            <maxFileSize>10MB</maxFileSize>
             <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>10</maxHistory>
             <!-- Control the total size of all log archive files for this appender -->
-            <totalSizeCap>10MB</totalSizeCap>
+            <totalSizeCap>100MB</totalSizeCap>
             <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
@@ -55,11 +55,11 @@
             -->
             <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name}_%d.${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension}.gz</fileNamePattern>
             <!-- Control the maximum size of each log file before rolling over -->
-            <maxFileSize>1MB</maxFileSize>
+            <maxFileSize>10MB</maxFileSize>
             <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>10</maxHistory>
             <!-- Control the total size of all log archive files for this appender -->
-            <totalSizeCap>10MB</totalSizeCap>
+            <totalSizeCap>100MB</totalSizeCap>
             <!-- Log files exceeding maximum settings will be rolled on startup -->
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
