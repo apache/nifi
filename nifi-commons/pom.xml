@@ -30,7 +30,7 @@
         <module>nifi-flowfile-packager</module>
         <module>nifi-flow-encryptor</module>
         <module>nifi-hl7-query-language</module>
-        <module>nifi-json-schema-utils</module>
+        <module>nifi-json-schema-api</module>
         <module>nifi-json-utils</module>
         <module>nifi-jetty-configuration</module>
         <module>nifi-kubernetes-client</module>
