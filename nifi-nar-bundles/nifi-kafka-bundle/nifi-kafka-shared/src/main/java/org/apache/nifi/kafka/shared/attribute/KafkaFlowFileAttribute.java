@@ -39,4 +39,6 @@ public interface KafkaFlowFileAttribute {
     String KAFKA_CONSUMER_GROUP_ID = "kafka.consumer.id";
 
     String KAFKA_CONSUMER_OFFSETS_COMMITTED = "kafka.consumer.offsets.committed";
+
+    String KAFKA_IS_TOMBSTONE = "kafka.isTombstone";
 }
