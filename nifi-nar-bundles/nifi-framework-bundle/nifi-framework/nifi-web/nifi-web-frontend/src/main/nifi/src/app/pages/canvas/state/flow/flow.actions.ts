@@ -334,3 +334,8 @@ export const setOperationCollapsed = createAction(
  */
 
 export const showOkDialog = createAction('[Canvas] Show Ok Dialog', props<{ title: string; message: string }>());
+
+export const renderConnectionsForComponent = createAction(
+    '[Canvas] Render Connections For Component',
+    props<{ id: string; updatePath: boolean; updateLabel: boolean }>()
+);

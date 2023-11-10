@@ -1155,15 +1155,24 @@ export class FlowEffects {
         )
     );
 
-    updatePositionComplete$ = createEffect(
+    updatePositionComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.updatePositionComplete),
+            map((action) => action.response),
+            switchMap((response) =>
+                of(FlowActions.renderConnectionsForComponent({ id: response.id, updatePath: true, updateLabel: false }))
+            )
+        )
+    );
+
+    renderConnectionsForComponent$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(FlowActions.updatePositionComplete),
-                map((action) => action.response),
-                tap((response) => {
-                    this.connectionManager.renderConnectionForComponent(response.id, {
-                        updatePath: true,
-                        updateLabel: true
+                ofType(FlowActions.renderConnectionsForComponent),
+                tap((action) => {
+                    this.connectionManager.renderConnectionsForComponent(action.id, {
+                        updatePath: action.updatePath,
+                        updateLabel: action.updateLabel
                     });
                 })
             ),

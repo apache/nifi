@@ -2230,7 +2230,7 @@ export class ConnectionManager {
         this.updateConnections(this.connectionContainer.select('#id-' + id), { updatePath, updateLabel });
     }
 
-    public renderConnectionForComponent(
+    public renderConnectionsForComponent(
         componentId: string,
         { updatePath = false, updateLabel = true }: ConnectionRenderOptions = {}
     ): void {
@@ -2242,7 +2242,7 @@ export class ConnectionManager {
         });
 
         componentConnections.forEach((componentConnection) => {
-            this.renderConnection(componentConnection.id, { updatePath: true, updateLabel });
+            this.renderConnection(componentConnection.id, { updatePath, updateLabel });
         });
     }
 

@@ -24,9 +24,9 @@ import { SelectableBehavior } from '../behavior/selectable-behavior.service';
 import { EditableBehavior } from '../behavior/editable-behavior.service';
 import * as d3 from 'd3';
 import {
+    selectAnySelectedComponentIds,
     selectFlowLoadingStatus,
     selectPorts,
-    selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -37,6 +37,7 @@ import { Dimension } from '../../state/shared';
 import { ComponentType } from '../../../../state/shared';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { renderConnectionsForComponent } from '../../state/flow/flow.actions';
 
 @Injectable({
     providedIn: 'root'
@@ -348,10 +349,10 @@ export class PortManager {
                 // populate the stats
                 self.updatePortStatus(port);
 
-                // TODO? - Update connections to update anchor point positions those may have been updated by changing ports remote accessibility.
-                // nfConnection.getComponentConnections(portData.id).forEach(function (connection){
-                //     nfConnection.refresh(connection.id);
-                // });
+                // Update connections to update anchor point positions those may have been updated by changing ports remote accessibility.
+                self.store.dispatch(
+                    renderConnectionsForComponent({ id: portData.id, updatePath: true, updateLabel: true })
+                );
             } else {
                 if (portData.permissions.canRead) {
                     // update the port name
