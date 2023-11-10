@@ -32,6 +32,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.PublishStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -160,9 +161,13 @@ public class PublisherLease implements Closeable {
                     tracker.fail(flowFile, new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + maxMessageSize + " bytes."));
                     return;
                 }
-                // Send FlowFile content as it is, to support sending 0 byte message.
-                messageContent = new byte[(int) flowFile.getSize()];
-                StreamUtils.fillBuffer(flowFileContent, messageContent);
+                if (Boolean.TRUE.toString().equals(flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_TOMBSTONE)) && flowFile.getSize() == 0) {
+                    messageContent = null;
+                } else {
+                    // Send FlowFile content as it is, to support sending 0 byte message.
+                    messageContent = new byte[(int) flowFile.getSize()];
+                    StreamUtils.fillBuffer(flowFileContent, messageContent);
+                }
                 publish(flowFile, messageKey, messageContent, topic, tracker, partition);
                 return;
             }

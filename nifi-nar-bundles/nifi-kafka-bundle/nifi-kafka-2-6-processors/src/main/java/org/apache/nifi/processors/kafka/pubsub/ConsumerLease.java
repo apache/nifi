@@ -474,6 +474,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         final byte[] value = record.value();
         if (value != null) {
             flowFile = session.write(flowFile, out -> out.write(value));
+        } else {
+            flowFile = session.putAttribute(flowFile, KafkaFlowFileAttribute.KAFKA_TOMBSTONE, Boolean.TRUE.toString());
         }
         flowFile = session.putAllAttributes(flowFile, getAttributes(record));
         tracker.updateFlowFile(flowFile);
