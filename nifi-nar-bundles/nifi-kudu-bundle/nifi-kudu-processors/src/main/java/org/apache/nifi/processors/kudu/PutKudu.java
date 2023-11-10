@@ -165,8 +165,8 @@ public class PutKudu extends AbstractKuduProcessor {
         .name("Operation RecordPath")
         .displayName("Operation RecordPath")
         .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record in order to determine the Kudu Operation Type. When evaluated, the " +
-            "RecordPath must evaluate to one of the valid Kudu Operation Types, or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property" +
-            " will be ignored.")
+            "RecordPath must evaluate to one of the valid Kudu Operation Types (Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for "
+            + "DELETE), or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property will be ignored.")
         .required(false)
         .addValidator(new RecordPathValidator())
         .expressionLanguageSupported(NONE)
@@ -690,6 +690,7 @@ public class PutKudu extends AbstractKuduProcessor {
             try {
                 switch (resultValue) {
                 case "c":
+                case "r":
                     return OperationType.INSERT;
                 case "u":
                     return OperationType.UPDATE;
