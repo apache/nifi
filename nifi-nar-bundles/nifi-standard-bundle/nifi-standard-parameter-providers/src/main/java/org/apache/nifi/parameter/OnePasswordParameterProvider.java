@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,7 +33,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Tags({"1Password"})
 @CapabilityDescription("Fetches parameters from 1Password Connect Server")
 public class OnePasswordParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
-
 
     public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
             .name("Web Client Service Provider")
@@ -59,18 +58,19 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("access-token")
+            .name("Access Token")
             .displayName("Access Token")
-            .description("Access Token using for authentication against the 1Password APIs.")
+            .description("Access Token used for authentication against the 1Password APIs.")
             .sensitive(true)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private List<PropertyDescriptor> properties;
     private volatile WebClientServiceProvider webClientServiceProvider;
 
-    private static final String GET_VAULTS = "/v1/vaults/";
+    private static final String VERSION = "v1";
+    private static final String GET_VAULTS = "vaults";
+    private static final String GET_ITEMS = "items";
     private static final String CONTENT_TYPE = "Content-type";
     private static final String APPLICATION_JSON = "application/json";
     private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
@@ -78,20 +78,15 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             WEB_CLIENT_SERVICE_PROVIDER,
             CONNECT_SERVER,
             ACCESS_TOKEN
     );
 
     @Override
-    protected void init(final ParameterProviderInitializationContext config) {
-        this.properties = DESCRIPTORS;
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return DESCRIPTORS;
     }
 
     @Override
@@ -101,10 +96,11 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
 
         final String connectServer = context.getProperty(CONNECT_SERVER).getValue();
+        final URI uri = URI.create(connectServer);
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
 
         try {
-            final JsonNode vaultList = getVaultList(connectServer, accessToken);
+            final JsonNode vaultList = getVaultList(uri, accessToken);
 
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
@@ -122,20 +118,20 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         return results;
     }
 
-    private JsonNode getVaultList(String connectServer, String accessToken) throws IOException {
+    private JsonNode getVaultList(final URI connectServer, final String accessToken) throws IOException {
         final HttpResponseEntity getVaultList = webClientServiceProvider.getWebClientService()
                 .get()
-                .uri(URI.create(connectServer + GET_VAULTS))
+                .uri(getURI(connectServer, null, null))
                 .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
                 .header(CONTENT_TYPE, APPLICATION_JSON)
                 .retrieve();
         return OBJECT_MAPPER.readTree(getVaultList.body());
     }
 
-    private JsonNode getItemList(String connectServer, String accessToken, String vaultID) throws IOException {
+    private JsonNode getItemList(final URI connectServer, final String accessToken, final String vaultID) throws IOException {
         final HttpResponseEntity getVaultItems = webClientServiceProvider.getWebClientService()
                 .get()
-                .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items"))
+                .uri(getURI(connectServer, vaultID, null))
                 .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
                 .header(CONTENT_TYPE, APPLICATION_JSON)
                 .retrieve();
@@ -143,15 +139,35 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         return OBJECT_MAPPER.readTree(getVaultItems.body());
     }
 
-    private JsonNode getItemDetails(String connectServer, String accessToken, String vaultID, String itemID) throws IOException {
+    private JsonNode getItemDetails(final URI connectServer, final String accessToken, final String vaultID, final String itemID) throws IOException {
         final HttpResponseEntity getItemDetails = webClientServiceProvider.getWebClientService()
                 .get()
-                .uri(URI.create(connectServer + GET_VAULTS + "/" + vaultID + "/items/" + itemID))
+                .uri(getURI(connectServer, vaultID, itemID))
                 .header(AUTHORIZATION_HEADER_NAME, AUTHORIZATION_HEADER_VALUE + accessToken)
                 .header(CONTENT_TYPE, APPLICATION_JSON)
                 .retrieve();
 
         return OBJECT_MAPPER.readTree(getItemDetails.body());
+    }
+
+    private URI getURI(final URI connectServer, final String vaultID, final String itemID) {
+        final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
+                .scheme(connectServer.getScheme())
+                .host(connectServer.getHost())
+                .port(connectServer.getPort())
+                .addPathSegment(VERSION)
+                .addPathSegment(GET_VAULTS);
+
+        if (vaultID != null) {
+            uriBuilder.addPathSegment(vaultID)
+            .addPathSegment(GET_ITEMS);
+        }
+
+        if (itemID != null) {
+            uriBuilder.addPathSegment(itemID);
+        }
+
+        return uriBuilder.build();
     }
 
     @Override
@@ -161,10 +177,11 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
         final List<ParameterGroup> parameterGroups = new ArrayList<>();
 
         final String connectServer = context.getProperty(CONNECT_SERVER).getValue();
+        final URI uri = URI.create(connectServer);
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
 
         try {
-            final JsonNode vaultList = getVaultList(connectServer, accessToken);
+            final JsonNode vaultList = getVaultList(uri, accessToken);
             final Iterator<JsonNode> vaultIterator = vaultList.elements();
 
             // we iterate though each vault
@@ -175,14 +192,14 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
                 final List<Parameter> parameters = new ArrayList<Parameter>();
 
-                final JsonNode itemList = getItemList(connectServer, accessToken, vaultID);
+                final JsonNode itemList = getItemList(uri, accessToken, vaultID);
                 final Iterator<JsonNode> itemIterator = itemList.elements();
 
                 // we iterate though the items
                 while (itemIterator.hasNext()) {
                     final JsonNode item = itemIterator.next();
                     final String itemID = item.get("id").asText();
-                    final JsonNode itemDetails = getItemDetails(connectServer, accessToken, vaultID, itemID);
+                    final JsonNode itemDetails = getItemDetails(uri, accessToken, vaultID, itemID);
                     final String itemName = itemDetails.get("title").asText();
                     final Iterator<JsonNode> itemFields = itemDetails.get("fields").elements();
 

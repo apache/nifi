@@ -72,5 +72,10 @@
             <artifactId>nifi-nar-utils</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-client</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

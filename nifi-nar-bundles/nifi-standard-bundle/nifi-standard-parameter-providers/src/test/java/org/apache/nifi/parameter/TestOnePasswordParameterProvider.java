@@ -21,9 +21,11 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockParameterProviderInitializationContext;
+import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpRequestUriSpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.junit.jupiter.api.Test;
@@ -65,19 +67,27 @@ public class TestOnePasswordParameterProvider {
         final WebClientService webClientService = mock(WebClientService.class);
         when(webClient.getWebClientService()).thenReturn(webClientService);
 
+        final HttpUriBuilder uriBuilder = new StandardHttpUriBuilder();
+        when(webClient.getHttpUriBuilder()).thenReturn(uriBuilder);
+
         final HttpRequestUriSpec uriSpec = mock(HttpRequestUriSpec.class);
         when(webClientService.get()).thenReturn(uriSpec);
 
         // list vaults
         final HttpRequestBodySpec bodySpec = mock(HttpRequestBodySpec.class);
-        when(uriSpec.uri(argThat(argument -> argument == null || argument.getPath().endsWith("/vaults/")))).thenReturn(bodySpec);
+        when(uriSpec.uri(argThat(argument -> argument == null || argument.getPath().endsWith("/vaults")))).thenReturn(bodySpec);
         when(bodySpec.header(any(), any())).thenReturn(bodySpec);
         final HttpResponseEntity httpEntity = mock(HttpResponseEntity.class);
         when(bodySpec.retrieve()).thenReturn(httpEntity);
 
-        final String responseBody = "[{\"attributeVersion\":1,\"contentVersion\":5,\"createdAt\":\"2023-10-13T14:56:48Z\","
-                + "\"description\":\"VPN logins, database details, and more.\",\"id\":\"qeo4jajm7azfh3wnsynbmr5lem\",\"items\":1,"
-                + "\"name\":\"Engineering\",\"type\":\"USER_CREATED\",\"updatedAt\":\"2023-10-13T14:57:46Z\"}]";
+        final String responseBody = """
+                [
+                  {
+                    "id": "qeo4jajm7azfh3wnsynbmr5lem",
+                    "name": "Engineering"
+                  }
+                ]
+                """;
         InputStream response = new ByteArrayInputStream(responseBody.getBytes());
         when(httpEntity.body()).thenReturn(response);
 
@@ -88,9 +98,19 @@ public class TestOnePasswordParameterProvider {
         final HttpResponseEntity httpEntityItems = mock(HttpResponseEntity.class);
         when(bodySpecItems.retrieve()).thenReturn(httpEntityItems);
 
-        final String responseBodyItems = "[{\"additionalInformation\":\"localhost\",\"category\":\"DATABASE\",\"createdAt\":\"2023-10-13T16:54:45Z\","
-                + "\"id\":\"evsdsvep67jitka2hmbg5tbxry\",\"lastEditedBy\":\"DBJG7MEI5NH6BIUVR3S66OWNSE\",\"title\":\"POSTGRES\","
-                + "\"updatedAt\":\"2023-10-13T16:55:47Z\",\"vault\":{\"id\":\"qeo4jajm7azfh3wnsynbmr5lem\",\"name\":\"Engineering\"},\"version\":2}]";
+        final String responseBodyItems = """
+                [
+                  {
+                    "category": "DATABASE",
+                    "id": "evsdsvep67jitka2hmbg5tbxry",
+                    "title": "POSTGRES",
+                    "vault": {
+                      "id": "qeo4jajm7azfh3wnsynbmr5lem",
+                      "name": "Engineering"
+                    }
+                  }
+                ]
+                """;
         InputStream responseItems = new ByteArrayInputStream(responseBodyItems.getBytes());
         when(httpEntityItems.body()).thenReturn(responseItems);
 
@@ -101,16 +121,42 @@ public class TestOnePasswordParameterProvider {
         final HttpResponseEntity httpEntityItem = mock(HttpResponseEntity.class);
         when(bodySpecItem.retrieve()).thenReturn(httpEntityItem);
 
-        final String responseBodyItem = "{\"additionalInformation\":\"localhost\",\"category\":\"DATABASE\",\"createdAt\":\"2023-10-13T16:54:45Z\","
-                + "\"fields\":[{\"id\":\"notesPlain\",\"label\":\"notesPlain\",\"purpose\":\"NOTES\",\"type\":\"STRING\"},{\"id\":\"database_type\","
-                + "\"label\":\"Type\",\"type\":\"MENU\",\"value\":\"postgresql\"},{\"id\":\"hostname\",\"label\":\"serveur\",\"type\":\"STRING\","
-                + "\"value\":\"localhost\"},{\"id\":\"port\",\"label\":\"Port\",\"type\":\"STRING\",\"value\":\"5432\"},{\"id\":\"database\","
-                + "\"label\":\"Base de données\",\"type\":\"STRING\",\"value\":\"mydatabase\"},{\"id\":\"username\",\"label\":\"Nom d'utilisateur\","
-                + "\"type\":\"STRING\",\"value\":\"postgres\"},{\"id\":\"password\",\"label\":\"mot de passe\",\"type\":\"CONCEALED\","
-                + "\"value\":\"thisisabadpassword\"},{\"id\":\"sid\",\"label\":\"SID\",\"type\":\"STRING\"},{\"id\":\"alias\",\"label\":\"Alias\","
-                + "\"type\":\"STRING\"},{\"id\":\"options\",\"label\":\"Options de connexion\",\"type\":\"STRING\"}],\"id\":\"evsdsvep67jitka2hmbg5tbxry\","
-                + "\"lastEditedBy\":\"DBJG7MEI5NH6BIUVR3S66OWNSE\",\"title\":\"POSTGRES\",\"updatedAt\":\"2023-10-13T16:55:47Z\","
-                + "\"vault\":{\"id\":\"qeo4jajm7azfh3wnsynbmr5lem\",\"name\":\"Engineering\"},\"version\":2}";
+        final String responseBodyItem = """
+                {
+                  "fields": [
+                    {
+                      "id": "notesPlain",
+                      "type": "STRING"
+                    },
+                    {
+                      "id": "database_type",
+                      "value": "postgresql"
+                    },
+                    {
+                      "id": "hostname",
+                      "value": "localhost"
+                    },
+                    {
+                      "id": "port",
+                      "value": "5432"
+                    },
+                    {
+                      "id": "database",
+                      "value": "mydatabase"
+                    },
+                    {
+                      "id": "username",
+                      "value": "postgres"
+                    },
+                    {
+                      "id": "password",
+                      "value": "thisisabadpassword"
+                    }
+                  ],
+                  "id": "evsdsvep67jitka2hmbg5tbxry",
+                  "title": "POSTGRES"
+                }
+                """;
         InputStream responseItem = new ByteArrayInputStream(responseBodyItem.getBytes());
         when(httpEntityItem.body()).thenReturn(responseItem);
 
