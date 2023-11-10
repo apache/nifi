@@ -165,7 +165,7 @@ public class PutKudu extends AbstractKuduProcessor {
         .name("Operation RecordPath")
         .displayName("Operation RecordPath")
         .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record in order to determine the Kudu Operation Type. When evaluated, the " +
-            "RecordPath must evaluate to one of hte valid Kudu Operation Types, or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property" +
+            "RecordPath must evaluate to one of the valid Kudu Operation Types, or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property" +
             " will be ignored.")
         .required(false)
         .addValidator(new RecordPathValidator())
@@ -688,7 +688,16 @@ public class PutKudu extends AbstractKuduProcessor {
 
             final String resultValue = String.valueOf(resultList.get(0).getValue());
             try {
-                return OperationType.valueOf(resultValue.toUpperCase());
+                switch (resultValue) {
+                case "c":
+                    return OperationType.INSERT;
+                case "u":
+                    return OperationType.UPDATE;
+                case "d":
+                    return OperationType.DELETE;
+                default:
+                    return OperationType.valueOf(resultValue.toUpperCase());
+                }
             } catch (final IllegalArgumentException iae) {
                 throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Kudu Operation Type but found invalid value: " + resultValue);
             }
