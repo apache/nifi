@@ -126,6 +126,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1202,7 +1203,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         updateControllerService(newService, proposed, topLevelGroup);
-        createdExtensions.add(new CreatedExtension(newService, proposed.getProperties()));
+        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
+        createdExtensions.add(new CreatedExtension(newService, decryptedProperties));
 
         return newService;
     }
@@ -1464,6 +1466,18 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         return fullPropertyMap;
+    }
+
+    private Map<String, String> getDecryptedProperties(final Map<String, String> properties) {
+        final Map<String, String> decryptedProperties = new LinkedHashMap<>();
+
+        final PropertyDecryptor decryptor = syncOptions.getPropertyDecryptor();
+        properties.forEach((propertyName, propertyValue) -> {
+            final String propertyValueDecrypted = decrypt(propertyValue, decryptor);
+            decryptedProperties.put(propertyName, propertyValueDecrypted);
+        });
+
+        return decryptedProperties;
     }
 
     private static String decrypt(final String value, final PropertyDecryptor decryptor) {
@@ -2388,7 +2402,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         destination.addProcessor(procNode);
         updateProcessor(procNode, proposed, topLevelGroup);
 
-        createdExtensions.add(new CreatedExtension(procNode, proposed.getProperties()));
+        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
+        createdExtensions.add(new CreatedExtension(procNode, decryptedProperties));
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
@@ -3468,7 +3483,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final BundleCoordinate coordinate = toCoordinate(reportingTask.getBundle());
         final ReportingTaskNode taskNode = context.getFlowManager().createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask);
-        createdExtensions.add(new CreatedExtension(taskNode, reportingTask.getProperties()));
+
+        final Map<String, String> decryptedProperties = getDecryptedProperties(reportingTask.getProperties());
+        createdExtensions.add(new CreatedExtension(taskNode, decryptedProperties));
 
         return taskNode;
     }
