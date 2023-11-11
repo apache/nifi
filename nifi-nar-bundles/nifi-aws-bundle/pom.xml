@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <aws-kinesis-client-library-version>2.5.2</aws-kinesis-client-library-version>
+        <aws-kinesis-client-library-version>2.5.3</aws-kinesis-client-library-version>
     </properties>
 
     <modules>
