@@ -1,0 +1,465 @@
+nifi-hudi-processors-nar
+Copyright 2014-2023 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+===========================================
+Apache Software License v2
+===========================================
+
+  (ASLv2) Apache Hudi
+    The following NOTICE information applies:
+      Apache Hudi
+      Copyright 2019-2020 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Hadoop
+    The following NOTICE information applies:
+      The binary distribution of this product bundles binaries of
+      org.iq80.leveldb:leveldb-api (https://github.com/dain/leveldb), which has the
+      following notices:
+      * Copyright 2011 Dain Sundstrom <dain@iq80.com>
+      * Copyright 2011 FuseSource Corp. http://fusesource.com
+
+      The binary distribution of this product bundles binaries of
+      org.fusesource.hawtjni:hawtjni-runtime (https://github.com/fusesource/hawtjni),
+      which has the following notices:
+      * This product includes software developed by FuseSource Corp.
+        http://fusesource.com
+      * This product includes software developed at
+        Progress Software Corporation and/or its  subsidiaries or affiliates.
+      * This product includes software developed by IBM Corporation and others.
+
+  (ASLv2) Apache HBase
+    The following NOTICE information applies:
+      Apache HBase
+      Copyright 2007-2015 The Apache Software Foundation
+
+      --
+      This product incorporates portions of the 'Hadoop' project
+
+      Copyright 2007-2009 The Apache Software Foundation
+
+      Licensed under the Apache License v2.0
+      --
+      Our Orca logo we got here: http://www.vectorfree.com/jumping-orca
+      It is licensed Creative Commons Attribution 3.0.
+      See https://creativecommons.org/licenses/by/3.0/us/
+      We changed the logo by stripping the colored background, inverting
+      it and then rotating it some.
+
+      Later we found that vectorfree.com image is not properly licensed.
+      The original is owned by vectorportal.com. The original was
+      relicensed so we could use it as Creative Commons Attribution 3.0.
+      The license is bundled with the download available here:
+      http://www.vectorportal.com/subcategory/205/KILLER-WHALE-FREE-VECTOR.eps/ifile/9136/detailtest.asp
+      --
+      This product includes portions of the Bootstrap project v3.0.0
+
+      Copyright 2013 Twitter, Inc.
+
+      Licensed under the Apache License v2.0
+
+      This product uses the Glyphicons Halflings icon set.
+
+      http://glyphicons.com/
+
+      Copyright Jan Kovařík
+
+      Licensed under the Apache License v2.0 as a part of the Bootstrap project.
+
+      --
+      This product includes portions of the Guava project v14, specifically
+      'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+
+      Copyright (C) 2007 The Guava Authors
+
+      Licensed under the Apache License, Version 2.0
+
+  (ASLv2) Apache Hive
+    The following NOTICE information applies:
+      Apache Hive
+      Copyright 2008-2015 The Apache Software Foundation
+
+      This product includes software developed by The Apache Software
+      Foundation (http://www.apache.org/).
+
+      This product includes Jersey (https://jersey.java.net/)
+      Copyright (c) 2010-2014 Oracle and/or its affiliates.
+
+      This project includes software copyrighted by Microsoft Corporation and
+      licensed under the Apache License, Version 2.0.
+
+      This project includes software copyrighted by Dell SecureWorks and
+      licensed under the Apache License, Version 2.0.
+
+  (ASLv2) Apache Curator
+    The following NOTICE information applies:
+      Curator Framework
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Client
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Recipes
+      Copyright 2011-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Kerby
+    The following NOTICE information applies:
+      Apache Kerby
+      Copyright 2003-2018 The Apache Software Foundation
+
+  (ASLv2) Apache Avro
+    The following NOTICE information applies:
+      Apache Avro
+      Copyright 2009-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Parquet
+    The following NOTICE information applies:
+      Apache Parquet MR (Incubating)
+      Copyright 2014 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache ORC
+    The following NOTICE information applies:
+      Copyright 2013-2019 The Apache Software Foundation
+
+      This product includes software developed by The Apache Software
+      Foundation (http://www.apache.org/).
+
+      This product includes software developed by Hewlett-Packard:
+      (c) Copyright [2014-2015] Hewlett-Packard Development Company, L.P
+
+  (ASLv2) Apache ZooKeeper
+     The following NOTICE information applies:
+       Apache ZooKeeper
+       Copyright 2009-2012 The Apache Software Foundation
+
+  (ASLv2) Apache HttpComponents
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      Apache HttpCore
+      Copyright 2005-2015 The Apache Software Foundation
+
+      Apache HttpMime
+      Copyright 1999-2013 The Apache Software Foundation
+
+      This project contains annotations derived from JCIP-ANNOTATIONS
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See https://www.jcip.net
+
+  (ASLv2) Audience Annotations
+    The following NOTICE information applies:
+      Apache Yetus
+      Copyright 2008-2018 The Apache Software Foundation
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+       Jetty Web Container
+       Copyright 1995-2019 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) The Netty Project
+      The following NOTICE information applies:
+        The Netty Project
+        Copyright 2011 The Netty Project
+
+  (ASLv2) Prometheus Simple Client libraries
+    Copyright 2012-2019 The Prometheus Authors
+
+    (ASLv2) JCommander
+      The following NOTICE information applies:
+        JCommander Copyright Notices
+        Copyright 2010 Cedric Beust cedric@beust.com
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+      ## Credits
+
+      A list of contributors may be found from CREDITS file, which is included
+      in some artifacts (usually source distributions); but is always available
+      from the source code management (SCM) system project uses.
+
+  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:bundle:5.4.0 - https://github.com/FasterXML/woodstox)
+      The following NOTICE information applies:
+        Woodstox Core 5.4.0
+        Copyright 2015, FasterXML, LLC
+
+  (ASLv2) Caffeine
+    The following NOTICE information applies:
+      Caffeine (caching library)
+      Copyright Ben Manes
+
+  (ASLv2) Kotlin Stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.7.20 - https://kotlinlang.org/)
+        The following NOTICE information applies:
+          Kotlin Stdlib
+          Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Common (org.jetbrains.kotlin:kotlin-stdlib-common:1.7.20 - https://kotlinlang.org/)
+          The following NOTICE information applies:
+            Kotlin Stdlib Common
+            Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.20 - https://kotlinlang.org/)
+            The following NOTICE information applies:
+              Kotlin Stdlib Jdk7
+              Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Jdk8 (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.20 - https://kotlinlang.org/)
+            The following NOTICE information applies:
+              Kotlin Stdlib Jdk8
+              Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Dropwizard Metrics
+      The following NOTICE information applies:
+        Dropwizard Metrics
+        Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2017 Dropwizard Team
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2018 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Collections
+    The following NOTICE information applies:
+      Apache Commons Collections
+      Copyright 2001-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons CLI
+    The following NOTICE information applies:
+      Apache Commons CLI
+      Copyright 2001-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Daemon
+    The following NOTICE information applies:
+      Apache Commons Daemon
+      Copyright 2002-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons BeanUtils
+    The following NOTICE information applies:
+      Apache Commons BeanUtils
+      Copyright 2000-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Net
+    The following NOTICE information applies:
+      Apache Commons Net
+      Copyright 2001-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Pool
+    The following NOTICE information applies:
+      Apache Commons Pool
+      Copyright 1999-2009 The Apache Software Foundation.
+
+  (ASLv2) Apache Commons CSV
+    The following NOTICE information applies:
+      Apache Commons CSV
+      Copyright 2005-2016 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2008 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Crypto
+    The following NOTICE information applies:
+      Apache Commons Crypto
+      Copyright 2016-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Compress
+    The following NOTICE information applies:
+      Apache Commons Compress
+      Copyright 2002-2014 The Apache Software Foundation
+
+      The files in the package org.apache.commons.compress.archivers.sevenz
+      were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
+      which has been placed in the public domain:
+
+      "LZMA SDK is placed in the public domain." (https://www.7-zip.org/sdk.html)
+
+  (ASLv2) Apache Commons Text
+    The following NOTICE information applies:
+      Apache Commons Text
+      Copyright 2001-2018 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Math
+    The following NOTICE information applies:
+      Apache Commons Math
+      Copyright 2001-2012 The Apache Software Foundation
+
+  (ASLv2) Snappy Java
+    The following NOTICE information applies:
+      This product includes software developed by Google
+       Snappy: https://code.google.com/p/snappy/ (New BSD License)
+
+      This product includes software developed by Apache
+       PureJavaCrc32C from apache-hadoop-common https://hadoop.apache.org/
+       (Apache 2.0 license)
+
+      This library containd statically linked libstdc++. This inclusion is allowed by
+      "GCC RUntime Library Exception"
+      https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+  (ASLv2) Guava
+    The following NOTICE information applies:
+      Guava
+      Copyright 2015 The Guava Authors
+
+  (ASLv2) Google GSON
+    The following NOTICE information applies:
+      Copyright 2008 Google Inc.
+
+  (ASLv2) Joda-Time
+    The following NOTICE information applies:
+      This product includes software developed by
+      Joda.org (http://www.joda.org/).
+
+  (ASLv2) JCIP Annotations Under Apache License
+    The following NOTICE information applies:
+      JCIP Annotations Under Apache License
+      Copyright 2013 Stephen Connolly.
+
+  (ASLv2) FindBugs JSR305
+    The following NOTICE information applies:
+      FindBugs JSR305
+      Copyright 2017 The FindBugs JSR305 Authors
+
+  (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt - https://connect2id.com/products/nimbus-jose-jwt)
+    The following NOTICE information applies:
+      Nimbus JOSE+JWT
+      Copyright 2021, Connect2id Ltd.
+
+  (ASLv2) JetBrains/java-annotations
+    The following NOTICE information applies:
+      JetBrains/java-annotations
+      Copyright 2000-2016 JetBrains s.r.o.
+
+  (ASLv2) Objenesis
+      The following NOTICE information applies:
+        Objenesis
+        Copyright 2006-2013 Joe Walnes, Henri Tremblay, Leonardo Mesquita
+
+  (ASLv2) RocksDB JNI
+    The following NOTICE information applies:
+      Copyright (c) 2011-present, Facebook, Inc.
+
+************************
+The MIT License
+************************
+
+The following binary components are provided under the MIT License.  See project link for details.
+
+  (MIT License) Checker Qual
+    The following NOTICE information applies:
+      Copyright (c) Copyright 2004-present by the Checker Framework developers
+      All rights reserved.
+      https://www.checkerframework.org/
+
+************************
+BSD License
+************************
+
+  (BSD 3-Clause) JLine Bundle
+    The following NOTICE information applies:
+      Copyright (c) 2002-2007, Marc Prud'hommeaux. All rights reserved.
+      https://github.com/jline/jline1
+
+  (BSD 3-Clause) Kryo
+    The following NOTICE information applies:
+      Copyright (c) 2008-2023, Nathan Sweet All rights reserved.
+      https://github.com/EsotericSoftware/kryo
+
+  (BSD 3-Clause) MinLog
+    The following NOTICE information applies:
+      Copyright (c) 2008, Nathan Sweet
+      https://github.com/EsotericSoftware/MinLog
+
+  (BSD 3-Clause) ReflectASM
+    The following NOTICE information applies:
+      Copyright (c) 2008, Nathan Sweet
+      https://github.com/EsotericSoftware/ReflectASM
+
+  (BSD) Paranamer
+    The following NOTICE information applies:
+      Portions copyright (c) 2006-2018 Paul Hammant & ThoughtWorks Inc
+      Portions copyright (c) 2000-2007 INRIA, France Telecom
+      All rights reserved.
+      https://github.com/paul-hammant/paranamer
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19.4 - https://jersey.java.net/jersey-client/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19.4 - https://jersey.java.net/jersey-core/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.9 - https://jersey.java.net/jersey-server/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-servlet (com.sun.jersey:jersey-servlet:jar:1.19.4 - https://jersey.java.net/jersey-servlet/)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.3.2 - https://jcp.org/en/jsr/detail?id=250)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:2.3.2 - https://jstl.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1.1 - https://jax-rs-spec.java.net)
+    (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.11 - https://jaxb.dev.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:3.0.1-b12 - https://el-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:jakarta.inject:2.6.1 - https://github.com/eclipse-ee4j/glassfish-hk2/external/jakarta.inject)
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+
+*****************
+Public Domain
+*****************
+
+The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - https://tukaani.org/xz/java.html
+
+************************
+Go License
+************************
+
+The following binary components are provided under the Go License.  See project link for details.
+
+  (Go) RE2/J
+    The following NOTICE information applies:
+      Copyright (c) 2009 The Go Authors. All rights reserved.
+      https://github.com/google/re2j

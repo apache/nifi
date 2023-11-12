@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>PutHudi</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+
+        <h1>PutHudi</h1>
+
+        <h3>Description</h3>
+        <p>
+            Apache Hudi is a transactional data lake platform that brings database and data warehouse capabilities to the data lake.
+            The PutHudi processor is capable of pushing data into Hudi tables using the Hudi Java Client.
+        </p>
+
+        <h3>Key Generator</h3>
+        <p>
+            Every record is uniquely identified by a primary key, which is a pair of record key and partition path where the record belongs to.
+            To determine which key generator should be used the processor is going through the following decision order:
+            <ul>
+                <li>The processor tries to read the "hoodie.table.keygenerator.class" property from the target table's configuration and set it to the writer configuration</li>
+                <li>The processor checks the "hoodie.datasource.write.keygenerator.type" property in the writer's configuration</li>
+                <li>The processor tries to infer the key generator type from the "hoodie.datasource.write.partitionpath.field" and "hoodie.datasource.write.recordkey.field" properties</li>
+            </ul>
+
+        </p>
+
+        <h3>Configuration</h3>
+        <p>
+            Configuration files and entries can be provided in different ways to the processor. The configuration entry override hierarchy is the following:
+            <ul>
+                <li>Configuration provided thourgh the processors "Hudi Configuration Resources" property</li>
+                <li>Configuration entries mapped from the target table's configruation</li>
+                <ul>
+                    <li><code>"hoodie.table.recordkey.fields"                         ->  "hoodie.datasource.write.recordkey.field"</code></li>
+                    <li><code>"hoodie.table.partition.fields"                         ->  "hoodie.datasource.write.partitionpath.field"</code></li>
+                    <li><code>"hoodie.table.keygenerator.class"                       ->  "hoodie.datasource.write.keygenerator.class"</code></li>
+                    <li><code>"hoodie.datasource.write.hive_style_partitioning"       ->  "hoodie.datasource.write.hive_style_partitioning"</code></li>
+                    <li><code>"hoodie.datasource.write.partitionpath.urlencode"       ->  "hoodie.datasource.write.partitionpath.urlencode"</code></li>
+                </ul>
+                <li>Configuration entries provided through dynamic properties</li>
+            </ul>
+        </p>
+
+    </body>
+</html>
