@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.amqp.AmqpClientOptions;
 import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.amqp.exception.AmqpErrorCondition;
 import com.azure.core.amqp.exception.AmqpException;
@@ -24,6 +25,7 @@ import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.EventProcessorClientBuilder;
@@ -36,16 +38,20 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -58,6 +64,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStrategy;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ComponentStateCheckpointStoreException;
 import org.apache.nifi.processors.azure.eventhub.position.EarliestEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.position.LegacyBlobStorageEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
@@ -81,15 +90,19 @@ import java.io.OutputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLIENT_ID;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLUSTERED;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs with checkpointing to ensure consistent event processing. "
@@ -98,6 +111,8 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
         + "In clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
         + "(each message is processed on one cluster node only).")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Local state is used to store the client id. " +
+        "Cluster state is used to store partition ownership and checkpoint information when component state is configured as the checkpointing strategy.")
 @TriggerSerially
 @WritesAttributes({
         @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
@@ -181,7 +196,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     static final PropertyDescriptor INITIAL_OFFSET = new PropertyDescriptor.Builder()
             .name("event-hub-initial-offset")
             .displayName("Initial Offset")
-            .description("Specify where to start receiving messages if offset is not stored in Azure Storage.")
+            .description("Specify where to start receiving messages if offset is not yet stored in the checkpoint store.")
             .required(true)
             .allowableValues(INITIAL_OFFSET_START_OF_STREAM, INITIAL_OFFSET_END_OF_STREAM)
             .defaultValue(INITIAL_OFFSET_END_OF_STREAM)
@@ -218,12 +233,23 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     static final PropertyDescriptor RECEIVE_TIMEOUT = new PropertyDescriptor.Builder()
             .name("event-hub-message-receive-timeout")
             .displayName("Message Receive Timeout")
-            .description("The amount of time this consumer should wait to receive the Prefetch Count before returning.")
+            .description("The amount of time this consumer should wait to receive the Batch Size before returning.")
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
+
+    static final PropertyDescriptor CHECKPOINT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("checkpoint-strategy")
+            .displayName("Checkpoint Strategy")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .allowableValues(CheckpointStrategy.class)
+            .defaultValue(CheckpointStrategy.AZURE_BLOB_STORAGE.getValue())
+            .description("Specifies which strategy to use for storing and retrieving partition ownership and checkpoint information for each partition.")
+            .build();
+
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name("storage-account-name")
             .displayName("Storage Account Name")
@@ -231,6 +257,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
+            .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
             .name("storage-account-key")
@@ -240,6 +267,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
+            .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
             .name("storage-sas-token")
@@ -250,6 +278,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     "Token must start with a ? character."))
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
+            .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("storage-container-name")
@@ -259,6 +288,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
+            .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -289,6 +319,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             PREFETCH_COUNT,
             BATCH_SIZE,
             RECEIVE_TIMEOUT,
+            CHECKPOINT_STRATEGY,
             STORAGE_ACCOUNT_NAME,
             STORAGE_ACCOUNT_KEY,
             STORAGE_SAS_TOKEN,
@@ -301,10 +332,10 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     private volatile RecordReaderFactory readerFactory;
     private volatile RecordSetWriterFactory writerFactory;
 
-    private volatile String namespaceName;
     private volatile boolean isRecordReaderSet = false;
     private volatile boolean isRecordWriterSet = false;
-    private volatile String serviceBusEndpoint;
+
+    private volatile String clientId;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -328,6 +359,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).asControllerService();
         final String storageAccountKey = validationContext.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = validationContext.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(validationContext.getProperty(CHECKPOINT_STRATEGY).getValue());
 
         if ((recordReader != null && recordWriter == null) || (recordReader == null && recordWriter != null)) {
             results.add(new ValidationResult.Builder()
@@ -338,24 +370,26 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     .build());
         }
 
-        if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
-            results.add(new ValidationResult.Builder()
-                    .subject(String.format("%s or %s",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .explanation(String.format("either %s or %s should be set.",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .valid(false)
-                    .build());
-        }
+        if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
+            if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(String.format("%s or %s",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .explanation(String.format("either %s or %s should be set.",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .valid(false)
+                        .build());
+            }
 
-        if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
-            results.add(new ValidationResult.Builder()
-                    .subject(String.format("%s or %s",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .explanation(String.format("%s and %s should not be set at the same time.",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .valid(false)
-                    .build());
+            if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(String.format("%s or %s",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .explanation(String.format("%s and %s should not be set at the same time.",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .valid(false)
+                        .build());
+            }
         }
         results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, validationContext));
         return results;
@@ -368,6 +402,24 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         } else if (RECORD_WRITER.equals(descriptor)) {
             isRecordWriterSet = StringUtils.isNotEmpty(newValue);
         }
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) throws IOException {
+        StateManager stateManager = context.getStateManager();
+
+        String clientId = stateManager.getState(Scope.LOCAL).get(CLIENT_ID.key());
+        if (clientId == null) {
+            clientId = UUID.randomUUID().toString();
+
+            final Map<String, String> clientState = new HashMap<>();
+            clientState.put(CLIENT_ID.key(), clientId);
+            clientState.put(CLUSTERED.key(), Boolean.toString(getNodeTypeProvider().isClustered()));
+
+            stateManager.setState(clientState, Scope.LOCAL);
+        }
+
+        this.clientId = clientId;
     }
 
     @Override
@@ -398,25 +450,42 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             processSessionFactory = null;
             readerFactory = null;
             writerFactory = null;
+            clientId = null;
         }
     }
 
     protected EventProcessorClient createClient(final ProcessContext context) {
-        namespaceName = context.getProperty(NAMESPACE).evaluateAttributeExpressions().getValue();
+        final String eventHubNamespace = context.getProperty(NAMESPACE).evaluateAttributeExpressions().getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
+        final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
 
-        final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
-        final String storageConnectionString = createStorageConnectionString(context);
-        final BlobContainerClientBuilder blobContainerClientBuilder = new BlobContainerClientBuilder()
-                .connectionString(storageConnectionString)
-                .containerName(containerName);
-        final ProxyOptions storageProxyOptions = AzureStorageUtils.getProxyOptions(context);
-        if (storageProxyOptions != null) {
-            blobContainerClientBuilder.clientOptions(new HttpClientOptions().setProxyOptions(storageProxyOptions));
+        final String fullyQualifiedNamespace = String.format("%s%s", eventHubNamespace, serviceBusEndpoint);
+
+        final CheckpointStore checkpointStore;
+        final Map<String, EventPosition> legacyPartitionEventPosition;
+
+        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(context.getProperty(CHECKPOINT_STRATEGY).getValue());
+
+        if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
+            final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
+            final String storageConnectionString = createStorageConnectionString(context);
+            final BlobContainerClientBuilder blobContainerClientBuilder = new BlobContainerClientBuilder()
+                    .connectionString(storageConnectionString)
+                    .containerName(containerName);
+            final ProxyOptions storageProxyOptions = AzureStorageUtils.getProxyOptions(context);
+            if (storageProxyOptions != null) {
+                blobContainerClientBuilder.clientOptions(new HttpClientOptions().setProxyOptions(storageProxyOptions));
+            }
+            final BlobContainerAsyncClient blobContainerAsyncClient = blobContainerClientBuilder.buildAsyncClient();
+            checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
+            legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
+        } else {
+            ComponentStateCheckpointStore componentStateCheckpointStore = new ComponentStateCheckpointStore(clientId, context.getStateManager());
+            componentStateCheckpointStore.cleanUp(fullyQualifiedNamespace, eventHubName, consumerGroup);
+            checkpointStore = componentStateCheckpointStore;
+            legacyPartitionEventPosition = Collections.emptyMap();
         }
-        final BlobContainerAsyncClient blobContainerAsyncClient = blobContainerClientBuilder.buildAsyncClient();
-        final BlobCheckpointStore checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
 
         final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
@@ -426,12 +495,12 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
                 .transportType(transportType)
                 .consumerGroup(consumerGroup)
+                .clientOptions(new AmqpClientOptions().setIdentifier(clientId))
                 .trackLastEnqueuedEventProperties(true)
                 .checkpointStore(checkpointStore)
                 .processError(errorProcessor)
                 .processEventBatch(eventBatchProcessor, maxBatchSize, maxWaitTime);
 
-        final String fullyQualifiedNamespace = String.format("%s%s", namespaceName, serviceBusEndpoint);
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         if (useManagedIdentity) {
             final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
@@ -439,7 +508,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
         } else {
             final String policyName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
-            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
             final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
             eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
         }
@@ -449,7 +518,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             eventProcessorClientBuilder.prefetchCount(prefetchCount);
         }
 
-        final Map<String, EventPosition> legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         if (legacyPartitionEventPosition.isEmpty()) {
             final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
             // EventPosition.latest() is the default behavior is absence of existing checkpoints
@@ -468,9 +536,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     }
 
     protected String getTransitUri(final PartitionContext partitionContext) {
-        return String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
-                namespaceName,
-                serviceBusEndpoint,
+        return String.format("amqps://%s/%s/ConsumerGroups/%s/Partitions/%s",
+                partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),
                 partitionContext.getPartitionId()
@@ -520,7 +587,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             }
         }
 
-        getLogger().error("Receive Events failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+        final String errorMessage;
+        if (throwable instanceof ComponentStateCheckpointStoreException) {
+            errorMessage = "Failed to access Component State Checkpoint Store";
+        } else {
+            errorMessage = "Receive Events failed";
+        }
+
+        getLogger().error(errorMessage + ". Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
                 partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),
@@ -666,8 +740,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
     private String createStorageConnectionString(final ProcessContext context) {
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-
-        serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
+        final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
         final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
