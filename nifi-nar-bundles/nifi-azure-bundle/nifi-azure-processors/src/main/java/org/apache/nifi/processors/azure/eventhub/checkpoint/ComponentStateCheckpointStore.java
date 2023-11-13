@@ -68,10 +68,10 @@ import java.util.stream.Collectors;
  * {@link org.apache.nifi.components.state.StateManager#replace(StateMap, Map, Scope)} method supports optimistic locking but only globally, in the scope of the whole state map (which may or may not
  * contain conflicting changes after update). For this reason, the state update had to be implemented in 2 phases in {@link ComponentStateCheckpointStore#claimOwnership(List)}:
  * <ul>
- *     <li>in the 1st phase the algorithm gets the current state and tries to update the ownership based on <code>eTag</code>, the claim request is skipped if <code>eTag</code> does not match
- *     (the original <code>eTag</code> was retrieved in {@link ComponentStateCheckpointStore#listOwnership(String, String, String)})</li>
- *     <li>in the 2nd phase {@link org.apache.nifi.components.state.StateManager#replace(StateMap, Map, Scope)} is called and if it is not successful - meaning that another client
- *     instance changed the state in the meantime which may or may not be conflicting -, then the whole process needs to be started over with the 1st phase</li>
+ *     <li>in the 1st phase the algorithm gets the current state and tries to set the ownership in memory based on <code>eTag</code>, the claim request is skipped if <code>eTag</code>
+ *     does not match (the original <code>eTag</code> was retrieved in {@link ComponentStateCheckpointStore#listOwnership(String, String, String)})</li>
+ *     <li>in the 2nd phase {@link org.apache.nifi.components.state.StateManager#replace(StateMap, Map, Scope)} is called to persist the new state and if it is not successful - meaning
+ *     that another client instance changed the state in the meantime which may or may not be conflicting -, then the whole process needs to be started over with the 1st phase</li>
  * </ul>
  */
 public class ComponentStateCheckpointStore implements CheckpointStore {
@@ -213,12 +213,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
         for (Map.Entry<String, String> entry : state.toMap().entrySet()) {
             final String key = entry.getKey();
             final String[] parts = key.split("/", 5);
-            if (parts.length != 5) {
-                throw new ProcessException(
-                        String.format("Invalid %s key: %s", kind, entry.getKey())
-                );
-            }
-            if (!parts[0].equals(kind)) {
+            if (parts.length != 5 || !parts[0].equals(kind)) {
                 continue;
             }
             final String fullyQualifiedNamespace = parts[1];
