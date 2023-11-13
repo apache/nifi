@@ -31,6 +31,10 @@
         <!-- Internal dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -41,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-path-property</artifactId>
+            <artifactId>nifi-record-path</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
@@ -55,12 +59,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
