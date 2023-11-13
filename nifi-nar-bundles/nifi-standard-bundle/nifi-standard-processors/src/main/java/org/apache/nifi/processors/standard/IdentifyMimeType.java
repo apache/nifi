@@ -55,7 +55,6 @@ import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.apache.tika.mime.MimeTypesFactory;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -67,7 +66,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
@@ -241,92 +239,62 @@ public class IdentifyMimeType extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        final String mimeType = identifyMimeType(context, session, flowFile);
-        final String extension = lookupExtension(mimeType, logger);
 
-        if (mimeType == null) {
-            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/octet-stream");
-            flowFile = session.putAttribute(flowFile, "mime.extension", "");
-            flowFile = session.putAttribute(flowFile, "mime.charset", "");
-            logger.info("Unable to identify MIME Type for {}; setting to application/octet-stream", flowFile);
-        } else {
-            final Charset charset = identifyCharset(context, session, flowFile, mimeType);
+        final String mediaTypeString;
+        final String extension;
+        final Charset charset;
 
-            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeType);
-            flowFile = session.putAttribute(flowFile, "mime.extension", extension);
-            flowFile = session.putAttribute(flowFile, "mime.charset", charset == null ? "" : charset.name());
-            logger.info("Identified {} as having MIME Type {}", flowFile, mimeType);
+        try (final InputStream flowFileStream = session.read(flowFile);
+             final TikaInputStream tikaStream = TikaInputStream.get(flowFileStream)) {
+            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
+            Metadata metadata = new Metadata();
+            if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
+                metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
+            }
+
+            final MediaType mediaType = detector.detect(tikaStream, metadata);
+            mediaTypeString = mediaType.getBaseType().toString();
+            extension = lookupExtension(mediaTypeString, logger);
+            charset = identifyCharset(tikaStream, metadata, mediaType);
+        } catch (IOException e) {
+            throw new ProcessException("IOException thrown identifying mime-type of FlowFile content", e);
         }
+
+        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mediaTypeString);
+        flowFile = session.putAttribute(flowFile, "mime.extension", extension);
+        flowFile = session.putAttribute(flowFile, "mime.charset", charset == null ? "" : charset.name());
+        logger.info("Identified {} as having MIME Type {}", flowFile, mediaTypeString);
 
         session.getProvenanceReporter().modifyAttributes(flowFile);
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private String identifyMimeType(ProcessContext context, ProcessSession session, FlowFile flowFile) {
-        final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
-        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-
-        session.read(flowFile, stream -> {
-            try (final InputStream in = new BufferedInputStream(stream);
-                 final TikaInputStream tikaStream = TikaInputStream.get(in)) {
-                Metadata metadata = new Metadata();
-
-                if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
-                    metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
-                }
-                // Get mime type
-                MediaType mediatype = detector.detect(tikaStream, metadata);
-
-                mimeTypeRef.set(mediatype.toString());
-            }
-        });
-
-        return mimeTypeRef.get();
-    }
-
-    private String lookupExtension(String mimeType, ComponentLog logger) {
+    private String lookupExtension(String mediaTypeString, ComponentLog logger) {
         String extension = "";
         try {
-            MimeType mimetype;
-            mimetype = mimeTypes.forName(mimeType);
-            extension = mimetype.getExtension();
+            MimeType mimeType = mimeTypes.forName(mediaTypeString);
+            extension = mimeType.getExtension();
         } catch (MimeTypeException e) {
             logger.warn("MIME type extension lookup failed", e);
         }
 
         // Workaround for bug in Tika - https://issues.apache.org/jira/browse/TIKA-1563
-        if (mimeType != null && mimeType.equals("application/gzip") && extension.equals(".tgz")) {
+        if (mediaTypeString.equals("application/gzip") && extension.equals(".tgz")) {
             extension = ".gz";
         }
         return extension;
     }
 
-    private Charset identifyCharset(ProcessContext context, ProcessSession session, FlowFile flowFile, String mimeType) {
-        if (!mimeType.startsWith("text/")) {
-            // only mime-types text/* have a charset parameter
+    private Charset identifyCharset(TikaInputStream tikaStream, Metadata metadata, MediaType mediaType) throws IOException {
+        // only mime-types text/* have a charset parameter
+        if (mediaType.getType().equals("text")) {
+            metadata.add(HttpHeaders.CONTENT_TYPE, mediaType.toString());
+
+            return encodingDetector.detect(tikaStream, metadata);
+        } else {
             return null;
         }
-
-        final AtomicReference<Charset> charsetRef = new AtomicReference<>(null);
-        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-
-        session.read(flowFile, stream -> {
-            try (final InputStream in = new BufferedInputStream(stream);
-                 final TikaInputStream tikaStream = TikaInputStream.get(in)) {
-                Metadata metadata = new Metadata();
-                metadata.add(HttpHeaders.CONTENT_TYPE, mimeType);
-                if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
-                    metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
-                }
-
-                // Get charset
-                Charset charset = encodingDetector.detect(tikaStream, metadata);
-
-                charsetRef.set(charset);
-            }
-        });
-
-        return charsetRef.get();
     }
 
     @Override
