@@ -26,6 +26,6 @@ if "!arg1:~1,11!" equ "serviceName" (
 )
 
 set SRV_BIN=%cd%\minifi.exe
-"%SRV_BIN%" //DS//%SVC_NAME%
+"%SRV_BIN%" //SS//%SVC_NAME%
 
 endlocal

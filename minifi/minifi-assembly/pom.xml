@@ -291,8 +291,8 @@ limitations under the License.
         <minifi.run.as />
 
         <!--Commons Daemon Properties-->
-        <commons.daemon.version>1.2.1</commons.daemon.version>
-        <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
+        <commons.daemon.version>1.3.4</commons.daemon.version>
+        <commons.daemon.sha512sum>57a59d402dd0a1c99ed5da062b4616d54679e4208abec8b25742f5bf3ec1ee6b5187bc830edeaa218766215371b5519ce0a7186325c929c86b567a3078aa7555</commons.daemon.sha512sum>
         <commons.daemon.mirror.url>https://repo1.maven.org/maven2/commons-daemon/commons-daemon/${commons.daemon.version}</commons.daemon.mirror.url>
     </properties>
 

@@ -19,29 +19,29 @@ rem
 call %~sdp0\minifi-env.bat
 
 rem Use JAVA_HOME if it's set; otherwise, just use java
-
 if "%JAVA_HOME%" == "" goto noJavaHome
 if not exist "%JAVA_HOME%\bin\java.exe" goto noJavaHome
 set JAVA_EXE=%JAVA_HOME%\bin\java.exe
-goto startMiNifi
+goto stopMiNifi
 
 :noJavaHome
 echo The JAVA_HOME environment variable is not defined correctly.
 echo Instead the PATH will be used to find the java executable.
 echo.
 set JAVA_EXE=java
-goto startMiNifi
+goto stopMiNifi
 
-:startMiNifi
-pushd "%MINIFI_ROOT%"
+:stopMiNifi
+pushd "%MiNIFI_ROOT%"
 set BOOTSTRAP_LIB_DIR=lib\bootstrap
 set LIB_DIR=lib
 set CONF_DIR=conf
 
 set BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
-set JAVA_ARGS=-Dorg.apache.nifi.minifi.bootstrap.config.log.app.file.name=%MINIFI_APP_LOG_FILE_NAME% -Dorg.apache.nifi.minifi.bootstrap.config.log.app.file.extension=%MINIFI_APP_LOG_FILE_EXTENSION% -Dorg.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name=%MINIFI_BOOTSTRAP_LOG_FILE_NAME% -Dorg.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension=%MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION% -Dorg.apache.nifi.minifi.bootstrap.config.log.dir=%MINIFI_LOG_DIR% -Dorg.apache.nifi.minifi.bootstrap.config.pid.dir=%MINIFI_PID_DIR% -Dorg.apache.nifi.minifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
+set JAVA_ARGS=-Dorg.apache.nifi.minifi.bootstrap.config.log.dir=%MINIFI_LOG_DIR% -Dorg.apache.nifi.minifi.bootstrap.config.log.app.file.name=%MINIFI_APP_LOG_FILE_NAME% -Dorg.apache.nifi.minifi.bootstrap.config.log.app.file.extension=%MINIFI_APP_LOG_FILE_EXTENSION% -Dorg.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name=%MINIFI_BOOTSTRAP_LOG_FILE_NAME% -Dorg.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension=%MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION% -Dorg.apache.nifi.minifi.bootstrap.config.pid.dir=%MINIFI_PID_DIR% -Dorg.apache.nifi.minifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
+
 set JAVA_PARAMS=-cp %CONF_DIR%;%BOOTSTRAP_LIB_DIR%\*;%LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.minifi.bootstrap.RunMiNiFi
-set BOOTSTRAP_ACTION=status
+set BOOTSTRAP_ACTION=stop
 
 cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %BOOTSTRAP_ACTION%
 
