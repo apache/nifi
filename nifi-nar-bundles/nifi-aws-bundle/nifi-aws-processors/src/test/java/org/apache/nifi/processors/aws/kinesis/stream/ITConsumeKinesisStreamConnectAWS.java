@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.aws.kinesis.stream;
 
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
@@ -32,11 +32,12 @@ import java.io.File;
 
 public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
 
-    private final static File CREDENTIALS_FILE =
-            new File(System.getProperty("user.home") + "/aws-credentials.properties");
+    private final static File CREDENTIALS_FILE = new File(System.getProperty("user.home") + "/aws-credentials.properties");
 
     @BeforeEach
     public void setUp() throws InterruptedException, InitializationException {
+        Assumptions.assumeTrue(CREDENTIALS_FILE.exists());
+
         System.setProperty("aws.cborEnabled", "false");
 
         kinesis = KinesisClient.builder()
@@ -56,10 +57,7 @@ public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
         waitForKinesisToInitialize();
 
         runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
-        final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("credentials-service", credentialsService);
-        runner.setProperty(credentialsService, CredentialPropertyDescriptors.CREDENTIALS_FILE, CREDENTIALS_FILE.getAbsolutePath());
-        runner.enableControllerService(credentialsService);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE.getAbsolutePath());
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
         runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-service");

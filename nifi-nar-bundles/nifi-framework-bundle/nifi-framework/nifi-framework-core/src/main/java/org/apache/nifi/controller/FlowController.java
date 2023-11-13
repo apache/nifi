@@ -18,8 +18,6 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.flowanalysis.StandardFlowAnalyzer;
-import org.apache.nifi.flowanalysis.TriggerFlowAnalysisTask;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Authorizer;
@@ -81,7 +79,6 @@ import org.apache.nifi.controller.queue.clustered.server.ConnectionLoadBalanceSe
 import org.apache.nifi.controller.queue.clustered.server.LoadBalanceAuthorizer;
 import org.apache.nifi.controller.queue.clustered.server.LoadBalanceProtocol;
 import org.apache.nifi.controller.queue.clustered.server.StandardLoadBalanceProtocol;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -106,7 +103,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
-import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
+import org.apache.nifi.controller.scheduling.CronSchedulingAgent;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -141,8 +138,6 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.SensitiveValueEncoder;
-import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
@@ -150,6 +145,8 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.StandardFlowAnalyzer;
+import org.apache.nifi.flowanalysis.TriggerFlowAnalysisTask;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.BundleUpdateStrategy;
@@ -182,9 +179,9 @@ import org.apache.nifi.python.DisabledPythonBridge;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
@@ -272,9 +269,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
 
-    // default properties for scaling the positions of components from pre-1.0 flow encoding versions.
-    public static final double DEFAULT_POSITION_SCALE_FACTOR_X = 1.5;
-    public static final double DEFAULT_POSITION_SCALE_FACTOR_Y = 1.34;
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
@@ -355,11 +349,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * The sensitive property string encryptor *
      */
     private final PropertyEncryptor encryptor;
-
-    /**
-     * The sensitive value string encoder (hasher)
-     */
-    private final SensitiveValueEncoder sensitiveValueEncoder;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks", true);
     private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
@@ -473,7 +462,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return flowController;
     }
 
-    @SuppressWarnings("deprecation")
     private FlowController(
             final FlowFileEventRepository flowFileEventRepo,
             final NiFiProperties nifiProperties,
@@ -513,8 +501,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             LOG.error("Unable to start the flow controller because the TLS configuration was invalid: {}", e.getLocalizedMessage());
             throw new IllegalStateException("Flow controller TLS configuration is invalid", e);
         }
-
-        this.sensitiveValueEncoder = new StandardSensitiveValueEncoder(nifiProperties);
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
@@ -608,10 +594,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
+        final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
+        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, cronSchedulingAgent);
 
         startConnectablesAfterInitialization = new HashSet<>();
         startRemoteGroupPortsAfterInitialization = new HashSet<>();
@@ -1407,10 +1393,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public PropertyEncryptor getEncryptor() {
         return encryptor;
-    }
-
-    public SensitiveValueEncoder getSensitiveValueEncoder() {
-        return sensitiveValueEncoder;
     }
 
     /**
@@ -2309,7 +2291,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     @Override
-    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
         return flowManager.createReportingTask(type, id, bundleCoordinate, firstTimeAdded);
     }
 

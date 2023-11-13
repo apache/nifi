@@ -17,20 +17,9 @@
 
 package org.apache.nifi.python.processor;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import org.apache.nifi.NullSuppression;
-import org.apache.nifi.annotation.behavior.DefaultRunDuration;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -55,11 +44,23 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
-public class RecordTransformProxy extends PythonProcessorProxy {
-    private final PythonProcessorBridge bridge;
-    private volatile RecordTransform transform;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 
+@InputRequirement(Requirement.INPUT_REQUIRED)
+public class RecordTransformProxy extends PythonProcessorProxy {
+    private volatile RecordTransform transform;
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("Record Reader")
@@ -77,10 +78,8 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         .build();
 
 
-    public RecordTransformProxy(final PythonProcessorBridge bridge) {
-        super(bridge);
-        this.bridge = bridge;
-        this.transform = (RecordTransform) bridge.getProcessorAdapter().getProcessor();
+    public RecordTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+        super(processorType, bridgeFactory);
     }
 
     @Override
@@ -92,18 +91,17 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         return properties;
     }
 
-
-    public void reloadProcessor() {
-        final boolean reloaded = bridge.reload();
-        if (reloaded) {
-            transform = (RecordTransform) bridge.getProcessorAdapter().getProcessor();
-            getLogger().info("Successfully reloaded Processor");
-        }
-    }
-
     @OnScheduled
     public void setProcessContext(final ProcessContext context) {
-        transform.setContext(context);
+        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
+
+        final Optional<PythonProcessorAdapter> adapterOptional = bridge.getProcessorAdapter();
+        if (adapterOptional.isEmpty()) {
+            throw new IllegalStateException(this + " is not finished initializing");
+        }
+
+        this.transform = (RecordTransform) adapterOptional.get().getProcessor();
+        this.transform.setContext(context);
     }
 
     @Override
@@ -182,10 +180,10 @@ public class RecordTransformProxy extends PythonProcessorProxy {
             session.transfer(flowFile, REL_FAILURE);
 
             destinationTuples.values().forEach(tuple -> {
-                session.remove(tuple.getFlowFile());
+                session.remove(tuple.flowFile());
 
                 try {
-                    tuple.getWriter().close();
+                    tuple.writer().close();
                 } catch (final IOException ioe) {
                     getLogger().warn("Failed to close Record Writer for FlowFile created in this session", ioe);
                 }
@@ -217,26 +215,25 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         final Map<Relationship, List<FlowFile>> flowFilesPerRelationship = new HashMap<>();
         for (final Map.Entry<RecordGroupingKey, DestinationTuple> entry : destinationTuples.entrySet()) {
             final DestinationTuple destinationTuple = entry.getValue();
-            final RecordSetWriter writer = destinationTuple.getWriter();
+            final RecordSetWriter writer = destinationTuple.writer();
 
             final WriteResult writeResult = writer.finishRecordSet();
             writer.close();
 
             // Create attribute map
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.putAll(writeResult.getAttributes());
+            final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put("mime.type", writer.getMimeType());
 
             final RecordGroupingKey groupingKey = entry.getKey();
-            final Map<String, Object> partition = groupingKey.getPartition();
+            final Map<String, Object> partition = groupingKey.partition();
             if (partition != null) {
                 partition.forEach((key, value) -> attributes.put(key, Objects.toString(value)));
             }
 
             // Update the FlowFile and add to the appropriate Relationship and grouping
-            final FlowFile outputFlowFile = session.putAllAttributes(destinationTuple.getFlowFile(), attributes);
-            final Relationship destinationRelationship = new Relationship.Builder().name(groupingKey.getRelationship()).build();
+            final FlowFile outputFlowFile = session.putAllAttributes(destinationTuple.flowFile(), attributes);
+            final Relationship destinationRelationship = new Relationship.Builder().name(groupingKey.relationship()).build();
             final List<FlowFile> flowFiles = flowFilesPerRelationship.computeIfAbsent(destinationRelationship, key -> new ArrayList<>());
             flowFiles.add(outputFlowFile);
         }
@@ -289,7 +286,7 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         }
 
         // Transform the result into a Record and write it out
-        destinationTuple.getWriter().write(transformed);
+        destinationTuple.writer().write(transformed);
     }
 
 
@@ -326,59 +323,13 @@ public class RecordTransformProxy extends PythonProcessorProxy {
      * A tuple representing the name of a Relationship to which a Record should be transferred and an optional Partition that may distinguish
      * a Record from other Records going to the same Relationship
      */
-    private static class RecordGroupingKey {
-        private final String relationship;
-        private final Map<String, Object> partition;
+    private record RecordGroupingKey(String relationship, Map<String, Object> partition) {
 
-        public RecordGroupingKey(final String relationship, final Map<String, Object> partition) {
-            this.relationship = relationship;
-            this.partition = partition;
-        }
-
-        public String getRelationship() {
-            return relationship;
-        }
-
-        public Map<String, Object> getPartition() {
-            return partition;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final RecordGroupingKey that = (RecordGroupingKey) o;
-            return Objects.equals(relationship, that.relationship) && Objects.equals(partition, that.partition);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(relationship, partition);
-        }
     }
 
     /**
      * A tuple of a FlowFile and the RecordSetWriter to use for writing to that FlowFile
      */
-    private static class DestinationTuple {
-        private final FlowFile flowFile;
-        private final RecordSetWriter writer;
-
-        public DestinationTuple(final FlowFile flowFile, final RecordSetWriter writer) {
-            this.flowFile = flowFile;
-            this.writer = writer;
-        }
-
-        public FlowFile getFlowFile() {
-            return flowFile;
-        }
-
-        public RecordSetWriter getWriter() {
-            return writer;
-        }
+    private record DestinationTuple(FlowFile flowFile, RecordSetWriter writer) {
     }
 }

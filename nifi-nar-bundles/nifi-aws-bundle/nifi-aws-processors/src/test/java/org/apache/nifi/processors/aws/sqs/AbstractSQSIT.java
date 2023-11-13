@@ -18,14 +18,11 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
-import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -69,7 +66,6 @@ public abstract class AbstractSQSIT {
         queueUrl = response.queueUrl();
     }
 
-
     @AfterAll
     public static void shutdown() {
         client.close();
@@ -86,18 +82,7 @@ public abstract class AbstractSQSIT {
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
-
-        try {
-            final AWSCredentialsProviderControllerService creds = new AWSCredentialsProviderControllerService();
-            runner.addControllerService("creds", creds);
-            runner.setProperty(CredentialPropertyDescriptors.ACCESS_KEY_ID, localstack.getAccessKey());
-            runner.setProperty(CredentialPropertyDescriptors.SECRET_KEY, localstack.getSecretKey());
-            runner.enableControllerService(creds);
-
-            runner.setProperty(PutSQS.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
-        } catch (InitializationException e) {
-            Assertions.fail("Could not set security properties");
-        }
+        AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
         runner.setProperty(AbstractS3Processor.S3_REGION, localstack.getRegion());
         runner.setProperty(AbstractS3Processor.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(LocalStackContainer.Service.SQS).toString());

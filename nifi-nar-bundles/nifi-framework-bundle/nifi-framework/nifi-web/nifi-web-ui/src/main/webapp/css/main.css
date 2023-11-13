@@ -88,14 +88,6 @@ div.context-menu-provenance {
     float: left;
 }
 
-#new-template-description {
-    position: absolute;
-    top: 81px;
-    bottom: 0px;
-    height: inherit;
-    min-height: 32px;
-}
-
 /* processor status styles */
 
 .disabled {
@@ -271,37 +263,23 @@ span.details-title {
     font-size: 13px;
 }
 
-/* new template */
+/* new file */
 
-#new-template-description,
 #new-file-description {
     height: 210px;
 }
 
 /* upload */
 
-#select-template-container,
-#select-file-container {
-}
-
-#template-browse-container,
 #file-browse-container {
     display: block;
     height: 20px;
 }
 
-#select-template-label,
 #select-file-label {
     font-weight: bold;
     font-size: 14px;
     line-height: 28px;
-}
-
-#select-template-button {
-    position: absolute;
-    top: 0px;
-    left: 135px;
-    height: 28px;
 }
 
 #select-file-button button {
@@ -323,25 +301,14 @@ span.details-title {
     color: #004849;
 }
 
-#template-file-field,
 #upload-file-field {
     display: none;
-}
-
-#submit-template-container {
-    margin-top: 20px;
 }
 
 #submit-file-container {
     position: absolute;
     float: left;
     max-width: 90%;
-}
-
-#selected-template-name {
-    font-weight: bold;
-    font-family: Roboto;
-    font-size: 13px;
 }
 
 #selected-file-name {
@@ -352,7 +319,6 @@ span.details-title {
     word-break: break-all;
 }
 
-#upload-template-status,
 #upload-file-status {
     margin-top: 10px;
     font-weight: bold;
@@ -361,7 +327,6 @@ span.details-title {
     color: #ba554a;
 }
 
-#upload-template-container button,
 #upload-file-container button {
     float: right;
     font-size: 16px;
@@ -369,14 +334,12 @@ span.details-title {
     margin-left: 1px;
 }
 
-#upload-template-button,
 #upload-file-button {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
 }
 
-#template-file-upload,
 #file-upload {
     position: absolute;
     top: 0;

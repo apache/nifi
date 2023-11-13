@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
 import org.apache.nifi.util.MockFlowFile;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.List;
 
@@ -37,7 +39,6 @@ public abstract class AbstractDynamoDBTest {
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE,
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE,
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE,
-            AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE,
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE,
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE,
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID,
@@ -46,13 +47,18 @@ public abstract class AbstractDynamoDBTest {
             AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE
     );
 
-    protected AmazonServiceException getSampleAwsServiceException() {
-        final AmazonServiceException testServiceException = new AmazonServiceException("Test AWS Service Exception");
-        testServiceException.setErrorCode("8673509");
-        testServiceException.setErrorMessage("This request cannot be serviced right now.");
-        testServiceException.setErrorType(ErrorType.Service);
-        testServiceException.setServiceName("Dynamo DB");
-        testServiceException.setRequestId("TestRequestId-1234567890");
+    protected DynamoDbClient client;
+
+    protected AwsServiceException getSampleAwsServiceException() {
+        final AwsServiceException testServiceException = AwsServiceException.builder()
+                .message("Test AWS Service Exception")
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode("8673509")
+                        .errorMessage("This request cannot be serviced right now.")
+                        .serviceName("Dynamo DB")
+                        .build())
+                .requestId("TestRequestId-1234567890")
+                .build();
 
         return testServiceException;
     }
@@ -61,4 +67,7 @@ public abstract class AbstractDynamoDBTest {
         errorAttributes.forEach(flowFile::assertAttributeExists);
     }
 
+    protected static AttributeValue string(final String s) {
+        return AttributeValue.builder().s(s).build();
+    }
 }

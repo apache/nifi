@@ -200,11 +200,11 @@
 
             if (nfCommon.isDefinedAndNotNull(registriesResponse.registries) && registriesResponse.registries.length > 0) {
                 registriesResponse.registries.sort(function (a, b) {
-                    return a.registry.name > b.registry.name;
+                    return a.component.name > b.component.name;
                 });
 
                 $.each(registriesResponse.registries, function (_, registryEntity) {
-                    var registry = registryEntity.registry;
+                    var registry = registryEntity.component;
                     registries.push({
                         text: registry.name,
                         value: registry.id,
@@ -753,9 +753,10 @@
 
     /**
      * Shows the import flow version dialog.
+     *
+     * @param pt
      */
-    var showImportFlowVersionDialog = function () {
-        var pt = $('#new-process-group-dialog').data('pt');
+    var showImportFlowVersionDialog = function (pt) {
         $('#import-flow-version-dialog').data('pt', pt);
 
         // update the registry and bucket visibility
@@ -1793,8 +1794,8 @@
         /**
          * Shows the import flow dialog.
          */
-        showImportFlowDialog: function () {
-            showImportFlowVersionDialog();
+        showImportFlowDialog: function (pt) {
+            showImportFlowVersionDialog(pt);
         },
 
         /**

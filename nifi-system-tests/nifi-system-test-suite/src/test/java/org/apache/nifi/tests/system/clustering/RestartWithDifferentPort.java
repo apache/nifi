@@ -21,8 +21,8 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class RestartWithDifferentPort extends NiFiSystemIT {
         waitForAllNodesConnected(getNumberOfNodes(true), 2000L);
 
         // Wait for the second node to reconnect.
-        final ClusteSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
+        final ClusterSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
         assertEquals("2 / 2", clusterSummary.getClusterSummary().getConnectedNodes());
 
         // Ensure that the Node UUID's are the same and that we now have 2 nodes: localhost:5671 and localhost:5673, but NOT localhost:5672

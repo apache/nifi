@@ -136,12 +136,3 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) jersey-media-multipart (org.glassfish.jersey.media:jersey-media-multipart:jar:2.26 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - http://glassfish.org/osgi-resource-locator)
-
-
-************************
-Eclipse Public License 1.0
-************************
-
-The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
-
-    (EPL 1.0)(LGPL 2.1) c3p0 (com.mchange:c3p0:jar:0.9.5.4 - https://github.com/swaldman/c3p0)

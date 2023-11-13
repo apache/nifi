@@ -36,6 +36,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -129,7 +130,7 @@ import java.util.stream.Stream;
         "Replacement Value Strategy" = "Literal Value"
 
         A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to update.
-        The value is an Expression Language expression that references the `field.name` variable. For example, to change the date/time format of \
+        The value is an Expression Language expression that references the `field.value` variable. For example, to change the date/time format of \
         a field named `txDate` from `year-month-day` format to `month/day/year` format, we add a property named `/txDate` with a value of \
         `${field.value:toDate('yyyy-MM-dd'):format('MM/dd/yyyy')}`. We could also change the timezone of a timestamp field (and insert the timezone for clarity) by using a value of \
         `${field.value:toDate('yyyy-MM-dd HH:mm:ss', 'UTC-0400'):format('yyyy-MM-dd HH:mm:ss Z', 'UTC')}`.
@@ -154,8 +155,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             + "and the Record Path results in multiple values for a given Record, the input FlowFile will be routed to the 'failure' Relationship.");
 
     static final PropertyDescriptor REPLACEMENT_VALUE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("replacement-value-strategy")
-        .displayName("Replacement Value Strategy")
+        .name("Replacement Value Strategy")
         .description("Specifies how to interpret the configured replacement values")
         .allowableValues(LITERAL_VALUES, RECORD_PATH_VALUES)
         .defaultValue(LITERAL_VALUES.getValue())
@@ -168,6 +168,12 @@ public class UpdateRecord extends AbstractRecordProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(REPLACEMENT_VALUE_STRATEGY);
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("replacement-value-strategy", REPLACEMENT_VALUE_STRATEGY.getName());
     }
 
     @Override

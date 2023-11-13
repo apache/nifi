@@ -104,7 +104,6 @@
     <bean id="targetUriMatcher" class="org.apache.nifi.web.search.attributematchers.TargetUriMatcher" />
     <bean id="transmissionStatusMatcher" class="org.apache.nifi.web.search.attributematchers.TransmissionStatusMatcher" />
     <bean id="portScheduledStateMatcher" class="org.apache.nifi.web.search.attributematchers.PortScheduledStateMatcher" />
-    <bean id="publicPortMatcher" class="org.apache.nifi.web.search.attributematchers.PublicPortMatcher" />
     <bean id="parameterContextMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterContextMatcher" />
     <bean id="parameterMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterMatcher" />
     <bean id="labelMatcher" class="org.apache.nifi.web.search.attributematchers.LabelMatcher" />
@@ -164,7 +163,6 @@
             <util:list>
                 <ref bean="extendedMatcher" />
                 <ref bean="portScheduledStateMatcher" />
-                <ref bean="publicPortMatcher" />
             </util:list>
         </constructor-arg>
     </bean>

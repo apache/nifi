@@ -99,6 +99,12 @@
                 <artifactId>guava</artifactId>
                 <version>32.1.2-jre</version>
             </dependency>
+            <!-- Override Jettison from Hive -->
+            <dependency>
+                <groupId>org.codehaus.jettison</groupId>
+                <artifactId>jettison</artifactId>
+                <version>1.5.4</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

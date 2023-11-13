@@ -61,6 +61,13 @@
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
                 <span class="component-button-grip"></span>
             </button>
+            <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.importFromRegistry}}"
+                    id="registry-import-component"
+                    class="component-button icon icon-import-from-registry"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
+                    nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.registryImportComponent);">
+                <span class="component-button-grip"></span>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
                     id="label-component"
                     class="component-button icon icon-label"
@@ -164,13 +171,6 @@
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">
                             <i class="fa fa-key"></i>Policies
-                        </a>
-                    </md-menu-item>
-                    <md-menu-divider></md-menu-divider>
-                    <md-menu-item layout-align="space-around center">
-                        <a id="templates-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
-                            <i class="icon icon-template"></i>Templates
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>

@@ -20,14 +20,18 @@ package org.apache.nifi.record.path.paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.MapEntryFieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.util.Filters;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 
 public class DescendantFieldPath extends RecordPathSegment {
     private final String descendantName;
@@ -74,6 +78,26 @@ public class DescendantFieldPath extends RecordPathSegment {
             if (Filters.isRecord(childField.getDataType(), recordValue)) {
                 final FieldValue childFieldValue = new StandardFieldValue(recordValue, childField, fieldValue);
                 matchingValues.addAll(findDescendants(childFieldValue));
+            } else if (Filters.isRecordArray(childField.getDataType(), recordValue)) {
+                final Object[] arrayValues = (Object[]) recordValue;
+
+                for (final Object arrayValue : arrayValues) {
+                    final FieldValue childFieldValue = new StandardFieldValue(arrayValue, childField, fieldValue);
+                    matchingValues.addAll(findDescendants(childFieldValue));
+                }
+            } else if (childField.getDataType().getFieldType() == RecordFieldType.MAP) {
+                final Map<String, ?> map = (Map<String, ?>) recordValue;
+
+                final DataType valueType = ((MapDataType) childField.getDataType()).getValueType();
+
+                for (final Map.Entry<String, ?> entry : map.entrySet()) {
+                    final String mapKey = entry.getKey();
+                    final Object mapValue = entry.getValue();
+                    final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), valueType);
+                    final FieldValue mapFieldValue = new MapEntryFieldValue(mapValue, elementField, fieldValue, mapKey);
+
+                    matchingValues.add(mapFieldValue);
+                }
             }
         }
 

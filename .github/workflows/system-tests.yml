@@ -26,6 +26,7 @@ on:
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
       - 'nifi-nar-bundles/nifi-framework-bundle/**'
+      - 'nifi-nar-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
   pull_request:
     paths:
@@ -34,11 +35,12 @@ on:
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
       - 'nifi-nar-bundles/nifi-framework-bundle/**'
+      - 'nifi-nar-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx3g
+    -Xmx4g
     -Duser.language=en
     -Duser.country=GB
     -Duser.timezone=UTC
@@ -53,7 +55,6 @@ env:
     -D skipTests
     -am
   MAVEN_RUN_ARGUMENTS: >-
-    package
     verify
     -P integration-tests
     -D include-python-integration-tests=true
@@ -64,71 +65,50 @@ env:
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
-  ubuntu:
+  build_and_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        version: [ 21 ]
     timeout-minutes: 120
-    runs-on: ubuntu-latest
-    name: Ubuntu Corretto Java 21
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} Java ${{ matrix.version }}
+    env:
+      # default to Amazon Corretto JDK
+      JAVA_DISTRIBUTION: corretto
     steps:
+      - name: System Information
+        run: |
+          hostname
+          if [ "${{ runner.os }}" = "macOS" ]; then top -l 1 | grep PhysMem && sysctl machdep.cpu; else cat /proc/cpuinfo && cat /proc/meminfo; fi
+          df
+      # Zulu JDK appears to be more reliable for MacOS
+      - name: Use Java distribution Zulu
+        if: ${{ runner.os == 'macOS' }}
+        run: echo "JAVA_DISTRIBUTION=zulu" >> "$GITHUB_ENV"
       - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up Java 21
+        uses: actions/checkout@v4
+      - name: Set up Java ${{ env.JAVA_DISTRIBUTION }} ${{ matrix.version }}
         uses: actions/setup-java@v3
         with:
-          distribution: corretto
-          java-version: 21
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ matrix.version }}
           cache: 'maven'
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Build Dependencies
-        env:
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
-        run: >
-          ${{ env.MAVEN_COMMAND }}
-          ${{ env.MAVEN_BUILD_ARGUMENTS }}
-          ${{ env.MAVEN_PROJECTS }}
-      - name: Run Tests
-        env:
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
-        run: >
-          ${{ env.MAVEN_COMMAND }}
-          ${{ env.MAVEN_RUN_ARGUMENTS }}
-          ${{ env.MAVEN_PROJECTS }}
-      - name: Upload Troubleshooting Logs
-        if: failure() || cancelled()
-        uses: actions/upload-artifact@v3
-        with:
-          name: ubuntu-21-troubleshooting-logs
-          path: |
-            nifi-system-tests/nifi-system-test-suite/target/failsafe-reports/**/*.txt
-            nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
-            nifi-system-tests/nifi-system-test-suite/target/troubleshooting/**/*
-          retention-days: 7
 
-  macos:
-    timeout-minutes: 120
-    runs-on: macos-latest
-    name: MacOS Zulu Java 21
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up Java 21
-        uses: actions/setup-java@v3
-        with:
-          distribution: zulu
-          java-version: 21
-          cache: 'maven'
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-
@@ -149,7 +129,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@v3
         with:
-          name: macos-latest-troubleshooting-logs
+          name: ${{ matrix.os }}-${{ matrix.version }}-troubleshooting-logs
           path: |
             nifi-system-tests/nifi-system-test-suite/target/failsafe-reports/**/*.txt
             nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt

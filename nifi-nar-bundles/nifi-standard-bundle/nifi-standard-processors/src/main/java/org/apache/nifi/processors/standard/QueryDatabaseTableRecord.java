@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,9 +47,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
-import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
 
 @TriggerSerially
@@ -91,6 +92,24 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         + "be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time the table is accessed (when a Maximum Value Column is specified).")
 @PrimaryNodeOnly
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@UseCase(
+    description = "Retrieve all rows from a database table.",
+    keywords = {"jdbc", "rdbms", "cdc", "database", "table", "stream"},
+    configuration = """
+        Configure the "Database Connection Pooling Service" to specify a Connection Pooling Service so that the Processor knows how to connect to the database.
+        Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+        Set the "Table Name" property to the name of the table to retrieve records from.
+        Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+        Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+            an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+        Set the "Initial Load Strategy" property to "Start at Beginning".
+        Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+            A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+            memory utilization.
+        """
+)
 public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
     public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()

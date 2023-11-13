@@ -17,21 +17,6 @@
 
 package org.apache.nifi.record.path;
 
-import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.uuid5.Uuid5Util;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -52,6 +37,20 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.uuid5.Uuid5Util;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1364,6 +1363,7 @@ public class TestRecordPath {
         assertEquals("John Smith", results.get(0).getValue());
         assertEquals("Jane Smith", results.get(1).getValue());
     }
+
     @Test
     public void testFieldName() {
         final List<RecordField> fields = new ArrayList<>();
@@ -1381,6 +1381,52 @@ public class TestRecordPath {
         assertEquals("John Doe", RecordPath.compile("//name[not(startsWith(fieldName(.), 'xyz'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals(0L, RecordPath.compile("//name[not(startsWith(fieldName(.), 'n'))]").evaluate(record).getSelectedFields().count());
     }
+
+    @Test
+    public void testRecursiveWithMap() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("map", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType())));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, String> mapValues = new HashMap<>();
+        mapValues.put("a", "z");
+        mapValues.put("b", "Y");
+        mapValues.put("c", "x");
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("map", mapValues);
+
+        final Record record = new MapRecord(schema, values);
+        assertEquals("Y", RecordPath.compile("//*[. = toUpperCase(.)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testRecursiveWithChoiceThatIncludesRecord() {
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        final DataType personDataType = RecordFieldType.RECORD.getRecordDataType(personSchema);
+        final DataType stringDataType = RecordFieldType.STRING.getDataType();
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("person", RecordFieldType.CHOICE.getChoiceDataType(stringDataType, personDataType)));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> personValueMap = new HashMap<>();
+        personValueMap.put("name", "John Doe");
+        personValueMap.put("age", 30);
+        final Record personRecord = new MapRecord(personSchema, personValueMap);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("person", personRecord);
+
+        final Record record = new MapRecord(schema, values);
+        final List<Object> expectedValues = List.of(personRecord, "John Doe", 30);
+        assertEquals(expectedValues, RecordPath.compile("//*").evaluate(record).getSelectedFields().map(FieldValue::getValue).toList());
+    }
+
 
     @Test
     public void testToDateFromString() {

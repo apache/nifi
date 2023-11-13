@@ -33,7 +33,6 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
-import org.apache.nifi.registry.flow.diff.FlowDifferenceUtil;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
@@ -61,7 +60,6 @@ public class FlowDifferenceFilters {
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
             || isPublicPortNameChange(difference)
-            || isIgnorableVersionedFlowCoordinateChange(difference)
             || isNewPropertyWithDefaultValue(difference, flowManager)
             || isNewRelationshipAutoTerminatedAndDefaulted(difference, localGroup, flowManager)
             || isScheduledStateNew(difference)
@@ -177,34 +175,6 @@ public class FlowDifferenceFilters {
         return false;
     }
 
-    public static Predicate<FlowDifference> FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES = (fd) -> !isIgnorableVersionedFlowCoordinateChange(fd);
-
-    public static boolean isIgnorableVersionedFlowCoordinateChange(final FlowDifference fd) {
-        if (fd.getDifferenceType() == DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED) {
-            final VersionedComponent componentA = fd.getComponentA();
-            final VersionedComponent componentB = fd.getComponentB();
-
-            if (componentA instanceof VersionedProcessGroup && componentB instanceof VersionedProcessGroup) {
-                final VersionedProcessGroup versionedProcessGroupA = (VersionedProcessGroup) componentA;
-                final VersionedProcessGroup versionedProcessGroupB = (VersionedProcessGroup) componentB;
-
-                final VersionedFlowCoordinates coordinatesA = versionedProcessGroupA.getVersionedFlowCoordinates();
-                final VersionedFlowCoordinates coordinatesB = versionedProcessGroupB.getVersionedFlowCoordinates();
-
-                if (coordinatesA != null && coordinatesB != null) {
-                    if (coordinatesA.getStorageLocation() != null || coordinatesB.getStorageLocation() != null) {
-                        return false;
-                    }
-
-                    return  !FlowDifferenceUtil.areRegistryStrictlyEqual(coordinatesA, coordinatesB)
-                            && FlowDifferenceUtil.areRegistryUrlsEqual(coordinatesA, coordinatesB)
-                            && coordinatesA.getVersion() == coordinatesB.getVersion();
-                }
-            }
-        }
-
-        return false;
-    }
 
     private static boolean isNewZIndexLabelConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         final Object valueA = fd.getValueA();

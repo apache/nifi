@@ -87,21 +87,15 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
             .sensitive(false)
             .build();
 
-    private static final List<PropertyDescriptor> properties = List.of(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME,
-            BATCH_SIZE,
-            MAX_MESSAGE_BUFFER_SIZE_MB,
-            REGION,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            TIMEOUT,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
-            ENDPOINT_OVERRIDE);
+    private static final List<PropertyDescriptor> properties = List.of(
+        KINESIS_FIREHOSE_DELIVERY_STREAM_NAME,
+        BATCH_SIZE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        MAX_MESSAGE_BUFFER_SIZE_MB,
+        TIMEOUT,
+        PROXY_CONFIGURATION_SERVICE,
+        ENDPOINT_OVERRIDE);
 
     public static final int MAX_MESSAGE_SIZE = KinesisProcessorUtils.MAX_MESSAGE_SIZE;
 

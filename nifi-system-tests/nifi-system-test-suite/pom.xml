@@ -109,10 +109,10 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/flows/mismatched-flows/flow1.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/mismatched-flows/flow2.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/with-connection.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/without-connection.xml.gz</exclude>
+                        <exclude>src/test/resources/flows/mismatched-flows/flow1.json.gz</exclude>
+                        <exclude>src/test/resources/flows/mismatched-flows/flow2.json.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/with-connection.json.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/without-connection.json.gz</exclude>
                         <exclude>src/test/resources/keystore.jks</exclude>
                         <exclude>src/test/resources/truststore.jks</exclude>
                     </excludes>
@@ -247,6 +247,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -260,6 +266,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions2-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-alternate-config-extensions-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>

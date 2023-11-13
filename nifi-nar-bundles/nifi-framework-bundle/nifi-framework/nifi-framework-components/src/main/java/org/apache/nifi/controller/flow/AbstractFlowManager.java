@@ -25,8 +25,8 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -304,7 +304,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         getAllFlowAnalysisRules().forEach(this::removeFlowAnalysisRule);
         getAllParameterProviders().forEach(this::removeParameterProvider);
 
-        getAllFlowRegistryClients().forEach(this::removeFlowRegistryClientNode);
+        getAllFlowRegistryClients().forEach(this::removeFlowRegistryClient);
 
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
@@ -594,8 +594,8 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
-                                                   final List<String> inheritedContextIds,
+    public ParameterContext createParameterContext(final String id, final String name, final String description,
+                                                   final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
                                                    final ParameterProviderConfiguration parameterProviderConfiguration) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
@@ -614,6 +614,7 @@ public abstract class AbstractFlowManager implements FlowManager {
                 .parameterProviderConfiguration(parameterProviderConfiguration)
                 .build();
         parameterContext.setParameters(parameters);
+        parameterContext.setDescription(description);
 
         if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {
             if (!withParameterContextResolution.get()) {

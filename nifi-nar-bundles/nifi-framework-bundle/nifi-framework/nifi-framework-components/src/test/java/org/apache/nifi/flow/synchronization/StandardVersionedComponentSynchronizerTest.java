@@ -40,18 +40,23 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ScheduledStateChangeListener;
@@ -74,7 +79,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.time.Duration;
@@ -97,6 +101,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_PREFIX;
+import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_SUFFIX;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -124,6 +130,12 @@ import static org.mockito.Mockito.when;
 
 public class StandardVersionedComponentSynchronizerTest {
 
+    private static final String ENCODED_TEXT = "ENCODED";
+
+    private static final String ENCRYPTED_PROPERTY_VALUE = "%s%s%s".formatted(ENC_PREFIX, ENCODED_TEXT, ENC_SUFFIX);
+
+    private static final String SENSITIVE_PROPERTY_NAME = "Access Token";
+
     private ProcessorNode processorA;
     private ProcessorNode processorB;
     private Connection connectionAB;
@@ -141,6 +153,8 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceNode controllerServiceNode;
     private BundleCoordinate bundleCoordinate;
     private FlowManager flowManager;
+
+    private final ArgumentCaptor<Map<String, String>> propertiesCaptor = ArgumentCaptor.captor();
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -176,10 +190,14 @@ public class StandardVersionedComponentSynchronizerTest {
                     .parameterReferenceManager(parameterReferenceManager)
                     .build();
 
-            final Map<String, Parameter> parameterMap = invocation.getArgument(2, Map.class);
+            final String description = invocation.getArgument(2, String.class);
+            parameterContext.setDescription(description);
+
+            final Map<String, Parameter> parameterMap = invocation.getArgument(3, Map.class);
             parameterContext.setParameters(parameterMap);
 
-            final List<String> inheritedContextIds = invocation.getArgument(3, List.class);
+
+            final List<String> inheritedContextIds = invocation.getArgument(4, List.class);
             final List<ParameterContext> inheritedContexts = inheritedContextIds.stream()
                 .map(parameterContextManager::getParameterContext)
                 .collect(Collectors.toList());
@@ -188,7 +206,7 @@ public class StandardVersionedComponentSynchronizerTest {
             parameterContextManager.addParameterContext(parameterContext);
 
             return parameterContext;
-        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
+        }).when(flowManager).createParameterContext(anyString(), anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
 
         final VersionedFlowSynchronizationContext context = new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
@@ -198,6 +216,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .controllerServiceProvider(controllerServiceProvider)
             .flowMappingOptions(FlowMappingOptions.DEFAULT_OPTIONS)
             .processContextFactory(processContextFactory)
+                .configurationContextFactory(node -> null)
             .reloadComponent(reloadComponent)
             .build();
 
@@ -319,6 +338,68 @@ public class StandardVersionedComponentSynchronizerTest {
         when(group.getConnections()).thenReturn(updatedConnections);
 
         return connection;
+    }
+
+    @Test
+    public void testSynchronizeProcessorAddedMigrated() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("processGroup");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("rootGroup");
+
+        final Map<String, String> versionedProperties = Collections.singletonMap(SENSITIVE_PROPERTY_NAME, ENCRYPTED_PROPERTY_VALUE);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setProperties(versionedProperties);
+
+        final ProcessorNode processorNode = createMockProcessor();
+        rootGroup.setProcessors(Set.of(versionedProcessor));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+
+        when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processorNode);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        verify(processGroup, times(0)).setParameterContext(any(ParameterContext.class));
+
+        assertSensitivePropertyDecrypted(processorNode);
+
+        verify(processorNode).migrateConfiguration(propertiesCaptor.capture(), any());
+
+        final Map<String, String> migratedProperties = propertiesCaptor.getValue();
+        final String propertyValue = migratedProperties.get(SENSITIVE_PROPERTY_NAME);
+        assertEquals(ENCODED_TEXT, propertyValue);
+    }
+
+    @Test
+    public void testSynchronizeProcessorSensitiveDynamicProperties() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final Map<String, String> versionedProperties = Collections.singletonMap(SENSITIVE_PROPERTY_NAME, ENCRYPTED_PROPERTY_VALUE);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setProperties(versionedProperties);
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+
+        assertSensitivePropertyDecrypted(processorA);
+    }
+
+    @Test
+    public void testSynchronizeControllerServiceSensitiveDynamicProperties() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final Map<String, String> versionedProperties = Collections.singletonMap(SENSITIVE_PROPERTY_NAME, ENCRYPTED_PROPERTY_VALUE);
+
+        final VersionedControllerService versionedControllerService = createMinimalVersionedControllerService();
+        versionedControllerService.setProperties(versionedProperties);
+
+        final ControllerServiceNode serviceNode = createMockControllerService();
+        synchronizer.synchronize(serviceNode, versionedControllerService, group, synchronizationOptions);
+
+        assertSensitivePropertyDecrypted(serviceNode);
     }
 
     @Test
@@ -523,13 +604,6 @@ public class StandardVersionedComponentSynchronizerTest {
         scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
     }
 
-    private void verifyCallbackIndicatedStartOnly(final ProcessorNode... processors) {
-        for (final ProcessorNode processor : processors) {
-            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
-        }
-        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
-    }
-
     @Test
     public void testConnectionRemoval() throws FlowSynchronizationException, TimeoutException {
         startProcessor(processorA);
@@ -550,9 +624,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION);
 
-        assertThrows(FlowSynchronizationException.class, () -> {
-            synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
-        });
+        assertThrows(FlowSynchronizationException.class, () -> synchronizer.synchronize(connectionAB, null, group, synchronizationOptions));
 
         // Ensure that the update occurred
         verify(connectionAB, times(0)).setName("Hello");
@@ -573,12 +645,10 @@ public class StandardVersionedComponentSynchronizerTest {
 
         // Use a background thread to synchronize the connection.
         final CountDownLatch completionLatch = new CountDownLatch(1);
-        final Thread syncThread = new Thread(() -> {
-            assertDoesNotThrow(() -> {
-                synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
-                completionLatch.countDown();
-            });
-        });
+        final Thread syncThread = new Thread(() -> assertDoesNotThrow(() -> {
+            synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
+            completionLatch.countDown();
+        }));
         syncThread.start();
 
         // Wait up to 1/2 second to ensure that the task does not complete.
@@ -660,9 +730,7 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testRemoveOutputPortFailsIfIncomingConnection() {
         createMockConnection(processorA, outputPort, group);
 
-        assertThrows(FlowSynchronizationException.class, () -> {
-            synchronizer.synchronize(outputPort, null, group, synchronizationOptions);
-        });
+        assertThrows(FlowSynchronizationException.class, () -> synchronizer.synchronize(outputPort, null, group, synchronizationOptions));
     }
 
     @Test
@@ -677,15 +745,11 @@ public class StandardVersionedComponentSynchronizerTest {
         queuesWithData.add(connection.getIdentifier());
 
         // Ensure that we fail to remove it due to FlowSynchronizationException because destination of connection is not running
-        assertThrows(FlowSynchronizationException.class, () -> {
-            synchronizer.synchronize(inputPort, null, group, synchronizationOptions);
-        });
+        assertThrows(FlowSynchronizationException.class, () -> synchronizer.synchronize(inputPort, null, group, synchronizationOptions));
 
         // Start processor and ensure that we fail to remove it due to TimeoutException because destination of connection is now running
         startProcessor(processorA);
-        assertThrows(TimeoutException.class, () -> {
-            synchronizer.synchronize(inputPort, null, group, synchronizationOptions);
-        });
+        assertThrows(TimeoutException.class, () -> synchronizer.synchronize(inputPort, null, group, synchronizationOptions));
     }
 
     @Test
@@ -695,9 +759,6 @@ public class StandardVersionedComponentSynchronizerTest {
 
         verify(group).addControllerService(any(ControllerServiceNode.class));
         verify(controllerServiceNode).setName(eq(versionedService.getName()));
-    }
-
-    public static class MapStringString extends HashMap<String, String> {
     }
 
     @Test
@@ -816,13 +877,10 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(controllerServiceProvider).unscheduleReferencingComponents(service);
         verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
 
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocationOnMock) {
-                final Set<?> services = invocationOnMock.getArgument(0);
-                assertTrue(services.isEmpty());
-                return null;
-            }
+        Mockito.doAnswer((Answer<Void>) invocationOnMock -> {
+            final Set<?> services = invocationOnMock.getArgument(0);
+            assertTrue(services.isEmpty());
+            return null;
         }).when(controllerServiceProvider).enableControllerServicesAsync(Mockito.anySet());
 
         verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(Mockito.any(ControllerServiceNode.class), Mockito.anySet(), Mockito.any(ComponentScheduler.class));
@@ -927,9 +985,7 @@ public class StandardVersionedComponentSynchronizerTest {
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION);
         when(parameterReferenceManager.getProcessorsReferencing(existing, "abc")).thenReturn(Collections.singleton(processorA));
 
-        assertThrows(TimeoutException.class, () -> {
-            synchronizer.synchronize(existing, proposed, synchronizationOptions);
-        });
+        assertThrows(TimeoutException.class, () -> synchronizer.synchronize(existing, proposed, synchronizationOptions));
 
         // Updates should not occur.
         assertEquals("xyz", existing.getParameter("abc").get().getValue());
@@ -1025,9 +1081,7 @@ public class StandardVersionedComponentSynchronizerTest {
         when(parameterReferenceManager.getProcessorsReferencing(existing, "abc")).thenReturn(Collections.emptySet());
         when(parameterReferenceManager.getControllerServicesReferencing(existing, "abc")).thenReturn(Collections.singleton(service));
 
-        assertThrows(TimeoutException.class, () -> {
-            synchronizer.synchronize(existing, proposed, synchronizationOptions);
-        });
+        assertThrows(TimeoutException.class, () -> synchronizer.synchronize(existing, proposed, synchronizationOptions));
 
         // Updates should not occur.
         assertEquals("xyz", existing.getParameter("abc").get().getValue());
@@ -1089,6 +1143,55 @@ public class StandardVersionedComponentSynchronizerTest {
         assertEquals(new HashSet<>(Arrays.asList("abc", "secret", "Added", "Added 2")), synchronizer.getUpdatedParameterNames(existing, proposed));
     }
 
+    @Test
+    public void testUpdateParameterContextWhenContextDoesNotExist() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName("does-not-exist");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Collections.emptyMap());
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        verify(processGroup, times(0)).setParameterContext(any(ParameterContext.class));
+    }
+
+    @Test
+    public void testUpdateParameterContextWhenContextDoesExist() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        final VersionedParameterContext parameterContext = new VersionedParameterContext();
+        parameterContext.setName("My Params");
+        parameterContext.setDescription("Context Description");
+        parameterContext.setParameters(Collections.emptySet());
+
+        final Map<String, VersionedParameterContext> parameterContextMap = new HashMap<>();
+        parameterContextMap.put(parameterContext.getName(), parameterContext);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName(parameterContext.getName());
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        verify(processGroup, times(1)).setParameterContext(any(ParameterContext.class));
+    }
 
     private VersionedParameterContext createVersionedParameterContext(final String name, final Map<String, String> parameters, final Set<String> sensitiveParamNames) {
         final Set<VersionedParameter> versionedParameters = new HashSet<>();
@@ -1225,32 +1328,26 @@ public class StandardVersionedComponentSynchronizerTest {
         return versionedPort;
     }
 
-    private class ScheduledStateUpdate<T> {
-        private T component;
-        private org.apache.nifi.controller.ScheduledState state;
+    private void assertSensitivePropertyDecrypted(final ComponentNode componentNode) {
+        verify(componentNode).setProperties(propertiesCaptor.capture(), eq(true), eq(Collections.emptySet()));
 
-        public ScheduledStateUpdate(T component, org.apache.nifi.controller.ScheduledState state) {
-            this.component = component;
-            this.state = state;
-        }
+        final Map<String, String> appliedProperties = propertiesCaptor.getValue();
+        final String appliedSensitivePropertyValue = appliedProperties.get(SENSITIVE_PROPERTY_NAME);
+        assertEquals(ENCODED_TEXT, appliedSensitivePropertyValue);
     }
 
-    private class ControllerServiceStateUpdate {
-        private ControllerServiceNode controllerService;
-        private ControllerServiceState state;
+    private record ScheduledStateUpdate<T>(T component, org.apache.nifi.controller.ScheduledState state) {
+    }
 
-        public ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {
-            this.controllerService = controllerService;
-            this.state = state;
-        }
+    private record ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {
     }
 
     private class CapturingScheduledStateChangeListener implements ScheduledStateChangeListener {
 
-        private List<ScheduledStateUpdate<ProcessorNode>> processorUpdates = new ArrayList<>();
-        private List<ScheduledStateUpdate<Port>> portUpdates = new ArrayList<>();
-        private List<ControllerServiceStateUpdate> serviceUpdates = new ArrayList<>();
-        private List<ScheduledStateUpdate<ReportingTaskNode>> reportingTaskUpdates = new ArrayList<>();
+        private final List<ScheduledStateUpdate<ProcessorNode>> processorUpdates = new ArrayList<>();
+        private final List<ScheduledStateUpdate<Port>> portUpdates = new ArrayList<>();
+        private final List<ControllerServiceStateUpdate> serviceUpdates = new ArrayList<>();
+        private final List<ScheduledStateUpdate<ReportingTaskNode>> reportingTaskUpdates = new ArrayList<>();
 
         @Override
         public void onScheduledStateChange(final ProcessorNode processor, final ScheduledState intendedState) {
@@ -1287,11 +1384,6 @@ public class StandardVersionedComponentSynchronizerTest {
                     verifyStopped(capturedUpdate.component);
                 }
             }
-        }
-
-        void assertNumPortUpdates(int expectedNum) {
-            assertEquals(expectedNum, portUpdates.size(),
-                    "Expected " + expectedNum + " port state changes");
         }
     }
 }

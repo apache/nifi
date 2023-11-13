@@ -29,6 +29,7 @@
         <module>nifi-framework-api</module>
         <module>nifi-server-api</module>
         <module>nifi-bootstrap</module>
+        <module>nifi-code-coverage</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
         <module>nifi-assembly</module>
@@ -42,6 +43,7 @@
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
+        <module>nifi-python-extensions</module>
         <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>
@@ -96,27 +98,30 @@
         <maven.surefire.arguments />
         <!-- Disable maven-site-plugin from parent POM -->
         <maven.site.skip>true</maven.site.skip>
+        <docker.jdk.image.name>bellsoft/liberica-openjdk-debian</docker.jdk.image.name>
+        <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
+        <docker.image.tag>21</docker.image.tag>
         <node.version>v16.13.2</node.version>
-        <frontend.mvn.plugin.version>1.14.0</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>1.14.2</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.5.1</nifi.nar.maven.plugin.version>
         <project.build.outputTimestamp>1675980972</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.550</com.amazonaws.version>
+        <com.amazonaws.version>1.12.573</com.amazonaws.version>
         <software.amazon.awssdk.version>2.20.148</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
         <io.fabric8.kubernetes.client.version>6.8.1</io.fabric8.kubernetes.client.version>
-        <kotlin.version>1.9.0</kotlin.version>
-        <okhttp.version>4.11.0</okhttp.version>
-        <okio.version>3.5.0</okio.version>
-        <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
+        <kotlin.version>1.9.10</kotlin.version>
+        <okhttp.version>4.12.0</okhttp.version>
+        <okio.version>3.6.0</okio.version>
+        <org.apache.commons.cli.version>1.6.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.24.0</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
-        <org.apache.commons.io.version>2.14.0</org.apache.commons.io.version>
-        <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
+        <org.apache.commons.io.version>2.15.0</org.apache.commons.io.version>
+        <org.apache.commons.text.version>1.11.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.76</org.bouncycastle.version>
@@ -124,8 +129,8 @@
         <org.slf4j.version>2.0.9</org.slf4j.version>
         <derby.version>10.16.1.1</derby.version>
         <ranger.version>2.4.0</ranger.version>
-        <jetty.version>10.0.16</jetty.version>
-        <jackson.bom.version>2.15.2</jackson.bom.version>
+        <jetty.version>10.0.18</jetty.version>
+        <jackson.bom.version>2.15.3</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>2.3.8</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
@@ -137,26 +142,20 @@
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.20.1</aspectj.version>
-        <jersey.bom.version>2.40</jersey.bom.version>
+        <jersey.bom.version>2.41</jersey.bom.version>
         <log4j2.version>2.20.0</log4j2.version>
         <logback.version>1.3.11</logback.version>
-        <mockito.version>5.5.0</mockito.version>
+        <mockito.version>5.7.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <netty.4.version>4.1.99.Final</netty.4.version>
+        <netty.4.version>4.1.100.Final</netty.4.version>
         <spring.version>5.3.30</spring.version>
         <spring.security.version>5.8.7</spring.security.version>
-        <swagger.annotations.version>1.6.11</swagger.annotations.version>
+        <swagger.annotations.version>1.6.12</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
-        <zookeeper.version>3.9.0</zookeeper.version>
+        <zookeeper.version>3.9.1</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
     </properties>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>groovy-plugins-release</id>
-            <url>https://groovy.jfrog.io/artifactory/plugins-release</url>
-        </pluginRepository>
-    </pluginRepositories>
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -339,7 +338,6 @@
                 <artifactId>groovy-all</artifactId>
                 <version>${nifi.groovy.version}</version>
                 <type>pom</type>
-                <scope>test</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.groovy</groupId>
@@ -354,12 +352,6 @@
                         <artifactId>ant-junit</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.groovy</groupId>
-                <artifactId>groovy-test</artifactId>
-                <version>${nifi.groovy.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -716,6 +708,22 @@
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper-jute</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
+            <!-- Managed JUnit 4 version for transitive dependencies such as OkHttp MockWebServer -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.13.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -855,14 +863,17 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr3-maven-plugin</artifactId>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.3.1</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
@@ -878,6 +889,26 @@
                 <plugin>
                     <groupId>org.apache.rat</groupId>
                     <artifactId>apache-rat-plugin</artifactId>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-nar-maven-plugin</artifactId>
+                    <version>${nifi.nar.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.13</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jvnet.jaxb2.maven2</groupId>
+                    <artifactId>maven-jaxb2-plugin</artifactId>
+                    <version>0.15.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.11</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -968,6 +999,8 @@
                                         <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
                                         <!-- The Spock Framework should not be used for testing -->
                                         <exclude>org.spockframework:*</exclude>
+                                        <!-- Groovy should not be used for testing -->
+                                        <exclude>org.apache.groovy:groovy-test</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
@@ -1001,6 +1034,38 @@
         </plugins>
     </build>
     <profiles>
+        <!-- Configure build properties for modules with NAR packaging -->
+        <profile>
+            <id>nar-packaging</id>
+            <activation>
+                <property>
+                    <name>packaging</name>
+                    <value>nar</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- Skip source and javadoc plugins for NAR bundles during release process -->
+                <maven.source.skip>true</maven.source.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+        </profile>
+
+        <!-- Configure build properties for modules with WAR packaging -->
+        <profile>
+            <id>war-packaging</id>
+            <activation>
+                <property>
+                    <name>packaging</name>
+                    <value>war</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- Skip source and javadoc plugins for WAR bundles during release process -->
+                <maven.source.skip>true</maven.source.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+        </profile>
+
         <profile>
             <!-- Performs execution of Integration Tests using the Maven
                 FailSafe Plugin. The view of integration tests in this context are those
@@ -1022,6 +1087,147 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!--
+                always run the (failsafe default) IT*, *IT, *ITCase integration-tests
+                skip individual failing ITs (some won't work in a CI environment)
+            -->
+            <id>integration-tests-ci</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                            <test>
+                                IT*, *IT, *ITCase,
+                                !AwsSecretsManagerSensitivePropertyProviderIT,
+                                !AwsKmsSensitivePropertyProviderIT,
+                                !AzureKeyVaultKeySensitivePropertyProviderIT,
+                                !GcpKmsSensitivePropertyProviderIT,
+                                !StandardHashiCorpVaultCommunicationServiceIT,
+                                !ConversionWithSchemaInferenceIT#testXmlToAvro,
+                                !ConversionWithSchemaInferenceIT#testXmlToJson,
+                                !ConversionWithSchemaInferenceIT#testJsonToCsv,
+                                !ConversionWithSchemaInferenceIT#testCsvToXml,
+                                !ConversionWithSchemaInferenceIT#testXmlToAvroToXml,
+                                !ConversionWithSchemaInferenceIT#testCsvToAvro,
+                                !ConversionWithSchemaInferenceIT#testCsvToJson,
+                                !ConversionWithSchemaInferenceIT#testJsonToAvroToJson,
+                                !ConversionWithSchemaInferenceIT#testCsvToAvroToCsv,
+                                !ConversionWithExplicitSchemaIT#testJsonToCsv,
+                                !ConversionWithExplicitSchemaIT#testJsonToAvro,
+                                !ConversionWithExplicitSchemaIT#testJsonToAvroToJson,
+                                !ITConsumeKinesisStreamEndpointOverride,
+                                !ITConsumeKinesisStreamConnectAWS,
+                                !ITPutKinesisStream,
+                                !ITPutKinesisStreamWithEndpointOverride#testIntegrationSuccess,
+                                !ITPutKinesisFirehoseWithEndpointOverride#testIntegrationSuccess,
+                                !ITPutKinesisFirehose,
+                                !ITTagS3Object,
+                                !ITFetchS3Object,
+                                !ITDeleteS3Object,
+                                !ITPutS3Object,
+                                !ITListS3,
+                                !ITPutSNS#testPublish,
+                                !ITPutSNS#testPublishWithCredentialsProviderService,
+                                !ITDeleteSQS,
+                                !ITGetSQS,
+                                !ITPutSQS,
+                                !ITPutLambda,
+                                !GetMongoIT#testDatabaseEL,
+                                !PutGridFSIT#testFileNameAndHashUniqueness,
+                                !PutGridFSIT#testHashUniqueness,
+                                !ITPutAzureCosmosDBRecord,
+                                !ITListAzureBlobStorage_v12,
+                                !ITPutAzureDataLakeStorage,
+                                !ITFetchAzureDataLakeStorage,
+                                !ITListAzureDataLakeStorage,
+                                !ITCopyAzureBlobStorage_v12,
+                                !ITFetchAzureBlobStorage_v12,
+                                !ITPutAzureBlobStorage_v12,
+                                !ITDeleteAzureDataLakeStorage,
+                                !ITDeleteAzureBlobStorage_v12,
+                                !ITMoveAzureDataLakeStorage,
+                                !AzureGraphUserGroupProviderIT,
+                                !JMSPublisherConsumerIT#validateMessageRedeliveryWhenNotAcked,
+                                !ITPutInfluxDB,
+                                !ITExecuteInfluxDBQuery,
+                                !GremlinClientServiceYamlSettingsAndBytecodeIT,
+                                !GremlinClientServiceControllerSettingsIT,
+                                !ITestConsumeEmail#validateUrl,
+                                !PrometheusReportingTaskIT#testNullLabel,
+                                !SnowflakeConnectionPoolIT,
+                                !SnowflakePipeIT,
+                                !SalesforceRestServiceIT,
+                                !QuerySalesforceObjectIT,
+                                !PutSalesforceObjectIT,
+                                !FetchDropboxIT,
+                                !PutDropboxIT,
+                                !ListDropboxIT,
+                                !FetchBoxFileIT,
+                                !PutBoxFileIT,
+                                !ListBoxFileIT,
+                                !JsonConfigBasedBoxClientServiceIT,
+                                !QueryIoTDBIT,
+                                !PutIoTDBRecordIT,
+                                !StandardProcessSessionIT#testCloneThenWriteCountsClaimReferencesProperly,
+                                !StandardProcessSessionIT#testUpdateFlowFileRepoFailsOnSessionCommit,
+                                !JMSPublisherConsumerIT#testMultipleThreads,
+                                !ITRedisDistributedMapCacheClientService,
+                                !SecureDatabaseIT,
+                                !SecureFileIT,
+                                !SecureProxyIT#testAccessStatus,
+                                !SecureProxyIT#testAccessStatusAsProxiedAdmin,
+                                !SecureProxyIT#testAccessStatusUsingRegistryClient,
+                                !SecureNiFiRegistryClientIT#testGetAccessStatus,
+                                !SecureNiFiRegistryClientIT#testTenantsClientGroups,
+                                !SecureNiFiRegistryClientIT#testTenantsClientUsers,
+                                !SecureNiFiRegistryClientIT#testCrudOperations,
+                                !UnsecuredNiFiRegistryClientIT#testFlowSnapshotsWithParameterContextAndEncodingVersion,
+                                !UnsecuredNiFiRegistryClientIT#testNiFiRegistryClient,
+                                !ITConnectionAccessControl,
+                                !ITLabelAccessControl,
+                                !ITOutputPortAccessControl,
+                                !ITProcessorAccessControl,
+                                !ITFlowAccessControl,
+                                !ITFunnelAccessControl,
+                                !ITInputPortAccessControl,
+                                !ITCountersAccessControl,
+                                !ITAllowProxiedAnonymousAccess,
+                                !ITPreventProxiedAnonymousAccess,
+                                !ITPreventDirectAnonymousAccess,
+                                !ITAllowDirectAnonymousAccess,
+                                !ITProcessGroupAccessControl,
+                                !StatelessNiFiSinkTaskIT#testSimpleFlow,
+                                !StatelessNiFiSinkTaskIT#testParameters,
+                                !StatelessNiFiSinkTaskIT#testWrongOutputPort
+                            </test>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!--
+            Disabled Unit Tests executed through the surefire plugin. Intended to be used
+            alongside the integration-tests profile to run *only* the tests configured for
+            execution through the failsafe plugin
+            -->
+            <id>skip-unit-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -1075,7 +1281,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>8.4.0</version>
+                        <version>8.4.2</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>

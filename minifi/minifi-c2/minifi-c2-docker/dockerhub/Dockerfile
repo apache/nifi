@@ -16,7 +16,9 @@
 # under the License.
 #
 
-FROM eclipse-temurin:17-jre
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -37,14 +39,14 @@ RUN mkdir -p ${MINIFI_C2_BASE_DIR}
 RUN apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -fSL $MINIFI_C2_BINARY_URL -o $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} \
-    && echo "$(curl $MINIFI_C2_BINARY_URL.sha256) *$MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}" | sha256sum -c - \
-    && unzip $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} -d $MINIFI_C2_BASE_DIR \
-    && rm $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} \
+    && curl -fSL "${MINIFI_C2_BINARY_URL}" -o "${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY}" \
+    && echo "$(curl ${MINIFI_C2_BINARY_URL}.sha256) *${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY}" | sha256sum -c - \
+    && unzip "${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY}" -d "${MINIFI_C2_BASE_DIR}" \
+    && rm "${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY}" \
     && groupadd -g ${GID} c2 \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m c2 \
-    && ln -s ${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION} $MINIFI_C2_HOME \
-    && chown -R -L c2:c2 ${MINIFI_C2_BASE_DIR}
+    && ln -s "${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION}" "${MINIFI_C2_HOME}" \
+    && chown -R -L c2:c2 "${MINIFI_C2_BASE_DIR}"
 
 USER c2
 

@@ -22,6 +22,9 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCases;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,10 +44,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +60,64 @@ import java.util.Set;
         @WritesAttribute(attribute = "mime.type", description = "The mime.type will be changed to application/flowfile-v3")
 })
 @SeeAlso({UnpackContent.class, MergeContent.class})
+@MultiProcessorUseCases({
+    @MultiProcessorUseCase(
+        description = "Send FlowFile content and attributes from one NiFi instance to another NiFi instance.",
+        notes = "A Remote Process Group is preferred to send FlowFiles between two NiFi instances, but an alternative is"
+                + " to use PackageFlowFile then InvokeHTTP sending to ListenHTTP.",
+        keywords = {"flowfile", "attributes", "content", "ffv3", "flowfile-stream-v3", "transfer"},
+        configurations = {
+            @ProcessorConfiguration(
+                processorClass = PackageFlowFile.class,
+                configuration = """
+                    "Maximum Batch Size" > 1 can help improve performance by batching many flowfiles together into 1 larger file that is transmitted by InvokeHTTP.
+
+                    Connect the success relationship of PackageFlowFile to the input of InvokeHTTP.
+                """
+            ),
+            @ProcessorConfiguration(
+                processorClass = InvokeHTTP.class,
+                configuration = """
+                    "HTTP Method" = "POST" to send data to ListenHTTP.
+                    "HTTP URL" should include the hostname, port, and path to the ListenHTTP.
+                    "Request Content-Type" = "${mime.type}" because PackageFlowFile output files have attribute mime.type=application/flowfile-v3.
+                """
+            ),
+            @ProcessorConfiguration(
+                processorClass = ListenHTTP.class,
+                configuration = """
+                    "Listening Port" = a unique port number.
+
+                    ListenHTTP automatically unpacks files that have attribute mime.type=application/flowfile-v3.
+                    If PackageFlowFile batches 99 FlowFiles into 1 file that InvokeHTTP sends, then the original 99 FlowFiles will be output by ListenHTTP.
+                """
+            )
+        }
+    ),
+    @MultiProcessorUseCase(
+        description = "Export FlowFile content and attributes from NiFi to external storage and reimport.",
+        keywords = {"flowfile", "attributes", "content", "ffv3", "flowfile-stream-v3", "offline", "storage"},
+        configurations = {
+            @ProcessorConfiguration(
+                processorClass = PackageFlowFile.class,
+                configuration = """
+                    "Maximum Batch Size" > 1 can improve storage efficiency by batching many FlowFiles together into 1 larger file that is stored.
+
+                    Connect the success relationship to the input of any NiFi egress processor for offline storage.
+                """
+            ),
+            @ProcessorConfiguration(
+                processorClass = UnpackContent.class,
+                configuration = """
+                    "Packaging Format" = "application/flowfile-v3".
+
+                    Connect the output of a NiFi ingress processor that reads files stored offline to the input of UnpackContent.
+                    If PackageFlowFile batches 99 FlowFiles into 1 file that is read from storage, then the original 99 FlowFiles will be output by UnpackContent.
+                """
+            )
+        }
+    )
+})
 public class PackageFlowFile extends AbstractProcessor {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -81,16 +139,14 @@ public class PackageFlowFile extends AbstractProcessor {
             .description("The FlowFiles that were used to create the package are sent to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
-            new LinkedHashSet<>(Arrays.asList(
-                    REL_SUCCESS,
-                    REL_ORIGINAL
-            )));
+    private static final Set<Relationship> RELATIONSHIPS =  Set.of(
+            REL_SUCCESS,
+            REL_ORIGINAL
+    );
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(
-                    BATCH_SIZE
-            ));
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            BATCH_SIZE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

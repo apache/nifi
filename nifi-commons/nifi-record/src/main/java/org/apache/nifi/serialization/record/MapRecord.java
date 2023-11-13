@@ -25,6 +25,8 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -42,6 +44,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public class MapRecord implements Record {
+    private static final Logger logger = LoggerFactory.getLogger(MapRecord.class);
+
     private RecordSchema schema;
     private final Map<String, Object> values;
     private Optional<SerializedForm> serializedForm;
@@ -404,6 +408,30 @@ public class MapRecord implements Record {
     public void remove(final RecordField field) {
         final Optional<RecordField> existingField = resolveField(field);
         existingField.ifPresent(recordField -> values.remove(recordField.getFieldName()));
+    }
+
+    @Override
+    public boolean rename(final RecordField field, final String newName) {
+        final Optional<RecordField> resolvedField = resolveField(field);
+        if (resolvedField.isEmpty()) {
+            logger.debug("Could not rename {} to {} because the field could not be resolved to any field in the schema", field, newName);
+            return false;
+        }
+
+        // If the new name already exists in the schema, and there's already a value, do not rename.
+        if (schema.getField(newName).isPresent()) {
+            throw new IllegalArgumentException("Could not rename [" + field + "] to [" + newName + "] because a field already exists with the name [" + newName + "]");
+        }
+
+        final String currentName = resolvedField.get().getFieldName();
+        final boolean renamed = schema.renameField(currentName, newName);
+        if (!renamed) {
+            return false;
+        }
+
+        final Object currentValue = values.remove(currentName);
+        values.put(newName, currentValue);
+        return true;
     }
 
     @Override

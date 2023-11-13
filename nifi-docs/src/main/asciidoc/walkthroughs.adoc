@@ -30,7 +30,7 @@ NOTE: This document is provided with no warranty. All steps have been evaluated 
 
 == Installing Apache NiFi
 
-Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It supports powerful and scalable directed graphs of data routing, transformation, and system mediation logic. In addition to NiFi, there is the NiFi Toolkit, a collection of command-line tools which help perform administrative tasks such as interacting with remote services, generating TLS certificates, managing nodes in a cluster, and encrypting sensitive configuration values.
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It supports powerful and scalable directed graphs of data routing, transformation, and system mediation logic. In addition to NiFi, there is the NiFi Toolkit, a collection of command-line tools which help perform administrative tasks such as interacting with remote services, managing nodes in a cluster, and encrypting sensitive configuration values.
 
 |=======================================================================================================================
 |Description        | Instructions on downloading the Apache NiFi application and Toolkit

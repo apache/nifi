@@ -24,10 +24,11 @@
     <artifactId>nifi-nar-bundles</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <commons.dbcp2.version>2.10.0</commons.dbcp2.version>
+        <commons.dbcp2.version>2.11.0</commons.dbcp2.version>
     </properties>
     <modules>
         <module>nifi-framework-bundle</module>
+        <module>nifi-standard-shared-bundle</module>
         <module>nifi-hadoop-bundle</module>
         <module>nifi-hadoop-libraries-bundle</module>
         <module>nifi-jetty-bundle</module>
@@ -114,6 +115,7 @@
         <module>nifi-py4j-bundle</module>
         <module>nifi-compress-bundle</module>
         <module>nifi-opentelemetry-bundle</module>
+        <module>nifi-apicurio-bundle</module>
     </modules>
 
     <build>

@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
@@ -107,7 +107,7 @@ public interface FlowClient {
      *
      * @return cluster summary response
      */
-    ClusteSummaryEntity getClusterSummary() throws NiFiClientException, IOException;
+    ClusterSummaryEntity getClusterSummary() throws NiFiClientException, IOException;
 
     /**
      * Retrieves the controller services for the reporting tasks.

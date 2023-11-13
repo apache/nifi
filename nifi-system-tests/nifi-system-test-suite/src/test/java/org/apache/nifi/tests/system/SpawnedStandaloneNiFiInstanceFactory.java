@@ -174,10 +174,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
             NiFiSystemKeyStoreProvider.configureKeyStores(destinationCertsDir);
 
-            final File flowXmlGz = instanceConfiguration.getFlowXmlGz();
-            if (flowXmlGz != null) {
-                final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
-                Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+            final File flowJsonGz = instanceConfiguration.getFlowJsonGz();
+            if (flowJsonGz != null) {
+                final File destinationFlowJsonGz = new File(destinationConf, "flow.json.gz");
+                Files.copy(flowJsonGz.toPath(), destinationFlowJsonGz.toPath());
             }
 
             // Write out any Property overrides

@@ -28,8 +28,6 @@ language governing permissions and limitations under the License. -->
                     <excludes combine.children="append">
                         <exclude>src/main/resources/conf/config-client.json</exclude>
                         <exclude>src/main/resources/conf/config-server.json</exclude>
-                        <exclude>docker/tests/tls-toolkit.sh</exclude>
-                        <exclude>docker/tests/exit-codes.sh</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -63,11 +61,6 @@ language governing permissions and limitations under the License. -->
         </plugins>
     </build>
     <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-toolkit-tls</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-encrypt-config</artifactId>
@@ -169,6 +162,8 @@ language governing permissions and limitations under the License. -->
                                                 <dockerFile>Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}/target/docker-build</contextDir>
                                                 <args>
+                                                    <IMAGE_NAME>${docker.jre.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                                     <UID>1000</UID>
                                                     <GID>1000</GID>
                                                     <NIFI_TOOLKIT_VERSION>${project.version}</NIFI_TOOLKIT_VERSION>
@@ -197,19 +192,6 @@ language governing permissions and limitations under the License. -->
                                     <executable>${project.basedir}/docker/tests/exit-codes.sh</executable>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>
-                                        <argument>${project.version}-maven</argument>
-                                    </arguments>
-                                    <executable>${project.basedir}/docker/tests/tls-toolkit.sh</executable>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
@@ -230,10 +212,6 @@ language governing permissions and limitations under the License. -->
                         <executions>
                             <execution>
                                 <id>Docker integration tests - exit codes</id>
-                                <phase>none</phase>
-                            </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
                                 <phase>none</phase>
                             </execution>
                         </executions>
@@ -257,10 +235,6 @@ language governing permissions and limitations under the License. -->
                         <executions>
                             <execution>
                                 <id>Docker integration tests - exit codes</id>
-                                <phase>none</phase>
-                            </execution>
-                            <execution>
-                                <id>Docker integration tests - tls-toolkit</id>
                                 <phase>none</phase>
                             </execution>
                         </executions>

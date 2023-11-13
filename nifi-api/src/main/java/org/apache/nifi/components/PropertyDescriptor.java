@@ -414,6 +414,16 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
+         * Clears all Allowable Values from this Property
+         *
+         * @return the builder
+         */
+        public Builder clearAllowableValues() {
+            this.allowableValues = null;
+            return this;
+        }
+
+        /**
          * Sets the Allowable Values for this Property
          *
          * @param values contrained set of values
@@ -452,6 +462,16 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             if (validator != null) {
                 validators.add(validator);
             }
+            return this;
+        }
+
+        /**
+         * Clear all Validators from this Property
+         *
+         * @return the builder
+         */
+        public Builder clearValidators() {
+            validators.clear();
             return this;
         }
 
@@ -605,6 +625,16 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
 
             return dependsOn(property, dependentValues);
+        }
+
+        /**
+         * Clear all Dependencies from this Property
+         *
+         * @return the builder
+         */
+        public Builder clearDependsOn() {
+            this.dependencies = new HashSet<>();
+            return this;
         }
 
         private AllowableValue toAllowableValue(DescribedValue describedValue) {

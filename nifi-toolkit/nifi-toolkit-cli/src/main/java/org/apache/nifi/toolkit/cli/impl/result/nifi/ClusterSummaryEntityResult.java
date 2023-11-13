@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 
 import java.io.PrintStream;
 import java.util.Objects;
@@ -26,17 +26,17 @@ import java.util.Objects;
 /**
  * Result for CurrentUserEntity from NiFi.
  */
-public class ClusterSummaryEntityResult extends AbstractWritableResult<ClusteSummaryEntity> {
+public class ClusterSummaryEntityResult extends AbstractWritableResult<ClusterSummaryEntity> {
 
-    private final ClusteSummaryEntity clusteSummaryEntity;
+    private final ClusterSummaryEntity clusteSummaryEntity;
 
-    public ClusterSummaryEntityResult(final ResultType resultType, final ClusteSummaryEntity clusteSummaryEntity) {
+    public ClusterSummaryEntityResult(final ResultType resultType, final ClusterSummaryEntity clusteSummaryEntity) {
         super(resultType);
         this.clusteSummaryEntity = Objects.requireNonNull(clusteSummaryEntity);
     }
 
     @Override
-    public ClusteSummaryEntity getResult() {
+    public ClusterSummaryEntity getResult() {
         return clusteSummaryEntity;
     }
 

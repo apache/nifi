@@ -17,120 +17,158 @@
 
 package org.apache.nifi.py4j;
 
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.python.PythonController;
-import org.apache.nifi.python.processor.FlowFileTransform;
-import org.apache.nifi.python.processor.FlowFileTransformProxy;
-import org.apache.nifi.python.processor.PythonProcessor;
+import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.python.processor.PythonProcessorAdapter;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
-import org.apache.nifi.python.processor.PythonProcessorProxy;
-import org.apache.nifi.python.processor.RecordTransformProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 
 public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private static final Logger logger = LoggerFactory.getLogger(StandardPythonProcessorBridge.class);
 
     private final PythonController controller;
+    private final ProcessorCreationWorkflow creationWorkflow;
+    private final PythonProcessorDetails processorDetails;
     private volatile PythonProcessorAdapter adapter;
-    private volatile Processor proxy;
-    private final String processorType;
-    private final String version;
     private final File workingDir;
     private final File moduleFile;
     private volatile long lastModified;
+    private volatile LoadState loadState = LoadState.DOWNLOADING_DEPENDENCIES;
     private volatile PythonProcessorInitializationContext initializationContext;
+
 
     private StandardPythonProcessorBridge(final Builder builder) {
         this.controller = builder.controller;
-        this.adapter = builder.adapter;
-        this.processorType = builder.processorType;
-        this.version = builder.version;
+        this.creationWorkflow = builder.creationWorkflow;
+        this.processorDetails = builder.processorDetails;
         this.workingDir = builder.workDir;
         this.moduleFile = builder.moduleFile;
         this.lastModified = this.moduleFile.lastModified();
-
-        this.proxy = createProxy();
     }
 
     @Override
-    public PythonProcessorAdapter getProcessorAdapter() {
-        return adapter;
+    public Optional<PythonProcessorAdapter> getProcessorAdapter() {
+        return Optional.ofNullable(adapter);
     }
 
     @Override
     public void initialize(final PythonProcessorInitializationContext context) {
         this.initializationContext = context;
-        this.adapter.initialize(context);
+
+        final String threadName = "Initialize Python Processor %s (%s)".formatted(initializationContext.getIdentifier(), getProcessorType());
+        Thread.ofVirtual().name(threadName).start(() -> initializePythonSide(true));
+    }
+
+    public LoadState getLoadState() {
+        return loadState;
+    }
+
+    private void initializePythonSide(final boolean continualRetry) {
+        long sleepMillis = 1_000L;
+        while (true) {
+            loadState = LoadState.DOWNLOADING_DEPENDENCIES;
+
+            try {
+                creationWorkflow.downloadDependencies();
+                logger.info("Successfully downloaded dependencies for Python Processor {} ({})", initializationContext.getIdentifier(), getProcessorType());
+                break;
+            } catch (final Exception e) {
+                loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
+                if (!continualRetry) {
+                    throw e;
+                }
+
+                sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
+                logger.error("Failed to download dependencies for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+
+                try {
+                    Thread.sleep(sleepMillis);
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ex);
+                    throw e;
+                }
+            }
+        }
+
+        while (true) {
+            loadState = LoadState.LOADING_PROCESSOR_CODE;
+
+            try {
+                final PythonProcessorAdapter pythonProcessorAdapter = creationWorkflow.createProcessor();
+                pythonProcessorAdapter.initialize(initializationContext);
+                this.adapter = pythonProcessorAdapter;
+                loadState = LoadState.FINISHED_LOADING;
+                logger.info("Successfully loaded Python Processor {} ({})", initializationContext.getIdentifier(), getProcessorType());
+                break;
+            } catch (final Exception e) {
+                loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
+
+                if (!continualRetry) {
+                    throw e;
+                }
+
+                sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
+                logger.error("Failed to load code for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+
+                try {
+                    Thread.sleep(sleepMillis);
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ex);
+                    throw e;
+                }
+            }
+        }
     }
 
     @Override
     public String getProcessorType() {
-        return processorType;
-    }
-
-    @Override
-    public Processor getProcessorProxy() {
-        return proxy;
+        return processorDetails.getProcessorType();
     }
 
     @Override
     public boolean reload() {
         if (moduleFile.lastModified() <= lastModified) {
-            logger.debug("Processor {} has not been modified since it was last loaded so will not reload", processorType);
+            logger.debug("Processor {} has not been modified since it was last loaded so will not reload", getProcessorType());
             return false;
         }
 
-        controller.reloadProcessor(processorType, version, workingDir.getAbsolutePath());
-        adapter = controller.createProcessor(processorType, version, workingDir.getAbsolutePath());
-        adapter.initialize(initializationContext);
-        proxy = createProxy();
+        controller.reloadProcessor(getProcessorType(), processorDetails.getProcessorVersion(), workingDir.getAbsolutePath());
+        initializePythonSide(false);
         lastModified = moduleFile.lastModified();
 
         return true;
     }
 
-    private PythonProcessorProxy createProxy() {
-        final PythonProcessor pythonProcessor = adapter.getProcessor();
-
-        // Instantiate the appropriate Processor Proxy based on the type of Python Processor
-        if (pythonProcessor instanceof FlowFileTransform) {
-            return new FlowFileTransformProxy(this);
-        } else {
-            return new RecordTransformProxy(this);
-        }
-    }
-
 
     public static class Builder {
         private PythonController controller;
-        private PythonProcessorAdapter adapter;
-        private String processorType;
-        private String version;
+        private ProcessorCreationWorkflow creationWorkflow;
         private File workDir;
         private File moduleFile;
+        private PythonProcessorDetails processorDetails;
 
         public Builder controller(final PythonController controller) {
             this.controller = controller;
             return this;
         }
 
-        public Builder processorAdapter(final PythonProcessorAdapter adapter) {
-            this.adapter = adapter;
+        public Builder creationWorkflow(final ProcessorCreationWorkflow creationWorkflow) {
+            this.creationWorkflow = creationWorkflow;
             return this;
         }
 
-        public Builder processorType(final String type) {
-            this.processorType = type;
-            return this;
-        }
-
-        public Builder processorVersion(final String version) {
-            this.version = version;
+        public Builder processorDetails(final PythonProcessorDetails details) {
+            this.processorDetails = details;
             return this;
         }
 
@@ -148,11 +186,11 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             if (controller == null) {
                 throw new IllegalStateException("Must specify the PythonController");
             }
-            if (adapter == null) {
-                throw new IllegalStateException("Must specify the Processor Adapter");
+            if (creationWorkflow == null) {
+                throw new IllegalStateException("Must specify the Processor Creation Workflow");
             }
-            if (processorType == null) {
-                throw new IllegalStateException("Must specify the Processor Type");
+            if (processorDetails == null) {
+                throw new IllegalStateException("Must specify the Processor Details");
             }
             if (workDir == null) {
                 throw new IllegalStateException("Must specify the Working Directory");

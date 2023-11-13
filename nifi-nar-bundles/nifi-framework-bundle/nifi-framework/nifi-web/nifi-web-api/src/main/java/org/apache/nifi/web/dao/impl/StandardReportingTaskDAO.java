@@ -49,10 +49,9 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
-import org.quartz.CronExpression;
+import org.springframework.scheduling.support.CronExpression;
 
 import java.net.URL;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -93,23 +92,19 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             throw new IllegalArgumentException("The reporting task type must be specified.");
         }
 
-        try {
-            // create the reporting task
-            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
-            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
-                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
+        // create the reporting task
+        final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+        final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+        final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
+                reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
 
-            // ensure we can perform the update
-            verifyUpdate(reportingTask, reportingTaskDTO);
+        // ensure we can perform the update
+        verifyUpdate(reportingTask, reportingTaskDTO);
 
-            // perform the update
-            configureReportingTask(reportingTask, reportingTaskDTO);
+        // perform the update
+        configureReportingTask(reportingTask, reportingTaskDTO);
 
-            return reportingTask;
-        } catch (ReportingTaskInstantiationException rtie) {
-            throw new NiFiCoreException(rtie.getMessage(), rtie);
-        }
+        return reportingTask;
     }
 
     @Override
@@ -231,11 +226,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                     break;
                 case CRON_DRIVEN:
                     try {
-                        new CronExpression(reportingTaskDTO.getSchedulingPeriod());
-                    } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", reportingTaskDTO.getSchedulingPeriod(), pe.getMessage()));
+                        CronExpression.parse(reportingTaskDTO.getSchedulingPeriod());
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + reportingTaskDTO.getSchedulingPeriod());
+                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", reportingTaskDTO.getSchedulingPeriod(), e.getMessage()));
                     }
                     break;
             }

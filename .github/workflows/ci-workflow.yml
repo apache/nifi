@@ -21,7 +21,7 @@ env:
   MAVEN_COMMAND: ./mvnw
   MAVEN_COMMAND_WINDOWS: ./mvnw.cmd
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx3g
+    -Xmx4g
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
@@ -39,12 +39,11 @@ env:
     --fail-fast
     -pl -:minifi-c2-integration-tests
     -pl -:minifi-integration-tests
+    -pl -:minifi-c2-assembly
     -pl -:minifi-assembly
     -pl -:nifi-assembly
     -pl -:nifi-kafka-connector-assembly
     -pl -:nifi-kafka-connector-tests
-    -pl -:nifi-toolkit-encrypt-config
-    -pl -:nifi-toolkit-tls
     -pl -:nifi-toolkit-assembly
     -pl -:nifi-registry-assembly
     -pl -:nifi-registry-toolkit-assembly
@@ -56,6 +55,7 @@ env:
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
+    -pl -:nifi-python-extensions-bundle
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
@@ -75,20 +75,21 @@ env:
     -pl -nifi-toolkit/nifi-toolkit-assembly
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
+  security-events: write
   contents: read
 
 jobs:
   static-analysis:
-    timeout-minutes: 30
+    timeout-minutes: 120
     name: Static Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Maven Modules
         uses: actions/cache@v3
         with:
@@ -109,6 +110,19 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -P contrib-check
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: java
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
   ubuntu-build-en:
     timeout-minutes: 120
@@ -122,7 +136,7 @@ jobs:
           cat /proc/meminfo
           df
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
@@ -145,22 +159,19 @@ jobs:
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Maven Verify
         env:
-          NIFI_CI_LOCALE: >-
-            -Duser.language=en
-            -Duser.country=AU
-          SUREFIRE_OPTS: >-
-            -Duser.language=en
-            -Duser.country=AU
-            -Duser.region=AU
-            -Duser.timezone=Australia/Melbourne
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
-            -DargLine=${env.SUREFIRE_OPTS}
         run: >
           ${{ env.MAVEN_COMMAND }}
+          jacoco:prepare-agent
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
+          -P report-code-coverage
           ${{ env.MAVEN_PROJECTS }}
+      - name: Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3
         with:
@@ -172,6 +183,7 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}
 
   macos-build-jp:
     timeout-minutes: 150
@@ -185,7 +197,7 @@ jobs:
           sysctl machdep.cpu
           df
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
@@ -235,6 +247,7 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}
 
   windows-build:
     timeout-minutes: 150
@@ -250,7 +263,7 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.longpaths true
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
@@ -300,3 +313,4 @@ jobs:
         if: failure()
       - name: Post Disk Usage
         run: df
+        if: ${{ always() }}

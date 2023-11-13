@@ -58,7 +58,11 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-utils</artifactId>
+            <artifactId>minifi-flow-status-report</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-commons-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

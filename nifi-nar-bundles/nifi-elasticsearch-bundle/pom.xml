@@ -13,9 +13,10 @@ language governing permissions and limitations under the License. -->
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-elasticsearch-bundle</artifactId>
@@ -94,7 +95,7 @@ language governing permissions and limitations under the License. -->
             </activation>
             <properties>
                 <!-- also update the default Elasticsearch version in nifi-elasticsearch-test-utils#src/main/java/org/apache/nifi/elasticsearch/integration/AbstractElasticsearchITBase.java-->
-                <elasticsearch_docker_image>8.10.2</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.10.3</elasticsearch_docker_image>
                 <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
@@ -125,7 +126,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch7</id>
             <properties>
-                <elasticsearch_docker_image>7.17.13</elasticsearch_docker_image>
+                <elasticsearch_docker_image>7.17.14</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>

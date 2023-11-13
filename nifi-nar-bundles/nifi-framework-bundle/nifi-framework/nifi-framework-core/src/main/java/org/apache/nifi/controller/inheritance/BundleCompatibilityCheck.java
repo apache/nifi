@@ -40,14 +40,6 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
 
     @Override
     public FlowInheritability checkInheritability(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController flowController) {
-        if (proposedFlow.isXml()) {
-            return checkInheritability(proposedFlow.getFlowDocument(), flowController);
-        } else {
-            return checkVersionedFlowInheritability(proposedFlow, flowController);
-        }
-    }
-
-    private FlowInheritability checkVersionedFlowInheritability(final DataFlow proposedFlow, final FlowController flowController) {
         return checkBundles(proposedFlow, flowController.getExtensionManager());
     }
 

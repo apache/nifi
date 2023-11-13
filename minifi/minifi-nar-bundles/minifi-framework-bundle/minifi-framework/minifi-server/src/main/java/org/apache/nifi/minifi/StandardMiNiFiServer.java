@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.headless.HeadlessNiFiServer;
 import org.apache.nifi.minifi.bootstrap.BootstrapListener;
 import org.apache.nifi.minifi.c2.C2NifiClientService;
@@ -85,11 +84,6 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
         if (c2NifiClientService != null) {
             c2NifiClientService.stop();
         }
-    }
-
-    @Override
-    protected FlowSerializationStrategy getFlowSerializationStrategy() {
-        return FlowSerializationStrategy.WRITE_JSON_ONLY;
     }
 
     private void initC2() {

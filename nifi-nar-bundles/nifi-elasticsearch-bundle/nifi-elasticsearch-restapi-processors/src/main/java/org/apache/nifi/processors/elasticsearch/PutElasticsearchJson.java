@@ -58,7 +58,8 @@ import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
-@CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries.")
+@CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries. " +
+        "Each FlowFile is treated as a document to be sent to the Elasticsearch _bulk API. Multiple FlowFiles can be batched together into each Request sent to Elasticsearch.")
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.put.error",
                 description = "The error message if there is an issue parsing the FlowFile, sending the parsed document to Elasticsearch or parsing the Elasticsearch response"),
@@ -72,6 +73,7 @@ import java.util.stream.Collectors;
                 expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
                 description = "Prefix: " + AbstractPutElasticsearch.BULK_HEADER_PREFIX +
                         " - adds the specified property name/value as a Bulk request header in the Elasticsearch Bulk API body used for processing. " +
+                        "If the value is null or blank, the Bulk header will be omitted for the document operation. " +
                         "These parameters will override any matching parameters in the _bulk request body."),
         @DynamicProperty(
                 name = "The name of a URL query parameter to add",

@@ -36,6 +36,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
@@ -78,6 +79,7 @@ public class TestListS3 {
             }
         };
         runner = TestRunners.newTestRunner(mockListS3);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
 

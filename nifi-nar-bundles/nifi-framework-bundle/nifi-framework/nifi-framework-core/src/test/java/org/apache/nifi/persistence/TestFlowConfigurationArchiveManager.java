@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
 
 public class TestFlowConfigurationArchiveManager {
 
-    private final File flowXmlFile = new File("./target/flow-archive/flow.xml.gz");
+    private final File flowXmlFile = new File("./target/flow-archive/flow.json.gz");
     private final File archiveDir = new File("./target/flow-archive");
 
     @BeforeEach

@@ -52,7 +52,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
@@ -111,7 +111,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final boolean autoResumeState;
     private final Authorizer authorizer;
 
-    // Lock is used to protect the flow.xml file.
+    // Lock is used to protect the flow.json.gz file.
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -150,11 +150,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final FlowController controller,
             final NiFiProperties nifiProperties,
             final RevisionManager revisionManager,
-            final Authorizer authorizer,
-            final FlowSerializationStrategy serializationStrategy) throws IOException {
+            final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, authorizer,
-                serializationStrategy);
+        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
@@ -165,8 +163,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final RevisionManager revisionManager,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, authorizer,
-                FlowSerializationStrategy.WRITE_XML_AND_JSON);
+        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, authorizer);
     }
 
     private StandardFlowService(
@@ -176,17 +173,15 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final boolean configuredForClustering,
             final ClusterCoordinator clusterCoordinator,
             final RevisionManager revisionManager,
-            final Authorizer authorizer,
-            final FlowSerializationStrategy serializationStrategy) throws IOException {
+            final Authorizer authorizer) throws IOException {
 
         this.nifiProperties = nifiProperties;
         this.controller = controller;
 
-
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = nifiProperties.getAutoResumeState();
 
-        dao = new StandardFlowConfigurationDAO(nifiProperties, controller.getExtensionManager(), serializationStrategy);
+        dao = new StandardFlowConfigurationDAO(nifiProperties, controller.getExtensionManager());
         this.clusterCoordinator = clusterCoordinator;
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);
@@ -465,7 +460,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
              * the response will be null and we should load the local dataflow
              * and heartbeat until a manager is located.
              */
-            final boolean localFlowEmpty = StandardFlowSynchronizer.isFlowEmpty(proposedFlow);
+            final boolean localFlowEmpty = VersionedFlowSynchronizer.isFlowEmpty(proposedFlow);
             final ConnectionResponse response = connect(true, localFlowEmpty, proposedFlow);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't

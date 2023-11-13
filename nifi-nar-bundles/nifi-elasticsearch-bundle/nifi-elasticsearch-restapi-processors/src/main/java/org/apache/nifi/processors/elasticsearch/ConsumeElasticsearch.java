@@ -85,6 +85,31 @@ import java.util.stream.Collectors;
 public class ConsumeElasticsearch extends SearchElasticsearch {
     static final String STATE_RANGE_VALUE = "trackingRangeValue";
 
+    public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ElasticsearchRestProcessor.SIZE)
+            .clearDependsOn() // always show the Query Builder properties for ConsumeElasticsearch
+            .build();
+
+    public static final PropertyDescriptor AGGREGATIONS = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ElasticsearchRestProcessor.AGGREGATIONS)
+            .clearDependsOn() // always show the Query Builder properties for ConsumeElasticsearch
+            .build();
+
+    public static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ElasticsearchRestProcessor.SORT)
+            .clearDependsOn() // always show the Query Builder properties for ConsumeElasticsearch
+            .build();
+
+    public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ElasticsearchRestProcessor.FIELDS)
+            .clearDependsOn() // always show the Query Builder properties for ConsumeElasticsearch
+            .build();
+
+    public static final PropertyDescriptor SCRIPT_FIELDS = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ElasticsearchRestProcessor.SCRIPT_FIELDS)
+            .clearDependsOn() // always show the Query Builder properties for ConsumeElasticsearch
+            .build();
+
     public static final PropertyDescriptor RANGE_FIELD = new PropertyDescriptor.Builder()
             .name("es-rest-range-field")
             .displayName("Range Query Field")
@@ -162,6 +187,13 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         descriptors.addAll(scrollPropertyDescriptors.stream()
                 .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd))
                 .collect(Collectors.toList()));
+
+        // replace Query Builder properties with updated version without the property dependencies that are invalid for ConsumeElasticsearch
+        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SIZE), ConsumeElasticsearch.SIZE);
+        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.AGGREGATIONS), ConsumeElasticsearch.AGGREGATIONS);
+        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SORT), ConsumeElasticsearch.SORT);
+        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.FIELDS), ConsumeElasticsearch.FIELDS);
+        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SCRIPT_FIELDS), ConsumeElasticsearch.SCRIPT_FIELDS);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }

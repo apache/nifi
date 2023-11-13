@@ -26,8 +26,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
@@ -255,7 +255,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes) {
-        waitForAllNodesConnected(expectedNumberOfNodes, 1000L);
+        waitForAllNodesConnected(expectedNumberOfNodes, 500L);
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes, final long sleepMillis) {
@@ -268,7 +268,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         while (true) {
             int connectedNodeCount = -1;
             try {
-                final ClusteSummaryEntity clusterSummary = client.getFlowClient().getClusterSummary();
+                final ClusterSummaryEntity clusterSummary = client.getFlowClient().getClusterSummary();
                 connectedNodeCount = clusterSummary.getClusterSummary().getConnectedNodeCount();
                 if (connectedNodeCount == expectedNumberOfNodes) {
                     logger.info("Wait successful, {} nodes connected", expectedNumberOfNodes);

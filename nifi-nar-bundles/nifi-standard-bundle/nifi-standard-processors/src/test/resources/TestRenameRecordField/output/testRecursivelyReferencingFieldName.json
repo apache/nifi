@@ -1,0 +1,12 @@
+[ {
+  "NAME" : "John Doe",
+  "age" : 30,
+  "application" : "Apache NiFi",
+  "addresses" : [ {
+    "NAME" : "Home",
+    "street" : "7777 Main Street",
+    "city" : "My City",
+    "state" : "MS",
+    "zip" : "90210"
+  } ]
+} ]

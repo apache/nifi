@@ -456,8 +456,8 @@ public class StandardFlowComparator implements FlowComparator {
         }
 
         addIfDifferent(differences, DifferenceType.LABEL_VALUE_CHANGED, labelA, labelB, VersionedLabel::getLabel);
-        addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getHeight);
-        addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getWidth);
+        addIfDifferent(differences, DifferenceType.SIZE_CHANGED, labelA, labelB, VersionedLabel::getHeight);
+        addIfDifferent(differences, DifferenceType.SIZE_CHANGED, labelA, labelB, VersionedLabel::getWidth);
         addIfDifferent(differences, DifferenceType.STYLE_CHANGED, labelA, labelB, VersionedLabel::getStyle);
         addIfDifferent(differences, DifferenceType.ZINDEX_CHANGED, labelA, labelB, VersionedLabel::getzIndex);
     }
@@ -596,14 +596,6 @@ public class StandardFlowComparator implements FlowComparator {
 
         if (!Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
             differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, FLOW_VERSION, FLOW_VERSION, coordinatesA, coordinatesB));
-            return;
-        }
-
-        // If Registry URL is specified for both coordinates, compare them
-        final String registryUrlA = coordinatesA.getRegistryUrl();
-        final String registryUrlB = coordinatesB.getRegistryUrl();
-        if (registryUrlA != null && registryUrlB != null && !registryUrlA.equals(registryUrlB)) {
-            differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
             return;
         }
 

@@ -99,7 +99,6 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "./conf/state-management.xml", "# State Management"),
         Triple.of(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider", "# The ID of the local state provider"),
         Triple.of(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, "./database_repository", "# H2 Settings"),
-        Triple.of(NiFiProperties.H2_URL_APPEND, ";LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE", EMPTY),
         Triple.of(NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION, "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository", "# FlowFile Repository"),
         Triple.of(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, "./flowfile_repository", EMPTY),
         Triple.of(NiFiProperties.FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, "20 secs", EMPTY),
@@ -137,11 +136,11 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_URL, EMPTY, EMPTY),
         Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_CERTIFICATE, EMPTY, EMPTY),
         Triple.of(NiFiProperties.CLUSTER_IS_NODE, "false", EMPTY),
-        Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.xml.gz", EMPTY)
+        Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.json.gz", EMPTY)
     );
 
     static final Map<String, String> MINIFI_TO_NIFI_PROPERTY_MAPPING = Map.of(
-        MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_JSON_FILE,
+        MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_FILE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(), NiFiProperties.SECURITY_KEYSTORE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(), NiFiProperties.SECURITY_KEYSTORE_TYPE,
         MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_KEYSTORE_PASSWD,

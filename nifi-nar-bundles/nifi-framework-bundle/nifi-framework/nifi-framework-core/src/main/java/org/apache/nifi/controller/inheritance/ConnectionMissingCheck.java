@@ -22,24 +22,17 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
-import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -57,11 +50,7 @@ public class ConnectionMissingCheck implements FlowInheritabilityCheck {
 
     @Override
     public FlowInheritability checkInheritability(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController flowController) {
-        if (proposedFlow.isXml()) {
-            return checkInheritability(proposedFlow.getFlowDocument(), flowController);
-        } else {
-            return checkInheritability(existingFlow.getVersionedDataflow(), proposedFlow.getVersionedDataflow(), flowController);
-        }
+        return checkInheritability(existingFlow.getVersionedDataflow(), proposedFlow.getVersionedDataflow(), flowController);
     }
 
     private FlowInheritability checkInheritability(final VersionedDataflow existingFlow, final VersionedDataflow proposedFlow, final FlowController flowController) {
@@ -110,48 +99,5 @@ public class ConnectionMissingCheck implements FlowInheritabilityCheck {
         }
 
         return FlowInheritability.inheritable();
-    }
-
-    private FlowInheritability checkInheritability(final Document flowDocument, final FlowController flowController) {
-        final Element rootGroupElement = (Element) flowDocument.getDocumentElement().getElementsByTagName("rootGroup").item(0);
-        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(flowDocument.getDocumentElement());
-
-        final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, null, encodingVersion);
-        final Set<String> connectionIds = findAllConnectionIds(rootGroupDto);
-
-        final FlowFileRepository flowFileRepository = flowController.getRepositoryContextFactory().getFlowFileRepository();
-
-        final Set<String> queuesWithFlowFiles;
-        try {
-            queuesWithFlowFiles = flowFileRepository.findQueuesWithFlowFiles(flowController.createSwapManager());
-        } catch (final IOException ioe) {
-            throw new FlowSynchronizationException("Failed to determine which connections have FlowFiles queued", ioe);
-        }
-
-        logger.debug("The following {} Connections/Queues have data queued up currently: {}", queuesWithFlowFiles.size(), queuesWithFlowFiles);
-
-        for (final String queueId : queuesWithFlowFiles) {
-            if (!connectionIds.contains(queueId)) {
-                return FlowInheritability.notInheritable("Proposed Flow does not contain a Connection with ID " + queueId + " but this instance has data queued in that connection");
-            }
-        }
-
-        return FlowInheritability.inheritable();
-    }
-
-    private Set<String> findAllConnectionIds(final ProcessGroupDTO group) {
-        final Set<String> connectionIds = new HashSet<>();
-        findAllConnectionIds(group, connectionIds);
-        return connectionIds;
-    }
-
-    private void findAllConnectionIds(final ProcessGroupDTO group, final Set<String> ids) {
-        for (final ConnectionDTO connectionDTO : group.getContents().getConnections()) {
-            ids.add(connectionDTO.getId());
-        }
-
-        for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
-            findAllConnectionIds(childGroup, ids);
-        }
     }
 }

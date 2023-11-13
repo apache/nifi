@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 
@@ -35,19 +34,19 @@ public class NamedProfileCredentialsStrategy extends AbstractCredentialsStrategy
 
     public NamedProfileCredentialsStrategy() {
         super("Named Profile", new PropertyDescriptor[] {
-                CredentialPropertyDescriptors.PROFILE_NAME
+            AWSCredentialsProviderControllerService.PROFILE_NAME
         });
     }
 
     @Override
     public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
-        final String profileName = propertyContext.getProperty(CredentialPropertyDescriptors.PROFILE_NAME).evaluateAttributeExpressions().getValue();
+        final String profileName = propertyContext.getProperty(AWSCredentialsProviderControllerService.PROFILE_NAME).evaluateAttributeExpressions().getValue();
         return new ProfileCredentialsProvider(profileName);
     }
 
     @Override
     public AwsCredentialsProvider getAwsCredentialsProvider(final PropertyContext propertyContext) {
-        final String profileName = propertyContext.getProperty(CredentialPropertyDescriptors.PROFILE_NAME).evaluateAttributeExpressions().getValue();
+        final String profileName = propertyContext.getProperty(AWSCredentialsProviderControllerService.PROFILE_NAME).evaluateAttributeExpressions().getValue();
         return software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.create(profileName);
     }
 }

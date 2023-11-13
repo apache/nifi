@@ -21,16 +21,17 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.proxy.StandardProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -52,24 +53,16 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     protected MockWebServer mockWebServer;
 
-    protected void setupControllerService() throws InitializationException {
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.ACCESS_KEY, "awsAccessKey");
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.SECRET_KEY, "awsSecretKey");
-        runner.enableControllerService(serviceImpl);
-        runner.setProperty(InvokeAWSGatewayApi.AWS_CREDENTIALS_PROVIDER_SERVICE,
-                "awsCredentialsProvider");
+    protected void setupControllerService() {
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
     protected void setupAuth() {
-        runner.setProperty(InvokeAWSGatewayApi.ACCESS_KEY, "testAccessKey");
-        runner.setProperty(InvokeAWSGatewayApi.SECRET_KEY, "testSecretKey");
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
-    protected void setupCredFile() {
-        runner.setProperty(AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE,
-                "src/test/resources/mock-aws-credentials.properties");
+    protected void setupCredFile() throws InitializationException {
+        AuthUtils.enableCredentialsFile(runner, "src/test/resources/mock-aws-credentials.properties");
     }
 
     public void setupEndpointAndRegion() {
@@ -1273,13 +1266,16 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST, "${proxy.host}");
 
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST_PORT, "${proxy.port}");
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_USERNAME, "${proxy.username}");
-
-        runner.assertNotValid();
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_PASSWORD, "${proxy.password}");
+        final StandardProxyConfigurationService proxyService = new StandardProxyConfigurationService();
+        runner.addControllerService("proxy", proxyService);
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_TYPE, Proxy.Type.HTTP.name());
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_SERVER_HOST, "${proxy.host}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_SERVER_PORT, "${proxy.port}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_USER_NAME, "${proxy.username}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_USER_PASSWORD, "${proxy.password}");
+        runner.enableControllerService(proxyService);
+        runner.setProperty(InvokeAWSGatewayApi.PROXY_CONFIGURATION_SERVICE, "proxy");
 
         createFlowFiles(runner);
 

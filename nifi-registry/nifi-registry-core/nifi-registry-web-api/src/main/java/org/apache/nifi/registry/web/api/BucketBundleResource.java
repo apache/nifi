@@ -19,6 +19,8 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
@@ -90,6 +92,22 @@ public class BucketBundleResource extends ApplicationResource {
                     @Extension(name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
                             @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+            }
+    )
+    @ApiImplicitParams(
+            value = {
+                    @ApiImplicitParam(
+                            name = "file",
+                            value = "The binary content of the bundle file being uploaded.",
+                            required = true,
+                            type = "file",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "sha256",
+                            value = "Optional sha256 of the provided bundle",
+                            required = false,
+                            type = "string",
+                            paramType = "formData")
             }
     )
     @ApiResponses({

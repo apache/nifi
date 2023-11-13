@@ -161,7 +161,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(JOLT_SPEC, CUSTOMR)
+            .dependsOn(JOLT_TRANSFORM, CUSTOMR)
             .build();
 
     static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
@@ -172,7 +172,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
-            .dependsOn(JOLT_SPEC, CUSTOMR)
+            .dependsOn(JOLT_TRANSFORM, CUSTOMR)
             .build();
 
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()

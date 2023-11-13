@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -48,7 +49,7 @@ public class ITPutKinesisFirehose {
     @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
-        runner.setProperty(PutKinesisFirehose.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "testkinesis");
     }
 

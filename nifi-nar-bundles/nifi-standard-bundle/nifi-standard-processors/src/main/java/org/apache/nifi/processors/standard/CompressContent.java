@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.aayushatharva.brotli4j.Brotli4jLoader;
+import com.aayushatharva.brotli4j.decoder.BrotliInputStream;
+import com.aayushatharva.brotli4j.encoder.BrotliOutputStream;
+import com.aayushatharva.brotli4j.encoder.Encoder;
 import lzma.sdk.lzma.Decoder;
 import lzma.streams.LzmaInputStream;
 import lzma.streams.LzmaOutputStream;
@@ -25,10 +29,6 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.lz4.FramedLZ4CompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream;
-import com.aayushatharva.brotli4j.decoder.BrotliInputStream;
-import com.aayushatharva.brotli4j.encoder.BrotliOutputStream;
-import com.aayushatharva.brotli4j.Brotli4jLoader;
-import com.aayushatharva.brotli4j.encoder.Encoder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -39,9 +39,9 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
-import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -51,7 +51,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -74,9 +73,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -200,40 +196,29 @@ public class CompressContent extends AbstractProcessor {
         .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
         .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-    private Map<String, String> compressionFormatMimeTypeMap;
+    private final List<PropertyDescriptor> properties = List.of(MODE,
+        COMPRESSION_FORMAT,
+        COMPRESSION_LEVEL,
+        UPDATE_FILENAME);
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(MODE);
-        properties.add(COMPRESSION_FORMAT);
-        properties.add(COMPRESSION_LEVEL);
-        properties.add(UPDATE_FILENAME);
-        this.properties = Collections.unmodifiableList(properties);
+    private final Set<Relationship> relationships = Set.of(REL_SUCCESS,
+        REL_FAILURE);
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+    private final Map<String, String> compressionFormatMimeTypeMap = Map.ofEntries(
+        Map.entry("application/gzip", COMPRESSION_FORMAT_GZIP),
+        Map.entry("application/x-gzip", COMPRESSION_FORMAT_GZIP),
+        Map.entry("application/deflate", COMPRESSION_FORMAT_DEFLATE),
+        Map.entry("application/x-deflate", COMPRESSION_FORMAT_DEFLATE),
+        Map.entry("application/bzip2", COMPRESSION_FORMAT_BZIP2),
+        Map.entry("application/x-bzip2", COMPRESSION_FORMAT_BZIP2),
+        Map.entry("application/x-lzma", COMPRESSION_FORMAT_LZMA),
+        Map.entry("application/x-snappy", COMPRESSION_FORMAT_SNAPPY),
+        Map.entry("application/x-snappy-hadoop", COMPRESSION_FORMAT_SNAPPY_HADOOP),
+        Map.entry("application/x-snappy-framed", COMPRESSION_FORMAT_SNAPPY_FRAMED),
+        Map.entry("application/x-lz4-framed", COMPRESSION_FORMAT_LZ4_FRAMED),
+        Map.entry("application/zstd", COMPRESSION_FORMAT_ZSTD),
+        Map.entry("application/x-brotli", COMPRESSION_FORMAT_BROTLI));
 
-        final Map<String, String> mimeTypeMap = new HashMap<>();
-        mimeTypeMap.put("application/gzip", COMPRESSION_FORMAT_GZIP);
-        mimeTypeMap.put("application/x-gzip", COMPRESSION_FORMAT_GZIP);
-        mimeTypeMap.put("application/deflate", COMPRESSION_FORMAT_DEFLATE);
-        mimeTypeMap.put("application/x-deflate", COMPRESSION_FORMAT_DEFLATE);
-        mimeTypeMap.put("application/bzip2", COMPRESSION_FORMAT_BZIP2);
-        mimeTypeMap.put("application/x-bzip2", COMPRESSION_FORMAT_BZIP2);
-        mimeTypeMap.put("application/x-lzma", COMPRESSION_FORMAT_LZMA);
-        mimeTypeMap.put("application/x-snappy", COMPRESSION_FORMAT_SNAPPY);
-        mimeTypeMap.put("application/x-snappy-hadoop", COMPRESSION_FORMAT_SNAPPY_HADOOP);
-        mimeTypeMap.put("application/x-snappy-framed", COMPRESSION_FORMAT_SNAPPY_FRAMED);
-        mimeTypeMap.put("application/x-lz4-framed", COMPRESSION_FORMAT_LZ4_FRAMED);
-        mimeTypeMap.put("application/zstd", COMPRESSION_FORMAT_ZSTD);
-        mimeTypeMap.put("application/x-brotli", COMPRESSION_FORMAT_BROTLI);
-        this.compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -249,13 +234,17 @@ public class CompressContent extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
 
-        if (context.getProperty(COMPRESSION_FORMAT).getValue().toLowerCase().equals(COMPRESSION_FORMAT_SNAPPY_HADOOP)
-                && context.getProperty(MODE).getValue().toLowerCase().equals(MODE_DECOMPRESS)) {
-            validationResults.add(new ValidationResult.Builder().subject(COMPRESSION_FORMAT.getName())
-                    .explanation("<Compression Format> set to <snappy-hadoop> and <MODE> set to <decompress> is not permitted. " +
-                            "Data that is compressed with Snappy Hadoop can not be decompressed using this processor.")
-                    .build());
+        if (context.getProperty(COMPRESSION_FORMAT).getValue().equalsIgnoreCase(COMPRESSION_FORMAT_SNAPPY_HADOOP)
+            && context.getProperty(MODE).getValue().equalsIgnoreCase(MODE_DECOMPRESS)) {
+
+            validationResults.add(new ValidationResult.Builder()
+                .subject(COMPRESSION_FORMAT.getName())
+                .explanation("<Compression Format> set to <snappy-hadoop> and <MODE> set to <decompress> is not permitted. " +
+                    "Data that is compressed with Snappy Hadoop can not be decompressed using this processor.")
+                .valid(false)
+                .build());
         }
+
         return validationResults;
     }
 
@@ -292,45 +281,20 @@ public class CompressContent extends AbstractProcessor {
         final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final StopWatch stopWatch = new StopWatch(true);
 
-        final String fileExtension;
-        switch (compressionFormat.toLowerCase()) {
-            case COMPRESSION_FORMAT_GZIP:
-                fileExtension = ".gz";
-                break;
-            case COMPRESSION_FORMAT_DEFLATE:
-                fileExtension = ".zlib";
-                break;
-            case COMPRESSION_FORMAT_LZMA:
-                fileExtension = ".lzma";
-                break;
-            case COMPRESSION_FORMAT_XZ_LZMA2:
-                fileExtension = ".xz";
-                break;
-            case COMPRESSION_FORMAT_BZIP2:
-                fileExtension = ".bz2";
-                break;
-            case COMPRESSION_FORMAT_SNAPPY:
-                fileExtension = ".snappy";
-                break;
-            case COMPRESSION_FORMAT_SNAPPY_HADOOP:
-                fileExtension = ".snappy";
-                break;
-            case COMPRESSION_FORMAT_SNAPPY_FRAMED:
-                fileExtension = ".sz";
-                break;
-            case COMPRESSION_FORMAT_LZ4_FRAMED:
-                fileExtension = ".lz4";
-                break;
-            case COMPRESSION_FORMAT_ZSTD:
-                fileExtension = ".zst";
-                break;
-            case COMPRESSION_FORMAT_BROTLI:
-                fileExtension = ".br";
-                break;
-            default:
-                fileExtension = "";
-                break;
-        }
+        final String fileExtension = switch (compressionFormat.toLowerCase()) {
+            case COMPRESSION_FORMAT_GZIP -> ".gz";
+            case COMPRESSION_FORMAT_DEFLATE -> ".zlib";
+            case COMPRESSION_FORMAT_LZMA -> ".lzma";
+            case COMPRESSION_FORMAT_XZ_LZMA2 -> ".xz";
+            case COMPRESSION_FORMAT_BZIP2 -> ".bz2";
+            case COMPRESSION_FORMAT_SNAPPY -> ".snappy";
+            case COMPRESSION_FORMAT_SNAPPY_HADOOP -> ".snappy";
+            case COMPRESSION_FORMAT_SNAPPY_FRAMED -> ".sz";
+            case COMPRESSION_FORMAT_LZ4_FRAMED -> ".lz4";
+            case COMPRESSION_FORMAT_ZSTD -> ".zst";
+            case COMPRESSION_FORMAT_BROTLI -> ".br";
+            default -> "";
+        };
 
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
@@ -347,16 +311,18 @@ public class CompressContent extends AbstractProcessor {
                             compressionIn = bufferedIn;
 
                             switch (compressionFormat.toLowerCase()) {
-                                case COMPRESSION_FORMAT_GZIP:
+                                case COMPRESSION_FORMAT_GZIP: {
                                     int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
                                     compressionOut = new GZIPOutputStream(bufferedOut, compressionLevel);
                                     mimeTypeRef.set("application/gzip");
                                     break;
-                                case COMPRESSION_FORMAT_DEFLATE:
-                                    compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                }
+                                case COMPRESSION_FORMAT_DEFLATE: {
+                                    final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
                                     compressionOut = new DeflaterOutputStream(bufferedOut, new Deflater(compressionLevel));
                                     mimeTypeRef.set("application/gzip");
                                     break;
+                                }
                                 case COMPRESSION_FORMAT_LZMA:
                                     compressionOut = new LzmaOutputStream.Builder(bufferedOut).build();
                                     mimeTypeRef.set("application/x-lzma");
@@ -387,13 +353,14 @@ public class CompressContent extends AbstractProcessor {
                                     compressionOut = new ZstdCompressorOutputStream(bufferedOut, zstdcompressionLevel);
                                     mimeTypeRef.set("application/zstd");
                                     break;
-                                case COMPRESSION_FORMAT_BROTLI:
+                                case COMPRESSION_FORMAT_BROTLI: {
                                     Brotli4jLoader.ensureAvailability();
-                                    compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                    final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
                                     Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
                                     compressionOut = new BrotliOutputStream(bufferedOut, params);
                                     mimeTypeRef.set("application/x-brotli");
                                     break;
+                                }
                                 case COMPRESSION_FORMAT_BZIP2:
                                 default:
                                     mimeTypeRef.set("application/x-bzip2");
@@ -402,44 +369,25 @@ public class CompressContent extends AbstractProcessor {
                             }
                         } else {
                             compressionOut = bufferedOut;
-                            switch (compressionFormat.toLowerCase()) {
-                                case COMPRESSION_FORMAT_LZMA:
-                                    compressionIn = new LzmaInputStream(bufferedIn, new Decoder());
-                                    break;
-                                case COMPRESSION_FORMAT_XZ_LZMA2:
-                                    compressionIn = new XZInputStream(bufferedIn);
-                                    break;
-                                case COMPRESSION_FORMAT_BZIP2:
+                            compressionIn = switch (compressionFormat.toLowerCase()) {
+                                case COMPRESSION_FORMAT_LZMA -> new LzmaInputStream(bufferedIn, new Decoder());
+                                case COMPRESSION_FORMAT_XZ_LZMA2 -> new XZInputStream(bufferedIn);
+                                case COMPRESSION_FORMAT_BZIP2 ->
                                     // need this two-arg constructor to support concatenated streams
-                                    compressionIn = new BZip2CompressorInputStream(bufferedIn, true);
-                                    break;
-                                case COMPRESSION_FORMAT_GZIP:
-                                    compressionIn = new GzipCompressorInputStream(bufferedIn, true);
-                                    break;
-                                case COMPRESSION_FORMAT_DEFLATE:
-                                    compressionIn = new InflaterInputStream(bufferedIn);
-                                    break;
-                                case COMPRESSION_FORMAT_SNAPPY:
-                                    compressionIn = new SnappyInputStream(bufferedIn);
-                                    break;
-                                case COMPRESSION_FORMAT_SNAPPY_HADOOP:
-                                    throw new Exception("Cannot decompress snappy-hadoop.");
-                                case COMPRESSION_FORMAT_SNAPPY_FRAMED:
-                                    compressionIn = new SnappyFramedInputStream(bufferedIn);
-                                    break;
-                                case COMPRESSION_FORMAT_LZ4_FRAMED:
-                                    compressionIn = new FramedLZ4CompressorInputStream(bufferedIn, true);
-                                    break;
-                                case COMPRESSION_FORMAT_ZSTD:
-                                    compressionIn = new ZstdCompressorInputStream(bufferedIn);
-                                    break;
-                                case COMPRESSION_FORMAT_BROTLI:
+                                    new BZip2CompressorInputStream(bufferedIn, true);
+                                case COMPRESSION_FORMAT_GZIP -> new GzipCompressorInputStream(bufferedIn, true);
+                                case COMPRESSION_FORMAT_DEFLATE -> new InflaterInputStream(bufferedIn);
+                                case COMPRESSION_FORMAT_SNAPPY -> new SnappyInputStream(bufferedIn);
+                                case COMPRESSION_FORMAT_SNAPPY_HADOOP -> throw new Exception("Cannot decompress snappy-hadoop.");
+                                case COMPRESSION_FORMAT_SNAPPY_FRAMED -> new SnappyFramedInputStream(bufferedIn);
+                                case COMPRESSION_FORMAT_LZ4_FRAMED -> new FramedLZ4CompressorInputStream(bufferedIn, true);
+                                case COMPRESSION_FORMAT_ZSTD -> new ZstdCompressorInputStream(bufferedIn);
+                                case COMPRESSION_FORMAT_BROTLI -> {
                                     Brotli4jLoader.ensureAvailability();
-                                    compressionIn = new BrotliInputStream(bufferedIn);
-                                    break;
-                                default:
-                                    compressionIn = new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);
-                            }
+                                    yield new BrotliInputStream(bufferedIn);
+                                }
+                                default -> new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);
+                            };
                         }
                     } catch (final Exception e) {
                         closeQuietly(bufferedOut);

@@ -33,7 +33,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.serialization.FlowContent;
 import org.apache.nifi.registry.serialization.FlowContentSerializer;
-import org.apache.nifi.registry.service.alias.RegistryUrlAliasService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -78,7 +77,6 @@ public class TestRegistryService {
     private BundlePersistenceProvider bundlePersistenceProvider;
     private FlowContentSerializer flowContentSerializer;
     private Validator validator;
-    private RegistryUrlAliasService registryUrlAliasService;
 
     private RegistryService registryService;
 
@@ -88,13 +86,12 @@ public class TestRegistryService {
         flowPersistenceProvider = mock(FlowPersistenceProvider.class);
         bundlePersistenceProvider = mock(BundlePersistenceProvider.class);
         flowContentSerializer = mock(FlowContentSerializer.class);
-        registryUrlAliasService = mock(RegistryUrlAliasService.class);
 
         final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
         validator = validatorFactory.getValidator();
 
         registryService = new RegistryService(metadataService, flowPersistenceProvider, bundlePersistenceProvider,
-                flowContentSerializer, validator, registryUrlAliasService);
+            flowContentSerializer, validator);
     }
 
     // ---------------------- Test Bucket methods ---------------------------------------------

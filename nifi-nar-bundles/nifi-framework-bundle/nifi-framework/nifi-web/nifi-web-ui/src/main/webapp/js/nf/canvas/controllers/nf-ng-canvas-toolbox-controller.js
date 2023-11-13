@@ -41,7 +41,7 @@
                      groupComponent,
                      remoteGroupComponent,
                      funnelComponent,
-                     templateComponent,
+                     registryImportComponent,
                      labelComponent) {
         'use strict';
 
@@ -51,7 +51,7 @@
                              groupComponent,
                              remoteGroupComponent,
                              funnelComponent,
-                             templateComponent,
+                             registryImportComponent,
                              labelComponent) {
             this.processorComponent = processorComponent;
             this.inputPortComponent = inputPortComponent;
@@ -59,7 +59,7 @@
             this.groupComponent = groupComponent;
             this.remoteGroupComponent = remoteGroupComponent;
             this.funnelComponent = funnelComponent;
-            this.templateComponent = templateComponent;
+            this.registryImportComponent = registryImportComponent;
             this.labelComponent = labelComponent;
 
             /**
@@ -74,7 +74,7 @@
                     remoteProcessGroup: 'Remote Process Group',
                     connection: 'Connection',
                     funnel: 'Funnel',
-                    template: 'Template',
+                    importFromRegistry: 'Import from Registry',
                     label: 'Label'
                 },
                 urls: {
@@ -98,7 +98,6 @@
                 outputPortComponent.modal.init();
                 groupComponent.modal.init();
                 remoteGroupComponent.modal.init();
-                templateComponent.modal.init();
             },
 
             /**
@@ -161,7 +160,7 @@
                 groupComponent,
                 remoteGroupComponent,
                 funnelComponent,
-                templateComponent,
+                registryImportComponent,
                 labelComponent);
         return toolboxCtrl;
     };

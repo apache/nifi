@@ -17,6 +17,8 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -40,7 +42,7 @@ public class VersionedFlowSynchronizationContext {
     private final ComponentScheduler componentScheduler;
     private final FlowMappingOptions flowMappingOptions;
     private final Function<ProcessorNode, ProcessContext> processContextFactory;
-
+    private final Function<ComponentNode, ConfigurationContext> configurationContextFactory;
 
     private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -51,6 +53,7 @@ public class VersionedFlowSynchronizationContext {
         this.componentScheduler = builder.componentScheduler;
         this.flowMappingOptions = builder.flowMappingOptions;
         this.processContextFactory = builder.processContextFactory;
+        this.configurationContextFactory = builder.configurationContextFactory;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -85,6 +88,10 @@ public class VersionedFlowSynchronizationContext {
         return processContextFactory;
     }
 
+    public Function<ComponentNode, ConfigurationContext> getConfigurationContextFactory() {
+        return configurationContextFactory;
+    }
+
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private FlowManager flowManager;
@@ -94,6 +101,7 @@ public class VersionedFlowSynchronizationContext {
         private ComponentScheduler componentScheduler;
         private FlowMappingOptions flowMappingOptions;
         private Function<ProcessorNode, ProcessContext> processContextFactory;
+        private Function<ComponentNode, ConfigurationContext> configurationContextFactory;
 
         public Builder componentIdGenerator(final ComponentIdGenerator componentIdGenerator) {
             this.componentIdGenerator = componentIdGenerator;
@@ -135,6 +143,11 @@ public class VersionedFlowSynchronizationContext {
             return this;
         }
 
+        public Builder configurationContextFactory(final Function<ComponentNode, ConfigurationContext> configurationContextFactory) {
+            this.configurationContextFactory = configurationContextFactory;
+            return this;
+        }
+
         public VersionedFlowSynchronizationContext build() {
             requireNonNull(componentIdGenerator, "Component ID Generator must be set");
             requireNonNull(flowManager, "Flow Manager must be set");
@@ -144,6 +157,7 @@ public class VersionedFlowSynchronizationContext {
             requireNonNull(componentScheduler, "Component Scheduler must be set");
             requireNonNull(flowMappingOptions, "Flow Mapping Options must be set");
             requireNonNull(processContextFactory, "Process Context Factory must be set");
+            requireNonNull(configurationContextFactory, "Configuration Context Factory must be set");
             return new VersionedFlowSynchronizationContext(this);
         }
     }

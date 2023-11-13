@@ -42,7 +42,7 @@
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>6.7.0.202309050840-r</jgit.version>
-        <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
+        <org.apache.sshd.version>2.11.0</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>

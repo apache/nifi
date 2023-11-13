@@ -13,12 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import logging
-import ExtensionManager
+import os
+from concurrent.futures import ThreadPoolExecutor
+
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
-import PythonProcessorAdapter
+import ExtensionManager
+
+# We do not use ThreadPoolExecutor, but it must be kept here. Python introduced a bug in 3.9 that causes Exceptions to be raised
+# incorrectly in multi-threaded applications (https://bugs.python.org/issue42647). This works around the bug.
+# What is actually necessary is to import ThreadPoolExecutor.
+# Unfortunately, IntelliJ often likes to cleanup the unused import. So we assign a bogus variable just so
+# that we have some reference to ThreadPoolExecutor in order to prevent the IDE from cleaning up the import
+threadpool_attrs = dir(ThreadPoolExecutor)
+
 
 # Initialize logging
 logger = logging.getLogger("org.apache.nifi.py4j.Controller")
@@ -48,6 +57,20 @@ class Controller:
     def discoverExtensions(self, dirs, work_dir):
         self.extensionManager.discoverExtensions(dirs, work_dir)
 
+    def getProcessorDetails(self, type, version):
+        processor_details = self.extensionManager.get_processor_details(type, version)
+        if processor_details is None:
+            raise ValueError(f"Invalid Processor Type/Version: {type}/{version}")
+
+        return processor_details
+
+    def downloadDependencies(self, type, version, work_dir):
+        processor_details = self.extensionManager.get_processor_details(type, version)
+        if processor_details is None:
+            raise ValueError(f"Invalid Processor Type/Version: {type}/{version}")
+
+        self.extensionManager.import_external_dependencies(processor_details, work_dir)
+
     def createProcessor(self, processorType, version, work_dir):
         processorClass = self.extensionManager.getProcessorClass(processorType, version, work_dir)
         processor = processorClass(jvm=self.gateway.jvm)
@@ -60,14 +83,6 @@ class Controller:
     def getModuleFile(self, processorType, version):
         module_file = self.extensionManager.get_module_file(processorType, version)
         return module_file
-
-    def getProcessorDependencies(self, processorType, version):
-        deps = self.extensionManager.__get_dependencies_for_extension_type(processorType, version)
-        dependencyList = self.gateway.jvm.java.util.ArrayList()
-        for dep in deps:
-            dependencyList.add(dep)
-
-        return dependencyList
 
     def setGateway(self, gateway):
         self.gateway = gateway
@@ -97,6 +112,19 @@ if __name__ == "__main__":
     controller.setGateway(gateway)
     python_port = gateway.get_callback_server().get_listening_port()
     logger.info("Listening for requests from Java side using Python Port {}, communicating with Java on port {}".format(python_port, java_port) )
+
+    # Initialize the JvmHolder class with the gateway jvm.
+    # This must be done before executing the module to ensure that the nifiapi module
+    # is able to access the JvmHolder.jvm variable. This enables the nifiapi.properties.StandardValidators, etc. to be used
+    # However, we have to delay the import until this point, rather than adding it to the top of the ExtensionManager class
+    # because we need to ensure that we've fetched the appropriate dependencies for the pyenv environment for the extension point.
+    from nifiapi.__jvm__ import JvmHolder
+    JvmHolder.jvm = gateway.jvm
+    JvmHolder.gateway = gateway
+
+    # We need to import PythonProcessorAdapter but cannot import it at the top of the class because we must first initialize the Gateway,
+    # since there are statically defined objects in the file that contains PythonProcessorAdapter, and those statically defined objects require the Gateway.
+    import PythonProcessorAdapter
 
     # Notify the Java side of the port that Python is listening on
     gateway.java_gateway_server.resetCallbackClient(

@@ -44,6 +44,9 @@ import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -107,6 +110,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -941,5 +945,44 @@ public class StandardNiFiServiceFacadeTest {
         when(ruleViolationsManager.getRuleViolationsForGroup(groupId)).thenReturn(violations);
 
         return processGroup;
+    }
+
+    @Test
+    public void testGenerateIdsForImportingReportingTaskSnapshot() {
+        final String originalServiceId = "s1";
+        final VersionedControllerService service = new VersionedControllerService();
+        service.setIdentifier(originalServiceId);
+
+        final VersionedPropertyDescriptor serviceDescriptor = new VersionedPropertyDescriptor();
+        serviceDescriptor.setName("My Service");
+        serviceDescriptor.setIdentifiesControllerService(true);
+
+        final Map<String, VersionedPropertyDescriptor> reportingTaskDescriptors = new HashMap<>();
+        reportingTaskDescriptors.put(serviceDescriptor.getName(), serviceDescriptor);
+
+        final Map<String, String> reportingTaskPropertyValues = new HashMap<>();
+        reportingTaskPropertyValues.put(serviceDescriptor.getName(), service.getIdentifier());
+
+        final String originalReportingTaskId = "r1";
+        final VersionedReportingTask reportingTask = new VersionedReportingTask();
+        reportingTask.setIdentifier(originalReportingTaskId);
+        reportingTask.setPropertyDescriptors(reportingTaskDescriptors);
+        reportingTask.setProperties(reportingTaskPropertyValues);
+
+        final VersionedReportingTaskSnapshot reportingTaskSnapshot = new VersionedReportingTaskSnapshot();
+        reportingTaskSnapshot.setReportingTasks(Collections.singletonList(reportingTask));
+        reportingTaskSnapshot.setControllerServices(Collections.singletonList(service));
+
+        serviceFacade.generateIdentifiersForImport(reportingTaskSnapshot, () -> UUID.randomUUID().toString());
+
+        assertNotNull(service.getIdentifier());
+        assertNotNull(service.getInstanceIdentifier());
+        assertNotEquals(originalServiceId, service.getIdentifier());
+
+        assertNotNull(reportingTask.getIdentifier());
+        assertNotNull(reportingTask.getInstanceIdentifier());
+        assertNotEquals(originalReportingTaskId, reportingTask.getIdentifier());
+
+        assertEquals(service.getInstanceIdentifier(), reportingTask.getProperties().get(serviceDescriptor.getName()));
     }
 }

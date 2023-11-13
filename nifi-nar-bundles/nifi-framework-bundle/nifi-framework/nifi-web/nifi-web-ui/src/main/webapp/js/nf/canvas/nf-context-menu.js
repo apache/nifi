@@ -119,24 +119,6 @@
     };
 
     /**
-     * Determines whether user can create a template from the components in the specified selection.
-     *
-     * @param {selection} selection         The selection of currently selected components
-     */
-    var canCreateTemplate = function (selection) {
-        return nfCanvasUtils.canWriteCurrentGroup() && (selection.empty() || nfCanvasUtils.canRead(selection));
-    };
-
-    /**
-     * Determines whether user can upload a template.
-     *
-     * @param {selection} selection         The selection of currently selected components
-     */
-    var canUploadTemplate = function (selection) {
-        return nfCanvasUtils.canWriteCurrentGroup() && selection.empty();
-    };
-
-    /**
      * Determines whether components in the specified selection are group-able.
      *
      * @param {selection} selection         The selection of currently selected components
@@ -843,7 +825,7 @@
         {id: 'show-stats-menu-item', condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'View status history', action: 'showStats'}},
         {id: 'view-state-menu-item', condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
         {id: 'list-queue-menu-item', condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
-        {id: 'show-usage-menu-item', condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'View usage', action: 'showUsage'}},
+        {id: 'show-usage-menu-item', condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'View documentation', action: 'showUsage'}},
         {id: 'view-menu-item', groupMenuItem: {clazz: 'icon icon-connect', text: 'View connections'}, menuItems: [
             {id: 'show-upstream-menu-item', condition: hasUpstream, menuItem: {clazz: 'icon', text: 'Upstream', action: 'showUpstream'}},
             {id: 'show-downstream-menu-item', condition: hasDownstream, menuItem: {clazz: 'icon', text: 'Downstream', action: 'showDownstream'}}
@@ -874,9 +856,6 @@
             {id: 'download-menu-item-without', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'Without external services', action: 'downloadFlowWithoutExternalServices'}},
             {id: 'download-menu-item-with', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'With external services', action: 'downloadFlowWithExternalServices'}}
         ]},
-        {separator: true},
-        {id: 'upload-template-menu-item', condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
-        {id: 'template-menu-item', condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}},
         {separator: true},
         {id: 'copy-menu-item', condition: isCopyable, menuItem: {clazz: 'fa fa-copy', text: 'Copy', action: 'copy'}},
         {id: 'paste-menu-item', condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},

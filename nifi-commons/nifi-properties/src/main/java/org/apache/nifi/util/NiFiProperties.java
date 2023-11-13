@@ -54,7 +54,6 @@ public class NiFiProperties extends ApplicationProperties {
     // core properties
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
-    public static final String FLOW_CONFIGURATION_JSON_FILE = "nifi.flow.configuration.json.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_ENABLED = "nifi.flow.configuration.archive.enabled";
     public static final String FLOW_CONFIGURATION_ARCHIVE_DIR = "nifi.flow.configuration.archive.dir";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "nifi.flow.configuration.archive.max.time";
@@ -75,7 +74,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
-    public static final String H2_URL_APPEND = "nifi.h2.url.append";
     public static final String REMOTE_INPUT_HOST = "nifi.remote.input.host";
     public static final String REMOTE_INPUT_PORT = "nifi.remote.input.socket.port";
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";
@@ -452,28 +450,12 @@ public class NiFiProperties extends ApplicationProperties {
         super(props);
     }
 
-    // getters for core properties //
     public File getFlowConfigurationFile() {
         try {
             return new File(getProperty(FLOW_CONFIGURATION_FILE));
         } catch (Exception ex) {
             return null;
         }
-    }
-
-    public File getFlowConfigurationJsonFile() {
-        final String jsonFilename = getProperty(FLOW_CONFIGURATION_JSON_FILE);
-        if (jsonFilename != null) {
-            return new File(jsonFilename);
-        }
-
-        final File xmlFile = getFlowConfigurationFile();
-        final String xmlFilename = xmlFile.getName();
-        if (xmlFilename.contains(".xml")) {
-            return new File(xmlFile.getParentFile(), xmlFilename.replace(".xml", ".json"));
-        }
-
-        return new File(xmlFile.getParentFile(), xmlFilename.replace(".gz", "") + ".json.gz");
     }
 
     public File getFlowConfigurationFileDir() {

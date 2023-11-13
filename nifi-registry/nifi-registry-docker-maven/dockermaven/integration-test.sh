@@ -20,36 +20,56 @@ set -exuo pipefail
 TAG=$1
 VERSION=$2
 
-container_name=nifi-registry-${TAG}-integration-test
+container_name="nifi-registry-${TAG}-integration-test"
+image_name="apache/nifi-registry:${TAG}"
+port=18080
 
-trap "{ docker rm -f ${container_name}; }" EXIT
+trap '{ docker logs "${container_name}" | tail -10; docker inspect -f "{{json .State}}" "${container_name}"; docker rm -f "${container_name}"; }' EXIT
 
 echo "Deleting any existing ${container_name} containers"
-docker rm -f ${container_name};
+docker rm -f "${container_name}"
+echo
 
 echo "Checking that all files are owned by NiFi"
-test -z $(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c "find /opt/nifi-registry ! -user nifi")
+test -z "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "find /opt/nifi-registry ! -user nifi")"
+echo
 
 echo "Checking environment variables"
-test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c 'echo -n $NIFI_REGISTRY_HOME')"
-test "/opt/nifi-registry" = "$(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c 'echo -n $NIFI_REGISTRY_BASE_DIR')"
+test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_HOME}')"
+test "/opt/nifi-registry/nifi-registry-${VERSION}" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'readlink ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current')"
+test "/opt/nifi-registry/nifi-toolkit-current" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c "readlink \${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${VERSION}")"
+
+test "/opt/nifi-registry" = "$(docker run --rm --entrypoint /bin/bash "${image_name}" -c 'echo -n ${NIFI_REGISTRY_BASE_DIR}')"
+echo
 
 echo "Starting NiFi Registry container..."
+docker run -d --name "${container_name}" "${image_name}"
+ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${container_name}")
+echo
 
-docker run -d --name ${container_name} apache/nifi-registry:${TAG}
+max_iterations=10
+sleep_time=10
 
-IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${container_name})
-
-for i in $(seq 1 10) :; do
-    echo "Iteration: ${i}"
-    if docker exec ${container_name} bash -c " echo Running < /dev/tcp/${IP}/18080"; then
+sleep ${sleep_time}
+for i in $(seq 1 "${max_iterations}") :; do
+    echo "Waiting for NiFi Registry startup - iteration: ${i}"
+    if docker exec "${container_name}" bash -c " echo Running < /dev/tcp/${ip}/${port}"; then
+        echo "NiFi Registry found active on port ${port}"
         break
+    fi
+    echo
+    if [ "${i}" -eq "${max_iterations}" ]; then
+      echo "NiFi Registry did not start within expected time"
+      exit 1
     fi
     sleep 10
 done
+echo
 
 echo "Checking NiFi Registry REST API Access"
-test "200" = "$(docker exec "${container_name}" bash -c "curl -s -o /dev/null -w %{http_code} -k http://${IP}:18080/nifi-registry-api/access")"
+test "200" = "$(docker exec "${container_name}" bash -c "curl -sSo /dev/null -w %{http_code} -k http://${ip}:${port}/nifi-registry-api/access")"
+echo
 
 echo "Stopping NiFi Registry container"
-time docker stop ${container_name}
+time docker stop "${container_name}"
+echo

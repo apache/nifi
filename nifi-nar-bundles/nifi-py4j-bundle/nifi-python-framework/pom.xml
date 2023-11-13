@@ -27,6 +27,7 @@
 
     <properties>
         <py4j.version>0.10.9.7</py4j.version>
+        <py4j.url>https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-${py4j.version}-py2.py3-none-any.whl</py4j.url>
     </properties>
 
     <build>
@@ -43,7 +44,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <url>https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-${py4j.version}-py2.py3-none-any.whl</url>
+                            <url>${py4j.url}</url>
                             <outputFileName>py4j-${py4j.version}.zip</outputFileName>
                             <unpack>true</unpack>
                             <outputDirectory>${project.build.directory}/py4j-${py4j.version}</outputDirectory>

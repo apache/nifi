@@ -186,15 +186,9 @@ public class LocalPort extends AbstractPort {
 
             final FlowFileConcurrency flowFileConcurrency = getProcessGroup().getFlowFileConcurrency();
             switch (flowFileConcurrency) {
-                case UNBOUNDED:
-                    transferUnboundedConcurrency(context, session);
-                    break;
-                case SINGLE_FLOWFILE_PER_NODE:
-                    transferSingleFlowFile(session);
-                    break;
-                case SINGLE_BATCH_PER_NODE:
-                    transferInputBatch(session);
-                    break;
+                case UNBOUNDED -> transferUnboundedConcurrency(context, session);
+                case SINGLE_FLOWFILE_PER_NODE -> transferSingleFlowFile(session);
+                case SINGLE_BATCH_PER_NODE -> transferInputBatch(session);
             }
         } finally {
             flowFileGate.releaseClaim(this);

@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-utils</artifactId>
+            <artifactId>minifi-flow-status-report</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -22,10 +22,7 @@
     </parent>
     <artifactId>nifi-web-api</artifactId>
     <packaging>war</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+
     <build>
         <resources>
             <resource>
@@ -268,11 +265,6 @@
         <dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-annotations</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

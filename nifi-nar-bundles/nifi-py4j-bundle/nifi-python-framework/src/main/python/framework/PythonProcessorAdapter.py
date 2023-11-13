@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from nifiapi.properties import ProcessContext
+
 
 # PythonProcessorAdapter is responsible for receiving method invocations from Java side and delegating to the appropriate
 # method for a Processor. We use this adapter instead of calling directly into the Processor because it allows us to be more
@@ -53,7 +55,7 @@ class PythonProcessorAdapter:
         if not self.hasCustomValidate:
             return None
 
-        return self.processor.customValidate(context)
+        return self.processor.customValidate(ProcessContext(context))
 
     def getRelationships(self):
         # If self.relationships is None, it means that the Processor has implemented the method, and we need
@@ -86,11 +88,11 @@ class PythonProcessorAdapter:
 
     def onScheduled(self, context):
         if self.hasMethod(self.processor, 'onScheduled'):
-            self.processor.onScheduled(context)
+            self.processor.onScheduled(ProcessContext(context))
 
     def onStopped(self, context):
         if self.hasMethod(self.processor, 'onStopped'):
-            self.processor.onStopped(context)
+            self.processor.onStopped(ProcessContext(context))
 
     def initialize(self, context):
         self.processor.logger = context.getLogger()

@@ -34,7 +34,6 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
@@ -43,7 +42,6 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
-import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
 import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -86,8 +84,8 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -104,7 +102,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -119,6 +116,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -140,7 +138,7 @@ public class TestFlowController {
     private BulletinRepository bulletinRepo;
     private ExtensionDiscoveringManager extensionManager;
     private StatusHistoryRepository statusHistoryRepository;
-    private FlowSynchronizer standardFlowSynchronizer;
+    private FlowSynchronizer flowSynchronizer;
 
     private static List<String> allIdentifiers;
 
@@ -212,10 +210,8 @@ public class TestFlowController {
                 auditService, encryptor, bulletinRepo, extensionManager, statusHistoryRepository,
                 mock(RuleViolationsManager.class));
 
-        final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
-        final VersionedFlowSynchronizer versionedFlowSynchronizer = new VersionedFlowSynchronizer(extensionManager,
-                nifiProperties.getFlowConfigurationJsonFile(), new FlowConfigurationArchiveManager(nifiProperties));
-        standardFlowSynchronizer = new StandardFlowSynchronizer(xmlFlowSynchronizer, versionedFlowSynchronizer);
+        flowSynchronizer = new VersionedFlowSynchronizer(extensionManager,
+                nifiProperties.getFlowConfigurationFile(), new FlowConfigurationArchiveManager(nifiProperties));
     }
 
     @AfterEach
@@ -247,12 +243,12 @@ public class TestFlowController {
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
+        final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         // should be two controller services
         final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
@@ -306,12 +302,12 @@ public class TestFlowController {
     public void testSynchronizeFlowWithParameterProviderReferencingControllerService() throws IOException {
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final File flowFile = new File("src/test/resources/conf/parameter-provider-with-cs-flow.xml");
+        final File flowFile = new File("src/test/resources/conf/parameter-provider-with-cs-flow.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         // should be two controller services
         final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
@@ -365,12 +361,12 @@ public class TestFlowController {
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         try {
             // should be two controller services
@@ -407,31 +403,29 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() throws IOException {
-        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         controller.initializeFlow();
 
-        assertThrows(UninheritableFlowException.class,
-                () -> controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
         purgeFlow();
     }
 
     @Test
     public void testSynchronizeFlowWithInvalidParameterContextReference() throws IOException {
-        final File flowFile = new File("src/test/resources/conf/parameter-context-flow-error.xml");
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow-error.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final String authFingerprint = "<authorizations></authorizations>";
@@ -439,7 +433,7 @@ public class TestFlowController {
 
         assertThrows(FlowSynchronizationException.class,
                 () -> {
-                    controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+                    controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
                     controller.initializeFlow();
                 });
         purgeFlow();
@@ -447,14 +441,14 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithNestedParameterContexts() throws IOException {
-        final File flowFile = new File("src/test/resources/conf/parameter-context-flow.xml");
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+            controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
 
             ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
@@ -469,21 +463,21 @@ public class TestFlowController {
 
     @Test
     public void testCreateParameterContextWithAndWithoutValidation() throws IOException {
-        final File flowFile = new File("src/test/resources/conf/parameter-context-flow.xml");
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+            controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
 
             final Map<String, Parameter> parameters = new HashMap<>();
             parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
 
             // No problem since there are no inherited parameter contexts
-            controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.emptyList(), null);
+            controller.getFlowManager().createParameterContext("id", "name", "description", parameters, Collections.emptyList(), null);
 
             final ParameterContext existingParameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
             final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
@@ -492,12 +486,35 @@ public class TestFlowController {
 
             // This is not wrapped in FlowManager#withParameterContextResolution(Runnable), so it will throw an exception
             assertThrows(IllegalStateException.class, () ->
-                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
+                    controller.getFlowManager().createParameterContext("id", "name", "description", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
             // Instead, this is how it should be called
             controller.getFlowManager().withParameterContextResolution(() -> controller
-                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
+                    .getFlowManager().createParameterContext("id2", "name2", "description2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test
+    public void testCreateParameterContextLoadsDescription() throws IOException {
+        final String authFingerprint = authorizer.getFingerprint();
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow-description.json");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        try {
+            controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+            controller.initializeFlow();
+
+            ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
+            assertNotNull(parameterContext);
+            assertNull(parameterContext.getDescription());
+
+            ParameterContext parameterContext2 = controller.getFlowManager().getParameterContextManager().getParameterContext("context2");
+            assertNotNull(parameterContext2);
+            assertEquals("description", parameterContext2.getDescription());
         } finally {
             purgeFlow();
         }
@@ -520,7 +537,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         assertTrue(authorizer.getGroups().isEmpty());
@@ -530,19 +547,19 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() throws IOException {
-        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.json");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         controller.initializeFlow();
 
         final DataFlow dataflowWithNullAuthorizations = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, null, Collections.emptySet());
 
         assertThrows(UninheritableFlowException.class,
-                () -> controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
+                () -> controller.synchronize(flowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
         purgeFlow();
     }
 
@@ -550,8 +567,8 @@ public class TestFlowController {
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNullAndEmptyFlow() {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
-
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        when(proposedDataFlow.getVersionedDataflow()).thenReturn(getVersionedDataflow());
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         assertTrue(authorizer.getGroups().isEmpty());
         assertTrue(authorizer.getUsers().isEmpty());
@@ -588,65 +605,8 @@ public class TestFlowController {
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
                 auditService, encryptor, bulletinRepo, extensionManager, statusHistoryRepository, null);
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertEquals(authFingerprint, authorizer.getFingerprint());
-    }
-
-    @Test
-    public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final Set<String> missingComponents = new HashSet<>();
-        missingComponents.add("1");
-        missingComponents.add("2");
-
-        final DataFlow proposedDataFlow = mock(DataFlow.class);
-        when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
-
-        UninheritableFlowException uninheritableFlowException =
-                assertThrows(UninheritableFlowException.class,
-                        () -> controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
-        assertTrue(uninheritableFlowException.getMessage().contains("Proposed flow has missing components " +
-                "that are not considered missing in the current flow (1,2)"), uninheritableFlowException.getMessage());
-    }
-
-    @Test
-    public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
-        final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
-        when(mockProcessorNode.getIdentifier()).thenReturn("1");
-        when(mockProcessorNode.isExtensionMissing()).thenReturn(true);
-
-        final ControllerServiceNode mockControllerServiceNode = mock(ControllerServiceNode.class);
-        when(mockControllerServiceNode.getIdentifier()).thenReturn("2");
-        when(mockControllerServiceNode.isExtensionMissing()).thenReturn(true);
-
-        final ReportingTaskNode mockReportingTaskNode = mock(ReportingTaskNode.class);
-        when(mockReportingTaskNode.getIdentifier()).thenReturn("3");
-        when(mockReportingTaskNode.isExtensionMissing()).thenReturn(true);
-
-        final ProcessGroup mockRootGroup = mock(ProcessGroup.class);
-        when(mockRootGroup.findAllProcessors()).thenReturn(Collections.singletonList(mockProcessorNode));
-
-        final SnippetManager mockSnippetManager = mock(SnippetManager.class);
-        when(mockSnippetManager.export()).thenReturn(new byte[0]);
-
-        final FlowManager flowManager = mock(FlowManager.class);
-
-        final FlowController mockFlowController = mock(FlowController.class);
-        when(mockFlowController.getFlowManager()).thenReturn(flowManager);
-
-        when(flowManager.getRootGroup()).thenReturn(mockRootGroup);
-        when(flowManager.getAllControllerServices()).thenReturn(new HashSet<>(Arrays.asList(mockControllerServiceNode)));
-        when(flowManager.getAllReportingTasks()).thenReturn(new HashSet<>(Arrays.asList(mockReportingTaskNode)));
-        when(mockFlowController.getAuthorizer()).thenReturn(authorizer);
-        when(mockFlowController.getSnippetManager()).thenReturn(mockSnippetManager);
-
-        final DataFlow proposedDataFlow = mock(DataFlow.class);
-        when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
-        UninheritableFlowException uninheritableFlowException =
-                assertThrows(UninheritableFlowException.class,
-                        () -> standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow,
-                                mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
-        assertTrue(uninheritableFlowException.getMessage().contains("Current flow has missing components that are not" +
-                        " considered missing in the proposed flow (1,2,3)"), uninheritableFlowException.getMessage());
     }
 
     @Test
@@ -654,8 +614,8 @@ public class TestFlowController {
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
 
-        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
-        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
     }
 
     @Test
@@ -664,14 +624,14 @@ public class TestFlowController {
         logRepository.removeAllObservers();
 
         // first sync should work because we are syncing to an empty flow controller
-        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.json", flowSynchronizer);
 
         controller.initializeFlow();
 
         // second sync should fail because the bundle of the processor is different
         assertThrows(UninheritableFlowException.class,
-                () -> syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.xml",
-                        standardFlowSynchronizer));
+                () -> syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.json",
+                        flowSynchronizer));
     }
 
     private void syncFlow(String flowXmlFile, FlowSynchronizer standardFlowSynchronizer) throws IOException {
@@ -686,7 +646,7 @@ public class TestFlowController {
         final byte[] authFingerprintBytes = authFingerprint.getBytes(StandardCharsets.UTF_8);
         final DataFlow proposedDataFlow1 = new StandardDataFlow(flowBytes, null, authFingerprintBytes, Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class), BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL);
     }
 
     @Test
@@ -1303,10 +1263,7 @@ public class TestFlowController {
                 authFingerprint.getBytes(StandardCharsets.UTF_8),
                 Collections.emptySet());
 
-        // following assertion asserts that VersionedFlowSynchronizer is used
-        assertFalse(proposedDataFlow.isXml());
-
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         // should be an empty dataflow
         final Map<String, Integer> componentCounts = controller.getFlowManager().getComponentCounts();
@@ -1334,10 +1291,7 @@ public class TestFlowController {
                 authFingerprint.getBytes(StandardCharsets.UTF_8),
                 Collections.emptySet());
 
-        // following assertion asserts that VersionedFlowSynchronizer is used
-        assertFalse(proposedDataFlow.isXml());
-
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+        controller.synchronize(flowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         final Map<String, Integer> componentCounts = controller.getFlowManager().getComponentCounts();
 
@@ -1366,6 +1320,14 @@ public class TestFlowController {
     }
 
     private String getNewJsonFlow() throws JsonProcessingException {
+        final VersionedDataflow versionedDataflow = getVersionedDataflow();
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final String jsonString = mapper.writeValueAsString(versionedDataflow);
+        return jsonString;
+    }
+
+    private static VersionedDataflow getVersionedDataflow() {
         final VersionedDataflow versionedDataflow = new VersionedDataflow();
 
         versionedDataflow.setEncodingVersion(new VersionedFlowEncodingVersion(2, 0));
@@ -1398,10 +1360,6 @@ public class TestFlowController {
         rootGroup.setFlowFileConcurrency("UNBOUNDED");
         rootGroup.setComponentType(ComponentType.PROCESS_GROUP);
         versionedDataflow.setRootGroup(rootGroup);
-
-        final ObjectMapper mapper = new ObjectMapper();
-
-        final String jsonString = mapper.writeValueAsString(versionedDataflow);
-        return jsonString;
+        return versionedDataflow;
     }
 }

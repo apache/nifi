@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -48,9 +41,20 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SplitRecordSetHandler;
 import org.apache.nifi.serialization.SplitRecordSetHandlerException;
 import org.apache.nifi.serialization.record.Record;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException;
+import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
+import software.amazon.awssdk.utils.CollectionUtils;
 
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -75,7 +79,6 @@ import java.util.UUID;
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "DynamoDB exception message"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "DynamoDB error code"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "DynamoDB error message"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "DynamoDB error type"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "DynamoDB error service"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "DynamoDB error is retryable"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "DynamoDB error request id"),
@@ -89,10 +92,8 @@ import java.util.UUID;
 })
 public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
-    /**
-     * Due to DynamoDB's hardcoded limitation on the number of items in one batch, the processor writes them in chunks.
-     * Every chunk contains a number of items according to the limitations.
-     */
+    // Due to DynamoDB's hardcoded limitation on the number of items in one batch, the processor writes them in chunks.
+    // Every chunk contains a number of items according to the limitations.
     private static final int MAXIMUM_CHUNK_SIZE = 25;
 
     static final String DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";
@@ -171,19 +172,20 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .description("Defines the name of the sort key field in the DynamoDB table. Sort key is also known as range key.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(
-            RECORD_READER,
-            new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE).required(true).build(),
-            REGION,
-            TABLE,
-            PARTITION_KEY_STRATEGY,
-            PARTITION_KEY_FIELD,
-            PARTITION_KEY_ATTRIBUTE,
-            SORT_KEY_STRATEGY,
-            SORT_KEY_FIELD,
-            TIMEOUT,
-            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
-            SSL_CONTEXT_SERVICE
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        RECORD_READER,
+        PARTITION_KEY_STRATEGY,
+        PARTITION_KEY_FIELD,
+        PARTITION_KEY_ATTRIBUTE,
+        SORT_KEY_STRATEGY,
+        SORT_KEY_FIELD,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
+        SSL_CONTEXT_SERVICE
     );
 
     @Override
@@ -200,7 +202,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
         final int alreadyProcessedChunks = flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.parseInt(flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(context), context, flowFile.getAttributes(), getLogger());
+        final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getClient(context), context, flowFile.getAttributes(), getLogger());
         final SplitRecordSetHandler.RecordHandlerResult result;
 
         try (
@@ -240,12 +242,12 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             // More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
             context.yield();
             session.transfer(outgoingFlowFile, REL_UNPROCESSED);
-        } else if (cause instanceof AmazonServiceException) {
+        } else if (cause instanceof AwsServiceException) {
             getLogger().error("Could not process FlowFile due to server exception: " + message, error);
-            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AmazonServiceException) cause), REL_FAILURE);
-        } else if (cause instanceof AmazonClientException) {
+            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AwsServiceException) cause), REL_FAILURE);
+        } else if (cause instanceof SdkException) {
             getLogger().error("Could not process FlowFile due to client exception: " + message, error);
-            session.transfer(processClientException(session, Collections.singletonList(outgoingFlowFile), (AmazonClientException) cause), REL_FAILURE);
+            session.transfer(processSdkException(session, Collections.singletonList(outgoingFlowFile), (SdkException) cause), REL_FAILURE);
         } else {
             getLogger().error("Could not process FlowFile: " + message, error);
             session.transfer(outgoingFlowFile, REL_FAILURE);
@@ -253,43 +255,45 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     }
 
     private static class DynamoDbSplitRecordSetHandler extends SplitRecordSetHandler {
-        private final DynamoDB dynamoDB;
+        private final DynamoDbClient client;
         private final String tableName;
         private final ProcessContext context;
         private final Map<String, String> flowFileAttributes;
         private final ComponentLog logger;
-        private TableWriteItems accumulator;
+        private Collection<WriteRequest> accumulator;
         private int itemCounter = 0;
 
         private DynamoDbSplitRecordSetHandler(
                 final int maxChunkSize,
-                final DynamoDB dynamoDB,
+                final DynamoDbClient client,
                 final ProcessContext context,
                 final Map<String, String> flowFileAttributes,
                 final ComponentLog logger) {
             super(maxChunkSize);
-            this.dynamoDB = dynamoDB;
+            this.client = client;
             this.context = context;
             this.flowFileAttributes = flowFileAttributes;
             this.logger = logger;
             this.tableName = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
-            accumulator = new TableWriteItems(tableName);
+            accumulator = new ArrayList<>();
         }
 
         @Override
         protected void handleChunk(final boolean wasBatchAlreadyProcessed) throws SplitRecordSetHandlerException {
             try {
                 if (!wasBatchAlreadyProcessed) {
-                    final BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(accumulator);
+                    final Map<String, Collection<WriteRequest>> requestItems = new HashMap<>();
+                    requestItems.put(tableName, accumulator);
+                    final BatchWriteItemResponse response = client.batchWriteItem(BatchWriteItemRequest.builder().requestItems(requestItems).build());
 
-                    if (!outcome.getUnprocessedItems().isEmpty()) {
-                        throw new SplitRecordSetHandlerException("Could not insert all items. The unprocessed items are: " + outcome.getUnprocessedItems().toString());
+                    if (CollectionUtils.isNotEmpty(response.unprocessedItems())) {
+                        throw new SplitRecordSetHandlerException("Could not insert all items. The unprocessed items are: " + response.unprocessedItems());
                     }
                 } else {
                     logger.debug("Skipping chunk as was already processed");
                 }
 
-                accumulator = new TableWriteItems(tableName);
+                accumulator.clear();
             } catch (final Exception e) {
                 throw new SplitRecordSetHandlerException(e);
             }
@@ -298,39 +302,41 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         @Override
         protected void addToChunk(final Record record) {
             itemCounter++;
-            accumulator.addItemToPut(convert(record));
+            accumulator.add(convert(record));
         }
 
-        private Item convert(final Record record) {
+        private WriteRequest convert(final Record record) {
             final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
             final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
             final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
 
-            final Item result = new Item();
+            final PutRequest.Builder putRequestBuilder = PutRequest.builder();
+            final Map<String, AttributeValue> item = new HashMap<>();
 
             record.getSchema()
                     .getFields()
                     .stream()
                     .filter(field -> !field.getFieldName().equals(partitionKeyField))
                     .filter(field -> SORT_NONE.getValue().equals(sortKeyStrategy) || !field.getFieldName().equals(sortKeyField))
-                    .forEach(field -> RecordToItemConverter.addField(record, result, field.getDataType().getFieldType(), field.getFieldName()));
+                    .forEach(field -> RecordToItemConverter.addField(record, item, field.getDataType().getFieldType(), field.getFieldName()));
 
-            addPartitionKey(record, result);
-            addSortKey(record, result);
-            return result;
+            addPartitionKey(record, item);
+            addSortKey(record, item);
+            return WriteRequest.builder().putRequest(putRequestBuilder.item(item).build()).build();
         }
 
-        private void addPartitionKey(final Record record, final Item result) {
+        private void addPartitionKey(final Record record, final Map<String, AttributeValue> item) {
             final String partitionKeyStrategy = context.getProperty(PARTITION_KEY_STRATEGY).getValue();
             final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
             final String partitionKeyAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
 
+            final Object partitionKeyValue;
             if (PARTITION_BY_FIELD.getValue().equals(partitionKeyStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(partitionKeyField)) {
                     throw new ProcessException("\"" + PARTITION_BY_FIELD.getDisplayName() + "\" strategy needs the \"" + PARTITION_KEY_FIELD.getDefaultValue() +"\" to present in the record");
                 }
 
-                result.withKeyComponent(partitionKeyField, record.getValue(partitionKeyField));
+                partitionKeyValue = record.getValue(partitionKeyField);
             } else if (PARTITION_BY_ATTRIBUTE.getValue().equals(partitionKeyStrategy)) {
                 if (record.getSchema().getFieldNames().contains(partitionKeyField)) {
                     throw new ProcessException("Cannot reuse existing field with " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + PARTITION_BY_ATTRIBUTE.getDisplayName() + "\"");
@@ -340,38 +346,46 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                     throw new ProcessException("Missing attribute \"" + partitionKeyAttribute + "\"" );
                 }
 
-                result.withKeyComponent(partitionKeyField, flowFileAttributes.get(partitionKeyAttribute));
+                partitionKeyValue = flowFileAttributes.get(partitionKeyAttribute);
             } else if (PARTITION_GENERATED.getValue().equals(partitionKeyStrategy)) {
                 if (record.getSchema().getFieldNames().contains(partitionKeyField)) {
                     throw new ProcessException("Cannot reuse existing field with " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + PARTITION_GENERATED.getDisplayName() + "\"");
                 }
 
-                result.withKeyComponent(partitionKeyField, UUID.randomUUID().toString());
+                partitionKeyValue = UUID.randomUUID().toString();
             } else {
                 throw new ProcessException("Unknown " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + partitionKeyStrategy + "\"");
             }
+
+            item.put(partitionKeyField, RecordToItemConverter.toAttributeValue(partitionKeyValue));
         }
 
-        private void addSortKey(final Record record, final Item result) {
+        private void addSortKey(final Record record, final Map<String, AttributeValue> item) {
             final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
             final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
 
+            final Object sortKeyValue;
             if (SORT_BY_FIELD.getValue().equals(sortKeyStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
                     throw new ProcessException(SORT_BY_FIELD.getDisplayName() + " strategy needs the \"" + SORT_KEY_FIELD.getDisplayName() + "\" to present in the record");
                 }
 
-                result.withKeyComponent(sortKeyField, record.getValue(sortKeyField));
+                sortKeyValue = record.getValue(sortKeyField);
             } else if (SORT_BY_SEQUENCE.getValue().equals(sortKeyStrategy)) {
                 if (record.getSchema().getFieldNames().contains(sortKeyField)) {
                     throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SORT_BY_SEQUENCE.getDisplayName() +"\"");
                 }
 
-                result.withKeyComponent(sortKeyField, itemCounter);
+                sortKeyValue = itemCounter;
             } else if (SORT_NONE.getValue().equals(sortKeyStrategy)) {
                 logger.debug("No " + SORT_KEY_STRATEGY.getDisplayName() + " was applied");
+                sortKeyValue = null;
             } else {
                 throw new ProcessException("Unknown " + SORT_KEY_STRATEGY.getDisplayName() + " \"" + sortKeyStrategy + "\"");
+            }
+
+            if (sortKeyValue != null) {
+                item.put(sortKeyField, RecordToItemConverter.toAttributeValue(sortKeyValue));
             }
         }
     }

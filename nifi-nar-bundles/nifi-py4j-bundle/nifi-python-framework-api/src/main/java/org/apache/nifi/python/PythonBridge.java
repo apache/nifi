@@ -17,7 +17,7 @@
 
 package org.apache.nifi.python;
 
-import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 
 import java.io.IOException;
 import java.util.List;
@@ -88,8 +88,7 @@ public interface PythonBridge {
     void discoverExtensions();
 
     /**
-     * Creates a Processor with the given identifier, type, and version. Then returns a PythonProcessorBridge that provides access to all
-     * necessary information and objects for interacting with this Processor from the Java side.
+     * Creates a Processor with the given identifier, type, and version.
      *
      * @param identifier the Processor's identifier
      * @param type the Processor's type
@@ -97,7 +96,7 @@ public interface PythonBridge {
      * @param preferIsolatedProcess whether or not to prefer launching a Python Process that is isolated for just this one instance of the Processor
      * @return a PythonProcessorBridge that can be used for interacting with the Processor
      */
-    PythonProcessorBridge createProcessor(String identifier, String type, String version, boolean preferIsolatedProcess);
+    AsyncLoadedProcessor createProcessor(String identifier, String type, String version, boolean preferIsolatedProcess);
 
     /**
      * A notification that the Processor with the given identifier, type, and version was removed from the flow. This triggers the bridge

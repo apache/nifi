@@ -24,30 +24,6 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.SwaggerDefinition;
 import io.swagger.annotations.Tag;
-import java.net.URI;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
@@ -56,7 +32,10 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -73,7 +52,6 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
@@ -101,11 +79,36 @@ import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -445,6 +448,72 @@ public class ControllerResource extends ApplicationResource {
 
                     // build the response
                     return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+                }
+        );
+    }
+
+    /**
+     * Imports a reporting task snapshot.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks/import")
+    @ApiOperation(
+            value = "Imports a reporting task snapshot",
+            response = VersionedReportingTaskImportResponseEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response importReportingTaskSnapshot(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The import request containing the reporting task snapshot to import.",
+                    required = true
+            ) final VersionedReportingTaskImportRequestEntity importRequestEntity) {
+
+        if (importRequestEntity == null || importRequestEntity.getReportingTaskSnapshot() == null) {
+            throw new IllegalArgumentException("Reporting task snapshot is required");
+        }
+
+        final VersionedReportingTaskSnapshot requestSnapshot = importRequestEntity.getReportingTaskSnapshot();
+        serviceFacade.discoverCompatibleBundles(requestSnapshot);
+        serviceFacade.generateIdentifiersForImport(requestSnapshot, () -> generateUuid());
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, importRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(importRequestEntity.getDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                importRequestEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+
+                    final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(requestSnapshot, serviceFacade);
+                    restrictedComponents.forEach(restrictedComponent -> {
+                        final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
+                        authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
+                    });
+                },
+                () -> {
+                    // Nothing to verify
+                },
+                (importRequest) -> {
+                    final VersionedReportingTaskSnapshot snapshot = importRequest.getReportingTaskSnapshot();
+                    final VersionedReportingTaskImportResponseEntity responseEntity = serviceFacade.importReportingTasks(snapshot);
+                    return generateOkResponse(responseEntity).build();
                 }
         );
     }
@@ -1454,8 +1523,6 @@ public class ControllerResource extends ApplicationResource {
         // authorize access
         authorizeController(RequestAction.READ);
 
-        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
-
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
             throw new IllegalArgumentException("Flow Registry client details must be specified.");
         }
@@ -1473,6 +1540,10 @@ public class ControllerResource extends ApplicationResource {
 
         if (StringUtils.isBlank(requestRegistryClient.getName())) {
             throw new IllegalArgumentException("Flow Registry name must be specified.");
+        }
+
+        if (requestRegistryClient.getType() == null) {
+            throw new IllegalArgumentException("The flow registry client type must be specified.");
         }
 
         if (serviceFacade.getRegistryClients().stream().anyMatch(rce -> requestRegistryClient.getName().equals(rce.getComponent().getName()))) {
@@ -1593,8 +1664,6 @@ public class ControllerResource extends ApplicationResource {
                     value = "The flow registry client configuration details.",
                     required = true
             ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
-
-        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
 
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
             throw new IllegalArgumentException("Flow registry client details must be specified.");
@@ -1802,7 +1871,6 @@ public class ControllerResource extends ApplicationResource {
      * Retrieves the types of flow registry clients that this NiFi supports.
      *
      * @return A flowRegistryTypesEntity.
-     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -1839,25 +1907,6 @@ public class ControllerResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    private void preprocessObsoleteRequest(final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
-        final FlowRegistryClientDTO dto = requestFlowRegistryClientEntity.getComponent();
-
-        if (dto.getType() == null && dto.getBundle() == null && dto.getUri() != null) {
-            LOGGER.warn("The flow registry client operation request is considered legacy, will be populated using defaults!");
-
-            final Optional<DocumentedTypeDTO> nifiRegistryBundle = serviceFacade.getFlowRegistryTypes().stream().filter(b -> NIFI_REGISTRY_TYPE.equals(b.getType())).findFirst();
-
-            if (nifiRegistryBundle.isEmpty()) {
-                throw new IllegalStateException("NiFi instance cannot find a NifiRegistryFlowRegistryClient implementation!");
-            }
-
-            dto.setType(NIFI_REGISTRY_TYPE);
-            dto.setBundle(nifiRegistryBundle.get().getBundle());
-            dto.setProperties(new HashMap<>(Collections.singletonMap("url", dto.getUri())));
-            dto.setUri(null);
-        }
-    }
-
     /**
      * Populate the uri's for the specified flow registry client and also extend the result to make it backward compatible.
      *
@@ -1866,11 +1915,6 @@ public class ControllerResource extends ApplicationResource {
      */
     private FlowRegistryClientEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientEntity flowRegistryClientEntity) {
         flowRegistryClientEntity.setUri(generateResourceUri("controller", "registry-clients", flowRegistryClientEntity.getId()));
-
-        if (flowRegistryClientEntity.getComponent().getType().equals(NIFI_REGISTRY_TYPE)) {
-            flowRegistryClientEntity.getComponent().setUri(flowRegistryClientEntity.getComponent().getProperties().get("url"));
-        }
-
         return flowRegistryClientEntity;
     }
 

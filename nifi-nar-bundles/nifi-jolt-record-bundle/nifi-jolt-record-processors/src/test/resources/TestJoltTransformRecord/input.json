@@ -1,13 +1,15 @@
-{
-  "rating": {
-    "primary": {
-      "value": 3
-    },
-    "series": {
-      "value": [5,4]
-    },
-    "quality": {
-      "value": 3
+[
+  {
+    "datetime": "2023-10-06 20:36:09.937019+00:00",
+    "Eta": ""
+  },
+  {
+    "datetime": "2023-08-24 17:07:03.334170+00:00",
+    "Eta": {
+      "Day": 15,
+      "Hour": 6,
+      "Minute": 0,
+      "Month": 8
     }
   }
-}
+]

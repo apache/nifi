@@ -34,6 +34,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.util.FormatUtils;
 
 @Path("/holds/*")
@@ -71,12 +72,12 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         String foundSubject = DEFAULT_FOUND_SUBJECT;
         if (certs != null) {
             for (final X509Certificate cert : certs) {
-                foundSubject = cert.getSubjectX500Principal().getName();
+                foundSubject = StandardPrincipalFormatter.getInstance().getSubject(cert);
 
                 if (authorizedPattern.matcher(foundSubject).matches()) {
                     break;
                 } else {
-                    logger.warn(processor + " rejecting transfer attempt from " + foundSubject + " because the DN is not authorized");
+                    logger.warn("rejecting transfer attempt from [{}] because the DN is not authorized", foundSubject);
                     response.sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
                     return;
                 }

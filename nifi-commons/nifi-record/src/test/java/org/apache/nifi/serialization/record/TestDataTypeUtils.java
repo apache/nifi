@@ -233,6 +233,30 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    void testConvertRecordFieldToObjectWithNestedRecord() {
+        final Record record = DataTypeUtils.toRecord(new LinkedHashMap<String, Object>(){{
+            put("firstName", "John");
+            put("age", 30);
+            put("addresses", new Object[] {"some string", DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Fake Street"), "addresses")});
+        }}, "");
+
+        final Object obj = DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getDataType());
+        assertTrue(obj instanceof Map);
+        final Map<String, Object> map = (Map<String, Object>) obj;
+        assertEquals("John", map.get("firstName"));
+        assertEquals(30, map.get("age"));
+
+        assertTrue(map.get("addresses") instanceof Object[]);
+        final Object[] objArray = (Object[]) map.get("addresses");
+        assertEquals(2, objArray.length);
+        assertEquals("some string", objArray[0]);
+
+        assertTrue(objArray[1] instanceof Map);
+        final Map<String, Object> addressMap = (Map<String, Object>) objArray[1];
+        assertEquals("123 Fake Street", addressMap.get("address_1"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testConvertRecordFieldToObject() {
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, null));
@@ -243,12 +267,18 @@ public class TestDataTypeUtils {
         fields.add(new RecordField("noDefault", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType())));
         fields.add(new RecordField("intField", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("intArray", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
+        fields.add(new RecordField("objArray", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType())
+        )));
+        fields.add(new RecordField("choiceArray", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()))
+        )));
 
         // Map of Records with Arrays
-        List<RecordField> nestedRecordFields = new ArrayList<>();
+        final List<RecordField> nestedRecordFields = new ArrayList<>();
         nestedRecordFields.add(new RecordField("a", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
         nestedRecordFields.add(new RecordField("b", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
-        RecordSchema nestedRecordSchema = new SimpleRecordSchema(nestedRecordFields);
+        final RecordSchema nestedRecordSchema = new SimpleRecordSchema(nestedRecordFields);
 
         fields.add(new RecordField("complex", RecordFieldType.MAP.getMapDataType(RecordFieldType.RECORD.getRecordDataType(nestedRecordSchema))));
 
@@ -257,6 +287,9 @@ public class TestDataTypeUtils {
         values.put("noDefault", "world");
         values.put("intField", 5);
         values.put("intArray", new Integer[] {3,2,1});
+        values.put("objArray", new Object[] {3,"2","abc",1});
+        values.put("noChoiceArray", new Object[] {"foo","BAR"});
+        values.put("choiceArray", new Object[] {"foo",new Object[]{"bar","baz"}});
         final Map<String, Object> complexValues = new HashMap<>();
 
         final Map<String, Object> complexValueRecord1 = new HashMap<>();
@@ -275,22 +308,38 @@ public class TestDataTypeUtils {
 
         Object o = DataTypeUtils.convertRecordFieldtoObject(inputRecord, RecordFieldType.RECORD.getRecordDataType(schema));
         assertTrue(o instanceof Map);
-        Map<String,Object> outputMap = (Map<String,Object>) o;
+        final Map<String,Object> outputMap = (Map<String,Object>) o;
         assertEquals("hello", outputMap.get("defaultOfHello"));
         assertEquals("world", outputMap.get("noDefault"));
         o = outputMap.get("intField");
         assertEquals(5,o);
         o = outputMap.get("intArray");
         assertTrue(o instanceof Integer[]);
-        Integer[] intArray = (Integer[])o;
+        final Integer[] intArray = (Integer[])o;
         assertEquals(3, intArray.length);
         assertEquals((Integer)3, intArray[0]);
+        o = outputMap.get("objArray");
+        assertTrue(o instanceof Object[]);
+        final Object[] objArray = (Object[])o;
+        assertEquals(4, objArray.length);
+        assertEquals(3, objArray[0]);
+        assertEquals("2", objArray[1]);
+        o = outputMap.get("choiceArray");
+        assertTrue(o instanceof Object[]);
+        final Object[] choiceArray = (Object[])o;
+        assertEquals(2, choiceArray.length);
+        assertEquals("foo", choiceArray[0]);
+        assertTrue(choiceArray[1] instanceof Object[]);
+        final Object[] strArray = (Object[]) choiceArray[1];
+        assertEquals(2, strArray.length);
+        assertEquals("bar", strArray[0]);
+        assertEquals("baz", strArray[1]);
         o = outputMap.get("complex");
         assertTrue(o instanceof Map);
-        Map<String,Object> nestedOutputMap = (Map<String,Object>)o;
+        final Map<String,Object> nestedOutputMap = (Map<String,Object>)o;
         o = nestedOutputMap.get("complex1");
         assertTrue(o instanceof Map);
-        Map<String,Object> complex1 = (Map<String,Object>)o;
+        final Map<String,Object> complex1 = (Map<String,Object>)o;
         o = complex1.get("a");
         assertTrue(o instanceof Integer[]);
         assertEquals((Integer)2, ((Integer[])o)[1]);
@@ -299,14 +348,13 @@ public class TestDataTypeUtils {
         assertEquals((Integer)3, ((Integer[])o)[2]);
         o = nestedOutputMap.get("complex2");
         assertTrue(o instanceof Map);
-        Map<String,Object> complex2 = (Map<String,Object>)o;
+        final Map<String,Object> complex2 = (Map<String,Object>)o;
         o = complex2.get("a");
         assertTrue(o instanceof String[]);
         assertEquals("hello", ((String[])o)[0]);
         o = complex2.get("b");
         assertTrue(o instanceof String[]);
         assertEquals("4", ((String[])o)[1]);
-
     }
 
     @Test

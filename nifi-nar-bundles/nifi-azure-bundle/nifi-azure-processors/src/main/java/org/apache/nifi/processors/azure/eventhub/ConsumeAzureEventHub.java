@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.exception.AmqpErrorCondition;
+import com.azure.core.amqp.exception.AmqpException;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -147,14 +149,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("$Default")
             .required(true)
-            .build();
-    static final PropertyDescriptor CONSUMER_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("event-hub-consumer-hostname")
-            .displayName("Consumer Hostname")
-            .description("DEPRECATED: This property is no longer used.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -291,7 +285,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
                 CONSUMER_GROUP,
-                CONSUMER_HOSTNAME,
                 RECORD_READER,
                 RECORD_WRITER,
                 INITIAL_OFFSET,
@@ -514,12 +507,27 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
     private final Consumer<ErrorContext> errorProcessor = errorContext -> {
         final PartitionContext partitionContext = errorContext.getPartitionContext();
+        final Throwable throwable = errorContext.getThrowable();
+
+        if (throwable instanceof AmqpException) {
+            final AmqpException amqpException = (AmqpException) throwable;
+            if (amqpException.getErrorCondition() == AmqpErrorCondition.LINK_STOLEN) {
+                getLogger().info("Partition was stolen by another consumer instance from the consumer group. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]. {}",
+                        partitionContext.getFullyQualifiedNamespace(),
+                        partitionContext.getEventHubName(),
+                        partitionContext.getConsumerGroup(),
+                        partitionContext.getPartitionId(),
+                        amqpException.getMessage());
+                return;
+            }
+        }
+
         getLogger().error("Receive Events failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
                 partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),
                 partitionContext.getPartitionId(),
-                errorContext.getThrowable()
+                throwable
         );
     };
 

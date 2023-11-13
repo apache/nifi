@@ -36,9 +36,9 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -331,7 +331,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     FlowRegistryClientNode getFlowRegistryClient(String id);
 
-    void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode);
+    void removeFlowRegistryClient(FlowRegistryClientNode clientNode);
 
     Set<FlowRegistryClientNode> getAllFlowRegistryClients();
 
@@ -360,6 +360,7 @@ public interface FlowManager extends ParameterProviderLookup {
      *
      * @param id                The unique id
      * @param name              The ParameterContext name
+     * @param description       The ParameterContext description
      * @param parameters        The Parameters
      * @param inheritedContextIds The identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
      * order in which parameters with conflicting names are resolved. I.e., the Parameter Context whose ID comes first in the List is preferred.
@@ -368,8 +369,8 @@ public interface FlowManager extends ParameterProviderLookup {
      * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
      * by {@link FlowManager#withParameterContextResolution(Runnable)}
      */
-    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<String> inheritedContextIds,
-                                            ParameterProviderConfiguration parameterProviderConfiguration);
+    ParameterContext createParameterContext(String id, String name, String description, Map<String, Parameter> parameters,
+                                            List<String> inheritedContextIds, ParameterProviderConfiguration parameterProviderConfiguration);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.

@@ -100,6 +100,8 @@
                                                 <dockerFile>Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}</contextDir>
                                                 <args>
+                                                    <IMAGE_NAME>${docker.jdk.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                                     <NIFI_REGISTRY_VERSION>${project.version}</NIFI_REGISTRY_VERSION>
                                                     <NIFI_REGISTRY_SCRIPTS>target/sh</NIFI_REGISTRY_SCRIPTS>
                                                     <NIFI_REGISTRY_BINARY>target/nifi-registry-${project.version}-bin.zip</NIFI_REGISTRY_BINARY>

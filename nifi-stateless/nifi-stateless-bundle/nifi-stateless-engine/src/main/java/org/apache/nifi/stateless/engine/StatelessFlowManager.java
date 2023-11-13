@@ -352,7 +352,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     }
 
     @Override
-    public void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode) {
+    public void removeFlowRegistryClient(FlowRegistryClientNode clientNode) {
         throw new UnsupportedOperationException("Removing Flow Registry Client is not supported in Stateless NiFi");
     }
 

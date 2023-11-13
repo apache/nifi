@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,8 +35,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNullEquals() {
-        ItemKeys ik1 = new ItemKeys("abc", null);
-        ItemKeys ik2 = new ItemKeys("abc", null);
+        ItemKeys ik1 = new ItemKeys(string("abc"), null);
+        ItemKeys ik2 = new ItemKeys(string("abc"), null);
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -43,8 +44,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNullRangeNotNullEquals() {
-        ItemKeys ik1 = new ItemKeys(null, "ab");
-        ItemKeys ik2 = new ItemKeys(null, "ab");
+        ItemKeys ik1 = new ItemKeys(null, string("ab"));
+        ItemKeys ik2 = new ItemKeys(null, string("ab"));
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -52,8 +53,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNotNullEquals() {
-        ItemKeys ik1 = new ItemKeys("abc", "pqr");
-        ItemKeys ik2 = new ItemKeys("abc", "pqr");
+        ItemKeys ik1 = new ItemKeys(string("abc"), string("pqr"));
+        ItemKeys ik2 = new ItemKeys(string("abc"), string("pqr"));
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -61,8 +62,12 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNotNullForOtherNotEquals() {
-        ItemKeys ik1 = new ItemKeys(null, "ab");
-        ItemKeys ik2 = new ItemKeys("ab", null);
+        ItemKeys ik1 = new ItemKeys(null, string("ab"));
+        ItemKeys ik2 = new ItemKeys(string("ab"), null);
         assertFalse(ik1.equals(ik2));
+    }
+
+    private static AttributeValue string(final String s) {
+        return AttributeValue.builder().s(s).build();
     }
 }

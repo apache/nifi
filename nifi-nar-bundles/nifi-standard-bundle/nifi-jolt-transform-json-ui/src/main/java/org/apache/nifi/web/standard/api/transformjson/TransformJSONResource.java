@@ -25,7 +25,6 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.web.standard.api.AbstractStandardResource;
 import org.apache.nifi.web.standard.api.transformjson.dto.JoltSpecificationDTO;
 import org.apache.nifi.web.standard.api.transformjson.dto.ValidationDTO;
@@ -37,8 +36,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.util.Collections;
 import java.util.Map;
 
@@ -48,22 +45,22 @@ public class TransformJSONResource extends AbstractStandardResource {
     private static final Logger logger = LoggerFactory.getLogger(TransformJSONResource.class);
     private final static String DEFAULT_CHARSET = "UTF-8";
 
-    protected Object getSpecificationJsonObject(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes){
+    private static final String CUSTOM_TRANSFORM_NAME = "jolt-transform-custom";
 
-        if (!StringUtils.isEmpty(specificationDTO.getSpecification()) ){
-
+    protected Object getSpecificationJsonObject(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) {
+        if (!StringUtils.isEmpty(specificationDTO.getSpecification())) {
             final String specification;
 
-            if(evaluateAttributes) {
+            if (evaluateAttributes) {
                 PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
                 Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.emptyMap() : specificationDTO.getExpressionLanguageAttributes();
                 specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
-            }else{
+            } else {
                 specification = specificationDTO.getSpecification().replaceAll("\\$\\{","\\\\\\\\\\$\\{");
             }
             return JsonUtils.jsonToObject(specification, DEFAULT_CHARSET);
 
-        }else{
+        } else {
             return null;
         }
     }
@@ -72,65 +69,49 @@ public class TransformJSONResource extends AbstractStandardResource {
     @Produces({MediaType.APPLICATION_JSON})
     @Path("/validate")
     public Response validateSpec(JoltSpecificationDTO specificationDTO) {
+        ValidationDTO validation;
 
         try {
-            getTransformation(specificationDTO,false);
-        }catch(final Exception e){
-            logger.error("Validation Failed - " + e.toString());
-            return Response.ok(new ValidationDTO(false,"Validation Failed - Please verify the provided specification.")).build();
+            getTransformation(specificationDTO, false);
+            validation = new ValidationDTO(true, null);
+        } catch (final Exception e) {
+            logger.warn("Jolt Transform Validation Failed", e);
+
+            final String message;
+            if (CUSTOM_TRANSFORM_NAME.equals(specificationDTO.getTransform())) {
+                message = "Custom Transform not supported for advanced validation";
+            } else {
+                message = "Validation Failed: Please review the Jolt Specification formatting";
+            }
+
+            validation = new ValidationDTO(false, message);
         }
 
-        return Response.ok(new ValidationDTO(true,null)).build();
+        return Response.ok(validation).build();
     }
 
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     @Path("/execute")
     public Response executeSpec(JoltSpecificationDTO specificationDTO) {
-
         try {
-            JoltTransform transform = getTransformation(specificationDTO,true);
+            JoltTransform transform = getTransformation(specificationDTO, true);
             Object inputJson = JsonUtils.jsonToObject(specificationDTO.getInput());
-            return Response.ok(JsonUtils.toJsonString(TransformUtils.transform(transform,inputJson))).build();
-
-        }catch(final Exception e){
-            logger.error("Execute Specification Failed - " + e.toString());
+            return Response.ok(JsonUtils.toJsonString(TransformUtils.transform(transform, inputJson))).build();
+        } catch (final Exception e) {
+            logger.warn("Jolt Transform Execute Failed", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         }
-
     }
 
-    protected JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception {
+    private JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception {
+        final String transformName = specificationDTO.getTransform();
 
-        Object specJson = getSpecificationJsonObject(specificationDTO,evaluateAttributes);
-        String transformName = specificationDTO.getTransform();
-        String modules = specificationDTO.getModules();
-
-        ClassLoader classLoader = null;
-        JoltTransform transform ;
-
-        if(modules != null && !modules.isEmpty()){
-            classLoader = ClassLoaderUtils.getCustomClassLoader(specificationDTO.getModules(),this.getClass().getClassLoader(), getJarFilenameFilter());
-        } else{
-            classLoader = this.getClass().getClassLoader();
+        if (CUSTOM_TRANSFORM_NAME.equals(transformName)) {
+            throw new IllegalArgumentException("Custom Transform Classes not supported for dynamic evaluation");
         }
 
-        if(transformName.equals("jolt-transform-custom")) {
-            transform = TransformFactory.getCustomTransform(classLoader,specificationDTO.getCustomClass(), specJson);
-        }else{
-            transform = TransformFactory.getTransform(classLoader,specificationDTO.getTransform(), specJson);
-        }
-
-        return transform;
+        Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
+        return TransformFactory.getTransform(getClass().getClassLoader(), specificationDTO.getTransform(), specJson);
     }
-
-    protected FilenameFilter getJarFilenameFilter(){
-        return  new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return (name != null && name.endsWith(".jar"));
-            }
-        };
-    }
-
 }

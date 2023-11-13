@@ -1066,4 +1066,49 @@ public class StandardProcessorTestRunner implements TestRunner {
                         .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
     }
+
+    @Override
+    public PropertyMigrationResult migrateProperties() {
+        final MockPropertyConfiguration mockPropertyConfiguration = new MockPropertyConfiguration(getProcessContext().getAllProperties());
+        getProcessor().migrateProperties(mockPropertyConfiguration);
+
+        final PropertyMigrationResult migrationResult = mockPropertyConfiguration.toPropertyMigrationResult();
+        final Set<MockPropertyConfiguration.CreatedControllerService> services = migrationResult.getCreatedControllerServices();
+
+        RuntimeException serviceCreationException = null;
+        for (final MockPropertyConfiguration.CreatedControllerService service : services) {
+            final ControllerService serviceImpl;
+            try {
+                final Class<?> clazz = Class.forName(service.implementationClassName());
+                final Object newInstance = clazz.getDeclaredConstructor().newInstance();
+                if (!(newInstance instanceof ControllerService)) {
+                    throw new RuntimeException(clazz + " is not a Controller Service");
+                }
+
+                serviceImpl = (ControllerService) newInstance;
+                addControllerService(service.id(), serviceImpl, service.serviceProperties());
+            } catch (final Exception e) {
+                if (serviceCreationException == null) {
+                    if (e instanceof RuntimeException) {
+                        serviceCreationException = (RuntimeException) e;
+                    } else {
+                        serviceCreationException = new RuntimeException(e);
+                    }
+                } else {
+                    serviceCreationException.addSuppressed(e);
+                }
+            }
+        }
+
+        if (serviceCreationException != null) {
+            throw serviceCreationException;
+        }
+
+        final Map<String, String> updatedProperties = mockPropertyConfiguration.getRawProperties();
+        final MockProcessContext processContext = getProcessContext();
+        processContext.clearProperties();
+        updatedProperties.forEach(processContext::setProperty);
+
+        return migrationResult;
+    }
 }

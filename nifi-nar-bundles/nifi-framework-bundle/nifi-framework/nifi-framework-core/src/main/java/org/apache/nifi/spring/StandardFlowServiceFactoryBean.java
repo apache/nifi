@@ -20,7 +20,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.services.FlowService;
@@ -64,8 +63,7 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
                     flowController,
                     properties,
                     revisionManager,
-                    authorizer,
-                    FlowSerializationStrategy.WRITE_XML_AND_JSON);
+                    authorizer);
             }
         }
 

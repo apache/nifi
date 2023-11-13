@@ -20,10 +20,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
-import org.apache.nifi.controller.serialization.StandardFlowSerializer;
+import org.apache.nifi.controller.serialization.VersionedFlowSerializer;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -39,11 +41,10 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.w3c.dom.Document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -86,19 +87,18 @@ public class StandardFlowServiceTest {
         extensionManager = mock(ExtensionDiscoveringManager.class);
         flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
                                         new VolatileBulletinRepository(), extensionManager, statusHistoryRepository, null);
-        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, revisionManager, authorizer,
-                FlowSerializationStrategy.WRITE_XML_AND_JSON);
+        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, revisionManager, authorizer);
         statusHistoryRepository = mock(StatusHistoryRepository.class);
     }
 
     @Test
     public void testLoadWithFlow() throws IOException {
-        byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
+        byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.json"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        StandardFlowSerializer serializer = new StandardFlowSerializer();
+        final FlowSerializer<VersionedDataflow> serializer = new VersionedFlowSerializer(extensionManager);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        final VersionedDataflow doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
         serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
@@ -118,15 +118,15 @@ public class StandardFlowServiceTest {
 
     @Test
     public void testLoadExistingFlow() throws IOException {
-        byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
+        byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.json"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-inheritable.xml"));
+        flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-inheritable.json"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        StandardFlowSerializer serializer = new StandardFlowSerializer();
+        final FlowSerializer<VersionedDataflow> serializer = new VersionedFlowSerializer(extensionManager);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        final VersionedDataflow doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
         serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
@@ -136,17 +136,17 @@ public class StandardFlowServiceTest {
 
     @Test
     public void testLoadExistingFlowWithUninheritableFlow() throws IOException {
-        byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
+        byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.json"));
         flowService.load(new StandardDataFlow(originalBytes, null, null, new HashSet<>()));
 
         try {
-            byte[] updatedBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-uninheritable.xml"));
+            byte[] updatedBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-uninheritable.json"));
             flowService.load(new StandardDataFlow(updatedBytes, null, null, new HashSet<>()));
             fail("should have thrown " + UninheritableFlowException.class);
         } catch (UninheritableFlowException ufe) {
-            StandardFlowSerializer serializer = new StandardFlowSerializer();
+            final FlowSerializer<VersionedDataflow> serializer = new VersionedFlowSerializer(extensionManager);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            final VersionedDataflow doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
             serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();
@@ -158,7 +158,7 @@ public class StandardFlowServiceTest {
 
     @Test
     public void testLoadExistingFlowWithCorruptFlow() throws IOException {
-        byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
+        byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.json"));
         flowService.load(new StandardDataFlow(originalBytes, null, null, new HashSet<>()));
 
         try {
@@ -166,9 +166,9 @@ public class StandardFlowServiceTest {
             flowService.load(new StandardDataFlow(updatedBytes, null, null, new HashSet<>()));
             fail("should have thrown " + FlowSerializationException.class);
         } catch (FlowSerializationException ufe) {
-            StandardFlowSerializer serializer = new StandardFlowSerializer();
+            final FlowSerializer<VersionedDataflow> serializer = new VersionedFlowSerializer(extensionManager);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            final VersionedDataflow doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
             serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();

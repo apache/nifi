@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
@@ -77,8 +67,6 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.python.PythonBridge;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
-import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -93,6 +81,17 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ExtensionBuilder {
    private static final Logger logger = LoggerFactory.getLogger(ExtensionBuilder.class);
@@ -750,9 +749,9 @@ public class ExtensionBuilder {
 
            final Processor processor = processorComponent.getComponent();
 
-           final ProcessorInitializationContext initiContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
+           final ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
                    serviceProvider, nodeTypeProvider, kerberosConfig);
-           processor.initialize(initiContext);
+           processor.initialize(initContext);
 
            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
            verifyControllerServiceReferences(processor, bundle.getClassLoader());
@@ -867,24 +866,14 @@ public class ExtensionBuilder {
 
            // TODO: This is a hack because there's a bug in the UI that causes it to not load extensions that don't have a `.` in the type.
            final String processorType = type.startsWith("python.") ? type.substring("python.".length()) : type;
-           final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
-           final Processor processor = processorBridge.getProcessorProxy();
+           final Processor processor = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
 
            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
-           final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
-               @Override
-               public String getIdentifier() {
-                   return identifier;
-               }
-
-               @Override
-               public ComponentLog getLogger() {
-                   return terminationAwareLogger;
-               }
-           };
-           processorBridge.initialize(initContext);
+           final ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(identifier, terminationAwareLogger,
+               serviceProvider, nodeTypeProvider, kerberosConfig);
+           processor.initialize(initContext);
 
            return new LoggableComponent<>(processor, bundleCoordinate, terminationAwareLogger);
        } finally {

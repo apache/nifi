@@ -17,34 +17,28 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.components.AsyncLoadedProcessor;
+import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.mock.MockProcessorInitializationContext;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.EmptyAttributeMap;
 import org.apache.nifi.python.processor.FlowFileTransformProxy;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
-import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
-import org.apache.nifi.python.processor.RecordTransform;
-import org.apache.nifi.python.processor.RecordTransformResult;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
@@ -54,7 +48,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -74,11 +67,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -164,7 +156,7 @@ public class PythonControllerInteractionIT {
         final List<PythonProcessorDetails> extensionDetails = bridge.getProcessorTypes();
         final List<String> types = extensionDetails.stream()
             .map(PythonProcessorDetails::getProcessorType)
-            .collect(Collectors.toList());
+            .toList();
 
         assertTrue(types.contains(PRETTY_PRINT_JSON));
         assertTrue(types.contains("ConvertCsvToExcel"));
@@ -175,7 +167,6 @@ public class PythonControllerInteractionIT {
             .orElseThrow(() -> new RuntimeException("Could not find ConvertCsvToExcel"));
 
         assertEquals("0.0.1-SNAPSHOT", convertCsvToExcel.getProcessorVersion());
-        assertNull(convertCsvToExcel.getPyPiPackageName());
         assertEquals(new File("target/python/extensions/ConvertCsvToExcel.py").getAbsolutePath(),
             new File(convertCsvToExcel.getSourceLocation()).getAbsolutePath());
     }
@@ -185,10 +176,7 @@ public class PythonControllerInteractionIT {
         // Create a PrettyPrintJson Processor
         final byte[] jsonContent = Files.readAllBytes(Paths.get("src/test/resources/json/input/simple-person.json"));
         for (int i=0; i < 3; i++) {
-            final PythonProcessorBridge prettyPrintJson = createProcessor(PRETTY_PRINT_JSON);
-            assertNotNull(prettyPrintJson);
-
-            final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(prettyPrintJson);
+            final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
             final TestRunner runner = TestRunners.newTestRunner(wrapper);
 
             runner.enqueue(jsonContent);
@@ -202,11 +190,7 @@ public class PythonControllerInteractionIT {
     @Disabled("Just for manual testing...")
     public void runPrettyPrintJsonManyThreads() throws IOException {
         // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge prettyPrintJson = createProcessor(PRETTY_PRINT_JSON);
-        assertNotNull(prettyPrintJson);
-
-        // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(prettyPrintJson);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
 
         final int flowFileCount = 100_000;
@@ -225,12 +209,8 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testSimplePrettyPrint() throws IOException {
-        // Discover extensions so that they can be created
-        final PythonProcessorBridge prettyPrintJson = createProcessor(PRETTY_PRINT_JSON);
-        assertNotNull(prettyPrintJson);
-
         // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(prettyPrintJson);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.enqueue(Paths.get("src/test/resources/json/input/simple-person.json"));
         runner.setProperty("Indentation", "2");
@@ -249,8 +229,7 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testValidator() {
-        final PythonProcessorBridge prettyPrintJson = createProcessor(PRETTY_PRINT_JSON);
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(prettyPrintJson);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
 
         runner.setProperty("Indentation", "-1");
@@ -272,11 +251,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testCsvToExcel() {
         // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge csvToExcel = createProcessor("ConvertCsvToExcel");
-        assertNotNull(csvToExcel);
-
-        // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(csvToExcel);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("ConvertCsvToExcel");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.enqueue("name, number\nJohn Doe, 500");
 
@@ -288,11 +263,8 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testExpressionLanguageWithAttributes() {
-        final PythonProcessorBridge writeProperty = createProcessor("WritePropertyToFlowFile");
-        assertNotNull(writeProperty);
-
         // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(writeProperty);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("WritePropertyToFlowFile");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.setProperty("Message", "Hola Mundo");
         runner.enqueue("Hello World");
@@ -307,11 +279,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testPythonPackage() {
         // Create a WriteNumber Processor
-        final PythonProcessorBridge procBridge = createProcessor("WriteNumber");
-        assertNotNull(procBridge);
-
-        // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(procBridge);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteNumber");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.enqueue("");
 
@@ -323,6 +291,14 @@ public class PythonControllerInteractionIT {
         final int resultNum = Integer.parseInt(content);
         assertTrue(resultNum >= 0);
         assertTrue(resultNum <= 1000);
+    }
+
+    private FlowFileTransformProxy createFlowFileTransform(final String type) {
+        final Processor processor = createProcessor(type);
+        assertNotNull(processor);
+
+        processor.initialize(new MockProcessorInitializationContext());
+        return (FlowFileTransformProxy) processor;
     }
 
     @Test
@@ -339,12 +315,8 @@ public class PythonControllerInteractionIT {
         assertEquals(1, dependencies.size());
         assertEquals("numpy==1.25.0", dependencies.get(0));
 
-        // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge writeNumPyVersion = createProcessor("WriteNumpyVersion");
-        assertNotNull(writeNumPyVersion);
-
         // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(writeNumPyVersion);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteNumpyVersion");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.enqueue("Hello World");
 
@@ -358,13 +330,9 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testControllerService() throws InitializationException {
-        final PythonProcessorBridge processor = createProcessor("LookupAddress");
-        assertNotNull(processor);
-
-        controllerServiceMap.put("StringLookupService", TestLookupService.class);
-
         // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(processor);
+        controllerServiceMap.put("StringLookupService", TestLookupService.class);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("LookupAddress");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         final StringLookupService lookupService = new TestLookupService((Collections.singletonMap("John Doe", "123 My Street")));
         runner.addControllerService("lookup", lookupService);
@@ -391,13 +359,8 @@ public class PythonControllerInteractionIT {
         // Ensure that we started with "Hello, World" because if the test is run multiple times, we may already be starting with the modified version
         replaceFileText(sourceFile, replacement, originalMessage);
 
-        // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge processor = createProcessor("WriteMessage");
-        processor.initialize(createInitContext());
-        assertNotNull(processor);
-
         // Setup
-        final FlowFileTransformProxy wrapper = new FlowFileTransformProxy(processor);
+        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteMessage");
         final TestRunner runner = TestRunners.newTestRunner(wrapper);
         runner.enqueue("");
 
@@ -464,8 +427,7 @@ public class PythonControllerInteractionIT {
         assertEquals(1, v2Count);
 
         // Create a WriteMessage Processor, version 0.0.1-SNAPSHOT
-        final PythonProcessorBridge procV1 = createProcessor("WriteMessage");
-        final FlowFileTransformProxy wrapperV1 = new FlowFileTransformProxy(procV1);
+        final FlowFileTransformProxy wrapperV1 = createFlowFileTransform("WriteMessage");
         final TestRunner runnerV1 = TestRunners.newTestRunner(wrapperV1);
         runnerV1.enqueue("");
 
@@ -476,9 +438,8 @@ public class PythonControllerInteractionIT {
         runnerV1.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hello, World");
 
         // Create an instance of WriteMessage V2
-        final PythonProcessorBridge procV2 = bridge.createProcessor(createId(), "WriteMessage", "0.0.2-SNAPSHOT", true);
-        final FlowFileTransformProxy wrapperV2 = new FlowFileTransformProxy(procV2);
-        final TestRunner runnerV2 = TestRunners.newTestRunner(wrapperV2);
+        final Processor procV2 = createProcessor("WriteMessage", "0.0.2-SNAPSHOT");
+        final TestRunner runnerV2 = TestRunners.newTestRunner(procV2);
         runnerV2.enqueue("");
 
         // Trigger the processor
@@ -489,40 +450,23 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
-    public void testRecordTransformWithDynamicProperties() {
-        // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge processor = createProcessor("SetRecordField");
-        assertNotNull(processor);
-
-        // Mock out ProcessContext to reflect that the processor should set the 'name' field to 'Jane Doe'
-        final PropertyDescriptor nameDescriptor = new PropertyDescriptor.Builder()
-            .name("name")
-            .dynamic(true)
-            .addValidator(Validator.VALID)
-            .build();
-        final PropertyDescriptor numberDescriptor = new PropertyDescriptor.Builder()
-            .name("number")
-            .dynamic(true)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .build();
-
-        final Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
-        propertyMap.put(nameDescriptor, "Jane Doe");
-        propertyMap.put(numberDescriptor, "8");
-
-        final ProcessContext context = createContext(propertyMap);
+    public void testRecordTransformWithDynamicProperties() throws InitializationException {
+        // Create a SetRecordField Processor
+        final TestRunner runner = createRecordTransformRunner("SetRecordField");
+        runner.setProperty("name", "Jane Doe");
+        runner.setProperty("number", "8");
 
         // Create a Record to transform and transform it
         final String json = "[{ \"name\": \"John Doe\" }]";
-        final RecordSchema schema = createSimpleRecordSchema("name");
-        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().getProcessor();
-        recordTransform.setContext(context);
-        final RecordTransformResult result = recordTransform.transformRecord(json, schema, new EmptyAttributeMap()).get(0);
+        runner.enqueue(json);
+        runner.run();
+        runner.assertTransferCount("original", 1);
+        runner.assertTransferCount("success", 1);
 
         // Verify the results
-        assertEquals("success", result.getRelationship());
-        assertNull(result.getSchema());
-        assertEquals("{\"name\": \"Jane Doe\", \"number\": \"8\"}", result.getRecordJson());
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        out.assertContentEquals("""
+            [{"name":"Jane Doe","number":"8"}]""");
     }
 
     private ProcessContext createContext(final Map<PropertyDescriptor, String> propertyValues) {
@@ -542,69 +486,43 @@ public class PythonControllerInteractionIT {
         return context;
     }
 
-    @Test
-    public void testRecordTransformWithInnerRecord() {
-        // Create a PrettyPrintJson Processor
-        final PythonProcessorBridge processor = createProcessor("SetRecordField");
+    private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
+        final Processor processor = createProcessor("SetRecordField");
         assertNotNull(processor);
 
-        // Mock out ProcessContext to reflect that the processor should set the 'name' field to 'Jane Doe'
-        final PropertyDescriptor nameDescriptor = new PropertyDescriptor.Builder()
-            .name("name")
-            .dynamic(true)
-            .addValidator(Validator.VALID)
-            .build();
+        final JsonTreeReader reader = new JsonTreeReader();
+        final JsonRecordSetWriter writer = new JsonRecordSetWriter();
 
-        final Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
-        propertyMap.put(nameDescriptor, "Jane Doe");
-        final ProcessContext context = createContext(propertyMap);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("reader", reader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(reader);
+        runner.enableControllerService(writer);
+        runner.setProperty("Record Reader", "reader");
+        runner.setProperty("Record Writer", "writer");
+
+        return runner;
+    }
+
+    @Test
+    public void testRecordTransformWithInnerRecord() throws InitializationException {
+        // Create a SetRecordField Processor
+        final TestRunner runner = createRecordTransformRunner("SetRecordField");
+        runner.setProperty("name", "Jane Doe");
 
         // Create a Record to transform and transform it
         final String json = "[{\"name\": \"Jake Doe\", \"father\": { \"name\": \"John Doe\" }}]";
-        final RecordSchema recordSchema = createTwoLevelRecord().getSchema();
-        final RecordTransform recordTransform = (RecordTransform) processor.getProcessorAdapter().getProcessor();
-        recordTransform.setContext(context);
-        final RecordTransformResult result = recordTransform.transformRecord(json, recordSchema, new EmptyAttributeMap()).get(0);
-
-        // Verify the results
-        assertEquals("success", result.getRelationship());
-
-        assertEquals("{\"name\": \"Jane Doe\", \"father\": {\"name\": \"John Doe\"}}", result.getRecordJson());
-    }
-
-
-    @Test
-    public void testLogger() {
-        bridge.discoverExtensions();
-
-        final String procId = createId();
-        final PythonProcessorBridge logContentsBridge = bridge.createProcessor(procId, "LogContents", VERSION, true);
-
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
-            @Override
-            public String getIdentifier() {
-                return procId;
-            }
-
-            @Override
-            public ComponentLog getLogger() {
-                return logger;
-            }
-        };
-
-        logContentsBridge.initialize(initContext);
-
-        final TestRunner runner = TestRunners.newTestRunner(logContentsBridge.getProcessorProxy());
-        runner.enqueue("Hello World");
+        runner.enqueue(json);
         runner.run();
 
-        runner.assertTransferCount("original", 1);
+        // Verify the results
         runner.assertTransferCount("success", 1);
-        final ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(logger).info(argumentCaptor.capture());
-        assertEquals("Hello World", argumentCaptor.getValue());
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        out.assertContentEquals("""
+            [{"name":"Jane Doe","father":{"name":"John Doe"}}]""");
     }
+
 
     private RecordSchema createSimpleRecordSchema(final String... fieldNames) {
         return createSimpleRecordSchema(Arrays.asList(fieldNames));
@@ -618,30 +536,6 @@ public class PythonControllerInteractionIT {
 
         final RecordSchema schema = new SimpleRecordSchema(recordFields);
         return schema;
-    }
-
-    private Record createSimpleRecord(final Map<String, Object> values) {
-        final List<RecordField> recordFields = new ArrayList<>();
-        for (final Map.Entry<String, Object> entry : values.entrySet()) {
-            final DataType dataType = DataTypeUtils.inferDataType(entry.getValue(), RecordFieldType.STRING.getDataType());
-            recordFields.add(new RecordField(entry.getKey(), dataType, true));
-        }
-
-        final RecordSchema schema = new SimpleRecordSchema(recordFields);
-        return new MapRecord(schema, values);
-    }
-
-    private Record createTwoLevelRecord() {
-        final Map<String, Object> innerPersonValues = new HashMap<>();
-        innerPersonValues.put("name", "Jake Doe");
-        final Record innerPersonRecord = createSimpleRecord(innerPersonValues);
-
-        final Map<String, Object> outerPersonValues = new HashMap<>();
-        outerPersonValues.put("name", "John Doe");
-        outerPersonValues.put("father", innerPersonRecord);
-        final Record outerPersonRecord = createSimpleRecord(outerPersonValues);
-
-        return outerPersonRecord;
     }
 
 
@@ -667,24 +561,40 @@ public class PythonControllerInteractionIT {
         return UUID.randomUUID().toString();
     }
 
-    private PythonProcessorBridge createProcessor(final String type) {
+    private Processor createProcessor(final String type) {
+        return createProcessor(type, VERSION);
+    }
+
+    private Processor createProcessor(final String type, final String version) {
         bridge.discoverExtensions();
-        final PythonProcessorBridge processor = bridge.createProcessor(createId(), type, VERSION, true);
-        processor.initialize(createInitContext());
+        final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true);
+
+        final ProcessorInitializationContext initContext = new MockProcessorInitializationContext();
+        processor.initialize(initContext);
+
+        final long maxInitTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+        while (true) {
+            final LoadState state = processor.getState();
+            if (state == LoadState.FINISHED_LOADING) {
+                break;
+            }
+            if (state == LoadState.DEPENDENCY_DOWNLOAD_FAILED || state == LoadState.LOADING_PROCESSOR_CODE_FAILED) {
+                throw new RuntimeException("Failed to initialize processor of type %s version %s".formatted(type, version));
+            }
+
+            if (System.currentTimeMillis() > maxInitTime) {
+                throw new RuntimeException("Timed out waiting for processor of type %s version %s to initialize".formatted(type, version));
+            }
+
+            try {
+                Thread.sleep(10L);
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while initializing processor of type %s version %s".formatted(type, version));
+            }
+        }
+        processor.initialize(new MockProcessorInitializationContext());
         return processor;
     }
 
-    private PythonProcessorInitializationContext createInitContext() {
-        return new PythonProcessorInitializationContext() {
-            @Override
-            public String getIdentifier() {
-                return "unit-test-id";
-            }
-
-            @Override
-            public ComponentLog getLogger() {
-                return new MockComponentLogger();
-            }
-        };
-    }
 }

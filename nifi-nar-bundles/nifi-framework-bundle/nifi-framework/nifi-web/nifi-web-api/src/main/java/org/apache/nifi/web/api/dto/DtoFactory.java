@@ -1417,9 +1417,13 @@ public final class DtoFactory {
            final PublicPort publicPort = (PublicPort) port;
            dto.setAllowRemoteAccess(true);
            dto.setTransmitting(publicPort.isTransmitting());
-           dto.setGroupAccessControl(publicPort.getGroupAccessControl());
-           dto.setUserAccessControl(publicPort.getUserAccessControl());
        }
+        // if this port is remotely accessible, determine if its actually connected to another nifi
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
+            dto.setAllowRemoteAccess(true);
+            dto.setTransmitting(publicPort.isTransmitting());
+        }
 
        final Collection<ValidationResult> validationErrors = port.getValidationErrors();
        if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -4177,10 +4181,15 @@ public final class DtoFactory {
        dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
        dto.setExecutionNode(procNode.getExecutionNode().name());
 
-      dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
-      dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
-      dto.setRetriedRelationships(procNode.getRetriedRelationships());
-      dto.setRetryCount(procNode.getRetryCount());
+       dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
+       dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
+       dto.setRetriedRelationships(procNode.getRetriedRelationships());
+       dto.setRetryCount(procNode.getRetryCount());
+
+       final Set<String> autoTerminatedRelationships = procNode.getAutoTerminatedRelationships().stream()
+               .map(Relationship::getName)
+               .collect(Collectors.toSet());
+       dto.setAutoTerminatedRelationships(autoTerminatedRelationships);
 
        return dto;
    }
@@ -4471,8 +4480,6 @@ public final class DtoFactory {
        copy.setType(original.getType());
        copy.setTransmitting(original.isTransmitting());
        copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
-       copy.setUserAccessControl(copy(original.getUserAccessControl()));
-       copy.setGroupAccessControl(copy(original.getGroupAccessControl()));
        copy.setValidationErrors(copy(original.getValidationErrors()));
        copy.setVersionedComponentId(original.getVersionedComponentId());
        copy.setAllowRemoteAccess(original.getAllowRemoteAccess());

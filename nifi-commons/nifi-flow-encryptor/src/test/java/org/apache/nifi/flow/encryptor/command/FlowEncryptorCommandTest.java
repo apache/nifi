@@ -44,11 +44,7 @@ public class FlowEncryptorCommandTest {
 
     private static final String FLOW_CONTENTS_JSON = "{\"property\":\"value\"}";
 
-    private static final String FLOW_CONTENTS_XML = "<property><value>PROPERTY</value></property>";
-
     private static final String JSON_GZ = ".json.gz";
-
-    private static final String XML_GZ = ".xml.gz";
 
     private static final String PROPERTIES_EXTENSION = ".properties";
 
@@ -123,19 +119,16 @@ public class FlowEncryptorCommandTest {
     }
 
     protected static Path getBlankNiFiProperties() throws IOException, URISyntaxException {
-        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
         final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
-        return getNiFiProperties(flowConfiguration, flowConfigurationJson, BLANK_PROPERTIES);
+        return getNiFiProperties(flowConfigurationJson, BLANK_PROPERTIES);
     }
 
     protected static Path getPopulatedNiFiProperties() throws IOException, URISyntaxException {
-        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
         final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
-        return getNiFiProperties(flowConfiguration, flowConfigurationJson, POPULATED_PROPERTIES);
+        return getNiFiProperties(flowConfigurationJson, POPULATED_PROPERTIES);
     }
 
     private static Path getNiFiProperties(
-            final Path flowConfigurationPath,
             final Path flowConfigurationJsonPath,
             String propertiesResource
     ) throws IOException, URISyntaxException {
@@ -143,8 +136,6 @@ public class FlowEncryptorCommandTest {
         final List<String> sourceProperties = Files.readAllLines(sourcePropertiesPath);
         final List<String> flowProperties = sourceProperties.stream().map(line -> {
             if (line.startsWith(FlowEncryptorCommand.CONFIGURATION_FILE)) {
-                return line + flowConfigurationPath;
-            } else if (line.startsWith(FlowEncryptorCommand.CONFIGURATION_JSON_FILE)) {
                 return flowConfigurationJsonPath == null ? line : line + flowConfigurationJsonPath;
             } else {
                 return line;

@@ -825,7 +825,7 @@ public class AffectedComponentSet {
             ", remoteOutputPorts=" + remoteOutputPorts +
             ", processors=" + processors +
             ", parameterProviders=" + parameterProviders +
-            ", flowRegistryCliens=" + flowRegistryClients +
+                ", flowRegistryClients=" + flowRegistryClients +
             ", controllerServices=" + controllerServices +
             ", reportingTasks=" + reportingTasks +
             ", flowAnalysisRules=" + flowAnalysisRules +

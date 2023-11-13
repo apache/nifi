@@ -1612,60 +1612,6 @@
         },
 
         /**
-         * Shows the template policy.
-         *
-         * @param d
-         */
-        showTemplatePolicy: function (d) {
-            initializingComponentPolicy = true;
-
-            // reset the policy message
-            resetPolicyMessage();
-
-            // update the policy controls visibility
-            $('#component-policy-controls').show();
-            $('#global-policy-controls').hide();
-
-            // update the visibility
-            if (d.permissions.canRead === true) {
-                $('#policy-selected-template-container div.policy-selected-component-name').text(d.template.name);
-            } else {
-                $('#policy-selected-template-container div.policy-selected-component-name').text(d.id);
-            }
-            $('#policy-selected-template-container').show();
-
-            // populate the initial resource
-            $('#selected-policy-component-id').text(d.id);
-            $('#selected-policy-component-type').text('templates');
-            $('#component-policy-target')
-                .combo('setOptionEnabled', {
-                    value: 'operate-component'
-                }, false)
-                .combo('setOptionEnabled', {
-                    value: 'write-receive-data'
-                }, false)
-                .combo('setOptionEnabled', {
-                    value: 'write-send-data'
-                }, false)
-                .combo('setOptionEnabled', {
-                    value: 'read-data'
-                }, false)
-                .combo('setOptionEnabled', {
-                    value: 'read-provenance'
-                }, false)
-                .combo('setOptionEnabled', {
-                    value: 'write-data'
-                }, false)
-                .combo('setSelectedOption', {
-                    value: 'read-component'
-                });
-
-            initializingComponentPolicy = false;
-
-            return loadPolicy().always(showPolicy);
-        },
-
-        /**
          * Shows the parameter context policy.
          *
          * @param d

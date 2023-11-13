@@ -18,6 +18,10 @@
 package org.apache.nifi.accumulo.data;
 
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
@@ -25,11 +29,6 @@ import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class KeySchema implements RecordSchema {
     private static final List<RecordField> KEY_FIELDS = new ArrayList<>();
@@ -123,6 +122,11 @@ public class KeySchema implements RecordSchema {
     @Override
     public void removePath(RecordFieldRemovalPath path) {
         throw new NotImplementedException("Path removal from Accumulo KeySchema is not implemented.");
+    }
+
+    @Override
+    public boolean renameField(final String currentName, final String newName) {
+        throw new NotImplementedException("Field renaming from Accumulo KeySchema is not implemented.");
     }
 
     @Override

@@ -16,8 +16,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-ARG IMAGE_NAME=bellsoft/liberica-openjdk-debian
-ARG IMAGE_TAG=21
+ARG IMAGE_NAME
+ARG IMAGE_TAG
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
@@ -37,7 +37,10 @@ ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
    && apt-get update \
-   && apt-get install -y unzip
+   && apt-get install -y unzip \
+   && apt-get -y autoremove \
+   && apt-get clean autoclean \
+   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY $NIFI_BINARY $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
@@ -102,7 +105,7 @@ VOLUME ${NIFI_LOG_DIR} \
 USER nifi
 
 # Clear nifi-env.sh in favour of configuring all environment variables in the Dockerfile
-RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
+RUN echo "#!/bin/sh\n" > "${NIFI_HOME}/bin/nifi-env.sh"
 
 # Web HTTP(s) & Socket Site-to-Site Ports
 EXPOSE 8443/tcp 10000/tcp 8000/tcp

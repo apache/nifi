@@ -32,7 +32,7 @@ import java.util.concurrent.Future;
  * invoked.
  *
  * @see TimerDrivenSchedulingAgent
- * @see QuartzSchedulingAgent
+ * @see CronSchedulingAgent
  */
 abstract class AbstractSchedulingAgent implements SchedulingAgent {
 

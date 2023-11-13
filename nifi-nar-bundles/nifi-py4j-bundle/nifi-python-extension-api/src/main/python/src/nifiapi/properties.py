@@ -27,27 +27,27 @@ class ExpressionLanguageScope(Enum):
 
 
 class StandardValidators:
-    __standard_validators__ = JvmHolder.jvm.org.apache.nifi.processor.util.StandardValidators
+    _standard_validators = JvmHolder.jvm.org.apache.nifi.processor.util.StandardValidators
 
     ALWAYS_VALID = JvmHolder.jvm.org.apache.nifi.components.Validator.VALID
-    NON_EMPTY_VALIDATOR = __standard_validators__.NON_EMPTY_VALIDATOR
-    INTEGER_VALIDATOR = __standard_validators__.INTEGER_VALIDATOR
-    POSITIVE_INTEGER_VALIDATOR = __standard_validators__.POSITIVE_INTEGER_VALIDATOR
-    POSITIVE_LONG_VALIDATOR = __standard_validators__.POSITIVE_LONG_VALIDATOR
-    NON_NEGATIVE_INTEGER_VALIDATOR = __standard_validators__.NON_NEGATIVE_INTEGER_VALIDATOR
-    NUMBER_VALIDATOR = __standard_validators__.NUMBER_VALIDATOR
-    LONG_VALIDATOR = __standard_validators__.LONG_VALIDATOR
-    PORT_VALIDATOR = __standard_validators__.PORT_VALIDATOR
-    NON_EMPTY_EL_VALIDATOR = __standard_validators__.NON_EMPTY_EL_VALIDATOR
-    HOSTNAME_PORT_LIST_VALIDATOR = __standard_validators__.HOSTNAME_PORT_LIST_VALIDATOR
-    BOOLEAN_VALIDATOR = __standard_validators__.BOOLEAN_VALIDATOR
-    URL_VALIDATOR = __standard_validators__.URL_VALIDATOR
-    URI_VALIDATOR = __standard_validators__.URI_VALIDATOR
-    REGULAR_EXPRESSION_VALIDATOR = __standard_validators__.REGULAR_EXPRESSION_VALIDATOR
-    REGULAR_EXPRESSION_WITH_EL_VALIDATOR = __standard_validators__.REGULAR_EXPRESSION_WITH_EL_VALIDATOR
-    TIME_PERIOD_VALIDATOR = __standard_validators__.TIME_PERIOD_VALIDATOR
-    DATA_SIZE_VALIDATOR = __standard_validators__.DATA_SIZE_VALIDATOR
-    FILE_EXISTS_VALIDATOR = __standard_validators__.FILE_EXISTS_VALIDATOR
+    NON_EMPTY_VALIDATOR = _standard_validators.NON_EMPTY_VALIDATOR
+    INTEGER_VALIDATOR = _standard_validators.INTEGER_VALIDATOR
+    POSITIVE_INTEGER_VALIDATOR = _standard_validators.POSITIVE_INTEGER_VALIDATOR
+    POSITIVE_LONG_VALIDATOR = _standard_validators.POSITIVE_LONG_VALIDATOR
+    NON_NEGATIVE_INTEGER_VALIDATOR = _standard_validators.NON_NEGATIVE_INTEGER_VALIDATOR
+    NUMBER_VALIDATOR = _standard_validators.NUMBER_VALIDATOR
+    LONG_VALIDATOR = _standard_validators.LONG_VALIDATOR
+    PORT_VALIDATOR = _standard_validators.PORT_VALIDATOR
+    NON_EMPTY_EL_VALIDATOR = _standard_validators.NON_EMPTY_EL_VALIDATOR
+    HOSTNAME_PORT_LIST_VALIDATOR = _standard_validators.HOSTNAME_PORT_LIST_VALIDATOR
+    BOOLEAN_VALIDATOR = _standard_validators.BOOLEAN_VALIDATOR
+    URL_VALIDATOR = _standard_validators.URL_VALIDATOR
+    URI_VALIDATOR = _standard_validators.URI_VALIDATOR
+    REGULAR_EXPRESSION_VALIDATOR = _standard_validators.REGULAR_EXPRESSION_VALIDATOR
+    REGULAR_EXPRESSION_WITH_EL_VALIDATOR = _standard_validators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR
+    TIME_PERIOD_VALIDATOR = _standard_validators.TIME_PERIOD_VALIDATOR
+    DATA_SIZE_VALIDATOR = _standard_validators.DATA_SIZE_VALIDATOR
+    FILE_EXISTS_VALIDATOR = _standard_validators.FILE_EXISTS_VALIDATOR
 
 
 
@@ -259,34 +259,34 @@ class PropertyDescriptor:
 
         return values
 
-    def __add_resource_definition(self, gateway, resouce_definition, builder):
+    def __add_resource_definition(self, gateway, resource_definition, builder):
         allowed_types = 0
-        if resouce_definition.allow_file:
+        if resource_definition.allow_file:
             allowed_types += 1
-        if resouce_definition.allow_directory:
+        if resource_definition.allow_directory:
             allowed_types += 1
-        if resouce_definition.allow_url:
+        if resource_definition.allow_url:
             allowed_types += 1
-        if resouce_definition.allow_text:
+        if resource_definition.allow_text:
             allowed_types += 1
 
         array_type = gateway.jvm.org.apache.nifi.components.resource.ResourceType
         types = gateway.new_array(array_type, allowed_types)
         index = 0
-        if resouce_definition.allow_file:
+        if resource_definition.allow_file:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.FILE
             index += 1
-        if resouce_definition.allow_directory:
+        if resource_definition.allow_directory:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.DIRECTORY
             index += 1
-        if resouce_definition.allow_url:
+        if resource_definition.allow_url:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.URL
             index += 1
-        if resouce_definition.allow_text:
+        if resource_definition.allow_text:
             types[index] = gateway.jvm.org.apache.nifi.components.resource.ResourceType.TEXT
             index += 1
 
-        cardinality = gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.MULTIPLE if resouce_definition.allow_multiple else \
+        cardinality = gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.MULTIPLE if resource_definition.allow_multiple else \
             gateway.jvm.org.apache.nifi.components.resource.ResourceCardinality.SINGLE
 
         builder.identifiesExternalResource(cardinality, types[0], types[1:])
@@ -332,7 +332,7 @@ class ProcessContext:
 
     def getProperty(self, descriptor):
         property_name = descriptor if isinstance(descriptor, str) else descriptor.name
-        return self.property_values[property_name]
+        return self.property_values.get(property_name)
 
     def getProperties(self):
         return self.descriptor_value_map
@@ -389,7 +389,7 @@ class PythonPropertyValue:
     def asBoolean(self):
         if self.value is None:
             return None
-        return bool(self.value)
+        return self.value.lower() == 'true'
 
     def asFloat(self):
         if self.value is None:

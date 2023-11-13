@@ -36,11 +36,6 @@ public interface PythonProcessorDetails {
     String getSourceLocation();
 
     /**
-     * @return the name of the Python Package Index (PyPi) package, or <code>null</code> if it is not available
-     */
-    String getPyPiPackageName();
-
-    /**
      * @return the Processor's capability description
      */
     String getCapabilityDescription();
@@ -54,4 +49,9 @@ public interface PythonProcessorDetails {
      * @return the dependencies that must be imported in order to use the Processor
      */
     List<String> getDependencies();
+
+    /**
+     * @return the name of the Java interface that is implemented by the Python Processor
+     */
+    String getInterface();
 }

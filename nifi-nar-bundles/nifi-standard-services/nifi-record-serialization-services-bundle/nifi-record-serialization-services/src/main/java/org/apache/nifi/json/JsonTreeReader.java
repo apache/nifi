@@ -51,11 +51,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
@@ -70,12 +68,12 @@ import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
         + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
 public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
-    private volatile String dateFormat;
-    private volatile String timeFormat;
-    private volatile String timestampFormat;
-    private volatile String startingFieldName;
-    private volatile StartingFieldStrategy startingFieldStrategy;
-    private volatile SchemaApplicationStrategy schemaApplicationStrategy;
+    protected volatile String dateFormat;
+    protected volatile String timeFormat;
+    protected volatile String timestampFormat;
+    protected volatile String startingFieldName;
+    protected volatile StartingFieldStrategy startingFieldStrategy;
+    protected volatile SchemaApplicationStrategy schemaApplicationStrategy;
     private volatile boolean allowComments;
     private volatile StreamReadConstraints streamReadConstraints;
 
@@ -108,7 +106,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(SchemaApplicationStrategy.SELECTED_PART.getValue())
             .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, SCHEMA_REFERENCE_READER_PROPERTY)
             .allowableValues(SchemaApplicationStrategy.class)
             .build();
 
@@ -138,9 +136,29 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.startingFieldStrategy = StartingFieldStrategy.valueOf(context.getProperty(STARTING_FIELD_STRATEGY).getValue());
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
         this.schemaApplicationStrategy = SchemaApplicationStrategy.valueOf(context.getProperty(SCHEMA_APPLICATION_STRATEGY).getValue());
+        this.streamReadConstraints = buildStreamReadConstraints(context);
+        this.allowComments = isAllowCommentsEnabled(context);
+    }
+
+    /**
+     * Build Stream Read Constraints based on available properties
+     *
+     * @param context Configuration Context with property values
+     * @return Stream Read Constraints
+     */
+    protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
         final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
-        this.streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
-        this.allowComments = context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
+        return StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+    }
+
+    /**
+     * Determine whether to allow comments when parsing based on available properties
+     *
+     * @param context Configuration Context with property values
+     * @return Allow comments status
+     */
+    protected boolean isAllowCommentsEnabled(final ConfigurationContext context) {
+        return context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
     }
 
     @Override
@@ -153,9 +171,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String schemaAccessStrategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        final RecordSourceFactory<JsonNode> jsonSourceFactory =
-                (var, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
-
+        final RecordSourceFactory<JsonNode> jsonSourceFactory = createJsonRecordSourceFactory();
         final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier =
                 () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
@@ -163,16 +179,23 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
                 () -> super.getSchemaAccessStrategy(schemaAccessStrategy, schemaRegistry, context));
     }
 
+    protected RecordSourceFactory<JsonNode> createJsonRecordSourceFactory() {
+        return (variables, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
+    }
+
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
         return INFER_SCHEMA;
     }
 
-    @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
+        return createJsonTreeRowRecordReader(in, logger, schema);
+    }
+
+    protected JsonTreeRowRecordReader createJsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema) throws IOException, MalformedRecordException {
         return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
-                schemaApplicationStrategy, null, allowComments, streamReadConstraints);
+                schemaApplicationStrategy, null, allowComments, streamReadConstraints, new JsonParserFactory());
     }
 }

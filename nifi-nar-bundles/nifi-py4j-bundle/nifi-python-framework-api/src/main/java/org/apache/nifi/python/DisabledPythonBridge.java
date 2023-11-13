@@ -17,7 +17,7 @@
 
 package org.apache.nifi.python;
 
-import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -64,7 +64,7 @@ public class DisabledPythonBridge implements PythonBridge {
     }
 
     @Override
-    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
         throw new UnsupportedOperationException("Cannot create Processor of type " + type + " because Python extensions are disabled");
     }
 

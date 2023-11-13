@@ -27,7 +27,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.security.GeneralSecurityException;
-import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -54,6 +53,7 @@ import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -350,8 +350,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         }
 
         final X509Certificate peerCertificate = (X509Certificate) peerCertificates[0];
-        final Principal subjectDistinguishedName = peerCertificate.getSubjectX500Principal();
-        return subjectDistinguishedName.getName();
+        return StandardPrincipalFormatter.getInstance().getSubject(peerCertificate);
     }
 
     private boolean handleTlsError(String msg) {

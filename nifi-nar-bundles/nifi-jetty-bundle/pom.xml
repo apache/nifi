@@ -22,10 +22,6 @@
     <artifactId>nifi-jetty-bundle</artifactId>
     <packaging>nar</packaging>
     <description>NiFi: Jetty Bundle</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
     <dependencies>
         <!-- The Jetty Bundle doesn't contain any code that actually depends on nifi-api, but the NAR Maven plugin writes a
              descriptor for each NAR which contains the version of the system API, so we need to make the version available by

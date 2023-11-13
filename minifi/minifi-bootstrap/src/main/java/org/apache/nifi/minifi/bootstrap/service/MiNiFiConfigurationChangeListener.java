@@ -59,11 +59,6 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     }
 
     @Override
-    public String getDescriptor() {
-        return "MiNiFiConfigurationChangeListener";
-    }
-
-    @Override
     public void handleChange(InputStream flowConfigInputStream) throws ConfigurationChangeException {
         logger.info("Received notification of a change");
 
@@ -105,6 +100,11 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             closeQuietly(flowConfigInputStream);
             handlingLock.unlock();
         }
+    }
+
+    @Override
+    public String getDescriptor() {
+        return "MiNiFiConfigurationChangeListener";
     }
 
     private void setActiveFlowReference(ByteBuffer flowConfig) {

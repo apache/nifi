@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.coordination.flow;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -239,7 +239,7 @@ public class PopularVoteFlowElection implements FlowElection {
         }
 
         public boolean isFlowEmpty() {
-            return StandardFlowSynchronizer.isFlowEmpty(dataFlow);
+            return VersionedFlowSynchronizer.isFlowEmpty(dataFlow);
         }
 
         public Set<NodeIdentifier> getNodes() {

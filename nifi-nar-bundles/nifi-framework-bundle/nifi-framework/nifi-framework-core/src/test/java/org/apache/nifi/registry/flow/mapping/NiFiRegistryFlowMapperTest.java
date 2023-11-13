@@ -105,6 +105,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -225,11 +226,11 @@ public class NiFiRegistryFlowMapperTest {
         // prepare a versioned process group with a nested versioned process group, each with 1 processor
         final ProcessGroup innerProcessGroup =
                 prepareProcessGroup(1,false, false, false,
-                        false, false,null,
+                    false, null,
                         false, true, Collections.emptyList());
         final ProcessGroup processGroup =
                 prepareProcessGroup(1,false,false, false,
-                        false, false, null,
+                    false, null,
                         false, true, Collections.singletonList(innerProcessGroup));
 
         final List<ProcessGroup> allProcessGroups = Collections.singletonList(innerProcessGroup);
@@ -237,13 +238,11 @@ public class NiFiRegistryFlowMapperTest {
 
         // perform the mapping, excluding descendant versioned flows
         final InstantiatedVersionedProcessGroup versionedProcessGroup =
-                flowMapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager,
-                        false);
-        final VersionedProcessGroup innerVersionedProcessGroup =
-                versionedProcessGroup.getProcessGroups().iterator().next();
+            flowMapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager, false);
+        final VersionedProcessGroup innerVersionedProcessGroup = versionedProcessGroup.getProcessGroups().iterator().next();
 
         // ensure the Registry URL has been set correctly in the flowManager
-        assert(StringUtils.isNotEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
+        assertFalse(StringUtils.isEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
 
         // verify root versioned process group contents only
         verifyVersionedProcessGroup(processGroup, versionedProcessGroup,false,false);
@@ -265,15 +264,15 @@ public class NiFiRegistryFlowMapperTest {
         // prepare a process group with nested process groups
         final ProcessGroup innerInnerProcessGroup =
                 prepareProcessGroup(0,false, true, false,
-                        true, false,null,
+                    false, null,
                         true, false, Collections.emptyList());
         final ProcessGroup innerProcessGroup =
                 prepareProcessGroup(1,true, false, false,
-                        true, true, externalControllerServiceNode,
+                    true, externalControllerServiceNode,
                         true, true, Collections.singletonList(innerInnerProcessGroup));
         final ProcessGroup processGroup =
                 prepareProcessGroup(2,false,false, true,
-                        false, true, null,
+                    true, null,
                         false, true, Collections.singletonList(innerProcessGroup));
 
         final List<ProcessGroup> allProcessGroups = Arrays.asList(innerProcessGroup, innerInnerProcessGroup);
@@ -390,8 +389,7 @@ public class NiFiRegistryFlowMapperTest {
     }
 
     private ProcessGroup prepareProcessGroup(final int numProcessors, final boolean includeFunnel,final boolean includePorts,
-                                             final boolean includeLabels, final boolean includeVariableRegistry,
-                                             final boolean includeControllerService,
+                                             final boolean includeLabels, final boolean includeControllerService,
                                              final ControllerServiceNode externalControllerServiceNode,
                                              final boolean includeRemoteProcessGroup, final boolean includeVersionControlInfo,
                                              final List<ProcessGroup> childProcessGroups) {
@@ -598,6 +596,7 @@ public class NiFiRegistryFlowMapperTest {
         when(versionControlInformation.getBucketIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(versionControlInformation.getFlowIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(versionControlInformation.getVersion()).thenReturn(counter++);
+        when(versionControlInformation.getStorageLocation()).thenReturn("http://localhost:18080");
         return versionControlInformation;
     }
 
@@ -642,7 +641,7 @@ public class NiFiRegistryFlowMapperTest {
         if (expectVersionControlInfo) {
             final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
             final VersionedFlowCoordinates versionedFlowCoordinates = versionedProcessGroup.getVersionedFlowCoordinates();
-            assertNotNull(versionedFlowCoordinates.getRegistryUrl());
+            assertNotNull(versionedFlowCoordinates.getStorageLocation());
             assertEquals(versionControlInfo.getBucketIdentifier(), versionedFlowCoordinates.getBucketId());
             assertEquals(versionControlInfo.getFlowIdentifier(), versionedFlowCoordinates.getFlowId());
             assertEquals(versionControlInfo.getVersion(), versionedFlowCoordinates.getVersion());

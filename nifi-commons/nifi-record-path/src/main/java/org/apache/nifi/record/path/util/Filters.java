@@ -17,14 +17,15 @@
 
 package org.apache.nifi.record.path.util;
 
+import java.lang.reflect.Array;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 
 public class Filters {
 
@@ -70,5 +71,40 @@ public class Filters {
         }
 
         return false;
+    }
+
+    public static boolean isRecordArray(final DataType dataType, final Object value) {
+        if (dataType.getFieldType() != RecordFieldType.ARRAY) {
+            return false;
+        }
+
+        final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+        final DataType elementType = arrayDataType.getElementType();
+
+        if (elementType != null && elementType.getFieldType() == RecordFieldType.RECORD) {
+            return true;
+        }
+
+        if (value == null) {
+            return false;
+        }
+
+        if (!value.getClass().isArray()) {
+            return false;
+        }
+
+        final int length = Array.getLength(value);
+        if (length == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < length; i++) {
+            final Object val = Array.get(value, i);
+            if (!(val instanceof Record)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

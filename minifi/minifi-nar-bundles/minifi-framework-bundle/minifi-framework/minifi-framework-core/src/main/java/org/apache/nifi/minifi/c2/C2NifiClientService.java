@@ -45,7 +45,7 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_KE
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_LOCATION;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_PASSWORD;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
-import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_JSON_FILE;
+import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_FILE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -216,7 +216,7 @@ public class C2NifiClientService {
 
         FlowEnrichService flowEnrichService = new FlowEnrichService(niFiProperties);
         UpdateConfigurationStrategy updateConfigurationStrategy =
-            new DefaultUpdateConfigurationStrategy(flowController, flowService, flowEnrichService, niFiProperties.getProperty(FLOW_CONFIGURATION_JSON_FILE));
+            new DefaultUpdateConfigurationStrategy(flowController, flowService, flowEnrichService, niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
 
         return new C2OperationHandlerProvider(List.of(
             new UpdateConfigurationOperationHandler(client, flowIdHolder, updateConfigurationStrategy, emptyOperandPropertiesProvider),

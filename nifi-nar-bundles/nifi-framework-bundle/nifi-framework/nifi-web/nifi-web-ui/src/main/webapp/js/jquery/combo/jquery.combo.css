@@ -52,13 +52,13 @@
     box-shadow:0 3px 6px rgba(0,0,0,0.3);
 }
 
-.combo-arrow {
+.combo .combo-arrow {
     float: right;
     width: 10px;
-    margin-top: 4px;
+    line-height: 30px;
 }
 
-.combo-text {
+.combo .combo-text {
     float: left;
     overflow: hidden;
     white-space: nowrap;

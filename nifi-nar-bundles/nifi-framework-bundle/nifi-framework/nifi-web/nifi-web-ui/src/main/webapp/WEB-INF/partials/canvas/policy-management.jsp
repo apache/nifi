@@ -44,16 +44,6 @@
                 </div>
                 <div class="clear"></div>
             </div>
-            <div id="policy-selected-template-container" class="hidden policy-selected-component-container">
-                <div class="policy-selected-component-type-icon">
-                    <i class="icon icon-template"></i>
-                </div>
-                <div class="policy-selected-component-details-container">
-                    <div class="policy-selected-component-name"></div>
-                    <div class="policy-selected-component-type">Template</div>
-                </div>
-                <div class="clear"></div>
-            </div>
             <div id="policy-selected-controller-service-container" class="hidden policy-selected-component-container">
                 <div class="policy-selected-component-type-icon">
                     <i class="icon icon-drop"></i>

@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -40,9 +41,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,30 +50,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("Specifies the Controller Service to use for reading incoming data")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Controller Service to use for writing out the records")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
 
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
-            .name("include-zero-record-flowfiles")
-            .displayName("Include Zero Record FlowFiles")
-            .description("When converting an incoming FlowFile, if the conversion results in no data, "
-                    + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .required(true)
-            .build();
+        .name("Include Zero Record FlowFiles")
+        .description("When converting an incoming FlowFile, if the conversion results in no data, "
+            + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -86,20 +82,24 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
             + "the unchanged FlowFile will be routed to this relationship")
         .build();
 
+    private static final List<PropertyDescriptor> properties = List.of(RECORD_READER, RECORD_WRITER);
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
         return properties;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         return relationships;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("include-zero-record-flowfiles", INCLUDE_ZERO_RECORD_FLOWFILES.getName());
     }
 
     @Override
@@ -173,7 +173,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 }
             });
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
+            getLogger().error("Failed to process {}; will route to failure", flowFile, e);
             // Since we are wrapping the exceptions above there should always be a cause
             // but it's possible it might not have a message. This handles that by logging
             // the name of the class thrown.
@@ -196,7 +196,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final int count = recordCount.get();
         session.adjustCounter("Records Processed", count, false);
-        getLogger().info("Successfully converted {} records for {}", new Object[] {count, flowFile});
+        getLogger().info("Successfully converted {} records for {}", count, flowFile);
     }
 
     protected abstract Record process(Record record, FlowFile flowFile, ProcessContext context, long count);

@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.controller.reporting;
 
-import java.util.Set;
-
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.nar.ExtensionManager;
+
+import java.util.Set;
 
 /**
  * A ReportingTaskProvider is responsible for providing management of, and
@@ -41,11 +41,8 @@ public interface ReportingTaskProvider {
      * being restored after a restart of the software
      *
      * @return the ReportingTaskNode that is used to manage the reporting task
-     *
-     * @throws ReportingTaskInstantiationException if unable to create the
-     * Reporting Task
      */
-    ReportingTaskNode createReportingTask(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded) throws ReportingTaskInstantiationException;
+    ReportingTaskNode createReportingTask(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
 
     /**
      * @param identifier of node

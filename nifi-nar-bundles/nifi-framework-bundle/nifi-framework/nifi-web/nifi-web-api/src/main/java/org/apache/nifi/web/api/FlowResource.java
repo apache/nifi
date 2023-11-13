@@ -75,8 +75,8 @@ import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -1211,7 +1211,7 @@ public class FlowResource extends ApplicationResource {
     @Path("cluster/summary")
     @ApiOperation(
             value = "The cluster summary for this NiFi",
-            response = ClusteSummaryEntity.class,
+        response = ClusterSummaryEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
             }
@@ -1249,7 +1249,7 @@ public class FlowResource extends ApplicationResource {
         clusterConfiguration.setConnectedToCluster(isConnectedToCluster());
 
         // create the response entity
-        final ClusteSummaryEntity entity = new ClusteSummaryEntity();
+        final ClusterSummaryEntity entity = new ClusterSummaryEntity();
         entity.setClusterSummary(clusterConfiguration);
 
         // generate the response
@@ -1812,13 +1812,6 @@ public class FlowResource extends ApplicationResource {
      */
     private FlowRegistryClientEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientEntity flowRegistryClientEntity) {
         flowRegistryClientEntity.setUri(generateResourceUri("controller", "registry-clients", flowRegistryClientEntity.getId()));
-
-        if (flowRegistryClientEntity.getComponent() != null) {
-            if (flowRegistryClientEntity.getComponent().getType().equals(NIFI_REGISTRY_TYPE)) {
-                flowRegistryClientEntity.getComponent().setUri(flowRegistryClientEntity.getComponent().getProperties().get("url"));
-            }
-        }
-
         return flowRegistryClientEntity;
     }
 
