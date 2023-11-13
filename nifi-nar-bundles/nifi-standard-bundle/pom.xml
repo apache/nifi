@@ -219,7 +219,7 @@
             <dependency>
                 <groupId>com.github.wnameless.json</groupId>
                 <artifactId>json-flattener</artifactId>
-                <version>0.16.4</version>
+                <version>0.16.6</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.bval</groupId>
