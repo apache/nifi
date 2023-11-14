@@ -24,7 +24,9 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,6 +40,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.gcp.storage.FetchGCSObject;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 import java.io.IOException;
@@ -51,7 +54,18 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DE
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.KEY_DESC;
 
 @Tags({"file", "resource", "gcs"})
+@SeeAlso({FetchGCSObject.class})
 @CapabilityDescription("Provides a Google Compute Storage (GCS) file resource for other components.")
+@UseCase(
+        description = "Fetch a specific file from GCS." +
+                " The service provides higher performance compared to fetch processors when the data should be moved between different storages without any transformation.",
+        configuration = """
+                "Bucket" = "${gcs.bucket}"
+                "Name" = "${filename}"
+
+                The "GCP Credentials Provider Service" property should specify an instance of the GCPCredentialsService in order to provide credentials for accessing the bucket.
+                """
+)
 public class GCSFileResourceService extends AbstractControllerService implements FileResourceService {
 
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor
