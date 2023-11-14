@@ -89,9 +89,9 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("2.custom", ".txt");
 
         final Map<String, String> expectedCharsets = getCommonExpectedCharsets();
-        expectedCharsets.put("bgBannerFoot.png", "");
-        expectedCharsets.put("blueBtnBg.jpg", "");
-        expectedCharsets.put("grid.gif", "");
+        expectedCharsets.put("bgBannerFoot.png", null);
+        expectedCharsets.put("blueBtnBg.jpg", null);
+        expectedCharsets.put("grid.gif", null);
         expectedCharsets.put("2.custom", "ISO-8859-1");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
@@ -474,22 +474,22 @@ public class TestIdentifyMimeType {
 
     private static Map<String, String> getCommonExpectedCharsets() {
         final Map<String, String> expectedCharsets = new HashMap<>();
-        expectedCharsets.put("1.7z", "");
-        expectedCharsets.put("1.mdb", "");
+        expectedCharsets.put("1.7z", null);
+        expectedCharsets.put("1.mdb", null);
         expectedCharsets.put("1.txt", "ISO-8859-1");
         expectedCharsets.put("1.csv", "ISO-8859-1");
-        expectedCharsets.put("1.txt.bz2", "");
-        expectedCharsets.put("1.txt.gz", "");
-        expectedCharsets.put("1.zip", "");
-        expectedCharsets.put("1.pdf", "");
-        expectedCharsets.put("1.tar", "");
-        expectedCharsets.put("1.tar.gz", "");
-        expectedCharsets.put("1.jar", "");
-        expectedCharsets.put("1.xml", "");
-        expectedCharsets.put("1.xhtml", "");
-        expectedCharsets.put("flowfilev3", "");
-        expectedCharsets.put("flowfilev3WithXhtml", "");
-        expectedCharsets.put("flowfilev1.tar", "");
+        expectedCharsets.put("1.txt.bz2", null);
+        expectedCharsets.put("1.txt.gz", null);
+        expectedCharsets.put("1.zip", null);
+        expectedCharsets.put("1.pdf", null);
+        expectedCharsets.put("1.tar", null);
+        expectedCharsets.put("1.tar.gz", null);
+        expectedCharsets.put("1.jar", null);
+        expectedCharsets.put("1.xml", null);
+        expectedCharsets.put("1.xhtml", null);
+        expectedCharsets.put("flowfilev3", null);
+        expectedCharsets.put("flowfilev3WithXhtml", null);
+        expectedCharsets.put("flowfilev1.tar", null);
         expectedCharsets.put("fake.csv", "ISO-8859-1");
         expectedCharsets.put("charset-utf-8.txt", "UTF-8");
         return expectedCharsets;

@@ -99,7 +99,7 @@ import java.util.Set;
                 + "extension associated with the detected MIME Type. "
                 + "If there is no correlated extension, the attribute's value will be empty"),
         @WritesAttribute(attribute = "mime.charset", description = "This Processor sets the FlowFile's mime.charset attribute to the detected charset. "
-                + "If unable to detect the charset or the detected MIME type is not of type text/*, the attribute's value will be empty")
+                + "If unable to detect the charset or the detected MIME type is not of type text/*, the attribute will not be set")
 }
 )
 public class IdentifyMimeType extends AbstractProcessor {
@@ -258,12 +258,14 @@ public class IdentifyMimeType extends AbstractProcessor {
             extension = lookupExtension(mediaTypeString, logger);
             charset = identifyCharset(tikaStream, metadata, mediaType);
         } catch (IOException e) {
-            throw new ProcessException("IOException thrown identifying mime-type of FlowFile content", e);
+            throw new ProcessException("Failed to identify MIME type from content stream", e);
         }
 
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mediaTypeString);
         flowFile = session.putAttribute(flowFile, "mime.extension", extension);
-        flowFile = session.putAttribute(flowFile, "mime.charset", charset == null ? "" : charset.name());
+        if (charset != null) {
+            flowFile = session.putAttribute(flowFile, "mime.charset", charset.name());
+        }
         logger.info("Identified {} as having MIME Type {}", flowFile, mediaTypeString);
 
         session.getProvenanceReporter().modifyAttributes(flowFile);
