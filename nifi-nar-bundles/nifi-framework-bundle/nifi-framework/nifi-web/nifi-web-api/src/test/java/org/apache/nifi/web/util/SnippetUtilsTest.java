@@ -17,7 +17,12 @@
 package org.apache.nifi.web.util;
 
 
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.ComponentIdGenerator;
+import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -25,11 +30,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SnippetUtilsTest {
 
@@ -193,7 +203,7 @@ public class SnippetUtilsTest {
      * sequentially correct where each subsequent ID is > previous ID.
      */
     @Test
-    public void validateIdOrdering() throws Exception {
+    public void validateIdOrdering() {
         UUID seed = ComponentIdGenerator.generateId();
         UUID currentId1 = ComponentIdGenerator.generateId();
         UUID currentId2 = ComponentIdGenerator.generateId();
@@ -216,5 +226,39 @@ public class SnippetUtilsTest {
         assertEquals(id1, list.get(0));
         assertEquals(id2, list.get(1));
         assertEquals(id3, list.get(2));
+    }
+
+    @Test
+    public void testCopyVersionedComponentIdRemoved() {
+        final FlowSnippetDTO flowSnippetDTO = new FlowSnippetDTO();
+
+        final String versionedComponentId = UUID.randomUUID().toString();
+
+        final LabelDTO labelDTO = new LabelDTO();
+        labelDTO.setVersionedComponentId(versionedComponentId);
+        labelDTO.setId(UUID.randomUUID().toString());
+        final Set<LabelDTO> labels = Collections.singleton(labelDTO);
+        flowSnippetDTO.setLabels(labels);
+
+        final String processGroupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn(processGroupId);
+
+        final AccessPolicyDAO accessPolicyDao = mock(AccessPolicyDAO.class);
+        final SnippetUtils snippetUtils = new SnippetUtils();
+        snippetUtils.setAccessPolicyDAO(accessPolicyDao);
+        snippetUtils.setDtoFactory(new DtoFactory());
+
+        final String seed = ComponentIdGenerator.generateId().toString();
+
+        final FlowSnippetDTO copied = snippetUtils.copy(flowSnippetDTO, processGroup, seed, true);
+
+        final Set<LabelDTO> copiedLabels = copied.getLabels();
+        assertNotNull(copiedLabels);
+        final LabelDTO copiedLabel = copiedLabels.iterator().next();
+        assertNotNull(copiedLabel);
+        assertNotNull(copiedLabel.getVersionedComponentId());
+
+        assertNull(labelDTO.getVersionedComponentId());
     }
 }
