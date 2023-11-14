@@ -140,6 +140,7 @@
             [cdkConnectedOverlayHasBackdrop]="true"
             [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
             [cdkConnectedOverlayOpen]="editorOpen"
+            (detach)="closeEditor()"
             (backdropClick)="closeEditor()">
             <combo-editor
                 *ngIf="hasAllowableValues(editorItem); else nfEditor"
@@ -149,6 +150,7 @@
             <ng-template #nfEditor>
                 <nf-editor
                     [item]="editorItem"
+                    [getParameters]="getParameters"
                     (ok)="savePropertyValue(editorItem, $event)"
                     (cancel)="closeEditor()"></nf-editor>
             </ng-template>

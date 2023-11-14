@@ -24,6 +24,7 @@ import {
     EditControllerServiceRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
+    Parameter,
     Property
 } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
@@ -66,6 +67,7 @@ import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 export class EditControllerService {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
+    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() saving$!: Observable<boolean>;
     @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();

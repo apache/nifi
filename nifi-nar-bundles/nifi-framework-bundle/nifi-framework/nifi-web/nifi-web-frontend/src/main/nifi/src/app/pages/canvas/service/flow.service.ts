@@ -88,6 +88,12 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/parameter-contexts`);
     }
 
+    getParameterContext(id: string): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/parameter-contexts/${id}`, {
+            params: { includeInheritedParameters: true }
+        });
+    }
+
     getCurrentUser(): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }

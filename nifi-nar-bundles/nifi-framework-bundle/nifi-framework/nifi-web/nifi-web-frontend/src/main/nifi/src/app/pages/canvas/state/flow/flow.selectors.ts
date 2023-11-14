@@ -32,6 +32,11 @@ export const selectSaving = createSelector(selectFlowState, (state: FlowState) =
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
+export const selectCurrentParameterContext = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.parameterContext
+);
+
 export const selectCanvasPermissions = createSelector(selectFlowState, (state: FlowState) => state.flow.permissions);
 
 export const selectBreadcrumbs = createSelector(

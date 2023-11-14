@@ -25,7 +25,8 @@
                         "inlineStyleLanguage": "scss",
                         "assets": ["src/favicon.ico", "src/assets"],
                         "styles": ["src/styles.scss"],
-                        "scripts": []
+                        "scripts": [],
+                        "allowedCommonJsDependencies": ["codemirror"]
                     },
                     "configurations": {
                         "production": {
@@ -51,6 +52,10 @@
                 },
                 "serve": {
                     "builder": "@angular-devkit/build-angular:dev-server",
+                    "options": {
+                        "browserTarget": "nifi:build",
+                        "proxyConfig": "proxy.config.mjs"
+                    },
                     "configurations": {
                         "production": {
                             "browserTarget": "nifi:build:production"

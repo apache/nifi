@@ -36,6 +36,7 @@ import {
     AllowableValueEntity,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
+    Parameter,
     Property,
     PropertyDependency,
     PropertyDescriptor,
@@ -97,6 +98,7 @@ export interface PropertyItem extends Property {
 export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
+    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() supportsSensitiveDynamicProperties: boolean = false;
 

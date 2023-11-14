@@ -41,12 +41,14 @@
                 </ng-template>
             </div>
             <div class="flex flex-col gap-y-0.5">
-                <textarea
-                    matInput
-                    cdkFocusInitial
-                    formControlName="value"
-                    type="text"
-                    (mousedown)="preventDrag($event)"></textarea>
+                <div class="nf-editor" #nfEditorContainer>
+                    <ngx-codemirror
+                        [options]="getOptions()"
+                        [autoFocus]="true"
+                        formControlName="value"
+                        (mousedown)="preventDrag($event)"
+                        (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
+                </div>
                 <mat-checkbox
                     formControlName="setEmptyString"
                     (mousedown)="preventDrag($event)"

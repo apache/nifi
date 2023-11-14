@@ -48,6 +48,7 @@ import {
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
+    selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId,
     selectProcessGroup,
@@ -59,7 +60,14 @@ import { ConnectionManager } from '../../service/manager/connection-manager.serv
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/port/create-port/create-port.component';
 import { EditPort } from '../../ui/port/edit-port/edit-port.component';
-import { ComponentType, NewPropertyDialogRequest, NewPropertyDialogResponse, Property } from '../../../../state/shared';
+import {
+    ComponentType,
+    NewPropertyDialogRequest,
+    NewPropertyDialogResponse,
+    Parameter,
+    ParameterEntity,
+    Property
+} from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
@@ -676,7 +684,8 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
-                tap((request) => {
+                withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                tap(([request, parameterContext]) => {
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         data: request,
                         panelClass: 'large-dialog'
@@ -718,6 +727,20 @@ export class FlowEffects {
                             })
                         );
                     };
+
+                    if (parameterContext != null) {
+                        editDialogReference.componentInstance.getParameters = (sensitive: boolean) => {
+                            return this.flowService.getParameterContext(parameterContext.id).pipe(
+                                take(1),
+                                map((response) => response.component.parameters),
+                                map((parameterEntities) => {
+                                    return parameterEntities
+                                        .map((parameterEntity: ParameterEntity) => parameterEntity.parameter)
+                                        .filter((parameter: Parameter) => parameter.sensitive == sensitive);
+                                })
+                            );
+                        };
+                    }
 
                     editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
                         return this.flowService.getControllerService(serviceId).pipe(

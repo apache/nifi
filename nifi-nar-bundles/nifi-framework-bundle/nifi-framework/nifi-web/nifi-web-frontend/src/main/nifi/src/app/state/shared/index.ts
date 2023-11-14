@@ -82,6 +82,14 @@ export interface PropertyTipInput {
     descriptor: PropertyDescriptor;
 }
 
+export interface ParameterTipInput {
+    parameter: Parameter;
+}
+
+export interface ElFunctionTipInput {
+    elFunction: ElFunction;
+}
+
 export interface PropertyHintTipInput {
     supportsEl: boolean;
     supportsParameters: boolean;
@@ -176,6 +184,14 @@ export interface AffectedComponent {
     state: string;
     activeThreadCount?: number;
     validationErrors: string[];
+}
+
+export interface ElFunction {
+    name: string;
+    description: string;
+    args: { [key: string]: string };
+    subject?: string;
+    returnType: string;
 }
 
 export interface ProcessGroupName {

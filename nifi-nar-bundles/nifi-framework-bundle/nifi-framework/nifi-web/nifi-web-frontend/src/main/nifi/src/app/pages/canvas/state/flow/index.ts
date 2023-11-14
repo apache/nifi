@@ -21,6 +21,7 @@ import {
     Bundle,
     ComponentType,
     DocumentedType,
+    ParameterContextReferenceEntity,
     Permissions,
     SelectOption
 } from '../../../../state/shared';
@@ -395,6 +396,7 @@ export interface ProcessGroupFlow {
     uri: string;
     parentGroupId: string | null;
     breadcrumb: BreadcrumbEntity;
+    parameterContext: ParameterContextReferenceEntity | null;
     flow: Flow;
     lastRefreshed: string;
 }

@@ -18,14 +18,60 @@
 @use '@angular/material' as mat;
 
 .property-editor {
-    @include mat.button-density(-2);
+    @include mat.button-density(-1);
 
-    textarea {
-        resize: both;
-        border: 1px solid;
-        padding: 2px;
+    .nf-editor {
         min-height: 100px;
         min-width: 210px;
         width: 350px;
+        border: 1px solid;
+
+        .CodeMirror {
+            resize: both !important;
+            overflow: auto !important;
+
+            height: 100px;
+            border: 1px solid #aaa;
+            font-family: monospace;
+            background-color: #fff;
+            cursor: default;
+            line-height: normal;
+            min-width: 210px;
+
+            &.blank {
+                background: #b2b8c1;
+                color: #dbdee2;
+                border: 1px solid #b2b8c1;
+            }
+        }
+
+        .CodeMirror-scroll {
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        /*
+            Override some defaults...
+        */
+
+        .cm-s-default {
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .cm-s-default .CodeMirror-matchingbracket {
+            color: #000 !important;
+            background-color: #aaa;
+            opacity: 0.5;
+            filter: alpha(opacity=50);
+        }
+
+        .CodeMirror-vscrollbar {
+            bottom: 18px !important;
+        }
+
+        .CodeMirror-hscrollbar {
+            right: 18px !important;
+        }
     }
 }

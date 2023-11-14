@@ -29,6 +29,7 @@ import { Observable } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
+    Parameter,
     Property,
     SelectOption,
     TextTipInput
@@ -73,6 +74,7 @@ import {
 export class EditProcessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
+    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
     @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
     @Input() saving$!: Observable<boolean>;
     @Output() editProcessor: EventEmitter<any> = new EventEmitter<any>();

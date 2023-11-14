@@ -78,6 +78,7 @@ export const initialState: FlowState = {
                     name: ''
                 }
             },
+            parameterContext: null,
             flow: {
                 processGroups: [],
                 remoteProcessGroups: [],

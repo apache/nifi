@@ -15,7 +15,18 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+    AfterViewInit,
+    Component,
+    ElementRef,
+    EventEmitter,
+    Input,
+    OnDestroy,
+    Output,
+    Renderer2,
+    ViewChild,
+    ViewContainerRef
+} from '@angular/core';
 import { PropertyItem } from '../../property-table.component';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -26,8 +37,13 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective } from '../../../nifi-tooltip.directive';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
-import { PropertyHintTipInput } from '../../../../../state/shared';
+import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
+import { CodemirrorModule } from '@ctrl/ngx-codemirror';
+import { Observable, take } from 'rxjs';
+import { NfEl } from './modes/nfel';
+import { NfPr } from './modes/nfpr';
+import { Editor } from 'codemirror';
 
 @Component({
     selector: 'nf-editor',
@@ -43,11 +59,12 @@ import { A11yModule } from '@angular/cdk/a11y';
         MatCheckboxModule,
         NgTemplateOutlet,
         NifiTooltipDirective,
-        A11yModule
+        A11yModule,
+        CodemirrorModule
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
-export class NfEditor {
+export class NfEditor implements AfterViewInit, OnDestroy {
     @Input() set item(item: PropertyItem) {
         this.nfEditorForm.get('value')?.setValue(item.value);
 
@@ -60,22 +77,125 @@ export class NfEditor {
         }
 
         this.supportsEl = item.descriptor.supportsEl;
+        this.sensitive = item.descriptor.sensitive;
+        this.mode = this.supportsEl ? this.nfel.getLanguageId() : this.nfpr.getLanguageId();
+
+        this.itemSet = true;
+        this.loadParameters();
     }
-    @Input() supportsParameters: boolean = false;
+
+    @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
+        this.supportsParameters = true;
+        this._getParameters = getParameters;
+
+        this.getParametersSet = true;
+        this.loadParameters();
+    }
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly PropertyHintTip = PropertyHintTip;
 
-    nfEditorForm: FormGroup;
-    supportsEl: boolean = false;
+    @ViewChild('nfEditorContainer') nfEditorContainer!: ElementRef;
+    nfEditorContainerHeight!: number;
 
-    constructor(private formBuilder: FormBuilder) {
+    itemSet: boolean = false;
+    getParametersSet: boolean = false;
+
+    nfEditorForm: FormGroup;
+    sensitive: boolean = false;
+    supportsEl: boolean = false;
+    supportsParameters: boolean = false;
+
+    mode!: string;
+    _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
+
+    editor!: Editor;
+
+    constructor(
+        private formBuilder: FormBuilder,
+        private viewContainerRef: ViewContainerRef,
+        private renderer: Renderer2,
+        private nfel: NfEl,
+        private nfpr: NfPr
+    ) {
         this.nfEditorForm = this.formBuilder.group({
             value: new FormControl('', Validators.required),
             setEmptyString: new FormControl(false)
         });
+    }
+
+    ngAfterViewInit(): void {
+        const { height } = this.nfEditorContainer.nativeElement.getBoundingClientRect();
+        this.nfEditorContainerHeight = height;
+
+        if (this.editor) {
+            this.editor.setSize('100%', this.nfEditorContainerHeight);
+        }
+    }
+
+    codeMirrorLoaded(codeEditor: any): void {
+        this.editor = codeEditor.codeMirror;
+
+        if (this.nfEditorContainerHeight) {
+            this.editor.setSize('100%', this.nfEditorContainerHeight);
+        }
+
+        this.editor.execCommand('selectAll');
+    }
+
+    loadParameters(): void {
+        if (this.itemSet) {
+            this.nfel.setViewContainerRef(this.viewContainerRef, this.renderer);
+            this.nfpr.setViewContainerRef(this.viewContainerRef, this.renderer);
+
+            if (this.getParametersSet) {
+                if (this._getParameters) {
+                    this._getParameters(this.sensitive)
+                        .pipe(take(1))
+                        .subscribe((parameters) => {
+                            if (this.supportsEl) {
+                                this.nfel.enableParameters();
+                                this.nfel.setParameters(parameters);
+                                this.nfel.configureAutocomplete();
+                            } else {
+                                this.nfpr.enableParameters();
+                                this.nfpr.setParameters(parameters);
+                                this.nfpr.configureAutocomplete();
+                            }
+                        });
+                } else {
+                    if (this.supportsEl) {
+                        this.nfel.enableParameters();
+                        this.nfel.setParameters([]);
+                        this.nfel.configureAutocomplete();
+                    } else {
+                        this.nfpr.enableParameters();
+                        this.nfpr.setParameters([]);
+                        this.nfpr.configureAutocomplete();
+                    }
+                }
+            } else {
+                this.nfel.disableParameters();
+                this.nfpr.disableParameters();
+
+                if (this.supportsEl) {
+                    this.nfel.configureAutocomplete();
+                } else {
+                    this.nfpr.configureAutocomplete();
+                }
+            }
+        }
+    }
+
+    getOptions(): any {
+        return {
+            mode: this.mode,
+            lineNumbers: true,
+            matchBrackets: true,
+            extraKeys: { 'Ctrl-Space': 'autocomplete' }
+        };
     }
 
     getPropertyHintTipData(): PropertyHintTipInput {
@@ -95,8 +215,16 @@ export class NfEditor {
             if (emptyStringChecked.value) {
                 this.nfEditorForm.get('value')?.setValue('');
                 this.nfEditorForm.get('value')?.disable();
+
+                if (this.editor) {
+                    this.editor.setOption('readOnly', 'nocursor');
+                }
             } else {
                 this.nfEditorForm.get('value')?.enable();
+
+                if (this.editor) {
+                    this.editor.setOption('readOnly', false);
+                }
             }
         }
     }
@@ -110,5 +238,10 @@ export class NfEditor {
 
     cancelClicked(): void {
         this.cancel.next();
+    }
+
+    ngOnDestroy(): void {
+        this.nfpr.disableParameters();
+        this.nfel.disableParameters();
     }
 }
