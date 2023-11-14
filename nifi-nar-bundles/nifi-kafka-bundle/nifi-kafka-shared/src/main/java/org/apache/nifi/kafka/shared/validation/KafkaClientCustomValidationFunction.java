@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.AZURE_APP_ID;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.AZURE_APP_SECRET;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.AZURE_TENANT_ID;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_SERVICE_NAME;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_PASSWORD;
@@ -69,6 +72,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         validateKerberosCredentials(validationContext, results);
         validateUsernamePassword(validationContext, results);
         validateAwsMskIamMechanism(validationContext, results);
+        validateAADOAUTHBEARERMechanism(validationContext, results);
         return results;
     }
 
@@ -162,6 +166,53 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
                         .valid(false)
                         .explanation(explanation)
                         .build());
+            }
+        }
+    }
+
+    private void validateAADOAUTHBEARERMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
+        final PropertyValue saslMechanismProperty = validationContext.getProperty(SASL_MECHANISM);
+        if (saslMechanismProperty.isSet()) {
+            final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(saslMechanismProperty.getValue());
+
+            if (SaslMechanism.AADOAUTHBEARER == saslMechanism) {
+                if (!StandardKafkaPropertyProvider.isCustomAADLoginFound()) {
+                    final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AAD OAUTHBEARER enabled",
+                            StandardKafkaPropertyProvider.AAD_AUTHENTICATION_CALLBACK_HANDLER_CLASS);
+
+                    results.add(new ValidationResult.Builder()
+                            .subject(SASL_MECHANISM.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+                }
+                String tenantId = validationContext.getProperty(AZURE_TENANT_ID).evaluateAttributeExpressions().getValue();
+                if (tenantId == null || tenantId.isEmpty()) {
+                    final String explanation = String.format("[%s] required when [%s] mechanism used", AZURE_TENANT_ID.getDisplayName(), saslMechanism);
+                    results.add(new ValidationResult.Builder()
+                            .subject(AZURE_TENANT_ID.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+                }
+                String appId = validationContext.getProperty(AZURE_APP_ID).evaluateAttributeExpressions().getValue();
+                if (appId == null || appId.isEmpty()) {
+                    final String explanation = String.format("[%s] required when [%s] mechanism used", AZURE_APP_ID.getDisplayName(), saslMechanism);
+                    results.add(new ValidationResult.Builder()
+                            .subject(AZURE_APP_ID.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+                }
+                String appSecret = validationContext.getProperty(AZURE_APP_SECRET).evaluateAttributeExpressions().getValue();
+                if (appSecret == null || appSecret.isEmpty()) {
+                    final String explanation = String.format("[%s] required when [%s] mechanism used", AZURE_APP_SECRET.getDisplayName(), saslMechanism);
+                    results.add(new ValidationResult.Builder()
+                            .subject(AZURE_APP_SECRET.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+                }
             }
         }
     }

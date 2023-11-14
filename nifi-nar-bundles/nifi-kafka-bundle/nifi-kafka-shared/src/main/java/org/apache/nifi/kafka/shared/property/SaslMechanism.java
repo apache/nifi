@@ -31,6 +31,8 @@ public enum SaslMechanism implements DescribedValue {
 
     PLAIN("PLAIN", "PLAIN", "Plain username and password authentication"),
 
+    AADOAUTHBEARER("OAUTHBEARER", "AADOAUTHBEARER", "Login with Azure Active Directory"),
+
     SCRAM_SHA_256("SCRAM-SHA-256", "SCRAM-SHA-256", "Salted Challenge Response Authentication Mechanism using SHA-512 with username and password"),
 
     SCRAM_SHA_512("SCRAM-SHA-512", "SCRAM-SHA-512", "Salted Challenge Response Authentication Mechanism using SHA-256 with username and password"),

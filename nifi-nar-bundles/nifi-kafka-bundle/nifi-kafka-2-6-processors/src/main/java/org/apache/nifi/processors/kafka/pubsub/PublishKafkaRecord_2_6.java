@@ -347,6 +347,9 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         properties.add(KERBEROS_SERVICE_NAME);
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
+        properties.add(AZURE_TENANT_ID);
+        properties.add(AZURE_APP_ID);
+        properties.add(AZURE_APP_SECRET);
         properties.add(TOKEN_AUTHENTICATION);
         properties.add(AWS_PROFILE_NAME);
         properties.add(SSL_CONTEXT_SERVICE);

@@ -90,6 +90,48 @@ public interface KafkaClientComponent {
             )
             .build();
 
+    PropertyDescriptor AZURE_TENANT_ID = new PropertyDescriptor.Builder()
+            .name("aad.tenant_id")
+            .displayName("Azure Tenant ID")
+            .description("Azure Tenant ID provided when using Azure Active Directory")
+            .sensitive(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AADOAUTHBEARER.getValue()
+            )
+            .build();
+
+    PropertyDescriptor AZURE_APP_ID = new PropertyDescriptor.Builder()
+            .name("aad.app_id")
+            .displayName("Azure App Id")
+            .description("Azure APP ID provided when using Azure Active Directory")
+            .sensitive(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AADOAUTHBEARER.getValue()
+            )
+            .build();
+
+    PropertyDescriptor AZURE_APP_SECRET = new PropertyDescriptor.Builder()
+            .name("aad.app_secret")
+            .displayName("Azure App Secret")
+            .description("Azure App Secret provided when using Azure Active Directory")
+            .sensitive(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AADOAUTHBEARER.getValue()
+            )
+            .build();
+
     PropertyDescriptor TOKEN_AUTHENTICATION = new PropertyDescriptor.Builder()
             .name("sasl.token.auth")
             .displayName("Token Authentication")
