@@ -191,7 +191,7 @@ public class PutZendeskTicket extends AbstractZendesk {
             final String subject = context.getProperty(ZENDESK_TICKET_SUBJECT).evaluateAttributeExpressions().getValue();
             final String priority = context.getProperty(ZENDESK_TICKET_PRIORITY).evaluateAttributeExpressions().getValue();
             final String type = context.getProperty(ZENDESK_TICKET_TYPE).evaluateAttributeExpressions().getValue();
-            final Map<String, String> dynamicProperties = getDynamicProperties(context, context.getProperties());
+            final Map<String, String> dynamicProperties = getDynamicProperties(context, context.getProperties(), flowFile.getAttributes());
             List<ObjectNode> zendeskTickets = new ArrayList<>();
 
             try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {

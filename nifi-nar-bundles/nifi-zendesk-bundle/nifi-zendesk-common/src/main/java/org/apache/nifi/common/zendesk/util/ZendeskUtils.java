@@ -62,20 +62,21 @@ public final class ZendeskUtils {
      * Collects every non-blank dynamic property from the context.
      *
      * @param context    property context
-     * @param properties property list
+     * @param properties property list from context
+     * @param attributes attributes that Expressions can reference
      * @return Map of dynamic properties
      */
-    public static Map<String, String> getDynamicProperties(PropertyContext context, Map<PropertyDescriptor, String> properties) {
+    public static Map<String, String> getDynamicProperties(PropertyContext context, Map<PropertyDescriptor, String> properties, Map<String, String> attributes) {
         return properties.entrySet().stream()
                 // filter non-blank dynamic properties
                 .filter(e -> e.getKey().isDynamic()
                         && StringUtils.isNotBlank(e.getValue())
-                        && StringUtils.isNotBlank(context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties()).getValue())
+                        && StringUtils.isNotBlank(context.getProperty(e.getKey()).evaluateAttributeExpressions(attributes).getValue())
                 )
                 // convert to Map keys and evaluated property values
                 .collect(Collectors.toMap(
                         e -> e.getKey().getName(),
-                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(context.getAllProperties()).getValue()
+                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(attributes).getValue()
                 ));
     }
 

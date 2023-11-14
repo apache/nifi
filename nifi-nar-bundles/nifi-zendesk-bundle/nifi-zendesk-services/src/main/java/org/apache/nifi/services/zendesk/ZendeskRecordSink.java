@@ -241,18 +241,18 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         writerFactory = context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-        dynamicProperties = getDynamicProperties(context, context.getProperties());
+        dynamicProperties = getDynamicProperties(context, context.getProperties(), Collections.emptyMap());
 
         commentBody = context.getProperty(ZENDESK_TICKET_COMMENT_BODY).evaluateAttributeExpressions().getValue();
         subject = context.getProperty(ZENDESK_TICKET_SUBJECT).evaluateAttributeExpressions().getValue();
         priority = context.getProperty(ZENDESK_TICKET_PRIORITY).evaluateAttributeExpressions().getValue();
         type = context.getProperty(ZENDESK_TICKET_TYPE).evaluateAttributeExpressions().getValue();
 
-        final String subDomain = context.getProperty(ZENDESK_SUBDOMAIN).evaluateAttributeExpressions().getValue();
+        final String subdomain = context.getProperty(ZENDESK_SUBDOMAIN).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
         final ZendeskAuthenticationType authenticationType = ZendeskAuthenticationType.forName(context.getProperty(ZENDESK_AUTHENTICATION_TYPE).getValue());
         final String authenticationCredentials = context.getProperty(ZENDESK_AUTHENTICATION_CREDENTIAL).evaluateAttributeExpressions().getValue();
-        final ZendeskAuthenticationContext authenticationContext = new ZendeskAuthenticationContext(subDomain, user, authenticationType, authenticationCredentials);
+        final ZendeskAuthenticationContext authenticationContext = new ZendeskAuthenticationContext(subdomain, user, authenticationType, authenticationCredentials);
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
         zendeskClient = new ZendeskClient(webClientServiceProvider, authenticationContext);
 
