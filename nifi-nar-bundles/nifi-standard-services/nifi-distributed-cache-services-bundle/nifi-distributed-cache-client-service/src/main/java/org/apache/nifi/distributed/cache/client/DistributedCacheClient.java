@@ -17,7 +17,10 @@
 package org.apache.nifi.distributed.cache.client;
 
 import io.netty.channel.Channel;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.pool.ChannelPool;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
@@ -31,10 +34,14 @@ import java.io.IOException;
  */
 public class DistributedCacheClient {
 
+    private static final boolean DAEMON_THREAD_ENABLED = true;
+
     /**
      * The pool of network connections used to service client requests.
      */
     private final ChannelPool channelPool;
+
+    private final EventLoopGroup eventLoopGroup;
 
     /**
      * Constructor.
@@ -53,9 +60,10 @@ public class DistributedCacheClient {
                                      final SSLContextService sslContextService,
                                      final VersionNegotiatorFactory factory,
                                      final String identifier) {
-        String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
+        final String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
+        this.eventLoopGroup = new NioEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED));
         this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(
-                hostname, port, timeoutMillis, sslContextService, factory, poolName);
+                hostname, port, timeoutMillis, sslContextService, factory, eventLoopGroup);
     }
 
     /**
@@ -76,9 +84,10 @@ public class DistributedCacheClient {
     }
 
     /**
-     * Shutdown {@link ChannelPool} cleanly.
+     * Close Channel Pool and supporting Event Loop Group
      */
     protected void closeChannelPool() {
         channelPool.close();
+        eventLoopGroup.close();
     }
 }
