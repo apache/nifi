@@ -326,7 +326,7 @@ public class HostHeaderHandler extends ScopedHandler {
         Map<String, String> networkInterfaces = niFiProperties.isHTTPSConfigured() ? niFiProperties.getHttpsNetworkInterfaces() : niFiProperties.getHttpNetworkInterfaces();
         if (isNotDefined(networkInterfaces)) {
             // No custom interfaces defined
-            return List.of();
+            return Collections.emptyList();
         } else {
             final List<String> allIPAddresses = new ArrayList<>();
             for (Map.Entry<String, String> entry : networkInterfaces.entrySet()) {

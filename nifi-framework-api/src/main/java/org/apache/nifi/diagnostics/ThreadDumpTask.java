@@ -38,7 +38,7 @@ public class ThreadDumpTask implements DiagnosticTask {
 
         final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
         Collections.addAll(sortedInfos, infos);
-        sortedInfos.sort(new Comparator<>() {
+        sortedInfos.sort(new Comparator<ThreadInfo>() {
             @Override
             public int compare(ThreadInfo o1, ThreadInfo o2) {
                 return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
