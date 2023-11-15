@@ -56,8 +56,6 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-user_%d.log</fileNamePattern>
-            <!-- Control the maximum size of each log file before rolling over -->
-            <maxFileSize>100MB</maxFileSize>
             <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
             <!-- Control the total size of all log archive files for this appender -->
@@ -74,8 +72,6 @@
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request_%d.log</fileNamePattern>
-            <!-- Control the maximum size of each log file before rolling over -->
-            <maxFileSize>100MB</maxFileSize>
             <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
             <!-- Control the total size of all log archive files for this appender -->
@@ -98,8 +94,6 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-bootstrap_%d.log</fileNamePattern>
-            <!-- Control the maximum size of each log file before rolling over -->
-            <maxFileSize>100MB</maxFileSize>
             <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
             <!-- Control the total size of all log archive files for this appender -->
