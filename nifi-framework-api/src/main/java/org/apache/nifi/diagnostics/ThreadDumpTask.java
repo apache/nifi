@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public class ThreadDumpTask implements DiagnosticTask {
     @Override
@@ -37,7 +38,7 @@ public class ThreadDumpTask implements DiagnosticTask {
 
         final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
         Collections.addAll(sortedInfos, infos);
-        sortedInfos.sort(new Comparator<ThreadInfo>() {
+        sortedInfos.sort(new Comparator<>() {
             @Override
             public int compare(ThreadInfo o1, ThreadInfo o2) {
                 return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
@@ -69,7 +70,7 @@ public class ThreadDumpTask implements DiagnosticTask {
                 sb.append(" (in native code)");
             }
 
-            if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
+            if (deadlockedThreadIds != null) {
                 for (final long id : deadlockedThreadIds) {
                     if (id == info.getThreadId()) {
                         sb.append(" ** DEADLOCKED THREAD **");
@@ -77,7 +78,7 @@ public class ThreadDumpTask implements DiagnosticTask {
                 }
             }
 
-            if (monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0) {
+            if (monitorDeadlockThreadIds != null) {
                 for (final long id : monitorDeadlockThreadIds) {
                     if (id == info.getThreadId()) {
                         sb.append(" ** MONITOR-DEADLOCKED THREAD **");
@@ -91,7 +92,7 @@ public class ThreadDumpTask implements DiagnosticTask {
 
                 final MonitorInfo[] monitors = info.getLockedMonitors();
                 for (final MonitorInfo monitor : monitors) {
-                    if (monitor.getLockedStackFrame().equals(element)) {
+                    if (Objects.equals(monitor.getLockedStackFrame(), element)) {
                         sb.append("\n\t- waiting on ").append(monitor);
                     }
                 }
