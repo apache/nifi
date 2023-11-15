@@ -47,8 +47,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationStrategy;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
+import org.apache.nifi.minifi.commons.service.FlowSerDeService;
 import org.apache.nifi.services.FlowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,8 +67,13 @@ public class DefaultUpdateConfigurationStrategyTest {
 
     private static final byte[] ORIGINAL_RAW_FLOW_CONFIG_CONTENT = "original_raw_content".getBytes(UTF_8);
     private static final byte[] ORIGINAL_ENRICHED_FLOW_CONFIG_CONTENT = "original_enriched_content".getBytes(UTF_8);
+
     private static final byte[] NEW_RAW_FLOW_CONFIG_CONTENT = "new_raw_content".getBytes(UTF_8);
+    private static final VersionedDataflow NEW_RAW_FLOW_CONFIG = new VersionedDataflow();
+    private static final byte[] NEW_ENCRYPTED_FLOW_CONFIG_CONTENT = "original_encrypted_content".getBytes(UTF_8);
+    private static final VersionedDataflow NEW_ENCRYPTED_FLOW_CONFIG = new VersionedDataflow();
     private static final byte[] NEW_ENRICHED_FLOW_CONFIG_CONTENT = "new_enriched_content".getBytes(UTF_8);
+    private static final VersionedDataflow NEW_ENRICHED_FLOW_CONFIG = new VersionedDataflow();
 
     @TempDir
     private File tempDir;
@@ -76,6 +84,10 @@ public class DefaultUpdateConfigurationStrategyTest {
     private FlowService mockFlowService;
     @Mock
     private FlowEnrichService mockFlowEnrichService;
+    @Mock
+    private FlowPropertyEncryptor mockFlowPropertyEncryptor;
+    @Mock
+    private FlowSerDeService mockFlowSerDeService;
     @Mock
     private FlowManager mockFlowManager;
     @Mock
@@ -96,7 +108,8 @@ public class DefaultUpdateConfigurationStrategyTest {
         rawFlowConfigurationFile = flowConfigurationFile.getParent().resolve(flowConfigurationFileBaseName + RAW_EXTENSION);
         backupRawFlowConfigurationFile = flowConfigurationFile.getParent().resolve(flowConfigurationFileBaseName + BACKUP_EXTENSION + RAW_EXTENSION);
 
-        testUpdateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(mockFlowController, mockFlowService, mockFlowEnrichService, flowConfigurationFile.toString());
+        testUpdateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(mockFlowController, mockFlowService, mockFlowEnrichService,
+            mockFlowPropertyEncryptor, mockFlowSerDeService, flowConfigurationFile.toString());
 
         writeGzipFile(flowConfigurationFile, ORIGINAL_ENRICHED_FLOW_CONFIG_CONTENT);
         writePlainTextFile(rawFlowConfigurationFile, ORIGINAL_RAW_FLOW_CONFIG_CONTENT);
@@ -105,7 +118,11 @@ public class DefaultUpdateConfigurationStrategyTest {
     @Test
     public void testFlowIsUpdatedAndBackupsAreClearedUp() throws IOException {
         // given
-        when(mockFlowEnrichService.enrichFlow(NEW_RAW_FLOW_CONFIG_CONTENT)).thenReturn(NEW_ENRICHED_FLOW_CONFIG_CONTENT);
+        when(mockFlowSerDeService.deserialize(NEW_RAW_FLOW_CONFIG_CONTENT)).thenReturn(NEW_RAW_FLOW_CONFIG);
+        when(mockFlowPropertyEncryptor.encryptSensitiveProperties(NEW_RAW_FLOW_CONFIG)).thenReturn(NEW_ENCRYPTED_FLOW_CONFIG);
+        when(mockFlowSerDeService.serialize(NEW_ENCRYPTED_FLOW_CONFIG)).thenReturn(NEW_ENCRYPTED_FLOW_CONFIG_CONTENT);
+        when(mockFlowEnrichService.enrichFlow(NEW_ENCRYPTED_FLOW_CONFIG)).thenReturn(NEW_ENRICHED_FLOW_CONFIG);
+        when(mockFlowSerDeService.serialize(NEW_ENRICHED_FLOW_CONFIG)).thenReturn(NEW_ENRICHED_FLOW_CONFIG_CONTENT);
         when(mockFlowController.getFlowManager()).thenReturn(mockFlowManager);
         when(mockFlowManager.getRootGroup()).thenReturn(mockProcessGroup);
 
@@ -117,7 +134,7 @@ public class DefaultUpdateConfigurationStrategyTest {
         assertTrue(exists(flowConfigurationFile));
         assertTrue(exists(rawFlowConfigurationFile));
         assertArrayEquals(NEW_ENRICHED_FLOW_CONFIG_CONTENT, readGzipFile(flowConfigurationFile));
-        assertArrayEquals(NEW_RAW_FLOW_CONFIG_CONTENT, readPlainTextFile(rawFlowConfigurationFile));
+        assertArrayEquals(NEW_ENCRYPTED_FLOW_CONFIG_CONTENT, readPlainTextFile(rawFlowConfigurationFile));
         assertFalse(exists(backupFlowConfigurationFile));
         assertFalse(exists(backupRawFlowConfigurationFile));
         verify(mockFlowService, times(1)).load(null);
@@ -128,7 +145,11 @@ public class DefaultUpdateConfigurationStrategyTest {
     @Test
     public void testFlowIsRevertedInCaseOfAnyErrorAndBackupsAreClearedUp() throws IOException {
         // given
-        when(mockFlowEnrichService.enrichFlow(NEW_RAW_FLOW_CONFIG_CONTENT)).thenReturn(NEW_ENRICHED_FLOW_CONFIG_CONTENT);
+        when(mockFlowSerDeService.deserialize(NEW_RAW_FLOW_CONFIG_CONTENT)).thenReturn(NEW_RAW_FLOW_CONFIG);
+        when(mockFlowPropertyEncryptor.encryptSensitiveProperties(NEW_RAW_FLOW_CONFIG)).thenReturn(NEW_ENCRYPTED_FLOW_CONFIG);
+        when(mockFlowSerDeService.serialize(NEW_ENCRYPTED_FLOW_CONFIG)).thenReturn(NEW_ENCRYPTED_FLOW_CONFIG_CONTENT);
+        when(mockFlowEnrichService.enrichFlow(NEW_ENCRYPTED_FLOW_CONFIG)).thenReturn(NEW_ENRICHED_FLOW_CONFIG);
+        when(mockFlowSerDeService.serialize(NEW_ENRICHED_FLOW_CONFIG)).thenReturn(NEW_ENRICHED_FLOW_CONFIG_CONTENT);
         when(mockFlowController.getFlowManager()).thenReturn(mockFlowManager);
         when(mockFlowManager.getRootGroup()).thenReturn(mockProcessGroup);
         doThrow(new IOException()).when(mockFlowService).load(null);

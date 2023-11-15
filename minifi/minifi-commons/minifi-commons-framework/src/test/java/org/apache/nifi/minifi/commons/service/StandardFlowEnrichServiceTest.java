@@ -18,9 +18,10 @@
 package org.apache.nifi.minifi.commons.service;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.nifi.minifi.commons.service.FlowEnrichService.COMMON_SSL_CONTEXT_SERVICE_NAME;
-import static org.apache.nifi.minifi.commons.service.FlowEnrichService.DEFAULT_SSL_CONTEXT_SERVICE_NAME;
-import static org.apache.nifi.minifi.commons.service.FlowEnrichService.SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME;
+import static java.util.UUID.randomUUID;
+import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.COMMON_SSL_CONTEXT_SERVICE_NAME;
+import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.DEFAULT_SSL_CONTEXT_SERVICE_NAME;
+import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,76 +48,64 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.properties.StandardReadableProperties;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-public class FlowEnrichServiceTest {
+public class StandardFlowEnrichServiceTest {
 
     private static final Path DEFAULT_FLOW_JSON = Path.of("src/test/resources/default_flow.json");
 
     @Test
     public void testFlowIsLeftIntactIfEnrichingIsNotNecessary() {
-        // given
         Map<String, String> properties = Map.of();
-        byte[] testFlowBytes = flowToString(loadDefaultFlow()).getBytes(UTF_8);
+        VersionedDataflow testFlow = loadDefaultFlow();
 
-        // when
-        FlowEnrichService testFlowEnrichService = new FlowEnrichService(new StandardReadableProperties(properties));
-        byte[] enrichedFlowBytes = testFlowEnrichService.enrichFlow(testFlowBytes);
+        FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
+        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
 
-        // then
+        byte[] testFlowBytes = flowToString(testFlow).getBytes(UTF_8);
+        byte[] enrichedFlowBytes = flowToString(enrichedFlow).getBytes(UTF_8);
         assertArrayEquals(testFlowBytes, enrichedFlowBytes);
     }
 
     @Test
     public void testMissingRootGroupIdsAreFilledIn() {
-        // given
         Map<String, String> properties = Map.of();
         VersionedDataflow testFlow = loadDefaultFlow();
         testFlow.getRootGroup().setIdentifier(null);
         testFlow.getRootGroup().setInstanceIdentifier(null);
-        byte[] testFlowBytes = flowToString(testFlow).getBytes(UTF_8);
-        UUID expectedIdentifier = UUID.randomUUID();
+        UUID expectedIdentifier = randomUUID();
 
         try (MockedStatic<UUID> uuid = mockStatic(UUID.class)) {
             uuid.when(UUID::randomUUID).thenReturn(expectedIdentifier);
 
-            // when
-            FlowEnrichService testFlowEnrichService = new FlowEnrichService(new StandardReadableProperties(properties));
-            byte[] enrichedFlowBytes = testFlowEnrichService.enrichFlow(testFlowBytes);
+            FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
+            VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
 
-            // then
-            VersionedDataflow versionedDataflow = flowFromString(new String(enrichedFlowBytes, UTF_8));
-            Assertions.assertEquals(expectedIdentifier.toString(), versionedDataflow.getRootGroup().getIdentifier());
-            Assertions.assertEquals(expectedIdentifier.toString(), versionedDataflow.getRootGroup().getInstanceIdentifier());
+            assertEquals(expectedIdentifier.toString(), enrichedFlow.getRootGroup().getIdentifier());
+            assertEquals(expectedIdentifier.toString(), enrichedFlow.getRootGroup().getInstanceIdentifier());
         }
     }
 
     @Test
     public void testCommonSslControllerServiceIsAddedWithBundleVersionAndProcessorControllerServiceIsOverridden() {
-        // given
         Map<String, String> properties = securityProperties(true);
-        VersionedDataflow versionedDataflow = loadDefaultFlow();
+        VersionedDataflow testFlow = loadDefaultFlow();
         Bundle bundle = bundle("org.apache.nifi", "nifi-ssl-context-service-nar", StringUtils.EMPTY);
         String originalSslControllerServiceId = "original_ssl_controller_service_id";
-        versionedDataflow.getRootGroup()
+        testFlow.getRootGroup()
             .setProcessors(Set.of(
                 processor(bundle, "processor_1", originalSslControllerServiceId),
                 processor(bundle, "processor_2", originalSslControllerServiceId)
             ));
-        byte[] testFlowBytes = flowToString(versionedDataflow).getBytes(UTF_8);
 
-        // when
-        FlowEnrichService testFlowEnrichService = new FlowEnrichService(new StandardReadableProperties(properties));
-        byte[] enrichedFlowBytes = testFlowEnrichService.enrichFlow(testFlowBytes);
+        FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
+        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
 
-        // then
-        VersionedDataflow enrichedFlow = flowFromString(new String(enrichedFlowBytes, UTF_8));
-        Assertions.assertEquals(1, enrichedFlow.getControllerServices().size());
+        assertEquals(1, enrichedFlow.getControllerServices().size());
         VersionedControllerService sslControllerService = enrichedFlow.getControllerServices().get(0);
         assertEquals(COMMON_SSL_CONTEXT_SERVICE_NAME, sslControllerService.getName());
-        Assertions.assertEquals(StringUtils.EMPTY, sslControllerService.getBundle().getVersion());
+        assertEquals(StringUtils.EMPTY, sslControllerService.getBundle().getVersion());
         Set<VersionedProcessor> processors = enrichedFlow.getRootGroup().getProcessors();
         assertEquals(2, processors.size());
         assertTrue(
@@ -128,7 +118,6 @@ public class FlowEnrichServiceTest {
 
     @Test
     public void testProvenanceReportingTaskIsAdded() {
-        // given
         Map<String, String> properties = Map.of(
             MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_COMMENT.getKey(), "comment",
             MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_STRATEGY.getKey(), "timer_driven",
@@ -140,21 +129,18 @@ public class FlowEnrichServiceTest {
             MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_BATCH_SIZE.getKey(), "1000",
             MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_COMMUNICATIONS_TIMEOUT.getKey(), "30 sec"
         );
-        byte[] testFlowBytes = flowToString(loadDefaultFlow()).getBytes(UTF_8);
+        VersionedDataflow testFlow = loadDefaultFlow();
 
-        // when
-        FlowEnrichService testFlowEnrichService = new FlowEnrichService(new StandardReadableProperties(properties));
-        byte[] enrichedFlowBytes = testFlowEnrichService.enrichFlow(testFlowBytes);
+        FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
+        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
 
-        // then
-        VersionedDataflow enrichedFlow = flowFromString(new String(enrichedFlowBytes, UTF_8));
         List<VersionedReportingTask> reportingTasks = enrichedFlow.getReportingTasks();
         assertEquals(1, reportingTasks.size());
         VersionedReportingTask provenanceReportingTask = reportingTasks.get(0);
         assertEquals(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME, provenanceReportingTask.getName());
-        Assertions.assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_COMMENT.getKey()), provenanceReportingTask.getComments());
-        Assertions.assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_STRATEGY.getKey()), provenanceReportingTask.getSchedulingStrategy());
-        Assertions.assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_PERIOD.getKey()), provenanceReportingTask.getSchedulingPeriod());
+        assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_COMMENT.getKey()), provenanceReportingTask.getComments());
+        assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_STRATEGY.getKey()), provenanceReportingTask.getSchedulingStrategy());
+        assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_PERIOD.getKey()), provenanceReportingTask.getSchedulingPeriod());
         Map<String, String> provenanceReportingTaskProperties = provenanceReportingTask.getProperties();
         assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_INPUT_PORT_NAME.getKey()), provenanceReportingTaskProperties.get("Input Port Name"));
         assertEquals(properties.get(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_DESTINATION_URL.getKey()), provenanceReportingTaskProperties.get("Destination URL"));
@@ -224,10 +210,10 @@ public class FlowEnrichServiceTest {
 
     private VersionedProcessor processor(Bundle bundle, String name, String originalSslControllerServiceId) {
         VersionedProcessor versionedProcessor = new VersionedProcessor();
-        versionedProcessor.setIdentifier(UUID.randomUUID().toString());
+        versionedProcessor.setIdentifier(randomUUID().toString());
         versionedProcessor.setName(name);
         versionedProcessor.setBundle(bundle);
-        versionedProcessor.setProperties(Map.of(DEFAULT_SSL_CONTEXT_SERVICE_NAME, originalSslControllerServiceId));
+        versionedProcessor.setProperties(new HashMap<>(Map.of(DEFAULT_SSL_CONTEXT_SERVICE_NAME, originalSslControllerServiceId)));
         return versionedProcessor;
     }
 }

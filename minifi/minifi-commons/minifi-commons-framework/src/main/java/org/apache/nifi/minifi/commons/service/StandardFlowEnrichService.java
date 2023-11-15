@@ -19,7 +19,6 @@ package org.apache.nifi.minifi.commons.service;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Map.entry;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
@@ -28,21 +27,12 @@ import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.flow.ScheduledState.ENABLED;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ControllerServiceAPI;
@@ -57,7 +47,7 @@ import org.apache.nifi.properties.ReadableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FlowEnrichService {
+public class StandardFlowEnrichService implements FlowEnrichService {
 
     static final String DEFAULT_SSL_CONTEXT_SERVICE_NAME = "SSL Context Service";
 
@@ -66,7 +56,7 @@ public class FlowEnrichService {
     static final String SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME = "Site-To-Site-Provenance-Reporting";
     static final String SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID = "generated-s2s-provenance-reporting-task";
 
-    private static final Logger LOG = LoggerFactory.getLogger(FlowEnrichService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StandardFlowEnrichService.class);
 
     private static final String NIFI_BUNDLE_GROUP = "org.apache.nifi";
     private static final String STANDARD_RESTRICTED_SSL_CONTEXT_SERVICE = "org.apache.nifi.ssl.StandardRestrictedSSLContextService";
@@ -81,16 +71,12 @@ public class FlowEnrichService {
 
     private final ReadableProperties minifiProperties;
 
-    public FlowEnrichService(ReadableProperties minifiProperties) {
+    public StandardFlowEnrichService(ReadableProperties minifiProperties) {
         this.minifiProperties = minifiProperties;
     }
 
-    public byte[] enrichFlow(byte[] flowCandidate) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Enriching flow with content: \n{}", new String(flowCandidate, UTF_8));
-        }
-
-        VersionedDataflow versionedDataflow = parseVersionedDataflow(flowCandidate);
+    @Override
+    public VersionedDataflow enrichFlow(VersionedDataflow versionedDataflow) {
         versionedDataflow.setReportingTasks(ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new));
         versionedDataflow.setRegistries(ofNullable(versionedDataflow.getRegistries()).orElseGet(ArrayList::new));
         versionedDataflow.setControllerServices(ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new));
@@ -119,27 +105,8 @@ public class FlowEnrichService {
 
         createProvenanceReportingTask(commonSslControllerService.map(VersionedComponent::getInstanceIdentifier).orElse(EMPTY))
             .ifPresent(versionedDataflow.getReportingTasks()::add);
-        byte[] enrichedFlow = toByteArray(versionedDataflow);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Enriched flow with content: \n{}", new String(enrichedFlow, UTF_8));
-        }
-        return enrichedFlow;
-    }
 
-    private VersionedDataflow parseVersionedDataflow(byte[] flow) {
-        try {
-            ObjectMapper objectMapper = deserializationObjectMapper();
-            return objectMapper.readValue(flow, VersionedDataflow.class);
-        } catch (final Exception e) {
-            throw new FlowSerializationException("Could not parse flow as a VersionedDataflow", e);
-        }
-    }
-
-    private ObjectMapper deserializationObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper;
+        return versionedDataflow;
     }
 
     private Optional<VersionedControllerService> createCommonSslControllerService() {
@@ -259,28 +226,5 @@ public class FlowEnrichService {
             .stream()
             .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
             .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    private byte[] toByteArray(VersionedDataflow versionedDataflow) {
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            JsonFactory factory = new JsonFactory();
-            JsonGenerator generator = factory.createGenerator(byteArrayOutputStream);
-            generator.setCodec(serializationObjectMapper());
-            generator.writeObject(versionedDataflow);
-            generator.flush();
-            byteArrayOutputStream.flush();
-            return byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to convert flow to byte array", e);
-        }
-    }
-
-    private ObjectMapper serializationObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-        objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper;
     }
 }
