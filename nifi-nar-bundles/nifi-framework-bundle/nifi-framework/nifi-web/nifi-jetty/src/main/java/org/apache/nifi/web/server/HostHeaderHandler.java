@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.web.server;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -28,17 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.http.conn.util.InetAddressUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.ScopedHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HostHeaderHandler extends ScopedHandler {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandler.class);
@@ -233,7 +234,7 @@ public class HostHeaderHandler extends ScopedHandler {
             try {
                 final int lambdaPort = serverPort;
                 List<String> customIPs = extractIPsFromNetworkInterfaces(niFiProperties);
-                customIPs.stream().forEach(ip -> {
+                customIPs.forEach(ip -> {
                     validHosts.add(ip);
                     validHosts.add(ip + ":" + lambdaPort);
                 });
@@ -284,16 +285,20 @@ public class HostHeaderHandler extends ScopedHandler {
         Map<String, String> networkInterfaces = niFiProperties.isHTTPSConfigured() ? niFiProperties.getHttpsNetworkInterfaces() : niFiProperties.getHttpNetworkInterfaces();
         if (isNotDefined(networkInterfaces)) {
             // No custom interfaces defined
-            return new ArrayList<>(0);
+            return List.of();
         } else {
-            List<String> allIPAddresses = new ArrayList<>();
+            final List<String> allIPAddresses = new ArrayList<>();
             for (Map.Entry<String, String> entry : networkInterfaces.entrySet()) {
                 final String networkInterfaceName = entry.getValue();
                 try {
-                    NetworkInterface ni = NetworkInterface.getByName(networkInterfaceName);
-                    List<String> ipAddresses = Collections.list(ni.getInetAddresses()).stream().map(inetAddress -> inetAddress.getHostAddress().toLowerCase()).collect(Collectors.toList());
-                    logger.debug("Resolved the following IP addresses for network interface {}: {}", networkInterfaceName, StringUtils.join(ipAddresses, ", "));
-                    allIPAddresses.addAll(ipAddresses);
+                    final NetworkInterface ni = NetworkInterface.getByName(networkInterfaceName);
+                    if (ni == null) {
+                        logger.warn("Cannot resolve network interface named " + networkInterfaceName);
+                    } else {
+                        final List<String> ipAddresses = Collections.list(ni.getInetAddresses()).stream().map(inetAddress -> inetAddress.getHostAddress().toLowerCase()).collect(Collectors.toList());
+                        logger.debug("Resolved the following IP addresses for network interface {}: {}", networkInterfaceName, StringUtils.join(ipAddresses, ", "));
+                        allIPAddresses.addAll(ipAddresses);
+                    }
                 } catch (SocketException e) {
                     logger.warn("Cannot resolve network interface named " + networkInterfaceName);
                 }
