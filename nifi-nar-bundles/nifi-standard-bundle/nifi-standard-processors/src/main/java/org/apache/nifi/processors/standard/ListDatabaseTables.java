@@ -24,6 +24,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -95,6 +97,46 @@ import java.util.stream.Stream;
         + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
         + "This processor is meant to be run on the primary node only.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@MultiProcessorUseCase(
+    description="Perform a full load of a database, retrieving all rows from all tables, or a specific set of tables.",
+    keywords = {"full load", "rdbms", "jdbc", "database"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListDatabaseTables.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" property to specify a Connection Pool that is applicable for interacting with your database.
+                Leave the RecordWriter property unset.
+
+                Set the "Catalog" property to the name of the database Catalog; leave it empty to include all catalogs.
+                Set the "Schema Pattern" property to a Java Regular Expression that matches all database Schemas that should be included; leave it empty to include all Schemas.
+                Set the "Table Name Pattern" property to a Java Regular Expression that matches the names of all tables that should be included; leave it empty to include all Tables.
+
+                Connect the "success" relationship to GenerateTableFetch.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = GenerateTableFetch.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" property to specify the same Connection Pool that was used in ListDatabaseTables.
+                Set the "Database Type" property to match the appropriate value for your RDBMS vendor.
+                Set "Table Name" to `${db.table.fullname}`
+                Leave the RecordWriter property unset.
+
+                Connect the "success" relationship to ExecuteSQLRecord.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = ExecuteSQLRecord.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" property to specify the same Connection Pool that was used in ListDatabaseTables.
+                Configure the "Record Writer" property to specify a Record Writer that is appropriate for the desired output data type.
+                Leave the "SQL select query" unset.
+
+                Connect the "success" relationship to the next Processor in the flow.
+                """
+        )
+    }
+)
 public class ListDatabaseTables extends AbstractProcessor {
 
     // Attribute names

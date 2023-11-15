@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
@@ -109,6 +111,62 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
             A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
             memory utilization.
         """
+)
+@UseCase(
+    description = "Perform an incremental load of a single database table, fetching only new rows as they are added to the table.",
+    keywords = {"incremental load", "rdbms", "jdbc", "cdc", "database", "table", "stream"},
+    configuration = """
+        Configure the "Database Connection Pooling Service" to specify a Connection Pooling Service so that the Processor knows how to connect to the database.
+        Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+        Set the "Table Name" property to the name of the table to retrieve records from.
+        Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+        Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+            an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+        Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
+        Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+            A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+            memory utilization.
+        """
+)
+@MultiProcessorUseCase(
+    description = "Perform an incremental load of multiple database tables, fetching only new rows as they are added to the tables.",
+    keywords = {"incremental load", "rdbms", "jdbc", "cdc", "database", "table", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListDatabaseTables.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" property to specify a Connection Pool that is applicable for interacting with your database.
+
+                Set the "Catalog" property to the name of the database Catalog;
+                set the "Schema Pattern" property to a Java Regular Expression that matches all database Schemas that should be included; and
+                set the "Table Name Pattern" property to a Java Regular Expression that matches the names of all tables that should be included.
+                In order to perform an incremental load of all tables, leave the Catalog, Schema Pattern, and Table Name Pattern unset.
+
+                Leave the RecordWriter property unset.
+
+                Connect the 'success' relationship to QueryDatabaseTableRecord.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = QueryDatabaseTableRecord.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" to the same Connection Pool that was used in ListDatabaseTables.
+                Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+                Set the "Table Name" property to "${db.table.fullname}"
+                Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+                Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+                    an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+                Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
+                Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+                Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+                Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+                    A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+                    memory utilization.
+                """
+        )
+    }
 )
 public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
