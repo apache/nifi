@@ -78,6 +78,7 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("flowfilev1.tar", StandardFlowFileMediaType.VERSION_1.getMediaType());
         expectedMimeTypes.put("fake.csv", "text/csv");
         expectedMimeTypes.put("2.custom", "text/plain");
+        expectedMimeTypes.put("charset-utf-8.txt", "text/plain");
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", ".7z");
@@ -101,6 +102,32 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", ".csv");
         expectedExtensions.put("2.custom", ".txt");
+        expectedExtensions.put("charset-utf-8.txt", ".txt");
+
+        final Map<String, String> expectedCharsets = new HashMap<>();
+        expectedCharsets.put("1.7z", null);
+        expectedCharsets.put("1.mdb", null);
+        expectedCharsets.put("1.txt", "ISO-8859-1");
+        expectedCharsets.put("1.csv", "ISO-8859-1");
+        expectedCharsets.put("1.txt.bz2", null);
+        expectedCharsets.put("1.txt.gz", null);
+        expectedCharsets.put("1.zip", null);
+        expectedCharsets.put("1.pdf", null);
+        expectedCharsets.put("1.tar", null);
+        expectedCharsets.put("1.tar.gz", null);
+        expectedCharsets.put("1.jar", null);
+        expectedCharsets.put("1.xml", null);
+        expectedCharsets.put("1.xhtml", null);
+        expectedCharsets.put("flowfilev3", null);
+        expectedCharsets.put("flowfilev3WithXhtml", null);
+        expectedCharsets.put("flowfilev1.tar", null);
+        expectedCharsets.put("fake.csv", "ISO-8859-1");
+        expectedCharsets.put("charset-utf-8.txt", "UTF-8");
+        expectedCharsets.put("bgBannerFoot.png", null);
+        expectedCharsets.put("blueBtnBg.jpg", null);
+        expectedCharsets.put("grid.gif", null);
+        expectedCharsets.put("2.custom", "ISO-8859-1");
+        expectedCharsets.put("charset-utf-8.txt", "UTF-8");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
@@ -111,8 +138,12 @@ public class TestIdentifyMimeType {
             final String extension = file.getAttribute("mime.extension");
             final String expectedExtension = expectedExtensions.get(filename);
 
+            final String charset = file.getAttribute("mime.charset");
+            final String expectedCharset = expectedCharsets.get(filename);
+
             assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
             assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+            assertEquals(expectedCharset, charset, "Expected " + file + " to have charset \"" + expectedCharset + "\", but it was \"" + charset + "\"");
         }
     }
 
@@ -195,6 +226,7 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("flowfilev1.tar", "application/octet-stream");
         expectedMimeTypes.put("fake.csv", "text/plain");
         expectedMimeTypes.put("2.custom", "custom/abcd");
+        expectedMimeTypes.put("charset-utf-8.txt", "text/plain");
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", "");
@@ -218,6 +250,7 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", "");
         expectedExtensions.put("2.custom", ".abcd");
+        expectedExtensions.put("charset-utf-8.txt", "");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
@@ -282,6 +315,7 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("flowfilev1.tar", "application/octet-stream");
         expectedMimeTypes.put("fake.csv", "text/plain");
         expectedMimeTypes.put("2.custom", "text/plain");
+        expectedMimeTypes.put("charset-utf-8.txt", "text/plain");
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", "");
@@ -305,6 +339,7 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", "");
         expectedExtensions.put("2.custom", "");
+        expectedExtensions.put("charset-utf-8.txt", "");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
