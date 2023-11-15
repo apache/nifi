@@ -21,7 +21,6 @@ import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.script.impl.ClojureScriptRunner;
 import org.apache.nifi.script.impl.GenericScriptRunner;
 import org.apache.nifi.script.impl.GroovyScriptRunner;
-import org.apache.nifi.script.impl.JythonScriptRunner;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
@@ -50,9 +49,6 @@ public class ScriptRunnerFactory {
         String scriptEngineName = scriptEngineFactory.getLanguageName();
         if ("Groovy".equals(scriptEngineName)) {
             return new GroovyScriptRunner(scriptEngine, scriptToRun, null);
-        }
-        if ("python".equals(scriptEngineName)) {
-            return new JythonScriptRunner(scriptEngine, scriptToRun, modulePaths);
         }
         if ("Clojure".equals(scriptEngineName)) {
             return new ClojureScriptRunner(scriptEngine, scriptToRun, null);

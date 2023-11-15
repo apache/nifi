@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SupportsBatching
 @SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"record", "transform", "script", "groovy", "jython", "python", "update", "modify", "filter"})
+@Tags({"record", "transform", "script", "groovy", "update", "modify", "filter"})
 @Restricted(restrictions = {
     @Restriction(requiredPermission = RequiredPermission.EXECUTE_CODE,
         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")

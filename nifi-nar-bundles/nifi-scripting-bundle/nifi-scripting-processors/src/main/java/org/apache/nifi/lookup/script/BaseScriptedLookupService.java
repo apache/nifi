@@ -90,14 +90,14 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
         _temp.addAll(scriptingComponentHelper.getDescriptors());
         _temp.remove(scriptingComponentHelper.SCRIPT_ENGINE);
 
-        PropertyDescriptor.Builder jythonLessEngineProp = new PropertyDescriptor
+        PropertyDescriptor.Builder engineProp = new PropertyDescriptor
                 .Builder().fromPropertyDescriptor(scriptingComponentHelper.SCRIPT_ENGINE);
         List<AllowableValue> filtered = scriptingComponentHelper.getScriptEngineAllowableValues()
-                .stream().filter(allowableValue -> !allowableValue.getValue().contains("ython"))
+                .stream()
                 .collect(Collectors.toList());
-        jythonLessEngineProp.allowableValues(filtered.toArray(new AllowableValue[filtered.size()]));
+        engineProp.allowableValues(filtered.toArray(new AllowableValue[filtered.size()]));
 
-        supportedPropertyDescriptors.add(jythonLessEngineProp.build());
+        supportedPropertyDescriptors.add(engineProp.build());
         supportedPropertyDescriptors.addAll(_temp);
 
         final ConfigurableComponent instance = lookupService.get();

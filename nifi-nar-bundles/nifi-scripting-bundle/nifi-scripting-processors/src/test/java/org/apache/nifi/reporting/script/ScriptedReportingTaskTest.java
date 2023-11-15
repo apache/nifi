@@ -36,7 +36,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.script.ScriptEngine;
-import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -125,23 +124,6 @@ class ScriptedReportingTaskTest {
         @SuppressWarnings("unchecked")
         final Map<String, Long> x = (Map<String, Long>)se.get("x");
         assertTrue(x.get("uptime") >= 0);
-    }
-
-    @Test
-    void testVMEventsJythonScript() throws Exception {
-        properties.put(SCRIPT_ENGINE_PROPERTY_DESCRIPTOR, "python");
-        Files.copy(Paths.get("src/test/resources/jython/test_log_vm_stats.py"), targetPath, StandardCopyOption.REPLACE_EXISTING);
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
-        reportingContext.setProperty(SCRIPT_ENGINE, "python");
-        reportingContext.setProperty(ScriptingComponentUtils.SCRIPT_FILE.getName(), targetPath.toString());
-
-        run();
-
-        // This script should store a variable called x with a map of stats to values
-        ScriptEngine se = task.getScriptRunner().getScriptEngine();
-        @SuppressWarnings("unchecked")
-        final Map<String, BigInteger> x = (Map<String, BigInteger>)se.get("x");
-        assertTrue(x.get("uptime").longValue() >= 0);
     }
 
     private void run() throws Exception {

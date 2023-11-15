@@ -33,10 +33,9 @@ import java.util.Set;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
  */
-@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython"})
+@Tags({"lookup", "record", "script", "invoke", "groovy"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from " +
-        "an incoming flow file. Please note, that due to a bug in Jython that remains unresolved, it is not possible to use " +
-        "Jython to write a script for this service in Python.")
+        "an incoming flow file.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
