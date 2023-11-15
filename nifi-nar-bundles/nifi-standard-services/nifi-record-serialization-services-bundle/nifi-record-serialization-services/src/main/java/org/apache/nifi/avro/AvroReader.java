@@ -103,7 +103,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
 
             final Schema avroSchema;
             try {
-                if (recordSchema.getSchemaFormat().isPresent() & recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {
+                if (recordSchema.getSchemaFormat().isPresent() && recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {
                     final Optional<String> textOption = recordSchema.getSchemaText();
                     if (textOption.isPresent()) {
                         avroSchema = compiledAvroSchemaCache.get(textOption.get());
