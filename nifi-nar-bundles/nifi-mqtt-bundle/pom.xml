@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.24.0-SNAPSHOT</version>
+        <version>1.24.0</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
     <artifactId>nifi-mqtt-bundle</artifactId>
@@ -31,7 +31,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mqtt-processors</artifactId>
-                <version>1.24.0-SNAPSHOT</version>
+                <version>1.24.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
