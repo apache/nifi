@@ -33,7 +33,7 @@ td {text-align: left}
 <h3>Description</h3>
 
 <p>
-    The ScriptedPartitionRecord provides the ability to use a scripting language, such as Groovy or Jython, to quickly and easily partition a Record based on its contents.
+    The ScriptedPartitionRecord provides the ability to use a scripting language, such as Groovy, to quickly and easily partition a Record based on its contents.
     There are multiple ways to reach the same behaviour such as using PartitionRecord but working with user provided scripts opens a wide range of possibilities on the decision
     logic of partitioning the individual records.
 </p>
@@ -160,14 +160,6 @@ Tau Ceti,G
 
 <code>
     return record.getValue("stellarType")
-</code>
-
-<p>
-    Example Script (Python):
-</p>
-
-<code>
-    _ = record.getValue("stellarType")
 </code>
 
 </body>

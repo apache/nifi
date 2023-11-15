@@ -73,11 +73,6 @@
             <version>2.5.2</version>
         </dependency>
         <dependency>
-            <groupId>org.python</groupId>
-            <artifactId>jython-standalone</artifactId>
-            <version>2.7.3</version>
-        </dependency>
-        <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>clojure</artifactId>
             <version>1.11.1</version>
@@ -93,12 +88,6 @@
         <dependency>
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
-        </dependency>
-        <!-- For Jython 2.7.1 -->
-        <dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-            <version>2.12.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -143,7 +132,6 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/xmlRecord.xml</exclude>
-                        <exclude>src/test/resources/jython/test_compress.py</exclude>
                     </excludes>
                 </configuration>
             </plugin>

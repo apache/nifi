@@ -267,11 +267,7 @@ public class ScriptingComponentHelper {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        if ("python".equalsIgnoreCase(scriptEngineName)) {
-            modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources();
-        } else {
-            modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
-        }
+        modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
     }
 
     public void stop() {
