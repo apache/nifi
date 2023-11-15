@@ -86,8 +86,9 @@ public class DistributedCacheClient {
     /**
      * Close Channel Pool and supporting Event Loop Group
      */
+    @SuppressWarnings("deprecation")
     protected void closeChannelPool() {
         channelPool.close();
-        eventLoopGroup.close();
+        eventLoopGroup.shutdown();
     }
 }
