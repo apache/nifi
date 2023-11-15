@@ -23,7 +23,7 @@ import { TextTip } from '../../../../../../ui/common/tooltips/text-tip/text-tip.
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { NifiTooltipDirective } from '../../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { SelectOption, TextTipInput } from '../../../../../../state/shared';
 
 @Component({

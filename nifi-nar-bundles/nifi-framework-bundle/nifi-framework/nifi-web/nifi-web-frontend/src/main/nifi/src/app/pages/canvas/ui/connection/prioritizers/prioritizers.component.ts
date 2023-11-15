@@ -25,7 +25,7 @@ import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { DocumentedType, TextTipInput } from '../../../../../state/shared';
-import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import {
     DragDropModule,

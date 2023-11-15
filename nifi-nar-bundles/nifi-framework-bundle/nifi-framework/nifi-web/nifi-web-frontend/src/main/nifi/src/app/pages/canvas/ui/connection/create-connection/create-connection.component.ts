@@ -35,7 +35,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { ComponentType, SelectOption, TextTipInput } from '../../../../../state/shared';

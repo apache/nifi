@@ -24,7 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { NiFiCommon } from '../../../../../../service/nifi-common.service';
-import { NifiTooltipDirective } from '../../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { MatIconModule } from '@angular/material/icon';
 import { Relationship } from '../../../../state/flow';

@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReportingTasks } from './reporting-tasks.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [ReportingTasks, ReportingTaskTable],
-    exports: [ReportingTasks],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatSortModule, MatTableModule, NifiTooltipDirective]
-})
-export class ReportingTasksModule {}
+import { Resizable } from './resizable.component';
+
+describe('Resizable', () => {
+    let component: Resizable;
+    let fixture: ComponentFixture<Resizable>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [Resizable]
+        });
+        fixture = TestBed.createComponent(Resizable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

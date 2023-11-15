@@ -43,7 +43,7 @@ import {
     PropertyTipInput,
     TextTipInput
 } from '../../../state/shared';
-import { NifiTooltipDirective } from '../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { PropertyTip } from '../tooltips/property-tip/property-tip.component';
 import { NfEditor } from './editors/nf-editor/nf-editor.component';

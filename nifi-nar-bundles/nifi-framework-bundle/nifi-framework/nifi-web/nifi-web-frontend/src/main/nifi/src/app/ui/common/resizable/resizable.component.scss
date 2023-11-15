@@ -15,18 +15,35 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReportingTasks } from './reporting-tasks.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
+@use 'sass:math' as math;
 
-@NgModule({
-    declarations: [ReportingTasks, ReportingTaskTable],
-    exports: [ReportingTasks],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatSortModule, MatTableModule, NifiTooltipDirective]
-})
-export class ReportingTasksModule {}
+$handle-size: 15px;
+$handle-color: #ccc;
+
+:host:hover .resizable-triangle {
+    opacity: 1;
+}
+
+.resizable-handle {
+    position: absolute;
+    width: $handle-size;
+    height: $handle-size;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
+.resizable-triangle {
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity ease-in-out 0.2s;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: math.div($handle-size, 2) solid transparent;
+    border-top: math.div($handle-size, 2) solid transparent;
+    border-right: math.div($handle-size, 2) solid $handle-color;
+    border-bottom: math.div($handle-size, 2) solid $handle-color;
+    bottom: 0;
+    right: 0;
+}

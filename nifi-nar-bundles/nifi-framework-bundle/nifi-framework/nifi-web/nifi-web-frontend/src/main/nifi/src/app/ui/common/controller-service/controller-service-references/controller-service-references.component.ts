@@ -27,7 +27,7 @@ import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { NgClass, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { RouterLink } from '@angular/router';

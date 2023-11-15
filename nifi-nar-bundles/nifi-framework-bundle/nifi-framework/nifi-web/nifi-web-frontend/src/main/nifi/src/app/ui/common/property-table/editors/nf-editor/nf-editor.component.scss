@@ -20,23 +20,26 @@
 .property-editor {
     @include mat.button-density(-1);
 
+    min-height: 240px;
+    min-width: 245px;
+    cursor: move;
+
+    .property-hint {
+        cursor: default;
+    }
+
     .nf-editor {
         min-height: 100px;
         min-width: 210px;
-        width: 350px;
         border: 1px solid;
+        cursor: default;
 
         .CodeMirror {
-            resize: both !important;
-            overflow: auto !important;
-
-            height: 100px;
             border: 1px solid #aaa;
             font-family: monospace;
             background-color: #fff;
             cursor: default;
             line-height: normal;
-            min-width: 210px;
 
             &.blank {
                 background: #b2b8c1;

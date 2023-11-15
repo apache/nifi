@@ -33,7 +33,7 @@ import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @Component({
     selector: 'create-port',

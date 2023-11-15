@@ -23,7 +23,7 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { NgIf } from '@angular/common';
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
-import { NifiTooltipDirective } from '../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';

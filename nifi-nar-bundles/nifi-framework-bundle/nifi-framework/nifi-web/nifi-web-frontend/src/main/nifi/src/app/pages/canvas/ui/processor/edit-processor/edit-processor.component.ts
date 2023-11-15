@@ -39,7 +39,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { EditComponent } from '../../../state/flow';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {

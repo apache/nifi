@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
 import { PropertyDescriptor, AllowableValue, TextTipInput } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';

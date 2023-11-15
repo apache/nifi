@@ -21,7 +21,7 @@ import { ParameterContextListing } from './parameter-context-listing.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ParameterContextTable } from './parameter-context-table/parameter-context-table.component';
 
 @NgModule({

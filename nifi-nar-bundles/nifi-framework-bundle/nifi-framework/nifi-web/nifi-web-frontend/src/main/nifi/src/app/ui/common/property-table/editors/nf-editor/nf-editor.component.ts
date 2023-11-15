@@ -35,7 +35,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -44,6 +44,7 @@ import { Observable, take } from 'rxjs';
 import { NfEl } from './modes/nfel';
 import { NfPr } from './modes/nfpr';
 import { Editor } from 'codemirror';
+import { Resizable } from '../../../resizable/resizable.component';
 
 @Component({
     selector: 'nf-editor',
@@ -60,11 +61,12 @@ import { Editor } from 'codemirror';
         NgTemplateOutlet,
         NifiTooltipDirective,
         A11yModule,
-        CodemirrorModule
+        CodemirrorModule,
+        Resizable
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
-export class NfEditor implements AfterViewInit, OnDestroy {
+export class NfEditor implements OnDestroy {
     @Input() set item(item: PropertyItem) {
         this.nfEditorForm.get('value')?.setValue(item.value);
 
@@ -97,9 +99,6 @@ export class NfEditor implements AfterViewInit, OnDestroy {
 
     protected readonly PropertyHintTip = PropertyHintTip;
 
-    @ViewChild('nfEditorContainer') nfEditorContainer!: ElementRef;
-    nfEditorContainerHeight!: number;
-
     itemSet: boolean = false;
     getParametersSet: boolean = false;
 
@@ -126,22 +125,9 @@ export class NfEditor implements AfterViewInit, OnDestroy {
         });
     }
 
-    ngAfterViewInit(): void {
-        const { height } = this.nfEditorContainer.nativeElement.getBoundingClientRect();
-        this.nfEditorContainerHeight = height;
-
-        if (this.editor) {
-            this.editor.setSize('100%', this.nfEditorContainerHeight);
-        }
-    }
-
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-
-        if (this.nfEditorContainerHeight) {
-            this.editor.setSize('100%', this.nfEditorContainerHeight);
-        }
-
+        this.editor.setSize('100%', 100);
         this.editor.execCommand('selectAll');
     }
 
@@ -203,6 +189,10 @@ export class NfEditor implements AfterViewInit, OnDestroy {
             supportsEl: this.supportsEl,
             supportsParameters: this.supportsParameters
         };
+    }
+
+    resized(rect: DOMRect): void {
+        this.editor.setSize('100%', '100%');
     }
 
     preventDrag(event: MouseEvent): void {

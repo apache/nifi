@@ -15,15 +15,16 @@
   ~ limitations under the License.
   -->
 
-<div class="property-editor p-4" cdkDrag>
-    <form [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
-        <div class="flex flex-col gap-y-3">
+<div class="property-editor p-4" cdkDrag resizable (resized)="resized($event)">
+    <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
+        <div class="flex flex-col gap-y-3 h-full">
             <div class="flex justify-end">
                 <div
-                    class="flex gap-x-4 italic text-gray-500"
+                    class="property-hint flex gap-x-4 italic text-gray-500"
                     nifiTooltip
                     [tooltipComponentType]="PropertyHintTip"
-                    [tooltipInputData]="getPropertyHintTipData()">
+                    [tooltipInputData]="getPropertyHintTipData()"
+                    (mousedown)="preventDrag($event)">
                     <div class="flex items-baseline gap-x-1">
                         <div>EL</div>
                         <ng-container *ngTemplateOutlet="supportsEl ? supported : notSupported"></ng-container>
@@ -40,8 +41,8 @@
                     <div class="fa fa-ban"></div>
                 </ng-template>
             </div>
-            <div class="flex flex-col gap-y-0.5">
-                <div class="nf-editor" #nfEditorContainer>
+            <div class="flex flex-col gap-y-0.5 flex-1">
+                <div class="nf-editor flex-1" #nfEditorContainer>
                     <ngx-codemirror
                         [options]="getOptions()"
                         [autoFocus]="true"

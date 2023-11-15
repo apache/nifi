@@ -28,7 +28,7 @@ import {
     TextTipInput,
     ValidationErrorsTipInput
 } from '../../../../state/shared';
-import { NifiTooltipDirective } from '../../nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
