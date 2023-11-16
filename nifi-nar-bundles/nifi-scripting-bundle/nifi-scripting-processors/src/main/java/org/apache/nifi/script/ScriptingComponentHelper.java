@@ -60,7 +60,7 @@ public class ScriptingComponentHelper {
     private static final String UNKNOWN_VERSION = "UNKNOWN";
 
     private static final List<String> DEPRECATED_LANGUAGE_NAMES =
-            Arrays.asList("ECMAScript", "lua", "ruby");
+            Arrays.asList("ECMAScript", "lua", "ruby", "python");
 
     private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(ScriptingComponentHelper.class);
 
