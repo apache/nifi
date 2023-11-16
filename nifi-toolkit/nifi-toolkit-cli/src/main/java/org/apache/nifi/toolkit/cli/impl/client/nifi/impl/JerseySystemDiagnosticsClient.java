@@ -23,7 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
 
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 
 public class JerseySystemDiagnosticsClient extends AbstractJerseyClient implements SystemDiagnosticsClient {

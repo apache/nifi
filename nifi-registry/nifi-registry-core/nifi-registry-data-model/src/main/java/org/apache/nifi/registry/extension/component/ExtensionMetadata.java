@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import javax.ws.rs.core.Link;
+import jakarta.ws.rs.core.Link;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.extension.manifest.DeprecationNotice;

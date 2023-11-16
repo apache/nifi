@@ -23,7 +23,7 @@ import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
