@@ -404,7 +404,7 @@ public final class SnippetUtils {
     public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, boolean isCopy) {
         final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);
         resolveNameConflicts(snippetCopy, group);
-        removeTopLevelVersionedIds(snippetContents);
+        removeTopLevelVersionedIds(snippetCopy);
         return snippetCopy;
     }
 

@@ -257,8 +257,8 @@ public class SnippetUtilsTest {
         assertNotNull(copiedLabels);
         final LabelDTO copiedLabel = copiedLabels.iterator().next();
         assertNotNull(copiedLabel);
-        assertNotNull(copiedLabel.getVersionedComponentId());
+        assertNull(copiedLabel.getVersionedComponentId());
 
-        assertNull(labelDTO.getVersionedComponentId());
+        assertNotNull(labelDTO.getVersionedComponentId());
     }
 }
