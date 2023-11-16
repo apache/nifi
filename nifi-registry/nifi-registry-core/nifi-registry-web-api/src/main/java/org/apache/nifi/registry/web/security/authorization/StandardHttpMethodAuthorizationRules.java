@@ -18,7 +18,6 @@ package org.apache.nifi.registry.web.security.authorization;
 
 import org.springframework.http.HttpMethod;
 
-import java.util.EnumSet;
 import java.util.Set;
 
 public class StandardHttpMethodAuthorizationRules implements HttpMethodAuthorizationRules {
@@ -26,7 +25,7 @@ public class StandardHttpMethodAuthorizationRules implements HttpMethodAuthoriza
     final private Set<HttpMethod> methodsRequiringAuthorization;
 
     public StandardHttpMethodAuthorizationRules() {
-        this(EnumSet.allOf(HttpMethod.class));
+        this(Set.of(HttpMethod.values()));
     }
 
     public StandardHttpMethodAuthorizationRules(Set<HttpMethod> methodsRequiringAuthorization) {

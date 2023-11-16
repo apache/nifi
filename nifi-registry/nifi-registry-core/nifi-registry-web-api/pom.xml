@@ -30,6 +30,7 @@
         <asciidoc.source.dir>${project.basedir}/src/main/asciidoc</asciidoc.source.dir>
         <asciidoc.generated.dir>${project.build.directory}/asciidoc</asciidoc.generated.dir>
         <docs.dir>${project.build.directory}/${project.artifactId}-${project.version}/docs/</docs.dir>
+        <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
     </properties>
 
     <build>
@@ -261,11 +262,6 @@
                     <groupId>org.springframework</groupId>
                     <artifactId>spring-aop</artifactId>
                 </exclusion>
-                <!-- JDK 8 will already have jaxb-api, and JDKs above 8 we activate a profile to include it -->
-                <exclusion>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <!-- Exclude micrometer-core because it creates a class cast issue with logback, revisit later -->
@@ -355,9 +351,15 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <!-- Required for compatibility with JAXB 2 generated objects for configuration parsing -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>

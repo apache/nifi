@@ -34,22 +34,26 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
-import javax.servlet.http.HttpServletResponse;
+import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 /**
  * Spring Security Filter Configuration
  */
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class NiFiRegistrySecurityConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistrySecurityConfig.class);
@@ -75,33 +79,35 @@ public class NiFiRegistrySecurityConfig {
                 .addFilterBefore(x509AuthenticationFilter(), AnonymousAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), AnonymousAuthenticationFilter.class)
                 // Add Resource Authorization after Spring Security but before Jersey Resources
-                .addFilterAfter(resourceAuthorizationFilter(), FilterSecurityInterceptor.class)
-                .anonymous().authenticationFilter(new AnonymousIdentityFilter()).and()
-                .csrf().disable()
-                .logout().disable()
-                .rememberMe().disable()
-                .requestCache().disable()
-                .servletApi().disable()
-                .securityContext().disable()
-                .sessionManagement().disable()
-                .headers()
-                    .xssProtection().and()
-                    .contentSecurityPolicy("frame-ancestors 'self'").and()
-                    .httpStrictTransportSecurity().maxAgeInSeconds(31540000).and()
-                    .frameOptions().sameOrigin().and()
-                .authorizeRequests()
-                    .antMatchers(
-                            "/access/token",
-                            "/access/token/identity-provider",
-                            "/access/token/kerberos",
-                            "/access/oidc/callback",
-                            "/access/oidc/exchange",
-                            "/access/oidc/request"
-                    ).permitAll()
-                    .anyRequest().fullyAuthenticated()
-                    .and()
-                .exceptionHandling()
-                    .authenticationEntryPoint(http401AuthenticationEntryPoint()).and()
+                .addFilterAfter(resourceAuthorizationFilter(), AuthorizationFilter.class)
+                .anonymous(anonymous -> anonymous.authenticationFilter(new AnonymousIdentityFilter()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .rememberMe(AbstractHttpConfigurer::disable)
+                .requestCache(AbstractHttpConfigurer::disable)
+                .servletApi(AbstractHttpConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(contentSecurityPolicy -> contentSecurityPolicy.policyDirectives("frame-ancestors 'self'"))
+                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig.maxAgeInSeconds(31540000))
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+                )
+                .authorizeRequests((authorize) -> authorize
+                        .requestMatchers(
+                                antMatcher("/access/token"),
+                                antMatcher("/access/token/identity-provider"),
+                                antMatcher("/access/token/kerberos"),
+                                antMatcher("/access/oidc/callback"),
+                                antMatcher("/access/oidc/exchange"),
+                                antMatcher("/access/oidc/request")
+                        )
+                        .permitAll()
+                        .anyRequest().fullyAuthenticated()
+                )
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                    .authenticationEntryPoint(http401AuthenticationEntryPoint())
+                )
                 .build();
     }
 

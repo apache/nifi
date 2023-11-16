@@ -729,6 +729,12 @@
                 <artifactId>junit</artifactId>
                 <version>4.13.2</version>
             </dependency>
+            <!-- Override ASM for introspection of classes -->
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>9.6</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

@@ -218,9 +218,9 @@
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>${servlet-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -292,11 +292,6 @@
                 <exclusion>
                     <groupId>org.hibernate</groupId>
                     <artifactId>hibernate-core</artifactId>
-                </exclusion>
-                <!-- JDK 8 will already have jaxb-api, and JDKs above 8 we activate a profile to include it -->
-                <exclusion>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

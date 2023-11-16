@@ -22,7 +22,7 @@ import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.PoliciesClient;
 import org.apache.nifi.registry.client.RequestConfig;
 
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 
 public class JerseyPoliciesClient extends AbstractCRUDJerseyClient implements PoliciesClient {

@@ -27,7 +27,7 @@ import org.apache.nifi.extension.TagCount;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;

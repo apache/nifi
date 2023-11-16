@@ -33,8 +33,8 @@ import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
 import org.springframework.stereotype.Service;
 
-import javax.ws.rs.core.Link;
-import javax.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.Link;
+import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;

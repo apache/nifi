@@ -38,8 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.core.Context;
 
 /**
  * This is the main Jersey configuration for the application.

@@ -17,8 +17,8 @@
 package org.apache.nifi.registry.web.service;
 
 import io.swagger.annotations.ApiModel;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 

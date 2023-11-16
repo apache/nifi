@@ -25,7 +25,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.solr.SolrAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.logging.LoggingSystem;
@@ -47,8 +46,7 @@ import java.util.Properties;
  */
 @EnableAutoConfiguration(
         exclude = {
-                ElasticsearchRestClientAutoConfiguration.class,
-                SolrAutoConfiguration.class
+                ElasticsearchRestClientAutoConfiguration.class
         }
 )
 @SpringBootApplication

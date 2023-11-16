@@ -28,10 +28,10 @@ import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoVersion;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoVersionSummary;
 
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
