@@ -65,13 +65,13 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTIC
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addDynamicField;
-import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.resolvePropertyValue;
+import static org.apache.nifi.common.zendesk.util.ZendeskRecordPathUtils.addField;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.createRequestObject;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getDynamicProperties;
 import static org.apache.nifi.common.zendesk.util.ZendeskUtils.getResponseBody;
@@ -91,39 +91,6 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     private String subject;
     private String priority;
     private String type;
-
-    public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_COMMENT_BODY_NAME)
-            .displayName("Comment Body")
-            .description("The content or the path to the comment body in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_SUBJECT_NAME)
-            .displayName("Subject")
-            .description("The content or the path to the subject in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_PRIORITY_NAME)
-            .displayName("Priority")
-            .description("The content or the path to the priority in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor ZENDESK_TICKET_TYPE = new PropertyDescriptor.Builder()
-            .name(ZENDESK_TICKET_TYPE_NAME)
-            .displayName("Type")
-            .description("The content or the path to the type in the incoming record.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("cache-size")
@@ -187,18 +154,10 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                 while ((record = recordSet.next()) != null) {
                     ObjectNode baseTicketNode = mapper.createObjectNode();
 
-                    resolvePropertyValue("/comment/body", commentBody, baseTicketNode, record);
-
-                    if (subject != null) {
-                        resolvePropertyValue("/subject", subject, baseTicketNode, record);
-                    }
-
-                    if (priority != null) {
-                        resolvePropertyValue("/priority", priority, baseTicketNode, record);
-                    }
-                    if (type != null) {
-                        resolvePropertyValue("/type", type, baseTicketNode, record);
-                    }
+                    addField("/comment/body", commentBody, baseTicketNode, record);
+                    addField("/subject", subject, baseTicketNode, record);
+                    addField("/priority", priority, baseTicketNode, record);
+                    addField("/type", type, baseTicketNode, record);
 
                     for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
                         addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
