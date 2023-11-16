@@ -19,13 +19,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterReferences } from './parameter-references.component';
 
-describe('ControllerServiceReferences', () => {
+describe('ParameterReferences', () => {
     let component: ParameterReferences;
     let fixture: ComponentFixture<ParameterReferences>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterReferences]
+            imports: [ParameterReferences]
         });
         fixture = TestBed.createComponent(ParameterReferences);
         component = fixture.componentInstance;

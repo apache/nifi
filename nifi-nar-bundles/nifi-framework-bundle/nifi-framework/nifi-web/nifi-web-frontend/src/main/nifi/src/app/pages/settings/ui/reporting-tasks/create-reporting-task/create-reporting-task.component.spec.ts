@@ -18,14 +18,36 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateReportingTask } from './create-reporting-task.component';
+import { CreateReportingTaskRequest } from '../../../state/reporting-tasks';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/extension-types/extension-types.reducer';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreateReportingTask', () => {
     let component: CreateReportingTask;
     let fixture: ComponentFixture<CreateReportingTask>;
 
+    const data: CreateReportingTaskRequest = {
+        reportingTaskTypes: [
+            {
+                type: 'org.apache.nifi.reporting.azure.loganalytics.AzureLogAnalyticsProvenanceReportingTask',
+                bundle: {
+                    group: 'org.apache.nifi',
+                    artifact: 'nifi-azure-nar',
+                    version: '2.0.0-SNAPSHOT'
+                },
+                description: 'Publishes Provenance events to to a Azure Log Analytics workspace.',
+                restricted: false,
+                tags: ['provenace', 'log analytics', 'reporting', 'azure']
+            }
+        ]
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [CreateReportingTask]
+            imports: [CreateReportingTask, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateReportingTask);
         component = fixture.componentInstance;

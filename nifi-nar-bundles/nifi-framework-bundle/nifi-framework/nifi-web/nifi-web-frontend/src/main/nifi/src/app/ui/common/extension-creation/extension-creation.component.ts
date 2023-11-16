@@ -128,7 +128,7 @@ export class ExtensionCreation implements AfterViewInit {
     }
 
     formatDescription(documentedType: DocumentedType): string {
-        if (documentedType) {
+        if (documentedType && documentedType.description) {
             return documentedType.description;
         }
         return '';

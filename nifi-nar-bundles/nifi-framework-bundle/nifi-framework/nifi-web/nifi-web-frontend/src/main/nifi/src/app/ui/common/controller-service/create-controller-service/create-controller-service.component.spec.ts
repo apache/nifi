@@ -18,14 +18,46 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateControllerService } from './create-controller-service.component';
+import { CreateControllerServiceRequest, DocumentedType } from '../../../../state/shared';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../state/extension-types/extension-types.reducer';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreateControllerService', () => {
     let component: CreateControllerService;
     let fixture: ComponentFixture<CreateControllerService>;
 
+    const data: CreateControllerServiceRequest = {
+        controllerServiceTypes: [
+            {
+                type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService',
+                bundle: {
+                    group: 'org.apache.nifi',
+                    artifact: 'nifi-azure-nar',
+                    version: '2.0.0-SNAPSHOT'
+                },
+                controllerServiceApis: [
+                    {
+                        type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsService',
+                        bundle: {
+                            group: 'org.apache.nifi',
+                            artifact: 'nifi-azure-services-api-nar',
+                            version: '2.0.0-SNAPSHOT'
+                        }
+                    }
+                ],
+                description: 'Defines credentials for ADLS processors.',
+                restricted: false,
+                tags: ['cloud', 'credentials', 'adls', 'storage', 'microsoft', 'azure']
+            }
+        ]
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [CreateControllerService]
+            imports: [CreateControllerService, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateControllerService);
         component = fixture.componentInstance;

@@ -18,14 +18,62 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CanvasComponent } from './canvas.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/flow/flow.reducer';
+import { ContextMenu } from './context-menu/context-menu.component';
+import { GraphControls } from './graph-controls/graph-controls.component';
+import { OperationControl } from './operation-control/operation-control.component';
+import { NavigationControl } from './navigation-control/navigation-control.component';
+import { Component } from '@angular/core';
+import { CdkContextMenuTrigger } from '@angular/cdk/menu';
+import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
+import { BreadcrumbEntity } from '../../state/flow';
 
 describe('CanvasComponent', () => {
     let component: CanvasComponent;
     let fixture: ComponentFixture<CanvasComponent>;
 
+    @Component({
+        selector: 'birdseye',
+        template: ''
+    })
+    class MockBirdseye {}
+
     beforeEach(() => {
+        const breadcrumbEntity: BreadcrumbEntity = {
+            id: '',
+            permissions: {
+                canRead: false,
+                canWrite: false
+            },
+            versionedFlowState: '',
+            breadcrumb: {
+                id: '',
+                name: ''
+            }
+        };
+
         TestBed.configureTestingModule({
-            declarations: [CanvasComponent]
+            declarations: [
+                CanvasComponent,
+                ContextMenu,
+                GraphControls,
+                OperationControl,
+                NavigationControl,
+                MockBirdseye
+            ],
+            imports: [CdkContextMenuTrigger],
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectBreadcrumbs,
+                            value: breadcrumbEntity
+                        }
+                    ]
+                })
+            ]
         });
         fixture = TestBed.createComponent(CanvasComponent);
         component = fixture.componentInstance;

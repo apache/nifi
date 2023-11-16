@@ -18,14 +18,33 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreatePort } from './create-port.component';
+import { CreateComponent } from '../../../state/flow';
+import { ComponentType } from '../../../../../state/shared';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreatePort', () => {
     let component: CreatePort;
     let fixture: ComponentFixture<CreatePort>;
 
+    const data: CreateComponent = {
+        revision: {
+            clientId: 'c7c9ebd1-4c87-4fa9-a760-956acbbaec4d',
+            version: 0
+        },
+        type: ComponentType.InputPort,
+        position: {
+            x: 1240,
+            y: -560
+        }
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [CreatePort]
+            imports: [CreatePort, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreatePort);
         component = fixture.componentInstance;

@@ -18,14 +18,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NavigationControl } from './navigation-control.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
+import { Component } from '@angular/core';
 
 describe('NavigationControl', () => {
     let component: NavigationControl;
     let fixture: ComponentFixture<NavigationControl>;
 
+    @Component({
+        selector: 'birdseye',
+        template: ''
+    })
+    class MockBirdseye {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [NavigationControl]
+            declarations: [NavigationControl, MockBirdseye],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(NavigationControl);
         component = fixture.componentInstance;

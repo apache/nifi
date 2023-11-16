@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { OperationControl } from './operation-control.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
 
 describe('OperationControl', () => {
     let component: OperationControl;
@@ -25,10 +27,27 @@ describe('OperationControl', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [OperationControl]
+            declarations: [OperationControl],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(OperationControl);
         component = fixture.componentInstance;
+        component.breadcrumbEntity = {
+            id: '',
+            permissions: {
+                canRead: false,
+                canWrite: false
+            },
+            versionedFlowState: '',
+            breadcrumb: {
+                id: '',
+                name: ''
+            }
+        };
         fixture.detectChanges();
     });
 

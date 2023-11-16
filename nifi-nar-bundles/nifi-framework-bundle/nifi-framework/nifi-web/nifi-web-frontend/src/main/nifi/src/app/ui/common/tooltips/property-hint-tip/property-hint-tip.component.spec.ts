@@ -25,7 +25,7 @@ describe('PropertyHintTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [PropertyHintTip]
+            imports: [PropertyHintTip]
         });
         fixture = TestBed.createComponent(PropertyHintTip);
         component = fixture.componentInstance;

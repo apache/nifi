@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ContextMenu } from './context-menu.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
 
 describe('ContextMenu', () => {
     let component: ContextMenu;
@@ -25,7 +27,8 @@ describe('ContextMenu', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ContextMenu]
+            declarations: [ContextMenu],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ContextMenu);
         component = fixture.componentInstance;

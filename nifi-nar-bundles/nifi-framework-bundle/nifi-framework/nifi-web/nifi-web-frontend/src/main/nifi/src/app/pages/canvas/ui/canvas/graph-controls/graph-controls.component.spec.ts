@@ -18,15 +18,53 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GraphControls } from './graph-controls.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
+import { NavigationControl } from '../navigation-control/navigation-control.component';
+import { OperationControl } from '../operation-control/operation-control.component';
+import { Component } from '@angular/core';
+import { BreadcrumbEntity } from '../../../state/flow';
+import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
 
 describe('GraphControls', () => {
     let component: GraphControls;
     let fixture: ComponentFixture<GraphControls>;
 
+    @Component({
+        selector: 'birdseye',
+        template: ''
+    })
+    class MockBirdseye {}
+
     beforeEach(() => {
+        const breadcrumbEntity: BreadcrumbEntity = {
+            id: '',
+            permissions: {
+                canRead: false,
+                canWrite: false
+            },
+            versionedFlowState: '',
+            breadcrumb: {
+                id: '',
+                name: ''
+            }
+        };
+
         TestBed.configureTestingModule({
-            declarations: [GraphControls]
+            declarations: [GraphControls, NavigationControl, OperationControl, MockBirdseye],
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectBreadcrumbs,
+                            value: breadcrumbEntity
+                        }
+                    ]
+                })
+            ]
         });
+
         fixture = TestBed.createComponent(GraphControls);
         component = fixture.componentInstance;
         fixture.detectChanges();

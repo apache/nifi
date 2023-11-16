@@ -25,7 +25,7 @@ describe('Resizable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Resizable]
+            imports: [Resizable]
         });
         fixture = TestBed.createComponent(Resizable);
         component = fixture.componentInstance;

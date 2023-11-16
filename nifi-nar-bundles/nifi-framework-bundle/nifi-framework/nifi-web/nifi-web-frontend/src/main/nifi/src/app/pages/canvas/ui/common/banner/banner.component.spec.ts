@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Banner } from './banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/flow/flow.reducer';
 
 describe('Banner', () => {
     let component: Banner;
@@ -25,7 +27,8 @@ describe('Banner', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Banner]
+            imports: [Banner],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Banner);
         component = fixture.componentInstance;

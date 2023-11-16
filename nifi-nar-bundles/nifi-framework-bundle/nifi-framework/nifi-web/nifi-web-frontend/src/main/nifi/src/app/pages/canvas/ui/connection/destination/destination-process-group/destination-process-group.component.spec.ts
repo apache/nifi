@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DestinationProcessGroup } from './destination-process-group.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('DestinationProcessGroup', () => {
     let component: DestinationProcessGroup;
@@ -25,7 +26,7 @@ describe('DestinationProcessGroup', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [DestinationProcessGroup]
+            imports: [BrowserAnimationsModule, DestinationProcessGroup]
         });
         fixture = TestBed.createComponent(DestinationProcessGroup);
         component = fixture.componentInstance;

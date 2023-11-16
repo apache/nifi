@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Breadcrumbs } from './breadcrumbs.component';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('Breadcrumbs', () => {
     let component: Breadcrumbs;
@@ -25,7 +27,8 @@ describe('Breadcrumbs', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Breadcrumbs]
+            declarations: [Breadcrumbs],
+            imports: [RouterModule, RouterTestingModule]
         });
         fixture = TestBed.createComponent(Breadcrumbs);
         component = fixture.componentInstance;

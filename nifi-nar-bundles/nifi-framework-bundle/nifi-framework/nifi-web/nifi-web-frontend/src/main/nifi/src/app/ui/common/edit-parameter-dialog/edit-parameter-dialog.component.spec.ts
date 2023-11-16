@@ -18,14 +18,41 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditParameterDialog } from './edit-parameter-dialog.component';
+import { EditParameterRequest } from '../../../state/shared';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('EditParameterDialog', () => {
     let component: EditParameterDialog;
     let fixture: ComponentFixture<EditParameterDialog>;
 
+    const data: EditParameterRequest = {
+        parameter: {
+            name: 'one',
+            description: 'Description for one.',
+            sensitive: false,
+            value: 'value',
+            provided: false,
+            referencingComponents: [],
+            parameterContext: {
+                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                    name: 'params 1'
+                }
+            },
+            inherited: false
+        }
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [EditParameterDialog]
+            imports: [EditParameterDialog, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(EditParameterDialog);
         component = fixture.componentInstance;

@@ -18,14 +18,46 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FooterComponent } from './footer.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/flow/flow.reducer';
+import { Breadcrumbs } from './breadcrumbs/breadcrumbs.component';
+import { BreadcrumbEntity } from '../../state/flow';
+import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('FooterComponent', () => {
     let component: FooterComponent;
     let fixture: ComponentFixture<FooterComponent>;
 
     beforeEach(() => {
+        const breadcrumbEntity: BreadcrumbEntity = {
+            id: '',
+            permissions: {
+                canRead: false,
+                canWrite: false
+            },
+            versionedFlowState: '',
+            breadcrumb: {
+                id: '',
+                name: ''
+            }
+        };
+
         TestBed.configureTestingModule({
-            declarations: [FooterComponent]
+            declarations: [FooterComponent, Breadcrumbs],
+            imports: [RouterModule, RouterTestingModule],
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectBreadcrumbs,
+                            value: breadcrumbEntity
+                        }
+                    ]
+                })
+            ]
         });
         fixture = TestBed.createComponent(FooterComponent);
         component = fixture.componentInstance;

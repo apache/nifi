@@ -133,6 +133,7 @@ export class Prioritizers implements ControlValueAccessor {
 
     getDescriptionTipData(entity: DocumentedType): TextTipInput {
         return {
+            // @ts-ignore
             text: entity.description
         };
     }

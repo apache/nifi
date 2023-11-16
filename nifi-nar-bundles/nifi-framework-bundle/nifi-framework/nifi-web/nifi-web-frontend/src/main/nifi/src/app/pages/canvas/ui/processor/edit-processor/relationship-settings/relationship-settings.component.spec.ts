@@ -25,7 +25,7 @@ describe('RelationshipSettings', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RelationshipSettings]
+            imports: [RelationshipSettings]
         });
         fixture = TestBed.createComponent(RelationshipSettings);
         component = fixture.componentInstance;

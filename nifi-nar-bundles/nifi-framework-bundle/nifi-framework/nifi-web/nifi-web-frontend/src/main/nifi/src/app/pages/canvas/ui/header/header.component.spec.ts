@@ -18,14 +18,88 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { HeaderComponent } from './header.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/flow/flow.reducer';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.component';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
+import { FlowStatus } from './flow-status/flow-status.component';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+import {
+    selectClusterSummary,
+    selectControllerBulletins,
+    selectControllerStatus
+} from '../../state/flow/flow.selectors';
+import { ClusterSummary, ControllerStatus } from '../../state/flow';
+import { Search } from './search/search.component';
+import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
 
+    const clusterSummary: ClusterSummary = {
+        clustered: false,
+        connectedToCluster: false,
+        connectedNodes: '',
+        connectedNodeCount: 0,
+        totalNodeCount: 0
+    };
+    const controllerStatus: ControllerStatus = {
+        activeThreadCount: 0,
+        terminatedThreadCount: 0,
+        queued: '0 / 0 bytes',
+        flowFilesQueued: 0,
+        bytesQueued: 0,
+        runningCount: 0,
+        stoppedCount: 3,
+        invalidCount: 12,
+        disabledCount: 0,
+        activeRemotePortCount: 0,
+        inactiveRemotePortCount: 2,
+        upToDateCount: 0,
+        locallyModifiedCount: 0,
+        staleCount: 0,
+        locallyModifiedAndStaleCount: 0,
+        syncFailureCount: 0
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [HeaderComponent]
+            declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus, Search],
+            imports: [
+                HttpClientTestingModule,
+                MatMenuModule,
+                MatDividerModule,
+                RouterModule,
+                RouterTestingModule,
+                CdkOverlayOrigin,
+                CdkConnectedOverlay,
+                FormsModule,
+                ReactiveFormsModule
+            ],
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectClusterSummary,
+                            value: clusterSummary
+                        },
+                        {
+                            selector: selectControllerStatus,
+                            value: controllerStatus
+                        },
+                        {
+                            selector: selectControllerBulletins,
+                            value: []
+                        }
+                    ]
+                })
+            ]
         });
         fixture = TestBed.createComponent(HeaderComponent);
         component = fixture.componentInstance;

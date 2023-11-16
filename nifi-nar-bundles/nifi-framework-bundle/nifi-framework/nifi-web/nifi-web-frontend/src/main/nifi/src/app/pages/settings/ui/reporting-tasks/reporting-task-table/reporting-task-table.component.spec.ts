@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ReportingTaskTable } from './reporting-task-table.component';
+import { MatTableModule } from '@angular/material/table';
 
 describe('ReportingTaskTable', () => {
     let component: ReportingTaskTable;
@@ -25,7 +26,8 @@ describe('ReportingTaskTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ReportingTaskTable]
+            declarations: [ReportingTaskTable],
+            imports: [MatTableModule]
         });
         fixture = TestBed.createComponent(ReportingTaskTable);
         component = fixture.componentInstance;

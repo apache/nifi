@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ManagementControllerServices } from './management-controller-services.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 
 describe('ManagementControllerServices', () => {
     let component: ManagementControllerServices;
@@ -25,7 +27,12 @@ describe('ManagementControllerServices', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ManagementControllerServices]
+            declarations: [ManagementControllerServices],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(ManagementControllerServices);
         component = fixture.componentInstance;

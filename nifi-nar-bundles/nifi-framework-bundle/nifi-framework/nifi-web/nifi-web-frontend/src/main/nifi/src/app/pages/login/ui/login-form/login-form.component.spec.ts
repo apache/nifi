@@ -18,6 +18,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginForm } from './login-form.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../state/user/user.reducer';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatInputModule } from '@angular/material/input';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('LoginForm', () => {
     let component: LoginForm;
@@ -25,7 +34,18 @@ describe('LoginForm', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginForm]
+            declarations: [LoginForm],
+            imports: [
+                HttpClientTestingModule,
+                BrowserAnimationsModule,
+                MatFormFieldModule,
+                RouterModule,
+                RouterTestingModule,
+                FormsModule,
+                ReactiveFormsModule,
+                MatInputModule
+            ],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(LoginForm);
         component = fixture.componentInstance;

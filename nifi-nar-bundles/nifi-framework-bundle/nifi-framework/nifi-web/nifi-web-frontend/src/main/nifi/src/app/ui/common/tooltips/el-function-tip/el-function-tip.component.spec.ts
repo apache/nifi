@@ -25,7 +25,7 @@ describe('ElFunctionTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ElFunctionTip]
+            imports: [ElFunctionTip]
         });
         fixture = TestBed.createComponent(ElFunctionTip);
         component = fixture.componentInstance;

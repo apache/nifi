@@ -25,7 +25,7 @@ describe('Bulletins', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RestrictionsTip]
+            imports: [RestrictionsTip]
         });
         fixture = TestBed.createComponent(RestrictionsTip);
         component = fixture.componentInstance;

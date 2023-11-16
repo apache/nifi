@@ -117,7 +117,7 @@ export interface RequiredPermission {
 
 export interface Revision {
     version: number;
-    clientId: string;
+    clientId?: string;
 }
 
 export interface BulletinEntity {
@@ -245,7 +245,7 @@ export interface ControllerServiceEntity {
 
 export interface DocumentedType {
     bundle: Bundle;
-    description: string;
+    description?: string;
     restricted: boolean;
     tags: string[];
     type: string;
@@ -295,9 +295,9 @@ export interface PropertyDescriptor {
     dynamic: boolean;
     supportsEl: boolean;
     expressionLanguageScope: string;
-    identifiesControllerService: string;
-    identifiesControllerServiceBundle: Bundle;
     dependencies: PropertyDependency[];
+    identifiesControllerService?: string;
+    identifiesControllerServiceBundle?: Bundle;
 }
 
 export interface Property {

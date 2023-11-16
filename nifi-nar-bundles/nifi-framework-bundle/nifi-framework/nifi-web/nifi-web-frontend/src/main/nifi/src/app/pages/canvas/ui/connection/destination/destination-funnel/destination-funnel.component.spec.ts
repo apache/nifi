@@ -25,7 +25,7 @@ describe('DestinationFunnel', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [DestinationFunnel]
+            imports: [DestinationFunnel]
         });
         fixture = TestBed.createComponent(DestinationFunnel);
         component = fixture.componentInstance;

@@ -25,7 +25,7 @@ describe('ParameterTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterTip]
+            imports: [ParameterTip]
         });
         fixture = TestBed.createComponent(ParameterTip);
         component = fixture.componentInstance;

@@ -18,6 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterContexts } from './parameter-contexts.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../state/parameter-context-listing/parameter-context-listing.reducer';
+import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('ParameterContexts', () => {
     let component: ParameterContexts;
@@ -25,7 +30,13 @@ describe('ParameterContexts', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterContexts]
+            declarations: [ParameterContexts, ParameterContextListing],
+            imports: [RouterModule, RouterTestingModule],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(ParameterContexts);
         component = fixture.componentInstance;

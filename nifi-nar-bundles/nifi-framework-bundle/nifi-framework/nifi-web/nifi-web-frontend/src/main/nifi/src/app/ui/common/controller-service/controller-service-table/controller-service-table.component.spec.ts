@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ControllerServiceTable } from './controller-service-table.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ControllerServiceTable', () => {
     let component: ControllerServiceTable;
@@ -25,7 +26,7 @@ describe('ControllerServiceTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServiceTable]
+            imports: [BrowserAnimationsModule, ControllerServiceTable]
         });
         fixture = TestBed.createComponent(ControllerServiceTable);
         component = fixture.componentInstance;

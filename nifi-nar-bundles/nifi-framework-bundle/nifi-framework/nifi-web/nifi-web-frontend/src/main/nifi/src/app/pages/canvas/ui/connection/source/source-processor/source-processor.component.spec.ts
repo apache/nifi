@@ -25,7 +25,7 @@ describe('SourceProcessor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [SourceProcessor]
+            imports: [SourceProcessor]
         });
         fixture = TestBed.createComponent(SourceProcessor);
         component = fixture.componentInstance;

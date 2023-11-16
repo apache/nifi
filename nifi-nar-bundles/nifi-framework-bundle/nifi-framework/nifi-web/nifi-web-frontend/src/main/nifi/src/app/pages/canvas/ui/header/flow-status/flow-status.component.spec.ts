@@ -18,6 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowStatus } from './flow-status.component';
+import { Search } from '../search/search.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 describe('FlowStatus', () => {
     let component: FlowStatus;
@@ -25,7 +30,15 @@ describe('FlowStatus', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowStatus]
+            declarations: [FlowStatus, Search],
+            imports: [
+                HttpClientTestingModule,
+                CdkOverlayOrigin,
+                CdkConnectedOverlay,
+                MatAutocompleteModule,
+                FormsModule,
+                ReactiveFormsModule
+            ]
         });
         fixture = TestBed.createComponent(FlowStatus);
         component = fixture.componentInstance;

@@ -25,7 +25,7 @@ describe('DestinationOutputPort', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [DestinationOutputPort]
+            imports: [DestinationOutputPort]
         });
         fixture = TestBed.createComponent(DestinationOutputPort);
         component = fixture.componentInstance;

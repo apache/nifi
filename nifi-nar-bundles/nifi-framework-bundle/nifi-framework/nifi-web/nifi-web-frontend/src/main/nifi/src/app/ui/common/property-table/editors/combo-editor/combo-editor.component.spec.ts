@@ -25,10 +25,50 @@ describe('ComboEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ComboEditor]
+            imports: [ComboEditor]
         });
         fixture = TestBed.createComponent(ComboEditor);
         component = fixture.componentInstance;
+        component.supportsParameters = false;
+        component.item = {
+            property: 'Destination',
+            value: 'flowfile-attribute',
+            descriptor: {
+                name: 'Destination',
+                displayName: 'Destination',
+                description:
+                    "Control if JSON value is written as a new flowfile attribute 'JSONAttributes' or written in the flowfile content. Writing to flowfile content will overwrite any existing flowfile content.",
+                defaultValue: 'flowfile-attribute',
+                allowableValues: [
+                    {
+                        allowableValue: {
+                            displayName: 'flowfile-attribute',
+                            value: 'flowfile-attribute'
+                        },
+                        canRead: true
+                    },
+                    {
+                        allowableValue: {
+                            displayName: 'flowfile-content',
+                            value: 'flowfile-content'
+                        },
+                        canRead: true
+                    }
+                ],
+                required: true,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: false,
+                expressionLanguageScope: 'Not Supported',
+                dependencies: []
+            },
+            id: 2,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            type: 'required'
+        };
         fixture.detectChanges();
     });
 

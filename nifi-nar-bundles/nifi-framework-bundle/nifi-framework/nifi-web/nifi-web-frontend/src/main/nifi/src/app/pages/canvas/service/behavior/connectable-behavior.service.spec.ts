@@ -18,12 +18,37 @@
 import { TestBed } from '@angular/core/testing';
 
 import { ConnectableBehavior } from './connectable-behavior.service';
+import { provideMockStore } from '@ngrx/store/testing';
+import * as fromFlow from '../../state/flow/flow.reducer';
+import * as fromTransform from '../../state/transform/transform.reducer';
+import { flowFeatureKey } from '../../state/flow';
+import { selectFlowState } from '../../state/flow/flow.selectors';
+import { CanvasState } from '../../state';
+import { transformFeatureKey } from '../../state/transform';
 
 describe('ConnectableBehavior', () => {
     let service: ConnectableBehavior;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({});
+        const initialState: CanvasState = {
+            [flowFeatureKey]: fromFlow.initialState,
+            [transformFeatureKey]: fromTransform.initialState
+        };
+
+        TestBed.configureTestingModule({
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectFlowState,
+                            value: initialState[flowFeatureKey]
+                        }
+                    ]
+                })
+            ]
+        });
+
         service = TestBed.inject(ConnectableBehavior);
     });
 

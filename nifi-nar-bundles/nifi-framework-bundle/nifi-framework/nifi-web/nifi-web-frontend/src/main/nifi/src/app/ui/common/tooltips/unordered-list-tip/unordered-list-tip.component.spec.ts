@@ -25,7 +25,7 @@ describe('UnorderedListTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [UnorderedListTip]
+            imports: [UnorderedListTip]
         });
         fixture = TestBed.createComponent(UnorderedListTip);
         component = fixture.componentInstance;

@@ -18,14 +18,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { YesNoDialog } from './yes-no-dialog.component';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { YesNoDialogRequest } from '../../../state/shared';
 
 describe('YesNoDialog', () => {
     let component: YesNoDialog;
     let fixture: ComponentFixture<YesNoDialog>;
 
+    const data: YesNoDialogRequest = {
+        title: 'Title',
+        message: 'Message'
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [YesNoDialog]
+            imports: [YesNoDialog],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(YesNoDialog);
         component = fixture.componentInstance;

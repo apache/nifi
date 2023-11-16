@@ -25,7 +25,7 @@ describe('ProcessGroupReferences', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ProcessGroupReferences]
+            imports: [ProcessGroupReferences]
         });
         fixture = TestBed.createComponent(ProcessGroupReferences);
         component = fixture.componentInstance;

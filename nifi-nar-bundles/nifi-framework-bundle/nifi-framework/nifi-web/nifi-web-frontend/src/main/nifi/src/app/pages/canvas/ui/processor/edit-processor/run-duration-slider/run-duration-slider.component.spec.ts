@@ -25,7 +25,7 @@ describe('RunDurationSlider', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RunDurationSlider]
+            imports: [RunDurationSlider]
         });
         fixture = TestBed.createComponent(RunDurationSlider);
         component = fixture.componentInstance;

@@ -18,14 +18,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterContextTable } from './parameter-context-table.component';
+import { MatTableModule } from '@angular/material/table';
 
-describe('ReportingTaskTable', () => {
+describe('ParameterContextTable', () => {
     let component: ParameterContextTable;
     let fixture: ComponentFixture<ParameterContextTable>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterContextTable]
+            declarations: [ParameterContextTable],
+            imports: [MatTableModule]
         });
         fixture = TestBed.createComponent(ParameterContextTable);
         component = fixture.componentInstance;

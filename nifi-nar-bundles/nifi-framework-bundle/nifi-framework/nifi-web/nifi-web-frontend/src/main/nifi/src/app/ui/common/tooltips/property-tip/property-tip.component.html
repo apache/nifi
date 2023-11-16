@@ -21,7 +21,12 @@
         <div *ngIf="hasDefaultValue(descriptor)"><b>Default Value:</b> {{ descriptor.defaultValue }}</div>
         <div><b>Expression language scope:</b> {{ descriptor.expressionLanguageScope }}</div>
         <div><b>Sensitive property:</b> {{ descriptor.sensitive }}</div>
-        <div *ngIf="identifiesControllerService(descriptor)">
+        <div
+            *ngIf="
+                descriptor.identifiesControllerService &&
+                descriptor.identifiesControllerServiceBundle &&
+                identifiesControllerService(descriptor)
+            ">
             <b>Requires Controller Service:</b>&nbsp;
             <controller-service-api
                 [type]="descriptor.identifiesControllerService"

@@ -18,12 +18,42 @@
 import { TestBed } from '@angular/core/testing';
 
 import { DraggableBehavior } from './draggable-behavior.service';
+import * as fromFlow from '../../state/flow/flow.reducer';
+import * as fromTransform from '../../state/transform/transform.reducer';
+import { provideMockStore } from '@ngrx/store/testing';
+import { selectTransform } from '../../state/transform/transform.selectors';
+import { initialState } from '../../state/transform/transform.reducer';
+import { CanvasState } from '../../state';
+import { flowFeatureKey } from '../../state/flow';
+import { transformFeatureKey } from '../../state/transform';
+import { selectFlowState } from '../../state/flow/flow.selectors';
 
 describe('DraggableBehavior', () => {
     let service: DraggableBehavior;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({});
+        const initialState: CanvasState = {
+            [flowFeatureKey]: fromFlow.initialState,
+            [transformFeatureKey]: fromTransform.initialState
+        };
+
+        TestBed.configureTestingModule({
+            providers: [
+                provideMockStore({
+                    initialState,
+                    selectors: [
+                        {
+                            selector: selectFlowState,
+                            value: initialState[flowFeatureKey]
+                        },
+                        {
+                            selector: selectTransform,
+                            value: initialState[transformFeatureKey]
+                        }
+                    ]
+                })
+            ]
+        });
         service = TestBed.inject(DraggableBehavior);
     });
 

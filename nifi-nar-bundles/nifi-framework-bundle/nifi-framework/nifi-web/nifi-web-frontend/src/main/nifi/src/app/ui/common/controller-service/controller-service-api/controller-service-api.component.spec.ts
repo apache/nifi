@@ -18,21 +18,37 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ControllerServiceApi } from './controller-service-api.component';
+import { Bundle } from '../../../../state/shared';
 
 describe('ControllerServiceApi', () => {
     let component: ControllerServiceApi;
     let fixture: ComponentFixture<ControllerServiceApi>;
 
+    const serviceType: string = 'org.apache.nifi.ssl.StandardRestrictedSSLContextService';
+    const serviceBundle: Bundle = {
+        group: 'org.apache.nifi',
+        artifact: 'nifi-ssl-context-service-nar',
+        version: '2.0.0-SNAPSHOT'
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServiceApi]
+            imports: [ControllerServiceApi]
         });
         fixture = TestBed.createComponent(ControllerServiceApi);
         component = fixture.componentInstance;
+        component.type = serviceType;
+        component.bundle = serviceBundle;
         fixture.detectChanges();
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should format api', () => {
+        expect(component.formatControllerService(serviceType, serviceBundle)).toEqual(
+            'StandardRestrictedSSLContextService 2.0.0-SNAPSHOT from org.apache.nifi - nifi-ssl-context-service-nar'
+        );
     });
 });

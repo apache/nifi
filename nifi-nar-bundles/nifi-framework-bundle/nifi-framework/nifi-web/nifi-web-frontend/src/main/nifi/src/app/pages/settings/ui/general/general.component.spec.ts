@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { General } from './general.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/general/general.reducer';
 
 describe('General', () => {
     let component: General;
@@ -25,7 +27,12 @@ describe('General', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [General]
+            declarations: [General],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(General);
         component = fixture.componentInstance;

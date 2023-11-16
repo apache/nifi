@@ -18,14 +18,40 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowDesignerComponent } from './flow-designer.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../state/flow/flow.reducer';
+import { Component } from '@angular/core';
 
-describe('CanvasComponent', () => {
+describe('FlowDesignerComponent', () => {
     let component: FlowDesignerComponent;
     let fixture: ComponentFixture<FlowDesignerComponent>;
 
+    @Component({
+        selector: 'fd-header',
+        template: ''
+    })
+    class MockHeader {}
+
+    @Component({
+        selector: 'fd-canvas',
+        template: ''
+    })
+    class MockCanvas {}
+
+    @Component({
+        selector: 'fd-footer',
+        template: ''
+    })
+    class MockFooter {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowDesignerComponent]
+            declarations: [FlowDesignerComponent, MockHeader, MockCanvas, MockFooter],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(FlowDesignerComponent);
         component = fixture.componentInstance;

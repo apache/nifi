@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SourceProcessGroup } from './source-process-group.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('SourceProcessGroup', () => {
     let component: SourceProcessGroup;
@@ -25,7 +26,7 @@ describe('SourceProcessGroup', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [SourceProcessGroup]
+            imports: [BrowserAnimationsModule, SourceProcessGroup]
         });
         fixture = TestBed.createComponent(SourceProcessGroup);
         component = fixture.componentInstance;

@@ -25,7 +25,7 @@ describe('ParameterContextInheritance', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterContextInheritance]
+            imports: [ParameterContextInheritance]
         });
         fixture = TestBed.createComponent(ParameterContextInheritance);
         component = fixture.componentInstance;

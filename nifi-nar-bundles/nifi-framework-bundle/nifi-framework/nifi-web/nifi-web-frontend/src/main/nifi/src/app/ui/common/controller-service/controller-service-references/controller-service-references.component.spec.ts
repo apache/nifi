@@ -25,7 +25,7 @@ describe('ControllerServiceReferences', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServiceReferences]
+            imports: [ControllerServiceReferences]
         });
         fixture = TestBed.createComponent(ControllerServiceReferences);
         component = fixture.componentInstance;

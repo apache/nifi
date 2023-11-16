@@ -25,7 +25,7 @@ describe('ControllerServiceApiTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServiceApiTip]
+            imports: [ControllerServiceApiTip]
         });
         fixture = TestBed.createComponent(ControllerServiceApiTip);
         component = fixture.componentInstance;

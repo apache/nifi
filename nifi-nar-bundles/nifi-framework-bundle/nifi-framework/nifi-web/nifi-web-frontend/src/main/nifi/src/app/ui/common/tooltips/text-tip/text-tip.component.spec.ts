@@ -25,7 +25,7 @@ describe('TextTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [TextTip]
+            imports: [TextTip]
         });
         fixture = TestBed.createComponent(TextTip);
         component = fixture.componentInstance;

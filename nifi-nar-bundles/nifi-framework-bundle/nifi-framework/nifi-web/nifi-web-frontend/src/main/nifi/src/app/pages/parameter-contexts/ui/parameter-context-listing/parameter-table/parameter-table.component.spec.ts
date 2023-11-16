@@ -25,7 +25,7 @@ describe('ParameterTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterTable]
+            imports: [ParameterTable]
         });
         fixture = TestBed.createComponent(ParameterTable);
         component = fixture.componentInstance;

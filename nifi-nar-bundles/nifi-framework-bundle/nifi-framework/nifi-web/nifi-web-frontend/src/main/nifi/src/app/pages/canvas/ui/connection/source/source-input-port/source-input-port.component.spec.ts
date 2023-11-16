@@ -25,7 +25,7 @@ describe('SourceInputPort', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [SourceInputPort]
+            imports: [SourceInputPort]
         });
         fixture = TestBed.createComponent(SourceInputPort);
         component = fixture.componentInstance;

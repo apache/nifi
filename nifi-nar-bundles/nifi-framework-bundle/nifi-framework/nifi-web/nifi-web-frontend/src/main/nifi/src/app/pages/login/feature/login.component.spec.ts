@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginComponent } from './login.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/user/user.reducer';
 
 describe('LoginComponent', () => {
     let component: LoginComponent;
@@ -25,7 +27,8 @@ describe('LoginComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginComponent]
+            declarations: [LoginComponent],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(LoginComponent);
         component = fixture.componentInstance;

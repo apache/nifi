@@ -18,14 +18,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Birdseye } from './birdseye.component';
+import { BirdseyeView } from '../../../service/birdseye-view.service';
+import SpyObj = jasmine.SpyObj;
+import createSpyObj = jasmine.createSpyObj;
 
 describe('Birdseye', () => {
     let component: Birdseye;
     let fixture: ComponentFixture<Birdseye>;
+    let birdseyeViewSpy: SpyObj<BirdseyeView>;
 
     beforeEach(() => {
+        birdseyeViewSpy = createSpyObj('BirdseyeView', ['init', 'refresh']);
+
         TestBed.configureTestingModule({
-            declarations: [Birdseye]
+            declarations: [Birdseye],
+            providers: [{ provide: BirdseyeView, useValue: birdseyeViewSpy }]
         });
         fixture = TestBed.createComponent(Birdseye);
         component = fixture.componentInstance;
@@ -33,6 +40,8 @@ describe('Birdseye', () => {
     });
 
     it('should create', () => {
+        expect(birdseyeViewSpy.init).toHaveBeenCalled();
+        expect(birdseyeViewSpy.refresh).toHaveBeenCalled();
         expect(component).toBeTruthy();
     });
 });

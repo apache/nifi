@@ -25,7 +25,7 @@ describe('RootGroupRedirector', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RootGroupRedirector]
+            imports: [RootGroupRedirector]
         });
         fixture = TestBed.createComponent(RootGroupRedirector);
         component = fixture.componentInstance;

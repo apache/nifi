@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NfEditor } from './nf-editor.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('NfEditor', () => {
     let component: NfEditor;
@@ -25,7 +26,7 @@ describe('NfEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [NfEditor]
+            imports: [NfEditor, HttpClientTestingModule]
         });
         fixture = TestBed.createComponent(NfEditor);
         component = fixture.componentInstance;

@@ -104,7 +104,11 @@ export class RelationshipSettings implements ControlValueAccessor {
     }
 
     isRelationshipRetried(): boolean {
-        return this.relationships.some((relationship) => relationship.retry);
+        if (this.relationships) {
+            return this.relationships.some((relationship) => relationship.retry);
+        }
+
+        return false;
     }
 
     handleChanged(): void {

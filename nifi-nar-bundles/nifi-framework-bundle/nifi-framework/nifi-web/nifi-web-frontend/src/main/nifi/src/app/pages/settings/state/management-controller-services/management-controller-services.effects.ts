@@ -222,6 +222,7 @@ export class ManagementControllerServicesEffects {
                         // fetch all services that implement the requested service api
                         return this.extensionTypesService
                             .getImplementingControllerServiceTypes(
+                                // @ts-ignore
                                 descriptor.identifiesControllerService,
                                 descriptor.identifiesControllerServiceBundle
                             )

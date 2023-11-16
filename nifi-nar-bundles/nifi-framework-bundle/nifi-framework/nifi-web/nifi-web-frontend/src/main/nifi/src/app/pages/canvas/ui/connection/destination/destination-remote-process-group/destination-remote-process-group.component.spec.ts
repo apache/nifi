@@ -18,14 +18,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DestinationRemoteProcessGroup } from './destination-remote-process-group.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('SourceRemoteProcessGroup', () => {
+describe('DestinationRemoteProcessGroup', () => {
     let component: DestinationRemoteProcessGroup;
     let fixture: ComponentFixture<DestinationRemoteProcessGroup>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [DestinationRemoteProcessGroup]
+            imports: [BrowserAnimationsModule, DestinationRemoteProcessGroup]
         });
         fixture = TestBed.createComponent(DestinationRemoteProcessGroup);
         component = fixture.componentInstance;

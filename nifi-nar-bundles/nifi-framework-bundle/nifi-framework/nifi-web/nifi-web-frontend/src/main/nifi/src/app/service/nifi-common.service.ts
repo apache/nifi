@@ -102,7 +102,7 @@ export class NiFiCommon {
      *
      * @argument {string} str   The string to test
      */
-    public isBlank(str: string) {
+    public isBlank(str: string | null | undefined) {
         if (str) {
             return str.trim().length === 0;
         }

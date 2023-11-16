@@ -25,7 +25,7 @@ describe('DestinationProcessor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [DestinationProcessor]
+            imports: [DestinationProcessor]
         });
         fixture = TestBed.createComponent(DestinationProcessor);
         component = fixture.componentInstance;

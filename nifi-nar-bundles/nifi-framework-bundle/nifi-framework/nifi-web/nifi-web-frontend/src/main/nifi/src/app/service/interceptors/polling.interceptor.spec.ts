@@ -18,12 +18,16 @@
 import { TestBed } from '@angular/core/testing';
 
 import { PollingInterceptor } from './polling.interceptor';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/user/user.reducer';
 
 describe('PollingInterceptor', () => {
     let service: PollingInterceptor;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({});
+        TestBed.configureTestingModule({
+            providers: [provideMockStore({ initialState })]
+        });
         service = TestBed.inject(PollingInterceptor);
     });
 

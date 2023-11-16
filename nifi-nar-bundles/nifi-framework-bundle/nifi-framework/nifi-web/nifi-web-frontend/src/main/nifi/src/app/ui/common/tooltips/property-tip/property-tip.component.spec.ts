@@ -25,7 +25,7 @@ describe('PropertyTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [PropertyTip]
+            imports: [PropertyTip]
         });
         fixture = TestBed.createComponent(PropertyTip);
         component = fixture.componentInstance;

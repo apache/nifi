@@ -18,6 +18,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Search } from './search.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 
 describe('Search', () => {
     let component: Search;
@@ -25,7 +29,15 @@ describe('Search', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Search]
+            declarations: [Search],
+            imports: [
+                HttpClientTestingModule,
+                CdkOverlayOrigin,
+                FormsModule,
+                ReactiveFormsModule,
+                CdkConnectedOverlay,
+                MatAutocompleteModule
+            ]
         });
         fixture = TestBed.createComponent(Search);
         component = fixture.componentInstance;

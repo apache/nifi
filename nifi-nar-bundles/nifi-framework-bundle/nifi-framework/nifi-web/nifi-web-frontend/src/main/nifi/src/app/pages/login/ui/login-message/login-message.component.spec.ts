@@ -18,6 +18,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginMessage } from './login-message.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('LoginMessage', () => {
     let component: LoginMessage;
@@ -25,7 +28,8 @@ describe('LoginMessage', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginMessage]
+            declarations: [LoginMessage],
+            imports: [HttpClientTestingModule, RouterModule, RouterTestingModule]
         });
         fixture = TestBed.createComponent(LoginMessage);
         component = fixture.componentInstance;

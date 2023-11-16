@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ReportingTasks } from './reporting-tasks.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 
 describe('ReportingTasks', () => {
     let component: ReportingTasks;
@@ -25,7 +27,12 @@ describe('ReportingTasks', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ReportingTasks]
+            declarations: [ReportingTasks],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(ReportingTasks);
         component = fixture.componentInstance;

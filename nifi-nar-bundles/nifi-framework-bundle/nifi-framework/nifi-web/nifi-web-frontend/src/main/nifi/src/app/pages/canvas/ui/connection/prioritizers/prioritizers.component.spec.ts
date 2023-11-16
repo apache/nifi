@@ -25,7 +25,7 @@ describe('Prioritizers', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Prioritizers]
+            imports: [Prioritizers]
         });
         fixture = TestBed.createComponent(Prioritizers);
         component = fixture.componentInstance;

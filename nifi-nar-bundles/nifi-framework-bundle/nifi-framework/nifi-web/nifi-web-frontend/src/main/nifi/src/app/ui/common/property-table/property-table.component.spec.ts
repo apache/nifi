@@ -25,7 +25,7 @@ describe('PropertyTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [PropertyTable]
+            imports: [PropertyTable]
         });
         fixture = TestBed.createComponent(PropertyTable);
         component = fixture.componentInstance;

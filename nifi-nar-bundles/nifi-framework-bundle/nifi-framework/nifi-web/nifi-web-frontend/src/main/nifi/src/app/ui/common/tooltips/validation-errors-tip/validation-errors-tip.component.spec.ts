@@ -25,7 +25,7 @@ describe('ValidationErrorsTip', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ValidationErrorsTip]
+            imports: [ValidationErrorsTip]
         });
         fixture = TestBed.createComponent(ValidationErrorsTip);
         component = fixture.componentInstance;

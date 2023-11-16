@@ -18,14 +18,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NewPropertyDialog } from './new-property-dialog.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { NewPropertyDialogRequest } from '../../../state/shared';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('NewPropertyDialog', () => {
     let component: NewPropertyDialog;
     let fixture: ComponentFixture<NewPropertyDialog>;
 
+    const data: NewPropertyDialogRequest = {
+        existingProperties: ['topic'],
+        allowsSensitive: false
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [NewPropertyDialog]
+            imports: [NewPropertyDialog, BrowserAnimationsModule, FormsModule, ReactiveFormsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(NewPropertyDialog);
         component = fixture.componentInstance;
