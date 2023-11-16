@@ -134,7 +134,7 @@ public class SplitText extends AbstractProcessor {
     public static final PropertyDescriptor REMOVE_TRAILING_NEWLINES = new PropertyDescriptor.Builder()
             .name("Remove Trailing Newlines")
             .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later. If this is set to "
-                    + "'true' and a FlowFile is generated that contains only 'empty lines' (i.e., consists only of \r and \n characters), the FlowFile will not be emitted. "
+                    + "'true' and a FlowFile is generated that contains only 'empty lines' (i.e., consists only of \\r and \\n characters), the FlowFile will not be emitted. "
                     + "Note, however, that if header lines are specified, the resultant FlowFile will never be empty as it will consist of the header lines, so "
                     + "a FlowFile may be emitted that contains only the header lines.")
             .required(true)
