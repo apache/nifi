@@ -100,7 +100,7 @@ public class PutAzureDataExplorerTest {
 
         KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
         kustoQueryResponse.setIngestorRoleEnabled(true);
-        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isIngestorPrivilegeEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
@@ -121,7 +121,7 @@ public class PutAzureDataExplorerTest {
 
         KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
         kustoQueryResponse.setIngestorRoleEnabled(true);
-        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isIngestorPrivilegeEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.FAILED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
@@ -144,8 +144,8 @@ public class PutAzureDataExplorerTest {
         KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
         kustoQueryResponse.setStreamingPolicyEnabled(true);
         kustoQueryResponse.setIngestorRoleEnabled(true);
-        when(kustoIngestService.checkIfStreamingIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
-        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isStreamingEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isIngestorPrivilegeEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.SUCCEEDED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 
@@ -168,8 +168,8 @@ public class PutAzureDataExplorerTest {
         KustoIngestQueryResponse kustoQueryResponse = new KustoIngestQueryResponse(queryResult);
         kustoQueryResponse.setStreamingPolicyEnabled(true);
         kustoQueryResponse.setIngestorRoleEnabled(true);
-        when(kustoIngestService.checkIfStreamingIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
-        when(kustoIngestService.checkIfIngestorPrivilegeIsEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isStreamingEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
+        when(kustoIngestService.isIngestorPrivilegeEnabled(Mockito.anyString(), Mockito.anyString())).thenReturn(kustoQueryResponse);
         final KustoIngestionResult kustoIngestionResult = KustoIngestionResult.FAILED;
         when(kustoIngestService.ingestData(Mockito.any())).thenReturn(kustoIngestionResult);
 

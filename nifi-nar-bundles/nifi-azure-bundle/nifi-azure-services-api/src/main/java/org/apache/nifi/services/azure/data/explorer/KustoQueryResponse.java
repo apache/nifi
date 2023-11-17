@@ -17,7 +17,6 @@
 package org.apache.nifi.services.azure.data.explorer;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Objects;
 
 public class KustoQueryResponse {
@@ -28,27 +27,16 @@ public class KustoQueryResponse {
 
     private final String errorMessage;
 
-    private final List<List<Object>> queryResult;
-
     public KustoQueryResponse(final boolean error, final String errorMessage) {
         this.responseStream = null;
         this.error = error;
         this.errorMessage = errorMessage;
-        queryResult = null;
     }
 
     public KustoQueryResponse(final InputStream responseStream) {
         this.responseStream = Objects.requireNonNull(responseStream, "Response Stream required");
         this.error = false;
         this.errorMessage = null;
-        this.queryResult = null;
-    }
-
-    public KustoQueryResponse(final List<List<Object>> queryResult){
-        this.queryResult = queryResult;
-        this.error = false;
-        this.errorMessage = null;
-        this.responseStream = null;
     }
 
     public InputStream getResponseStream() {
@@ -63,9 +51,6 @@ public class KustoQueryResponse {
         return errorMessage;
     }
 
-    public List<List<Object>> getQueryResult() {
-        return queryResult;
-    }
 
 
 }

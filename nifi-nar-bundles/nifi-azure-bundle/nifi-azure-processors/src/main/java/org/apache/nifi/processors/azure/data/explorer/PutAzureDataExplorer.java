@@ -39,11 +39,7 @@ import org.apache.nifi.services.azure.data.explorer.KustoIngestionResult;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -98,9 +94,9 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .defaultValue(Boolean.FALSE.toString())
             .build();
     public static final PropertyDescriptor POLL_ON_INGESTION_STATUS = new PropertyDescriptor
-            .Builder().name("Poll On Ingestion Status")
-            .displayName("Whether To Poll On Ingestion Status")
-            .description("This property determines whether we want to poll on ingestion status after an ingestion to ADX is completed")
+            .Builder().name("Poll for Ingestion Status")
+            .displayName("Poll for Ingestion Status")
+            .description("Determines whether to poll on ingestion status after an ingestion to Azure Data Explorer is completed")
             .required(false)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -148,11 +144,11 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .defaultValue("5 s")
             .build();
     public static final Relationship SUCCESS = new Relationship.Builder()
-            .name("Success")
+            .name("success")
             .description("Relationship For Success")
             .build();
     public static final Relationship FAILURE = new Relationship.Builder()
-            .name("Failure")
+            .name("failure")
             .description("Relationship For Failure")
             .build();
 
@@ -167,28 +163,23 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     private static final List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
     private transient KustoIngestService service;
-    private boolean streamingEnabled;
-    private boolean pollOnIngestionStatus;
 
     static  {
-        final List<PropertyDescriptor> descriptorList = new ArrayList<>();
-        descriptorList.add(ADX_SERVICE);
-        descriptorList.add(DATABASE_NAME);
-        descriptorList.add(TABLE_NAME);
-        descriptorList.add(MAPPING_NAME);
-        descriptorList.add(DATA_FORMAT);
-        descriptorList.add(IGNORE_FIRST_RECORD);
-        descriptorList.add(IS_STREAMING_ENABLED);
-        descriptorList.add(POLL_ON_INGESTION_STATUS);
-        descriptorList.add(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION);
-        descriptorList.add(INGESTION_STATUS_POLLING_TIMEOUT);
-        descriptorList.add(INGESTION_STATUS_POLLING_INTERVAL);
-        descriptors = Collections.unmodifiableList(descriptorList);
+        descriptors = List.of(
+                ADX_SERVICE,
+                DATABASE_NAME,
+                TABLE_NAME,
+                MAPPING_NAME,
+                DATA_FORMAT,
+                IGNORE_FIRST_RECORD,
+                IS_STREAMING_ENABLED,
+                POLL_ON_INGESTION_STATUS,
+                ROUTE_PARTIALLY_SUCCESSFUL_INGESTION,
+                INGESTION_STATUS_POLLING_TIMEOUT,
+                INGESTION_STATUS_POLLING_INTERVAL
+        );
 
-        final Set<Relationship> relationshipSet = new HashSet<>();
-        relationshipSet.add(SUCCESS);
-        relationshipSet.add(FAILURE);
-        relationships = Collections.unmodifiableSet(relationshipSet);
+        relationships = Set.of(SUCCESS, FAILURE);
     }
 
     @Override
@@ -209,7 +200,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
                     String.format("User does not have ingestor privileges for database %s and table %s", context.getProperty(DATABASE_NAME).getValue(), context.getProperty(TABLE_NAME).getValue())
             );
         }
-        streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        Boolean streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
         if (streamingEnabled && !checkIfStreamingPolicyIsEnabledInADX(context.getProperty(DATABASE_NAME).getValue(), context.getProperty(DATABASE_NAME).getValue())) {
             throw new ProcessException(String.format("Streaming policy is not enabled in database %s",context.getProperty(DATABASE_NAME).getValue()));
         }
@@ -232,8 +223,8 @@ public class PutAzureDataExplorer extends AbstractProcessor {
         Duration ingestionStatusPollingTimeout = Duration.ofSeconds(context.getProperty(INGESTION_STATUS_POLLING_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
         Duration ingestionStatusPollingInterval = Duration.ofSeconds(context.getProperty(INGESTION_STATUS_POLLING_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
         String ignoreFirstRecord = context.getProperty(IGNORE_FIRST_RECORD).getValue();
-        streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
-        pollOnIngestionStatus = context.getProperty(POLL_ON_INGESTION_STATUS).evaluateAttributeExpressions().asBoolean();
+        Boolean streamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        Boolean pollOnIngestionStatus = context.getProperty(POLL_ON_INGESTION_STATUS).evaluateAttributeExpressions().asBoolean();
 
         // ingestion into ADX
         try (final InputStream inputStream = session.read(flowFile)) {
@@ -264,7 +255,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
                     transferRelationship = SUCCESS;
                 }
             }
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException e) {
             getLogger().error("Azure Data Explorer Ingest processing failed", e);
             transferRelationship = FAILURE;
         }
@@ -277,7 +268,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     }
 
     protected boolean checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {
-        KustoIngestQueryResponse kustoIngestQueryResponse = service.checkIfStreamingIsEnabled(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
+        KustoIngestQueryResponse kustoIngestQueryResponse = service.isStreamingEnabled(database, String.format(STREAMING_POLICY_SHOW_COMMAND, PutAzureDataExplorer.DATABASE, entityName));
         if (kustoIngestQueryResponse.isError()) {
             throw new ProcessException(String.format("Error occurred while checking if streaming policy is enabled for the table for entity %s in database %s", entityName, database));
         }
@@ -285,7 +276,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
     }
 
     protected boolean checkIfIngestorRoleExistInADX(String databaseName, String tableName) {
-        KustoIngestQueryResponse kustoIngestQueryResponse = service.checkIfIngestorPrivilegeIsEnabled(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
+        KustoIngestQueryResponse kustoIngestQueryResponse = service.isIngestorPrivilegeEnabled(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
         return kustoIngestQueryResponse.isIngestorRoleEnabled();
     }
 }

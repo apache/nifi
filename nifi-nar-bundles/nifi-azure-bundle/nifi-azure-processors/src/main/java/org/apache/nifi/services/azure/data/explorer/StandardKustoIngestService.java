@@ -201,7 +201,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return IngestClientFactory.createManagedStreamingIngestClient(ingestConnectionStringBuilder, streamingConnectionStringBuilder);
     }
 
-    public KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) throws URISyntaxException {
+    public KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) {
         StreamSourceInfo info = new StreamSourceInfo(kustoIngestionRequest.getInputStream());
         //ingest data
         IngestionResult ingestionResult;
@@ -225,37 +225,42 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                 ingestionResult = queuedIngestClient.ingestFromStream(info, ingestionProperties);
             }
             if (kustoIngestionRequest.pollOnIngestionStatus()) {
-                List<IngestionStatus> statuses = initializeKustoIngestionStatusAsPending();
-                long startTime = System.currentTimeMillis();
                 long timeoutMillis = kustoIngestionRequest.getIngestionStatusPollingTimeout().toMillis();
-                // Calculate the end time based on the timeout duration
-                long endTime = startTime + timeoutMillis;
-                while (System.currentTimeMillis() < endTime) {
-                    // Get the status of the ingestion operation
-                    List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
-                    if (statuses1.get(0).status == OperationStatus.Succeeded
-                            || statuses1.get(0).status == OperationStatus.Failed
-                            || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
-                        statuses = statuses1;
-                        break;
-                    }
-                    // Sleep for before checking again
-                    Thread.sleep(kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis());
-                }
-                // Check if the timeout has been exceeded
-                if (System.currentTimeMillis() - startTime >= timeoutMillis) {
-                    throw new ProcessException(String.format("Timeout of %s exceeded while waiting for ingestion status", kustoIngestionRequest.getIngestionStatusPollingTimeout()));
-                }
-                return KustoIngestionResult.fromString(statuses.get(0).status.toString());
+                long ingestionStatusPollingInterval = kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis();
+                return pollOnIngestionStatus(ingestionResult, timeoutMillis, ingestionStatusPollingInterval);
             } else {
                 return KustoIngestionResult.fromString("Succeeded");
             }
-        } catch (IngestionClientException | IngestionServiceException e) {
+        } catch (IngestionClientException | IngestionServiceException | URISyntaxException e) {
             throw new ProcessException("Azure Data Explorer Ingest failed", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); //Restore interrupted status
             throw new ProcessException("Azure Data Explorer Ingest interrupted", e);
         }
+    }
+
+    private KustoIngestionResult pollOnIngestionStatus(IngestionResult ingestionResult, long timeoutMillis, long ingestionStatusPollingInterval) throws URISyntaxException, InterruptedException {
+        List<IngestionStatus> statuses = initializeKustoIngestionStatusAsPending();
+        long startTime = System.currentTimeMillis();
+        // Calculate the end time based on the timeout duration
+        long endTime = startTime + timeoutMillis;
+        while (System.currentTimeMillis() < endTime) {
+            // Get the status of the ingestion operation
+            List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
+            if (statuses1.get(0).status == OperationStatus.Succeeded
+                    || statuses1.get(0).status == OperationStatus.Failed
+                    || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
+                statuses = statuses1;
+                break;
+            }
+            // Sleep for before checking again
+            Thread.sleep(ingestionStatusPollingInterval);
+        }
+        // Check if the timeout has been exceeded
+        if (System.currentTimeMillis() - startTime >= timeoutMillis) {
+            throw new ProcessException(String.format("Timeout of %s exceeded while waiting for ingestion status", ingestionStatusPollingInterval));
+        }
+        return KustoIngestionResult.fromString(statuses.get(0).status.toString());
     }
 
     protected List<IngestionStatus> initializeKustoIngestionStatusAsPending(){
@@ -317,7 +322,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     }
 
     @Override
-    public KustoIngestQueryResponse checkIfStreamingIsEnabled(String databaseName, String query) {
+    public KustoIngestQueryResponse isStreamingEnabled(String databaseName, String query) {
         KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
         kustoIngestQueryResponse.setStreamingPolicyEnabled(false);
         if (!kustoIngestQueryResponse.getQueryResult().isEmpty()) {
@@ -333,7 +338,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     }
 
     @Override
-    public KustoIngestQueryResponse checkIfIngestorPrivilegeIsEnabled(String databaseName, String query) {
+    public KustoIngestQueryResponse isIngestorPrivilegeEnabled(String databaseName, String query) {
         KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
         if (kustoIngestQueryResponse.isError()) {
             kustoIngestQueryResponse.setIngestorRoleEnabled(false);
