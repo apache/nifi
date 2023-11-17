@@ -70,7 +70,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
                     + "such as 'Ignore Header Line' are applied after the rows are skipped.")
             .required(true)
             .defaultValue("0")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 

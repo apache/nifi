@@ -52,7 +52,7 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
 
         final InputStream bomInputStream = BOMInputStream.builder().setInputStream(in).get();
-        final Reader inputStreamReader = new InputStreamReader(bomInputStream);
+        final Reader inputStreamReader = new InputStreamReader(bomInputStream, encoding);
 
         // Skip the number of rows at the "top" as specified
         for (int i = 0; i < skipTopRows; i++) {
