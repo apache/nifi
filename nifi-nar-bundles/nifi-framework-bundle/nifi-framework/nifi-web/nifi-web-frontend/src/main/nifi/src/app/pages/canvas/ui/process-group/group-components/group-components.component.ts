@@ -88,11 +88,9 @@ export class GroupComponents {
             }
         });
 
-        // TODO - consider parent parameter context for default value of newProcessGroupParameterContext
-
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
-            newProcessGroupParameterContext: new FormControl(null)
+            newProcessGroupParameterContext: new FormControl(dialogRequest.currentParameterContextId)
         });
     }
 

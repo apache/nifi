@@ -156,6 +156,7 @@ export interface CreateConnection {
 
 export interface CreateProcessGroupDialogRequest {
     request: CreateComponentRequest;
+    currentParameterContextId?: string;
     parameterContexts: ParameterContextEntity[];
 }
 
@@ -166,6 +167,7 @@ export interface OpenGroupComponentsDialogRequest {
 
 export interface GroupComponentsDialogRequest {
     request: OpenGroupComponentsDialogRequest;
+    currentParameterContextId?: string;
     parameterContexts: ParameterContextEntity[];
 }
 
@@ -291,6 +293,7 @@ export interface DeleteComponentResponse {
 export interface NavigateToComponentRequest {
     id: string;
     type: ComponentType;
+    processGroupId?: string;
 }
 
 /*

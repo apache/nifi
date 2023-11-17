@@ -26,11 +26,13 @@ import {
     getParameterContextsAndOpenGroupComponentsDialog,
     leaveProcessGroup,
     moveComponents,
+    navigateToComponent,
     navigateToEditComponent,
     reloadFlow
 } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { DeleteComponentRequest, MoveComponentRequest } from '../../../state/flow';
+import { ComponentType } from '../../../../../state/shared';
 
 export interface ContextMenuItemDefinition {
     isSeparator?: boolean;
@@ -315,17 +317,6 @@ export class ContextMenu implements OnInit {
                 text: 'Parameters',
                 action: function (store: Store<CanvasState>) {
                     // TODO - open parameter context
-                }
-            },
-            {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - hasVariables
-                    return false;
-                },
-                clazz: 'fa',
-                text: 'Variables',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - openVariableRegistry
                 }
             },
             {
@@ -621,8 +612,39 @@ export class ContextMenu implements OnInit {
                 },
                 clazz: 'fa fa-long-arrow-left',
                 text: 'Go to source',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - showSource
+                action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
+                    const selectionData = selection.datum();
+                    const remoteConnectableType: string = canvasUtils.getConnectableTypeForSource(
+                        ComponentType.RemoteProcessGroup
+                    );
+
+                    // if the source is remote
+                    if (selectionData.sourceType == remoteConnectableType) {
+                        store.dispatch(
+                            navigateToComponent({
+                                request: {
+                                    id: selectionData.sourceGroupId,
+                                    type: ComponentType.RemoteProcessGroup
+                                }
+                            })
+                        );
+                    } else {
+                        const type: ComponentType | null = canvasUtils.getComponentTypeForSource(
+                            selectionData.sourceType
+                        );
+
+                        if (type) {
+                            store.dispatch(
+                                navigateToComponent({
+                                    request: {
+                                        id: selectionData.sourceId,
+                                        processGroupId: selectionData.sourceGroupId,
+                                        type
+                                    }
+                                })
+                            );
+                        }
+                    }
                 }
             },
             {
@@ -631,8 +653,39 @@ export class ContextMenu implements OnInit {
                 },
                 clazz: 'fa fa-long-arrow-right',
                 text: 'Go to destination',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - showDestination
+                action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
+                    const selectionData = selection.datum();
+                    const remoteConnectableType: string = canvasUtils.getConnectableTypeForDestination(
+                        ComponentType.RemoteProcessGroup
+                    );
+
+                    // if the source is remote
+                    if (selectionData.destinationType == remoteConnectableType) {
+                        store.dispatch(
+                            navigateToComponent({
+                                request: {
+                                    id: selectionData.destinationGroupId,
+                                    type: ComponentType.RemoteProcessGroup
+                                }
+                            })
+                        );
+                    } else {
+                        const type: ComponentType | null = canvasUtils.getComponentTypeForDestination(
+                            selectionData.destinationType
+                        );
+
+                        if (type) {
+                            store.dispatch(
+                                navigateToComponent({
+                                    request: {
+                                        id: selectionData.destinationId,
+                                        processGroupId: selectionData.destinationGroupId,
+                                        type
+                                    }
+                                })
+                            );
+                        }
+                    }
                 }
             },
             {
@@ -758,31 +811,6 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canUploadTemplate
-                    return false;
-                },
-                clazz: 'icon icon-template-import',
-                text: 'Upload template',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - uploadTemplate
-                }
-            },
-            {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canCreateTemplate
-                    return false;
-                },
-                clazz: 'icon icon-template-save',
-                text: 'Create template',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - template
-                }
-            },
-            {
-                isSeparator: true
-            },
-            {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
                     // TODO - isCopyable
                     return false;
                 },
@@ -824,7 +852,7 @@ export class ContextMenu implements OnInit {
                 clazz: 'fa fa-minus-circle',
                 text: 'Empty all queues',
                 action: function (store: Store<CanvasState>) {
-                    // TODO - emptyAllQueues
+                    // TODO - emptyAllQueues in selected PG
                 }
             },
             {
@@ -834,7 +862,7 @@ export class ContextMenu implements OnInit {
                 clazz: 'fa fa-minus-circle',
                 text: 'Empty all queues',
                 action: function (store: Store<CanvasState>) {
-                    // TODO - emptyAllQueues
+                    // TODO - emptyAllQueues in current PG
                 }
             },
             {

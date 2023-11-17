@@ -17,7 +17,14 @@
 
 <div class="run-duration-slider flex flex-col">
     <div class="pl-4 pr-7">
-        <mat-slider [min]="0" [max]="7" [step]="1" showTickMarks discrete [displayWith]="formatLabel">
+        <mat-slider
+            [min]="0"
+            [max]="7"
+            [step]="1"
+            showTickMarks
+            discrete
+            [displayWith]="formatLabel"
+            [disabled]="isDisabled">
             <input matSliderThumb (valueChange)="runDurationChanged($event)" />
         </mat-slider>
     </div>

@@ -34,9 +34,14 @@
                             [(ngModel)]="relationship.autoTerminate"
                             name="autoTerminate-{{ i }}"
                             (change)="handleChanged()"
+                            [disabled]="isDisabled"
                             >terminate</mat-checkbox
                         >
-                        <mat-checkbox [(ngModel)]="relationship.retry" name="retry-{{ i }}" (change)="handleChanged()"
+                        <mat-checkbox
+                            [(ngModel)]="relationship.retry"
+                            name="retry-{{ i }}"
+                            (change)="handleChanged()"
+                            [disabled]="isDisabled"
                             >retry</mat-checkbox
                         >
                     </div>
@@ -55,7 +60,8 @@
                         [(ngModel)]="retryCount"
                         type="number"
                         name="retryCount"
-                        (keyup)="handleChanged()" />
+                        (keyup)="handleChanged()"
+                        [disabled]="isDisabled" />
                     <mat-icon
                         matSuffix
                         class="info-icon"
@@ -73,7 +79,11 @@
                         >info_outline</mat-icon
                     >
                 </div>
-                <mat-radio-group [(ngModel)]="backoffMechanism" (change)="handleChanged()" class="flex gap-x-2">
+                <mat-radio-group
+                    [(ngModel)]="backoffMechanism"
+                    (change)="handleChanged()"
+                    [disabled]="isDisabled"
+                    class="flex gap-x-2">
                     <mat-radio-button value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
                     <mat-radio-button value="YIELD_PROCESSOR">Yield</mat-radio-button>
                 </mat-radio-group>
@@ -81,7 +91,12 @@
             <div>
                 <mat-form-field>
                     <mat-label>Retry Maximum Back Off Period</mat-label>
-                    <input matInput [(ngModel)]="maxBackoffPeriod" type="text" (keyup)="handleChanged()" />
+                    <input
+                        matInput
+                        [(ngModel)]="maxBackoffPeriod"
+                        type="text"
+                        (keyup)="handleChanged()"
+                        [disabled]="isDisabled" />
                     <mat-icon
                         matSuffix
                         class="info-icon"

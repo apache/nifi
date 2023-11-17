@@ -22,6 +22,7 @@
             class="prioritizers-list"
             cdkDropList
             cdkDropListSortingDisabled
+            [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="availablePrioritizers"
             (cdkDropListDropped)="dropAvailable($event)">
             <div
@@ -42,6 +43,7 @@
         <div
             class="prioritizers-list"
             cdkDropList
+            [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="selectedPrioritizers"
             (cdkDropListDropped)="dropSelected($event)">
             <div
@@ -67,7 +69,7 @@
                 [tooltipComponentType]="TextTip"
                 [tooltipInputData]="getDescriptionTipData(item)"></div>
         </div>
-        <button type="button" *ngIf="canClose" (click)="removeSelected(item, i)">
+        <button type="button" *ngIf="canClose" (click)="removeSelected(item, i)" [disabled]="isDisabled">
             <i class="fa fa-times"></i>
         </button>
     </ng-template>

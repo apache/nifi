@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { YesNoDialog } from './yes-no-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { YesNoDialogRequest } from '../../../state/shared';
+import { By } from '@angular/platform-browser';
 
 describe('YesNoDialog', () => {
     let component: YesNoDialog;
@@ -42,5 +43,21 @@ describe('YesNoDialog', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should emit when yes clicked', () => {
+        spyOn(component.yes, 'next');
+        component.yesClicked();
+        expect(component.yes.next).toHaveBeenCalled();
+    });
+
+    it('should title be set', () => {
+        const title = fixture.debugElement.query(By.css('h2[data-qa="yes-no-title"]'));
+        expect(title.nativeElement.textContent).toEqual(data.title);
+    });
+
+    it('should message be set', () => {
+        const title = fixture.debugElement.query(By.css('div[data-qa="yes-no-message"]'));
+        expect(title.nativeElement.textContent).toEqual(data.message);
     });
 });

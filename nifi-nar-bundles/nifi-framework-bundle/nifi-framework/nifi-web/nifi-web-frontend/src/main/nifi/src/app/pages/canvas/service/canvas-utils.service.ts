@@ -141,6 +141,13 @@ export class CanvasUtils {
     }
 
     /**
+     * Returns the current group id.
+     */
+    public getProcessGroupId(): string {
+        return this.currentProcessGroupId;
+    }
+
+    /**
      * Returns the parent group id or null if current is root.
      */
     public getParentProcessGroupId(): string | null {

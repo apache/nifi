@@ -37,7 +37,9 @@ import {
     withLatestFrom
 } from 'rxjs';
 import {
+    CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
+    GroupComponentsDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     Snippet,
@@ -192,14 +194,19 @@ export class FlowEffects {
                         return of(FlowActions.openNewProcessorDialog({ request }));
                     case ComponentType.ProcessGroup:
                         return from(this.flowService.getParameterContexts()).pipe(
-                            map((response) =>
-                                FlowActions.openNewProcessGroupDialog({
-                                    request: {
-                                        request,
-                                        parameterContexts: response.parameterContexts
-                                    }
-                                })
-                            ),
+                            withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                            map(([response, parameterContext]) => {
+                                const dialogRequest: CreateProcessGroupDialogRequest = {
+                                    request,
+                                    parameterContexts: response.parameterContexts
+                                };
+
+                                if (parameterContext) {
+                                    dialogRequest.currentParameterContextId = parameterContext.id;
+                                }
+
+                                return FlowActions.openNewProcessGroupDialog({ request: dialogRequest });
+                            }),
                             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
                     case ComponentType.Funnel:
@@ -330,14 +337,21 @@ export class FlowEffects {
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, currentProcessGroupId]) =>
                 from(this.flowService.getParameterContexts()).pipe(
-                    map((response) =>
-                        FlowActions.openGroupComponentsDialog({
-                            request: {
-                                request,
-                                parameterContexts: response.parameterContexts
-                            }
-                        })
-                    ),
+                    withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                    map(([response, parameterContext]) => {
+                        const dialogRequest: GroupComponentsDialogRequest = {
+                            request,
+                            parameterContexts: response.parameterContexts
+                        };
+
+                        if (parameterContext) {
+                            dialogRequest.currentParameterContextId = parameterContext.id;
+                        }
+
+                        return FlowActions.openGroupComponentsDialog({
+                            request: dialogRequest
+                        });
+                    }),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 )
             )
@@ -1520,8 +1534,12 @@ export class FlowEffects {
                 ofType(FlowActions.navigateToComponent),
                 map((action) => action.request),
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-                tap(([request, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id]);
+                tap(([request, currentProcessGroupId]) => {
+                    if (request.processGroupId) {
+                        this.router.navigate(['/process-groups', request.processGroupId, request.type, request.id]);
+                    } else {
+                        this.router.navigate(['/process-groups', currentProcessGroupId, request.type, request.id]);
+                    }
                 })
             ),
         { dispatch: false }

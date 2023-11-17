@@ -15,9 +15,9 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>{{ request.title }}</h2>
+<h2 mat-dialog-title data-qa="yes-no-title">{{ request.title }}</h2>
 <mat-dialog-content>
-    <div class="text-sm">{{ request.message }}</div>
+    <div class="text-sm" data-qa="yes-no-message">{{ request.message }}</div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
     <button mat-raised-button mat-dialog-close color="accent">No</button>

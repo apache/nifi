@@ -2827,6 +2827,8 @@ public class FlowResource extends ApplicationResource {
         }
 
         final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
+        parameterContexts.forEach(entity -> entity.setUri(generateResourceUri("parameter-contexts", entity.getId())));
+
         final ParameterContextsEntity entity = new ParameterContextsEntity();
         entity.setParameterContexts(parameterContexts);
         entity.setCurrentTime(new Date());
