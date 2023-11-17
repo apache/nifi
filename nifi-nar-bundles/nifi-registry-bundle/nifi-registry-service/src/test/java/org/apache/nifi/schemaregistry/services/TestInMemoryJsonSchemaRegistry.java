@@ -22,7 +22,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.schema.access.JsonSchemaAccessUtils;
+import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,8 +84,8 @@ class TestInMemoryJsonSchemaRegistry {
     @ParameterizedTest(name = "{3}")
     @MethodSource("dynamicProperties")
     void testCustomValidateWithSchemaRegistrationFromDynamicProperties(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) {
-        when(validationContext.getProperty(JsonSchemaAccessUtils.SCHEMA_VERSION)).thenReturn(propertyValue);
-        when(propertyValue.getValue()).thenReturn(JsonSchemaAccessUtils.SCHEMA_VERSION.getDefaultValue());
+        when(validationContext.getProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION)).thenReturn(propertyValue);
+        when(propertyValue.getValue()).thenReturn(JsonSchemaRegistryComponent.SCHEMA_VERSION.getDefaultValue());
         when(validationContext.getProperties()).thenReturn(properties);
         properties.put(propertyDescriptor, schema);
         delegate.getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDisplayName()));

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -51,7 +52,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.JsonSchema;
-import org.apache.nifi.schema.access.JsonSchemaAccessUtils;
+import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
 
@@ -144,7 +145,7 @@ public class ValidateJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(JsonSchemaAccessUtils.SCHEMA_VERSION)
+            .fromPropertyDescriptor(JsonSchemaRegistryComponent.SCHEMA_VERSION)
             .required(false)
             .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_CONTENT_PROPERTY)
             .build();
@@ -190,7 +191,8 @@ public class ValidateJson extends AbstractProcessor {
     }
 
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories =  Arrays.stream(SchemaVersion.values())
-            .collect(Collectors.toConcurrentMap(Function.identity(), JsonSchemaAccessUtils::createJsonSchemaFactory));
+            .collect(Collectors.toConcurrentMap(Function.identity(),
+                    schemaDraftVersion -> JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.fromId(schemaDraftVersion.getUri()).get())));
     private volatile com.networknt.schema.JsonSchema schema;
     private volatile JsonSchemaRegistry jsonSchemaRegistry;
 

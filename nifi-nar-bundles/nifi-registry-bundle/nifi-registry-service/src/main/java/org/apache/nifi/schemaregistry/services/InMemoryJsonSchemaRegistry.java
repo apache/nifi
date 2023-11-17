@@ -17,6 +17,7 @@
 package org.apache.nifi.schemaregistry.services;
 
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -27,7 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.JsonSchema;
-import org.apache.nifi.schema.access.JsonSchemaAccessUtils;
+import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.SchemaVersion;
 
@@ -56,7 +57,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 @DynamicProperty(name = "Schema name", value = "Schema Content",
         description = "Adds a named schema using the JSON string representation of a JSON schema",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
-public class InMemoryJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry {
+public class InMemoryJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry, JsonSchemaRegistryComponent {
     private final ConcurrentMap<String, JsonSchema> jsonSchemas;
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories;
     private final List<PropertyDescriptor> propertyDescriptors;
@@ -65,14 +66,15 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
     public InMemoryJsonSchemaRegistry() {
         jsonSchemas = new ConcurrentHashMap<>();
         schemaFactories = Arrays.stream(SchemaVersion.values())
-                .collect(Collectors.toConcurrentMap(Function.identity(), JsonSchemaAccessUtils::createJsonSchemaFactory));
-        propertyDescriptors = Collections.singletonList(JsonSchemaAccessUtils.SCHEMA_VERSION);
-        schemaVersion = SchemaVersion.valueOf(JsonSchemaAccessUtils.SCHEMA_VERSION.getDefaultValue());
+                .collect(Collectors.toConcurrentMap(Function.identity(),
+                        schemaDraftVersion -> JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.fromId(schemaDraftVersion.getUri()).get())));
+        propertyDescriptors = Collections.singletonList(SCHEMA_VERSION);
+        schemaVersion = SchemaVersion.valueOf(SCHEMA_VERSION.getDefaultValue());
     }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (JsonSchemaAccessUtils.SCHEMA_VERSION.getName().equals(descriptor.getName()) && !newValue.equals(oldValue)) {
+        if (SCHEMA_VERSION.getName().equals(descriptor.getName()) && !newValue.equals(oldValue)) {
             schemaVersion = SchemaVersion.valueOf(newValue);
         } else if(descriptor.isDynamic() && isBlank(newValue)) {
             jsonSchemas.remove(descriptor.getName());
@@ -102,7 +104,7 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
                     .build());
         } else {
             // Iterate over dynamic properties, validating only newly added schemas, and adding results
-            schemaVersion = SchemaVersion.valueOf(validationContext.getProperty(JsonSchemaAccessUtils.SCHEMA_VERSION).getValue());
+            schemaVersion = SchemaVersion.valueOf(validationContext.getProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION).getValue());
             validationContext.getProperties().entrySet().stream()
                     .filter(entry -> entry.getKey().isDynamic() && !jsonSchemas.containsKey(entry.getKey().getName()))
                     .forEach(entry -> {

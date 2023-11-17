@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.schema.access;
 
-import com.networknt.schema.JsonSchemaFactory;
 import org.apache.nifi.components.PropertyDescriptor;
 
-public class JsonSchemaAccessUtils {
-    private JsonSchemaAccessUtils() {}
-
-    public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
+public interface JsonSchemaRegistryComponent {
+    PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
         .Builder().name("Schema Version")
         .displayName("JSON Draft Schema Version")
         .description("The JSON schema specification")
@@ -30,8 +27,4 @@ public class JsonSchemaAccessUtils {
         .allowableValues(SchemaVersion.class)
         .defaultValue(SchemaVersion.DRAFT_2020_12.getValue())
         .build();
-
-    public static JsonSchemaFactory createJsonSchemaFactory(SchemaVersion schemaVersion) {
-        return JsonSchemaFactory.getInstance(schemaVersion.getVersionFlag());
-    }
 }

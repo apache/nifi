@@ -16,24 +16,23 @@
  */
 package org.apache.nifi.schema.access;
 
-import com.networknt.schema.SpecVersion;
 import org.apache.nifi.components.DescribedValue;
 
 public enum SchemaVersion implements DescribedValue {
-    DRAFT_4("Draft Version 4", "Draft 4", SpecVersion.VersionFlag.V4),
-    DRAFT_6("Draft Version 6", "Draft 6", SpecVersion.VersionFlag.V6),
-    DRAFT_7("Draft Version 7", "Draft 7", SpecVersion.VersionFlag.V7),
-    DRAFT_2019_09("Draft Version 2019-09", "Draft 2019-09", SpecVersion.VersionFlag.V201909),
-    DRAFT_2020_12("Draft Version 2020-12", "Draft 2020-12", SpecVersion.VersionFlag.V202012);
+    DRAFT_4("Draft Version 4", "Draft 4", "https://json-schema.org/draft-04/schema"),
+    DRAFT_6("Draft Version 6", "Draft 6", "https://json-schema.org/draft-06/schema"),
+    DRAFT_7("Draft Version 7", "Draft 7", "https://json-schema.org/draft-07/schema"),
+    DRAFT_2019_09("Draft Version 2019-09", "Draft 2019-09", "https://json-schema.org/draft/2019-09/schema"),
+    DRAFT_2020_12("Draft Version 2020-12", "Draft 2020-12", "https://json-schema.org/draft/2020-12/schema");
 
     private final String description;
     private final String displayName;
-    private final SpecVersion.VersionFlag versionFlag;
+    private final String uri;
 
-    SchemaVersion(String description, String displayName, SpecVersion.VersionFlag versionFlag) {
+    SchemaVersion(String description, String displayName, String uri) {
         this.description = description;
         this.displayName = displayName;
-        this.versionFlag = versionFlag;
+        this.uri = uri;
     }
 
     @Override
@@ -51,7 +50,7 @@ public enum SchemaVersion implements DescribedValue {
         return description;
     }
 
-    public SpecVersion.VersionFlag getVersionFlag() {
-        return versionFlag;
+    public String getUri() {
+        return uri;
     }
 }

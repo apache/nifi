@@ -22,7 +22,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.JsonSchema;
-import org.apache.nifi.schema.access.JsonSchemaAccessUtils;
+import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
@@ -78,7 +78,7 @@ class TestValidateJson {
     void testPassSchema() {
         final String schemaPath = getFilePath("schema-simple-example.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
 
@@ -114,7 +114,7 @@ class TestValidateJson {
     @Test
     void testEmptySchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         runner.run();
@@ -132,7 +132,7 @@ class TestValidateJson {
     void testAllUnknownKeywordsSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT,
                 "{\"fruit\": \"Apple\", \"size\": \"Large\", \"color\": \"Red\"}");
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         runner.run();
@@ -150,7 +150,7 @@ class TestValidateJson {
     void testPatternSchemaCheck() {
         final String schemaPath = getFilePath("schema-simple-example-unmatched-pattern.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         runner.run();
@@ -168,7 +168,7 @@ class TestValidateJson {
     void testMissingRequiredValue() {
         final String schema = getFileContent("schema-simple-example-missing-required.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         runner.run();
@@ -185,7 +185,7 @@ class TestValidateJson {
     @Test
     void testInvalidJson() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, SIMPLE_SCHEMA);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(NON_JSON);
         runner.run();
@@ -202,7 +202,7 @@ class TestValidateJson {
     @Test
     void testNonExistingSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, "not-found.json");
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         assertThrows(AssertionFailedError.class, () -> runner.run());
@@ -211,7 +211,7 @@ class TestValidateJson {
     @Test
     void testBadSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, NON_JSON);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(JSON);
         assertThrows(AssertionFailedError.class, () -> runner.run());
@@ -221,7 +221,7 @@ class TestValidateJson {
     void testJsonWithComments() {
         final String schemaPath = getFilePath("schema-simple-example.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
-        runner.setProperty(JsonSchemaAccessUtils.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
 
         runner.enqueue(getFileContent("simple-example-with-comments.json"));
 
