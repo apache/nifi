@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -180,6 +182,28 @@ public class TestMockProcessSession {
         List<MockFlowFile> output = session.getFlowFilesForRelationship(PoorlyBehavedProcessor.REL_FAILURE);
         assertEquals(1, output.size());
         output.get(0).assertAttributeEquals("key1", "val1");
+    }
+
+    @Test
+    void testAttributeUUIDNotRemovable() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        FlowFile ff1 = session.createFlowFile("removeAttribute(attrName)".getBytes());
+        FlowFile ff2 = session.createFlowFile("removeAllAttributes(attrNames)".getBytes());
+        FlowFile ff3 = session.createFlowFile("removeAllAttributes(keyPattern)".getBytes());
+
+        String attrName = CoreAttributes.UUID.key();
+        session.removeAttribute(ff1, attrName);
+        session.removeAllAttributes(ff2, Set.of(attrName));
+        session.removeAllAttributes(ff3, Pattern.compile(Pattern.quote(attrName)));
+
+        session.transfer(List.of(ff1, ff2, ff3), PoorlyBehavedProcessor.REL_FAILURE);
+        session.commitAsync();
+        List<MockFlowFile> output = session.getFlowFilesForRelationship(PoorlyBehavedProcessor.REL_FAILURE);
+        assertEquals(3, output.size());
+        output.get(0).assertAttributeEquals(attrName, ff1.getAttribute(attrName));
+        output.get(1).assertAttributeEquals(attrName, ff2.getAttribute(attrName));
+        output.get(2).assertAttributeEquals(attrName, ff3.getAttribute(attrName));
     }
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
