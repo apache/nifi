@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.db.schemaregistry;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.ConnectionUrlValidator;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.dbcp.DriverClassValidator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordField;
@@ -52,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
-public class DatabaseSchemaRegistryTest {
+public class DatabaseTableSchemaRegistryTest {
 
     private static final List<String> CREATE_TABLE_STATEMENTS = Arrays.asList(
             "CREATE TABLE PERSONS (id integer primary key, name varchar(100)," +
@@ -68,6 +72,30 @@ public class DatabaseSchemaRegistryTest {
     private static final String SERVICE_ID = DBCPServiceSimpleImpl.class.getName();
 
     private final static String DB_LOCATION = "target/db_schema_reg";
+
+    // This is to mimic those in DBCPProperties to avoid adding the dependency to nifi-dbcp-base
+    private static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
+            .name("Database Connection URL")
+            .addValidator(new ConnectionUrlValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    private static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
+            .name("Database User")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    private static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+    private static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
+            .name("Database Driver Class Name")
+            .addValidator(new DriverClassValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
 
     private TestRunner runner;
 
@@ -120,19 +148,19 @@ public class DatabaseSchemaRegistryTest {
         runner.addControllerService(SERVICE_ID, dbcp);
 
         final String url = String.format("jdbc:derby:%s;create=false", DB_LOCATION);
-        runner.setProperty(dbcp, DBCPProperties.DATABASE_URL, url);
-        runner.setProperty(dbcp, DBCPProperties.DB_USER, String.class.getSimpleName());
-        runner.setProperty(dbcp, DBCPProperties.DB_PASSWORD, String.class.getName());
-        runner.setProperty(dbcp, DBCPProperties.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(dbcp, DATABASE_URL, url);
+        runner.setProperty(dbcp, DB_USER, String.class.getSimpleName());
+        runner.setProperty(dbcp, DB_PASSWORD, String.class.getName());
+        runner.setProperty(dbcp, DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
         runner.enableControllerService(dbcp);
     }
 
     @Test
     public void testGetSchemaExists() throws Exception {
-        DatabaseSchemaRegistry dbSchemaRegistry = new DatabaseSchemaRegistry();
+        DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
         runner.addControllerService("schemaRegistry", dbSchemaRegistry);
-        runner.setProperty(dbSchemaRegistry, DatabaseSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
-        runner.setProperty(dbSchemaRegistry, DatabaseSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
         runner.enableControllerService(dbSchemaRegistry);
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
                 .name("PERSONS")
@@ -158,10 +186,10 @@ public class DatabaseSchemaRegistryTest {
 
     @Test
     public void testGetSchemaNotExists() throws Exception {
-        DatabaseSchemaRegistry dbSchemaRegistry = new DatabaseSchemaRegistry();
+        DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
         runner.addControllerService("schemaRegistry", dbSchemaRegistry);
-        runner.setProperty(dbSchemaRegistry, DatabaseSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
-        runner.setProperty(dbSchemaRegistry, DatabaseSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
         runner.enableControllerService(dbSchemaRegistry);
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
                 .name("NOT_A_TABLE")

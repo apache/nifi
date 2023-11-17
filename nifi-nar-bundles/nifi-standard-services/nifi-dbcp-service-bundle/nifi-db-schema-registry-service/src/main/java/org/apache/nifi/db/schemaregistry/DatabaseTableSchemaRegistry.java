@@ -51,12 +51,12 @@ import java.util.Set;
 @CapabilityDescription("Provides a service for generating a record schema from a database table definition. The service is configured "
         + "to use a table name and a database connection fetches the table metadata (i.e. table definition) such as column names, data types, "
         + "nullability, etc.")
-public class DatabaseSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
+public class DatabaseTableSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME);
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
-            .name("dbcp-service")
+            .name("Database Connection Pooling Service")
             .displayName("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the database for retrieving table information.")
             .required(true)
@@ -64,7 +64,7 @@ public class DatabaseSchemaRegistry extends AbstractControllerService implements
             .build();
 
     static final PropertyDescriptor CATALOG_NAME = new PropertyDescriptor.Builder()
-            .name("catalog-name")
+            .name("Catalog Name")
             .displayName("Catalog Name")
             .description("The name of the catalog used to locate the desired table. This may not apply for the database that you are querying. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
@@ -74,7 +74,7 @@ public class DatabaseSchemaRegistry extends AbstractControllerService implements
             .build();
 
     static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("schema-name")
+            .name("Schema Name")
             .displayName("Schema Name")
             .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly. Also notice that if the same table name exists in multiple "
@@ -129,51 +129,64 @@ public class DatabaseSchemaRegistry extends AbstractControllerService implements
         final String tableName = schemaName.get();
         try {
             try (final Connection conn = dbcpService.getConnection()) {
-                final DatabaseMetaData dmd = conn.getMetaData();
-                try (final ResultSet colrs = dmd.getColumns(dbCatalogName, dbSchemaName, tableName, "%")) {
-                    final List<RecordField> recordFields = new ArrayList<>();
-                    while (colrs.next()) {
-                        // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
-                        final String defaultValue = colrs.getString("COLUMN_DEF");
-                        final String columnName = colrs.getString("COLUMN_NAME");
-                        final int dataType = colrs.getInt("DATA_TYPE");
-                        final String nullableValue = colrs.getString("IS_NULLABLE");
-                        final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
-                        recordFields.add(new RecordField(
-                                columnName,
-                                DataTypeUtils.getDataTypeFromSQLTypeValue(dataType),
-                                defaultValue,
-                                isNullable));
-                    }
-
-                    // If no columns are found, check that the table exists
-                    if (recordFields.isEmpty()) {
-                        try (final ResultSet tblrs = dmd.getTables(dbCatalogName, dbSchemaName, tableName, null)) {
-                            List<String> qualifiedNameSegments = new ArrayList<>();
-                            if (dbCatalogName != null) {
-                                qualifiedNameSegments.add(dbCatalogName);
-                            }
-                            if (dbSchemaName != null) {
-                                qualifiedNameSegments.add(dbSchemaName);
-                            }
-                            qualifiedNameSegments.add(tableName);
-
-                            if (!tblrs.next()) {
-                                throw new SchemaNotFoundException("Table "
-                                        + String.join(".", qualifiedNameSegments)
-                                        + " not found");
-                            } else {
-                                getLogger().warn("Table "
-                                        + String.join(".", qualifiedNameSegments)
-                                        + " found but no columns were found, if this is not expected then check the user permissions for getting table metadata from the database");
-                            }
-                        }
-                    }
-                    return new SimpleRecordSchema(recordFields);
+                final DatabaseMetaData databaseMetaData = conn.getMetaData();
+                    return getRecordSchemaFromMetadata(databaseMetaData, tableName);
                 }
-            }
         } catch (SQLException sqle) {
             throw new IOException("Error retrieving schema for table " + schemaName.get(), sqle);
+        }
+    }
+
+    private RecordSchema getRecordSchemaFromMetadata(final DatabaseMetaData databaseMetaData, final String tableName) throws SQLException, SchemaNotFoundException {
+        try (final ResultSet columnResultSet = databaseMetaData.getColumns(dbCatalogName, dbSchemaName, tableName, "%")) {
+
+            final List<RecordField> recordFields = new ArrayList<>();
+            while (columnResultSet.next()) {
+                recordFields.add(createRecordFieldFromColumn(columnResultSet));
+            }
+
+            // If no columns are found, check that the table exists
+            if (recordFields.isEmpty()) {
+                checkTableExists(databaseMetaData, tableName);
+            }
+            return new SimpleRecordSchema(recordFields);
+        }
+    }
+
+    private RecordField createRecordFieldFromColumn(final ResultSet columnResultSet) throws SQLException {
+        // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
+        final String defaultValue = columnResultSet.getString("COLUMN_DEF");
+        final String columnName = columnResultSet.getString("COLUMN_NAME");
+        final int dataType = columnResultSet.getInt("DATA_TYPE");
+        final String nullableValue = columnResultSet.getString("IS_NULLABLE");
+        final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
+        return new RecordField(
+                columnName,
+                DataTypeUtils.getDataTypeFromSQLTypeValue(dataType),
+                defaultValue,
+                isNullable);
+    }
+
+    private void checkTableExists(final DatabaseMetaData databaseMetaData, final String tableName) throws SchemaNotFoundException, SQLException {
+        try (final ResultSet tblrs = databaseMetaData.getTables(dbCatalogName, dbSchemaName, tableName, null)) {
+            List<String> qualifiedNameSegments = new ArrayList<>();
+            if (dbCatalogName != null) {
+                qualifiedNameSegments.add(dbCatalogName);
+            }
+            if (dbSchemaName != null) {
+                qualifiedNameSegments.add(dbSchemaName);
+            }
+            qualifiedNameSegments.add(tableName);
+
+            if (!tblrs.next()) {
+                throw new SchemaNotFoundException("Table "
+                        + String.join(".", qualifiedNameSegments)
+                        + " not found");
+            } else {
+                getLogger().warn("Table "
+                        + String.join(".", qualifiedNameSegments)
+                        + " found but no columns were found, if this is not expected then check the user permissions for getting table metadata from the database");
+            }
         }
     }
 }
