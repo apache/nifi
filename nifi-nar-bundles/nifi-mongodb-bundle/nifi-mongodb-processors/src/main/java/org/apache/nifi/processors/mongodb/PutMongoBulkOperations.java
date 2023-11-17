@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.mongodb;
 
 import com.mongodb.WriteConcern;
-import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.Collation;
@@ -61,10 +60,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Tags({ "mongodb", "insert", "update", "write", "put", "bulk" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -86,16 +85,6 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
             .defaultValue("true")
             .build();
 
-    static final PropertyDescriptor TRANSACTIONS_ENABLED = new PropertyDescriptor.Builder()
-            .name("Transactions Enabled")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .description("Run all actions in one MongoDB transaction")
-            .required(false)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
-
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("The Character Set in which the data is encoded")
@@ -104,22 +93,10 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         .defaultValue("UTF-8")
         .build();
 
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(ORDERED);
-        _propertyDescriptors.add(TRANSACTIONS_ENABLED);
-        _propertyDescriptors.add(CHARACTER_SET);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private final static Set<Relationship> relationships =
+            Stream.of(REL_SUCCESS, REL_FAILURE).collect(Collectors.toUnmodifiableSet());
+    private final static List<PropertyDescriptor> propertyDescriptors =
+            Stream.concat(descriptors.stream(), Stream.of(ORDERED, CHARACTER_SET)).collect(Collectors.toUnmodifiableList());
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -141,7 +118,6 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final WriteConcern writeConcern = clientService.getWriteConcern();
 
-        ClientSession clientSession = null;
         try {
             final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
@@ -172,39 +148,15 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
                 updateModels.add(writeModel);
             }
 
-            if (context.getProperty(TRANSACTIONS_ENABLED).asBoolean()) {
-                clientSession = clientService.startSession();
-                clientSession.startTransaction();
-                // now run this w/in a transaction
-                collection.bulkWrite(clientSession, updateModels, (new BulkWriteOptions().ordered(context.getProperty(ORDERED).asBoolean())));
-            } else {
-                collection.bulkWrite(updateModels, (new BulkWriteOptions().ordered(context.getProperty(ORDERED).asBoolean())));
-            }
+            collection.bulkWrite(updateModels, (new BulkWriteOptions().ordered(context.getProperty(ORDERED).asBoolean())));
             getLogger().info("bulk-updated {} into MongoDB", flowFile);
 
             session.getProvenanceReporter().send(flowFile, getURI(context));
             session.transfer(flowFile, REL_SUCCESS);
-
-            if (clientSession != null) {
-                if (clientSession.hasActiveTransaction()) {
-                    clientSession.commitTransaction();
-                }
-                clientSession.close();
-            }
         } catch (Exception e) {
             getLogger().error("Failed to bulk-update {} into MongoDB", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
-            if (clientSession != null) {
-                try {
-                    if (clientSession.hasActiveTransaction()) {
-                        clientSession.abortTransaction();
-                    }
-                    clientSession.close();
-                } catch (Exception ee) {
-                    getLogger().warn("Cannot rollback client session", ee); // (but no further action)
-                }
-            }
         }
     }
 

@@ -19,7 +19,6 @@ package org.apache.nifi.mongodb;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClients;
@@ -195,11 +194,6 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     @Override
     public MongoDatabase getDatabase(String name) {
         return mongoClient.getDatabase(name);
-    }
-
-    @Override
-    public ClientSession startSession() {
-        return mongoClient.startSession();
     }
 
     @Override

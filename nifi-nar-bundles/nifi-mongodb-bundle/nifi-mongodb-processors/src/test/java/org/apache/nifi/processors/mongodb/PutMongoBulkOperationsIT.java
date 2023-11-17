@@ -174,7 +174,6 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
     public void testBulkWriteOrderedNoTransaction() throws Exception {
         final TestRunner runner = init(PutMongoBulkOperations.class);
         runner.setProperty(PutMongoBulkOperations.ORDERED, "true"); // default, still
-        runner.setProperty(PutMongoBulkOperations.TRANSACTIONS_ENABLED, "false"); // default, still
 
         StringBuffer doc = new StringBuffer();
         doc.append("[");
@@ -188,26 +187,6 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 0);
 
         assertEquals(1, collection.countDocuments());
-    }
-
-    @Test
-    public void testBulkWriteOrderedWithTransaction() throws Exception {
-        final TestRunner runner = init(PutMongoBulkOperations.class);
-        runner.setProperty(PutMongoBulkOperations.ORDERED, "true"); // default, still
-        runner.setProperty(PutMongoBulkOperations.TRANSACTIONS_ENABLED, "true");
-
-        StringBuffer doc = new StringBuffer();
-        doc.append("[");
-        doc.append("{\"insertOne\": {\"document\": ");
-        doc.append(DOCUMENTS.get(0).toJson());
-        // inserting same ID twice fails w/in mongo, not before, so we can really test transactions and ordering
-        doc.append("}}, {\"insertOne\": {\"document\": {\"_id\": \"doc_1\"}}}]");
-        runner.enqueue(doc.toString());
-        runner.run();
-        runner.assertTransferCount(PutMongo.REL_FAILURE, 1);
-        runner.assertTransferCount(PutMongo.REL_SUCCESS, 0);
-
-        assertEquals(0, collection.countDocuments());
     }
 
     @Test

@@ -18,7 +18,6 @@
 package org.apache.nifi.mongodb;
 
 import com.mongodb.WriteConcern;
-import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -131,7 +130,6 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
         return Document.parse(query);
     }
     MongoDatabase getDatabase(String name);
-    ClientSession startSession();
     String getURI();
     WriteConcern getWriteConcern();
 }
