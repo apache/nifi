@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.db.schemaregistry;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -45,6 +47,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Tags({"schema", "registry", "database", "table"})
+@CapabilityDescription("Provides a service for generating a record schema from a database table definition. The service is configured "
+        + "to use a table name and a database connection fetches the table metadata (i.e. table definition) such as column names, data types, "
+        + "nullability, etc.")
 public class DatabaseSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME);
@@ -71,7 +77,8 @@ public class DatabaseSchemaRegistry extends AbstractControllerService implements
             .name("schema-name")
             .displayName("Schema Name")
             .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
-                    + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly.")
+                    + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly. Also notice that if the same table name exists in multiple "
+                    + "schemas and Schema Name is not specified, the service will find those tables and give an error if the different tables have the same column name(s).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -115,7 +122,7 @@ public class DatabaseSchemaRegistry extends AbstractControllerService implements
 
     RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
-        if (!schemaName.isPresent()) {
+        if (schemaName.isEmpty()) {
             throw new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
