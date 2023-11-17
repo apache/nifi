@@ -189,6 +189,11 @@ public class MockFlowFile implements FlowFileRecord {
 
     public void removeAttributes(final Set<String> attrNames) {
         for (final String attrName : attrNames) {
+            if (CoreAttributes.UUID.key().equals(attrName)) {
+                // the core attribute "uuid" of a FlowFile cannot be altered / removed
+                continue;
+            }
+
             attributes.remove(attrName);
         }
     }

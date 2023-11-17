@@ -1,0 +1,388 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.standard;
+
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class TestFilterAttributes {
+
+    private final TestRunner runner = TestRunners.newTestRunner(FilterAttributes.class);
+
+    private final String exampleContent = "lorem ipsum dolor sit amet";
+
+    private final Map<String, String> exampleAttributes = mapOf(
+            "foo", "fooValue",
+            "bar", "barValue",
+            "batz", "batzValue"
+    );
+
+    @Nested
+    class WithStrategyEnumeration {
+        @Nested
+        class InModeRetain {
+            @Test
+            void retainsAllAttributesWhenAllAreFiltered() {
+                final String attributeSet = "foo,bar,batz";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void retainsUUIDAndFilteredAttributesWhenOnlySomeAreFiltered() {
+                final String attributeSet = "bar";
+                final Set<String> expectedAttributes = setOf("bar", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void retainsUUIDOnlyWhenNoneOfTheAttributesAreFiltered() {
+                final String attributeSet = "other";
+                final Set<String> expectedAttributes = setOf("uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void supportsAttributeNamesWithWhitespace() {
+                final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+                attributes.put("fo\no", "some value");
+                final String attributeSet = "fo\no";
+                final Set<String> expectedAttributes = setOf("fo\no", "uuid");
+
+                runTestWith(attributes, attributeSet, expectedAttributes);
+            }
+        }
+
+        @Nested
+        class InModeRemove {
+
+            @BeforeEach
+            void setUp() {
+                runner.setProperty(FilterAttributes.FILTER_MODE, FilterAttributes.FILTER_MODE_VALUE_REMOVE);
+            }
+
+            @Test
+            void removesAllAttributesExceptUUIDWhenAllAreFiltered() {
+                final String attributeSet = "foo,bar,batz,uuid,path,filename";
+                final Set<String> expectedAttributes = setOf("uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void removesFilteredAttributesExceptUUIDWhenOnlySomeAreFiltered() {
+                final String attributeSet = "bar,uuid,path,filename";
+                final Set<String> expectedAttributes = setOf("foo", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void removesNoAttributeWhenNoneOfTheAttributesAreFiltered() {
+                final String attributeSet = "other";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid", "path", "filename");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void supportsAttributeNamesWithWhitespace() {
+                final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+                attributes.put("fo\no", "some value");
+                final String attributeSet = "fo\no";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid", "path", "filename");
+
+                runTestWith(attributes, attributeSet, expectedAttributes);
+            }
+        }
+
+        @Nested
+        class RegardingAttributeSetParsing {
+
+            @Test
+            void ignoresLeadingDelimiters() {
+                final String attributeSet = ",foo,bar";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void ignoresTrailingDelimiters() {
+                final String attributeSet = "foo,bar,";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void doesNotYieldErrorWhenAttributeSetIsEffectivelyEmpty() {
+                final String attributeSet = " , ";
+                final Set<String> expectedAttributes = setOf("uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void worksWithSingleAttributeInSet() {
+                final String attributeSet = "batz";
+                final Set<String> expectedAttributes = setOf("batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void worksWithMultipleAttributesInSet() {
+                final String attributeSet = "foo,bar,batz";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void ignoresLeadingWhitespaceInAttributeName() {
+                final String attributeSet = "foo,  batz";
+                final Set<String> expectedAttributes = setOf("foo", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+
+            @Test
+            void ignoresTrailingWhitespaceInAttributeName() {
+                final String attributeSet = "foo  ,bar";
+                final Set<String> expectedAttributes = setOf("foo", "bar", "uuid");
+
+                runTestWith(exampleAttributes, attributeSet, expectedAttributes);
+            }
+        }
+
+        @Test
+        void supportsDefiningAttributeSetInFlowFileAttribute() {
+            final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+            attributes.put("lookup", "bar,batz");
+            final String attributeSet = "${lookup}"; // NiFi EL with reference to FlowFile attribute
+            final Set<String> expectedAttributes = setOf("bar", "batz", "uuid");
+
+            runTestWith(attributes, attributeSet, expectedAttributes);
+        }
+
+        private void runTestWith(Map<String, String> attributes, String attributeSet, Set<String> expectedAttributes) {
+            runner.setProperty(FilterAttributes.MATCHING_STRATEGY, FilterAttributes.MATCHING_STRATEGY_VALUE_ENUMERATION);
+            runner.setProperty(FilterAttributes.ATTRIBUTE_SET, attributeSet);
+
+            final MockFlowFile input = runner.enqueue(exampleContent, attributes);
+            final Map<String, String> inputAttributes = input.getAttributes();
+            final Set<String> notExpectedAttributes = new HashSet<>(inputAttributes.keySet());
+            notExpectedAttributes.removeAll(expectedAttributes);
+
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, 1);
+            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS).get(0);
+            result.assertContentEquals(exampleContent);
+            for (String expectedName : expectedAttributes) {
+                final String expectedValue = inputAttributes.get(expectedName);
+
+                result.assertAttributeEquals(expectedName, expectedValue);
+            }
+            for (String notExpectedName : notExpectedAttributes) {
+                result.assertAttributeNotExists(notExpectedName);
+            }
+        }
+    }
+
+    @Nested
+    class WithStrategyRegex {
+
+        @Nested
+        class InModeRetain {
+            @Test
+            void retainsAllAttributesWhenAllAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("foo|bar|batz");
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void retainsUUIDAndFilteredAttributesWhenOnlySomeAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("bar");
+                final Set<String> expectedAttributes = setOf("bar", "uuid");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void retainsUUIDOnlyWhenNoneOfTheAttributesAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("other");
+                final Set<String> expectedAttributes = setOf("uuid");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void supportsAttributeNamesWithWhitespace() {
+                final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+                attributes.put("fo\no", "some value");
+                final Pattern attributeRegex = Pattern.compile("fo\no");
+                final Set<String> expectedAttributes = setOf("fo\no", "uuid");
+
+                runTestWith(attributes, attributeRegex, expectedAttributes);
+            }
+        }
+
+        @Nested
+        class InModeRemove {
+
+            @BeforeEach
+            void setUp() {
+                runner.setProperty(FilterAttributes.FILTER_MODE, FilterAttributes.FILTER_MODE_VALUE_REMOVE);
+            }
+
+            @Test
+            void removesAllAttributesExceptUUIDWhenAllAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("foo|bar|batz|uuid|path|filename");
+                final Set<String> expectedAttributes = setOf("uuid");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void removesFilteredAttributesExceptUUIDWhenOnlySomeAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("bar|uuid|path|filename");
+                final Set<String> expectedAttributes = setOf("foo", "batz", "uuid");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void removesNoAttributeWhenNoneOfTheAttributesAreFiltered() {
+                final Pattern attributeRegex = Pattern.compile("other");
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid", "path", "filename");
+
+                runTestWith(exampleAttributes, attributeRegex, expectedAttributes);
+            }
+
+            @Test
+            void supportsAttributeNamesWithWhitespace() {
+                final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+                attributes.put("fo\no", "some value");
+                final Pattern attributeRegex = Pattern.compile("fo\no");
+                final Set<String> expectedAttributes = setOf("foo", "bar", "batz", "uuid", "path", "filename");
+
+                runTestWith(attributes, attributeRegex, expectedAttributes);
+            }
+        }
+
+        @Test
+        void supportsDefiningAttributeSetInFlowFileAttribute() {
+            final Map<String, String> attributes = new HashMap<>(exampleAttributes);
+            attributes.put("lookup", "bar|batz");
+            final String attributeRegex = "${lookup}"; // NiFi EL with reference to FlowFile attribute
+            final Set<String> expectedAttributes = setOf("bar", "batz", "uuid");
+
+            runTestWith(attributes, attributeRegex, expectedAttributes);
+        }
+
+        private void runTestWith(Map<String, String> attributes, Pattern regex, Set<String> expectedAttributes) {
+            runTestWith(attributes, regex.pattern(), expectedAttributes);
+        }
+
+        private void runTestWith(Map<String, String> attributes, String regexPattern, Set<String> expectedAttributes) {
+            runner.setProperty(FilterAttributes.MATCHING_STRATEGY, FilterAttributes.MATCHING_STRATEGY_VALUE_REGEX);
+            runner.setProperty(FilterAttributes.ATTRIBUTE_REGEX, regexPattern);
+
+            final MockFlowFile input = runner.enqueue(exampleContent, attributes);
+            final Map<String, String> inputAttributes = input.getAttributes();
+            final Set<String> notExpectedAttributes = new HashSet<>(inputAttributes.keySet());
+            notExpectedAttributes.removeAll(expectedAttributes);
+
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, 1);
+            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS).get(0);
+            result.assertContentEquals(exampleContent);
+            for (String expectedName : expectedAttributes) {
+                final String expectedValue = inputAttributes.get(expectedName);
+
+                result.assertAttributeEquals(expectedName, expectedValue);
+            }
+            for (String notExpectedName : notExpectedAttributes) {
+                result.assertAttributeNotExists(notExpectedName);
+            }
+        }
+    }
+
+
+    @Test
+    void supportMultiThreadedExecution() {
+        runner.setThreadCount(5);
+
+        final int flowFileCount = 10_000;
+        for (int i = 0; i < flowFileCount; i++) {
+            runner.enqueue(exampleContent, mapOf(
+                    "foo", "" + i,
+                    "bar", "" + i
+            ));
+        }
+        runner.setProperty(FilterAttributes.ATTRIBUTE_SET, "foo");
+
+        runner.run(flowFileCount);
+        runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, flowFileCount);
+        List<MockFlowFile> resultFlowFiles = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS);
+        for (final MockFlowFile resultFlowFile : resultFlowFiles) {
+            resultFlowFile.assertAttributeExists("foo");
+            resultFlowFile.assertAttributeNotExists("bar");
+        }
+        final Set<String> fooValues = resultFlowFiles.stream()
+                .map(flowFile -> flowFile.getAttribute("foo"))
+                .collect(Collectors.toSet());
+        assertEquals(flowFileCount, fooValues.size());
+    }
+
+    private static Map<String, String> mapOf(String... keyValues) {
+        final HashMap<String, String> map = new HashMap<>();
+
+        for (int i = 0; i < keyValues.length - 1; i += 2) {
+            map.put(keyValues[i], keyValues[i + 1]);
+        }
+
+        return map;
+    }
+
+    private static Set<String> setOf(String... values) {
+        return new HashSet<>(Arrays.asList(values));
+    }
+}
