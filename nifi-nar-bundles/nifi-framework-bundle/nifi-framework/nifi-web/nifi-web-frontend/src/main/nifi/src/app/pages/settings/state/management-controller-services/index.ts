@@ -24,7 +24,7 @@ export interface LoadManagementControllerServicesResponse {
     loadedTimestamp: string;
 }
 
-export interface CreateControllerService {
+export interface CreateControllerServiceRequest {
     controllerServiceType: string;
     controllerServiceBundle: Bundle;
     revision: Revision;
@@ -34,7 +34,7 @@ export interface CreateControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 
-export interface ConfigureControllerService {
+export interface ConfigureControllerServiceRequest {
     id: string;
     uri: string;
     payload: any;
@@ -45,7 +45,7 @@ export interface ConfigureControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 
-export interface DeleteControllerService {
+export interface DeleteControllerServiceRequest {
     controllerService: ControllerServiceEntity;
 }
 
@@ -53,7 +53,7 @@ export interface DeleteControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 
-export interface SelectControllerService {
+export interface SelectControllerServiceRequest {
     id: string;
 }
 

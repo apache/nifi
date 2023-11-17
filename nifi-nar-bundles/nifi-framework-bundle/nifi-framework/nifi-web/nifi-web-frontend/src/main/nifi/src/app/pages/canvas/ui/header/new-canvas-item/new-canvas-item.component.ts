@@ -33,7 +33,7 @@ import { ComponentType } from '../../../../../state/shared';
     templateUrl: './new-canvas-item.component.html',
     styleUrls: ['./new-canvas-item.component.scss']
 })
-export class NewCanvasItemComponent implements OnInit {
+export class NewCanvasItem implements OnInit {
     // @ts-ignore
     @Input() type: ComponentType;
     @Input() iconClass: string = '';

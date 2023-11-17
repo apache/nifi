@@ -20,15 +20,15 @@ import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 import {
-    CreateComponent,
+    CreateComponentRequest,
     CreateConnection,
-    CreatePort,
-    CreateProcessGroup,
-    CreateProcessor,
-    DeleteComponent,
+    CreatePortRequest,
+    CreateProcessGroupRequest,
+    CreateProcessorRequest,
+    DeleteComponentRequest,
     Snippet,
-    UpdateComponent,
-    UploadProcessGroup
+    UpdateComponentRequest,
+    UploadProcessGroupRequest
 } from '../state/flow';
 import { ComponentType } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
@@ -119,7 +119,7 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/process-groups/${id}`);
     }
 
-    createFunnel(processGroupId: string = 'root', createFunnel: CreateComponent): Observable<any> {
+    createFunnel(processGroupId: string = 'root', createFunnel: CreateComponentRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/funnels`, {
             revision: createFunnel.revision,
             component: {
@@ -128,7 +128,7 @@ export class FlowService {
         });
     }
 
-    createLabel(processGroupId: string = 'root', createLabel: CreateComponent): Observable<any> {
+    createLabel(processGroupId: string = 'root', createLabel: CreateComponentRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/labels`, {
             revision: createLabel.revision,
             component: {
@@ -137,7 +137,7 @@ export class FlowService {
         });
     }
 
-    createProcessor(processGroupId: string = 'root', createProcessor: CreateProcessor): Observable<any> {
+    createProcessor(processGroupId: string = 'root', createProcessor: CreateProcessorRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/processors`, {
             revision: createProcessor.revision,
             component: {
@@ -155,7 +155,10 @@ export class FlowService {
         );
     }
 
-    createProcessGroup(processGroupId: string = 'root', createProcessGroup: CreateProcessGroup): Observable<any> {
+    createProcessGroup(
+        processGroupId: string = 'root',
+        createProcessGroup: CreateProcessGroupRequest
+    ): Observable<any> {
         const payload: any = {
             revision: createProcessGroup.revision,
             component: {
@@ -173,7 +176,10 @@ export class FlowService {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/process-groups`, payload);
     }
 
-    uploadProcessGroup(processGroupId: string = 'root', uploadProcessGroup: UploadProcessGroup): Observable<any> {
+    uploadProcessGroup(
+        processGroupId: string = 'root',
+        uploadProcessGroup: UploadProcessGroupRequest
+    ): Observable<any> {
         const payload = new FormData();
         payload.append('id', processGroupId);
         payload.append('groupName', uploadProcessGroup.name);
@@ -198,7 +204,7 @@ export class FlowService {
         });
     }
 
-    createPort(processGroupId: string = 'root', createPort: CreatePort): Observable<any> {
+    createPort(processGroupId: string = 'root', createPort: CreatePortRequest): Observable<any> {
         const portType: string = ComponentType.InputPort == createPort.type ? 'input-ports' : 'output-ports';
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/${portType}`, {
             revision: createPort.revision,
@@ -210,12 +216,12 @@ export class FlowService {
         });
     }
 
-    updateComponent(updateComponent: UpdateComponent): Observable<any> {
+    updateComponent(updateComponent: UpdateComponentRequest): Observable<any> {
         // return throwError('API Error');
         return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
     }
 
-    deleteComponent(deleteComponent: DeleteComponent): Observable<any> {
+    deleteComponent(deleteComponent: DeleteComponentRequest): Observable<any> {
         // return throwError('API Error');
         const revision: any = this.client.getRevision(deleteComponent.entity);
         return this.httpClient.delete(this.stripProtocol(deleteComponent.uri), { params: revision });

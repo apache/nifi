@@ -62,7 +62,7 @@ import { initialState } from '../../state/flow/flow.reducer';
     templateUrl: './canvas.component.html',
     styleUrls: ['./canvas.component.scss']
 })
-export class CanvasComponent implements OnInit, OnDestroy {
+export class Canvas implements OnInit, OnDestroy {
     private svg: any;
     private canvas: any;
 
@@ -227,7 +227,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
     }
 
     private createSvg(): void {
-        const self: CanvasComponent = this;
+        const self: Canvas = this;
 
         this.svg = d3
             .select('#canvas-container')
@@ -368,7 +368,7 @@ export class CanvasComponent implements OnInit, OnDestroy {
     }
 
     private initCanvas(): void {
-        const self: CanvasComponent = this;
+        const self: Canvas = this;
 
         const t = [INITIAL_TRANSLATE.x, INITIAL_TRANSLATE.y];
         this.canvas = this.svg

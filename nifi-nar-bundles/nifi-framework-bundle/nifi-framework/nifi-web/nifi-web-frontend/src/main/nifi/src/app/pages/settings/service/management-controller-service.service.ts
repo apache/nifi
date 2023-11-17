@@ -19,9 +19,9 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import {
-    ConfigureControllerService,
-    CreateControllerService,
-    DeleteControllerService
+    ConfigureControllerServiceRequest,
+    CreateControllerServiceRequest,
+    DeleteControllerServiceRequest
 } from '../state/management-controller-services';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
@@ -57,7 +57,7 @@ export class ManagementControllerServiceService {
         });
     }
 
-    createControllerService(createControllerService: CreateControllerService): Observable<any> {
+    createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {
         return this.httpClient.post(`${ManagementControllerServiceService.API}/controller/controller-services`, {
             revision: createControllerService.revision,
             component: {
@@ -77,14 +77,14 @@ export class ManagementControllerServiceService {
         });
     }
 
-    updateControllerService(configureControllerService: ConfigureControllerService): Observable<any> {
+    updateControllerService(configureControllerService: ConfigureControllerServiceRequest): Observable<any> {
         return this.httpClient.put(
             this.stripProtocol(configureControllerService.uri),
             configureControllerService.payload
         );
     }
 
-    deleteControllerService(deleteControllerService: DeleteControllerService): Observable<any> {
+    deleteControllerService(deleteControllerService: DeleteControllerServiceRequest): Observable<any> {
         const entity: ControllerServiceEntity = deleteControllerService.controllerService;
         const revision: any = this.client.getRevision(entity);
         return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });

@@ -43,7 +43,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { Dimension, Position } from '../../state/shared';
 import { ComponentType, SelectOption } from '../../../../state/shared';
-import { loadBalanceStrategies, UpdateComponent } from '../../state/flow';
+import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
@@ -352,7 +352,7 @@ export class ConnectionManager {
      * @param {type} connection
      */
     private save(d: any, connection: any, restoreOnFailure?: any): void {
-        const updateConnection: UpdateComponent = {
+        const updateConnection: UpdateComponentRequest = {
             id: d.id,
             type: ComponentType.Connection,
             uri: d.uri,

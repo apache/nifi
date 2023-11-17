@@ -17,24 +17,24 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NewCanvasItemComponent } from './new-canvas-item.component';
+import { NewCanvasItem } from './new-canvas-item.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/flow/flow.reducer';
 
-describe('NewCanvasItemComponent', () => {
-    let component: NewCanvasItemComponent;
-    let fixture: ComponentFixture<NewCanvasItemComponent>;
+describe('NewCanvasItem', () => {
+    let component: NewCanvasItem;
+    let fixture: ComponentFixture<NewCanvasItem>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [NewCanvasItemComponent],
+            declarations: [NewCanvasItem],
             providers: [
                 provideMockStore({
                     initialState
                 })
             ]
         });
-        fixture = TestBed.createComponent(NewCanvasItemComponent);
+        fixture = TestBed.createComponent(NewCanvasItem);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

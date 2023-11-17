@@ -17,16 +17,16 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-    ConfigureControllerService,
+    ConfigureControllerServiceRequest,
     ConfigureControllerServiceSuccess,
-    CreateControllerService,
+    CreateControllerServiceRequest,
     CreateControllerServiceSuccess,
-    DeleteControllerService,
+    DeleteControllerServiceRequest,
     DeleteControllerServiceSuccess,
     LoadManagementControllerServicesResponse,
-    SelectControllerService
+    SelectControllerServiceRequest
 } from './index';
-import { EditControllerServiceRequest } from '../../../../state/shared';
+import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 
 export const loadManagementControllerServices = createAction(
     '[Management Controller Services] Load Management Controller Services'
@@ -48,7 +48,7 @@ export const openNewControllerServiceDialog = createAction(
 
 export const createControllerService = createAction(
     '[Management Controller Services] Create Controller Service',
-    props<{ request: CreateControllerService }>()
+    props<{ request: CreateControllerServiceRequest }>()
 );
 
 export const createControllerServiceSuccess = createAction(
@@ -68,12 +68,12 @@ export const navigateToEditService = createAction(
 
 export const openConfigureControllerServiceDialog = createAction(
     '[Management Controller Services] Open Configure Controller Service Dialog',
-    props<{ request: EditControllerServiceRequest }>()
+    props<{ request: EditControllerServiceDialogRequest }>()
 );
 
 export const configureControllerService = createAction(
     '[Management Controller Services] Configure Controller Service',
-    props<{ request: ConfigureControllerService }>()
+    props<{ request: ConfigureControllerServiceRequest }>()
 );
 
 export const configureControllerServiceSuccess = createAction(
@@ -83,12 +83,12 @@ export const configureControllerServiceSuccess = createAction(
 
 export const promptControllerServiceDeletion = createAction(
     '[Management Controller Services] Prompt Controller Service Deletion',
-    props<{ request: DeleteControllerService }>()
+    props<{ request: DeleteControllerServiceRequest }>()
 );
 
 export const deleteControllerService = createAction(
     '[Management Controller Services] Delete Controller Service',
-    props<{ request: DeleteControllerService }>()
+    props<{ request: DeleteControllerServiceRequest }>()
 );
 
 export const deleteControllerServiceSuccess = createAction(
@@ -98,5 +98,5 @@ export const deleteControllerServiceSuccess = createAction(
 
 export const selectControllerService = createAction(
     '[Management Controller Services] Select Controller Service',
-    props<{ request: SelectControllerService }>()
+    props<{ request: SelectControllerServiceRequest }>()
 );

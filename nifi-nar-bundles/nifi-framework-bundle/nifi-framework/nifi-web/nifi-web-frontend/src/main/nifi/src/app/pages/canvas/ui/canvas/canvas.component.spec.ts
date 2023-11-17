@@ -17,7 +17,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CanvasComponent } from './canvas.component';
+import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
 import { ContextMenu } from './context-menu/context-menu.component';
@@ -29,9 +29,9 @@ import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
 import { BreadcrumbEntity } from '../../state/flow';
 
-describe('CanvasComponent', () => {
-    let component: CanvasComponent;
-    let fixture: ComponentFixture<CanvasComponent>;
+describe('Canvas', () => {
+    let component: Canvas;
+    let fixture: ComponentFixture<Canvas>;
 
     @Component({
         selector: 'birdseye',
@@ -54,14 +54,7 @@ describe('CanvasComponent', () => {
         };
 
         TestBed.configureTestingModule({
-            declarations: [
-                CanvasComponent,
-                ContextMenu,
-                GraphControls,
-                OperationControl,
-                NavigationControl,
-                MockBirdseye
-            ],
+            declarations: [Canvas, ContextMenu, GraphControls, OperationControl, NavigationControl, MockBirdseye],
             imports: [CdkContextMenuTrigger],
             providers: [
                 provideMockStore({
@@ -75,7 +68,7 @@ describe('CanvasComponent', () => {
                 })
             ]
         });
-        fixture = TestBed.createComponent(CanvasComponent);
+        fixture = TestBed.createComponent(Canvas);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

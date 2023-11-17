@@ -20,7 +20,7 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { HeaderComponent } from './header.component';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { CdkDrag } from '@angular/cdk/drag-drop';
-import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.component';
+import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
@@ -33,7 +33,7 @@ import { RouterLink } from '@angular/router';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 
 @NgModule({
-    declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus, Search],
+    declarations: [HeaderComponent, NewCanvasItem, FlowStatus, Search],
     exports: [HeaderComponent],
     imports: [
         CommonModule,

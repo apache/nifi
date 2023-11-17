@@ -35,7 +35,7 @@ export interface SelectedComponent {
     entity?: any;
 }
 
-export interface SelectComponents {
+export interface SelectComponentsRequest {
     components: SelectedComponent[];
 }
 
@@ -84,7 +84,7 @@ export interface LoadRemoteProcessGroupSuccess {
   Component Requests
  */
 
-export interface CreateComponent {
+export interface CreateComponentRequest {
     type: ComponentType;
     position: Position;
     revision: any;
@@ -155,49 +155,49 @@ export interface CreateConnection {
 }
 
 export interface CreateProcessGroupDialogRequest {
-    request: CreateComponent;
+    request: CreateComponentRequest;
     parameterContexts: ParameterContextEntity[];
 }
 
-export interface GroupComponentsRequest {
+export interface OpenGroupComponentsDialogRequest {
     position: Position;
-    moveComponents: MoveComponent[];
+    moveComponents: MoveComponentRequest[];
 }
 
 export interface GroupComponentsDialogRequest {
-    request: GroupComponentsRequest;
+    request: OpenGroupComponentsDialogRequest;
     parameterContexts: ParameterContextEntity[];
 }
 
-export interface GroupComponents extends CreateProcessGroup {
-    components: MoveComponent[];
+export interface GroupComponentsRequest extends CreateProcessGroupRequest {
+    components: MoveComponentRequest[];
 }
 
 export interface GroupComponentsSuccess extends CreateComponentResponse {
-    components: MoveComponent[];
+    components: MoveComponentRequest[];
 }
 
 export interface CreateProcessorDialogRequest {
-    request: CreateComponent;
+    request: CreateComponentRequest;
     processorTypes: DocumentedType[];
 }
 
-export interface CreateProcessor extends CreateComponent {
+export interface CreateProcessorRequest extends CreateComponentRequest {
     processorType: string;
     processorBundle: Bundle;
 }
 
-export interface CreateProcessGroup extends CreateComponent {
+export interface CreateProcessGroupRequest extends CreateComponentRequest {
     name: string;
     parameterContextId: string;
 }
 
-export interface UploadProcessGroup extends CreateComponent {
+export interface UploadProcessGroupRequest extends CreateComponentRequest {
     name: string;
     flowDefinition: File;
 }
 
-export interface CreatePort extends CreateComponent {
+export interface CreatePortRequest extends CreateComponentRequest {
     name: string;
     allowRemoteAccess: boolean;
 }
@@ -207,18 +207,18 @@ export interface CreateComponentResponse {
     payload: any;
 }
 
-export interface EditComponentRequest {
+export interface OpenComponentDialogRequest {
     id: string;
     type: ComponentType;
 }
 
-export interface EditComponent {
+export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
 }
 
-export interface EditConnection extends EditComponent {
+export interface EditConnectionDialogRequest extends EditComponentDialogRequest {
     newDestination?: {
         type: ComponentType | null;
         id?: string;
@@ -227,7 +227,7 @@ export interface EditConnection extends EditComponent {
     };
 }
 
-export interface UpdateComponent {
+export interface UpdateComponentRequest {
     requestId?: number;
     id: string;
     type: ComponentType;
@@ -250,7 +250,7 @@ export interface UpdateComponentFailure {
     restoreOnFailure?: any;
 }
 
-export interface UpdateConnection extends UpdateComponent {
+export interface UpdateConnectionRequest extends UpdateComponentRequest {
     previousDestination?: any;
 }
 
@@ -258,25 +258,25 @@ export interface UpdateConnectionSuccess extends UpdateComponentResponse {
     previousDestination?: any;
 }
 
-export interface UpdatePositions {
+export interface UpdatePositionsRequest {
     requestId: number;
-    componentUpdates: UpdateComponent[];
-    connectionUpdates: UpdateComponent[];
+    componentUpdates: UpdateComponentRequest[];
+    connectionUpdates: UpdateComponentRequest[];
 }
 
-export interface MoveComponent {
+export interface MoveComponentRequest {
     id: string;
     uri: string;
     type: ComponentType;
     entity: any;
 }
 
-export interface MoveComponents {
-    components: MoveComponent[];
+export interface MoveComponentsRequest {
+    components: MoveComponentRequest[];
     groupId: string;
 }
 
-export interface DeleteComponent {
+export interface DeleteComponentRequest {
     id: string;
     uri: string;
     type: ComponentType;

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreatePort } from './create-port.component';
-import { CreateComponent } from '../../../state/flow';
+import { CreateComponentRequest } from '../../../state/flow';
 import { ComponentType } from '../../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -29,7 +29,7 @@ describe('CreatePort', () => {
     let component: CreatePort;
     let fixture: ComponentFixture<CreatePort>;
 
-    const data: CreateComponent = {
+    const data: CreateComponentRequest = {
         revision: {
             clientId: 'c7c9ebd1-4c87-4fa9-a760-956acbbaec4d',
             version: 0

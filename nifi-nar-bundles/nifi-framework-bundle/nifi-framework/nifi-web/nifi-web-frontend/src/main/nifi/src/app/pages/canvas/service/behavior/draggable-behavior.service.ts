@@ -25,7 +25,7 @@ import { CanvasUtils } from '../canvas-utils.service';
 import { moveComponents, showOkDialog, updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MoveComponent, UpdateComponent } from '../../state/flow';
+import { MoveComponentRequest, UpdateComponentRequest } from '../../state/flow';
 import { Position } from '../../state/shared';
 import { ComponentType } from '../../../../state/shared';
 
@@ -175,8 +175,8 @@ export class DraggableBehavior {
      */
     private updateComponentsPosition(dragSelection: any): void {
         const self: DraggableBehavior = this;
-        const componentUpdates: Map<string, UpdateComponent> = new Map();
-        const connectionUpdates: Map<string, UpdateComponent> = new Map();
+        const componentUpdates: Map<string, UpdateComponentRequest> = new Map();
+        const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
 
         // determine the drag delta
         const dragData = dragSelection.datum();
@@ -271,7 +271,7 @@ export class DraggableBehavior {
         }
 
         const groupData: any = group.datum();
-        const components: MoveComponent[] = [];
+        const components: MoveComponentRequest[] = [];
         selection.each(function (d: any) {
             components.push({
                 id: d.id,
@@ -292,7 +292,7 @@ export class DraggableBehavior {
         );
     }
 
-    private updateComponentPosition(d: any, delta: Position): UpdateComponent {
+    private updateComponentPosition(d: any, delta: Position): UpdateComponentRequest {
         const newPosition = {
             x: this.snapEnabled
                 ? Math.round((d.position.x + delta.x) / this.snapAlignmentPixels) * this.snapAlignmentPixels
@@ -326,7 +326,7 @@ export class DraggableBehavior {
      * @param delta The change in position
      * @returns {*}
      */
-    private updateConnectionPosition(connection: any, delta: any): UpdateComponent | null {
+    private updateConnectionPosition(connection: any, delta: any): UpdateComponentRequest | null {
         // only update if necessary
         if (connection.bends.length === 0) {
             return null;

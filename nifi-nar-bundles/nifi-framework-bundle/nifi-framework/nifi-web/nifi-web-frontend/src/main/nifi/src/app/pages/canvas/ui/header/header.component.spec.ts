@@ -21,7 +21,7 @@ import { HeaderComponent } from './header.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { NewCanvasItemComponent } from './new-canvas-item/new-canvas-item.component';
+import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { FlowStatus } from './flow-status/flow-status.component';
@@ -69,7 +69,7 @@ describe('HeaderComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [HeaderComponent, NewCanvasItemComponent, FlowStatus, Search],
+            declarations: [HeaderComponent, NewCanvasItem, FlowStatus, Search],
             imports: [
                 HttpClientTestingModule,
                 MatMenuModule,

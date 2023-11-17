@@ -19,7 +19,7 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
-import { CreateReportingTaskRequest, ReportingTasksState } from '../../../state/reporting-tasks';
+import { CreateReportingTaskDialogRequest, ReportingTasksState } from '../../../state/reporting-tasks';
 import { createReportingTask } from '../../../state/reporting-tasks/reporting-tasks.actions';
 import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
@@ -38,7 +38,7 @@ export class CreateReportingTask {
     saving$ = this.store.select(selectSaving);
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateReportingTaskRequest,
+        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateReportingTaskDialogRequest,
         private store: Store<ReportingTasksState>,
         private client: Client
     ) {

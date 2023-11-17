@@ -18,13 +18,13 @@
 import { createAction, props } from '@ngrx/store';
 import {
     SubmitParameterContextUpdate,
-    CreateParameterContext,
+    CreateParameterContextRequest,
     CreateParameterContextSuccess,
-    DeleteParameterContext,
+    DeleteParameterContextRequest,
     DeleteParameterContextSuccess,
     EditParameterContextRequest,
     LoadParameterContextsResponse,
-    SelectParameterContext,
+    SelectParameterContextRequest,
     PollParameterContextUpdateSuccess,
     GetEffectiveParameterContext
 } from './index';
@@ -47,7 +47,7 @@ export const openNewParameterContextDialog = createAction(
 
 export const createParameterContext = createAction(
     '[Parameter Context Listing] Create Parameter Context',
-    props<{ request: CreateParameterContext }>()
+    props<{ request: CreateParameterContextRequest }>()
 );
 
 export const createParameterContextSuccess = createAction(
@@ -105,12 +105,12 @@ export const editParameterContextComplete = createAction('[Parameter Context Lis
 
 export const promptParameterContextDeletion = createAction(
     '[Parameter Context Listing] Prompt Parameter Context Deletion',
-    props<{ request: DeleteParameterContext }>()
+    props<{ request: DeleteParameterContextRequest }>()
 );
 
 export const deleteParameterContext = createAction(
     '[Parameter Context Listing] Delete Parameter Context',
-    props<{ request: DeleteParameterContext }>()
+    props<{ request: DeleteParameterContextRequest }>()
 );
 
 export const deleteParameterContextSuccess = createAction(
@@ -120,5 +120,5 @@ export const deleteParameterContextSuccess = createAction(
 
 export const selectParameterContext = createAction(
     '[Parameter Context Listing] Select Parameter Context',
-    props<{ request: SelectParameterContext }>()
+    props<{ request: SelectParameterContextRequest }>()
 );

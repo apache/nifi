@@ -17,24 +17,24 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-    CreateComponent,
+    CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
-    CreatePort,
-    CreateProcessGroup,
+    CreatePortRequest,
+    CreateProcessGroupRequest,
     CreateProcessGroupDialogRequest,
-    CreateProcessor,
-    DeleteComponent,
+    CreateProcessorRequest,
+    DeleteComponentRequest,
     DeleteComponentResponse,
-    EditComponent,
-    EditComponentRequest,
-    EditConnection,
+    EditComponentDialogRequest,
+    OpenComponentDialogRequest,
+    EditConnectionDialogRequest,
     EnterProcessGroupRequest,
-    GroupComponents,
-    GroupComponentsDialogRequest,
     GroupComponentsRequest,
+    GroupComponentsDialogRequest,
+    OpenGroupComponentsDialogRequest,
     GroupComponentsSuccess,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
@@ -42,16 +42,16 @@ import {
     LoadProcessGroupResponse,
     LoadProcessorSuccess,
     LoadRemoteProcessGroupSuccess,
-    MoveComponents,
+    MoveComponentsRequest,
     NavigateToComponentRequest,
-    SelectComponents,
-    UpdateComponent,
+    SelectComponentsRequest,
+    UpdateComponentRequest,
     UpdateComponentFailure,
     UpdateComponentResponse,
-    UpdateConnection,
+    UpdateConnectionRequest,
     UpdateConnectionSuccess,
-    UpdatePositions,
-    UploadProcessGroup
+    UpdatePositionsRequest,
+    UploadProcessGroupRequest
 } from './index';
 
 /*
@@ -134,16 +134,19 @@ export const loadRemoteProcessGroupSuccess = createAction(
 
 export const addSelectedComponents = createAction(
     '[Canvas] Add Selected Component',
-    props<{ request: SelectComponents }>()
+    props<{ request: SelectComponentsRequest }>()
 );
 
-export const selectComponents = createAction('[Canvas] Select Components', props<{ request: SelectComponents }>());
+export const selectComponents = createAction(
+    '[Canvas] Select Components',
+    props<{ request: SelectComponentsRequest }>()
+);
 
 export const deselectAllComponents = createAction('[Canvas] Deselect All Components');
 
 export const removeSelectedComponents = createAction(
     '[Canvas] Remove Selected Components',
-    props<{ request: SelectComponents }>()
+    props<{ request: SelectComponentsRequest }>()
 );
 
 export const centerSelectedComponent = createAction('[Canvas] Center Selected Components');
@@ -154,12 +157,12 @@ export const centerSelectedComponent = createAction('[Canvas] Center Selected Co
 
 export const createComponentRequest = createAction(
     '[Canvas] Create Component Request',
-    props<{ request: CreateComponent }>()
+    props<{ request: CreateComponentRequest }>()
 );
 
-export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponent }>());
+export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponentRequest }>());
 
-export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponent }>());
+export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponentRequest }>());
 
 export const openNewProcessGroupDialog = createAction(
     '[Canvas] Open New Process Group Dialog',
@@ -168,17 +171,17 @@ export const openNewProcessGroupDialog = createAction(
 
 export const createProcessGroup = createAction(
     '[Canvas] Create Process Group',
-    props<{ request: CreateProcessGroup }>()
+    props<{ request: CreateProcessGroupRequest }>()
 );
 
 export const uploadProcessGroup = createAction(
     '[Canvas] Upload Process Group',
-    props<{ request: UploadProcessGroup }>()
+    props<{ request: UploadProcessGroupRequest }>()
 );
 
 export const getParameterContextsAndOpenGroupComponentsDialog = createAction(
     '[Canvas] Get Parameter Contexts And Open Group Components Dialog',
-    props<{ request: GroupComponentsRequest }>()
+    props<{ request: OpenGroupComponentsDialogRequest }>()
 );
 
 export const openGroupComponentsDialog = createAction(
@@ -186,7 +189,7 @@ export const openGroupComponentsDialog = createAction(
     props<{ request: GroupComponentsDialogRequest }>()
 );
 
-export const groupComponents = createAction('[Canvas] Group Components', props<{ request: GroupComponents }>());
+export const groupComponents = createAction('[Canvas] Group Components', props<{ request: GroupComponentsRequest }>());
 
 export const groupComponentsSuccess = createAction(
     '[Canvas] Group Components Success',
@@ -195,10 +198,10 @@ export const groupComponentsSuccess = createAction(
 
 export const openNewProcessorDialog = createAction(
     '[Canvas] Open New Processor Dialog',
-    props<{ request: CreateComponent }>()
+    props<{ request: CreateComponentRequest }>()
 );
 
-export const createProcessor = createAction('[Canvas] Create Processor', props<{ request: CreateProcessor }>());
+export const createProcessor = createAction('[Canvas] Create Processor', props<{ request: CreateProcessorRequest }>());
 
 export const getDefaultsAndOpenNewConnectionDialog = createAction(
     '[Canvas] Get Defaults And Open New Connection Dialog',
@@ -212,9 +215,12 @@ export const openNewConnectionDialog = createAction(
 
 export const createConnection = createAction('[Canvas] Create Connection', props<{ request: CreateConnection }>());
 
-export const openNewPortDialog = createAction('[Canvas] Open New Port Dialog', props<{ request: CreateComponent }>());
+export const openNewPortDialog = createAction(
+    '[Canvas] Open New Port Dialog',
+    props<{ request: CreateComponentRequest }>()
+);
 
-export const createPort = createAction('[Canvas] Create Port', props<{ request: CreatePort }>());
+export const createPort = createAction('[Canvas] Create Port', props<{ request: CreatePortRequest }>());
 
 export const createComponentSuccess = createAction(
     '[Canvas] Create Component Success',
@@ -232,24 +238,27 @@ export const createComponentComplete = createAction(
 
 export const navigateToEditComponent = createAction(
     '[Canvas] Navigate To Edit Component',
-    props<{ request: EditComponentRequest }>()
+    props<{ request: OpenComponentDialogRequest }>()
 );
 
-export const editComponent = createAction('[Canvas] Edit Component', props<{ request: EditComponent }>());
+export const editComponent = createAction('[Canvas] Edit Component', props<{ request: EditComponentDialogRequest }>());
 
-export const openEditPortDialog = createAction('[Canvas] Open Edit Port Dialog', props<{ request: EditComponent }>());
+export const openEditPortDialog = createAction(
+    '[Canvas] Open Edit Port Dialog',
+    props<{ request: EditComponentDialogRequest }>()
+);
 
 export const openEditProcessorDialog = createAction(
     '[Canvas] Open Edit Processor Dialog',
-    props<{ request: EditComponent }>()
+    props<{ request: EditComponentDialogRequest }>()
 );
 
 export const openEditConnectionDialog = createAction(
     '[Canvas] Open Edit Connection Dialog',
-    props<{ request: EditConnection }>()
+    props<{ request: EditConnectionDialogRequest }>()
 );
 
-export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponent }>());
+export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponentRequest }>());
 
 export const updateComponentSuccess = createAction(
     '[Canvas] Update Component Success',
@@ -261,34 +270,40 @@ export const updateComponentFailure = createAction(
     props<{ response: UpdateComponentFailure }>()
 );
 
-export const updateProcessor = createAction('[Canvas] Update Processor', props<{ request: UpdateComponent }>());
+export const updateProcessor = createAction('[Canvas] Update Processor', props<{ request: UpdateComponentRequest }>());
 
 export const updateProcessorSuccess = createAction(
     '[Canvas] Update Processor Success',
     props<{ response: UpdateComponentResponse }>()
 );
 
-export const updateConnection = createAction('[Canvas] Update Connection', props<{ request: UpdateConnection }>());
+export const updateConnection = createAction(
+    '[Canvas] Update Connection',
+    props<{ request: UpdateConnectionRequest }>()
+);
 
 export const updateConnectionSuccess = createAction(
     '[Canvas] Update Connection Success',
     props<{ response: UpdateConnectionSuccess }>()
 );
 
-export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositions }>());
+export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositionsRequest }>());
 
 export const updatePositionComplete = createAction(
     '[Canvas] Update Position Complete',
     props<{ response: UpdateComponentResponse }>()
 );
 
-export const moveComponents = createAction('[Canvas] Move Components', props<{ request: MoveComponents }>());
+export const moveComponents = createAction('[Canvas] Move Components', props<{ request: MoveComponentsRequest }>());
 
 /*
     Delete Component Actions
  */
 
-export const deleteComponents = createAction('[Canvas] Delete Components', props<{ request: DeleteComponent[] }>());
+export const deleteComponents = createAction(
+    '[Canvas] Delete Components',
+    props<{ request: DeleteComponentRequest[] }>()
+);
 
 export const deleteComponentsSuccess = createAction(
     '[Canvas] Delete Components Success',

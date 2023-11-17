@@ -23,7 +23,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { selectParentProcessGroupId, selectSaving } from '../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from 'src/app/pages/canvas/state/flow/flow.actions';
-import { CreateComponent } from '../../../state/flow';
+import { CreateComponentRequest } from '../../../state/flow';
 import { ComponentType, SelectOption, TextTipInput } from '../../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -78,7 +78,7 @@ export class CreatePort {
     ];
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private request: CreateComponent,
+        @Inject(MAT_DIALOG_DATA) private request: CreateComponentRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>
     ) {

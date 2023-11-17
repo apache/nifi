@@ -30,7 +30,7 @@ import {
     reloadFlow
 } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { DeleteComponent, MoveComponent } from '../../../state/flow';
+import { DeleteComponentRequest, MoveComponentRequest } from '../../../state/flow';
 
 export interface ContextMenuItemDefinition {
     isSeparator?: boolean;
@@ -695,7 +695,7 @@ export class ContextMenu implements OnInit {
                 clazz: 'fa fa-arrows',
                 text: 'Move to parent group',
                 action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
-                    const components: MoveComponent[] = [];
+                    const components: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
                         components.push({
                             id: d.id,
@@ -724,7 +724,7 @@ export class ContextMenu implements OnInit {
                 clazz: 'icon icon-group',
                 text: 'Group',
                 action: function (store: Store<CanvasState>, selection: any, canvasUtils: CanvasUtils) {
-                    const moveComponents: MoveComponent[] = [];
+                    const moveComponents: MoveComponentRequest[] = [];
                     selection.each(function (d: any) {
                         moveComponents.push({
                             id: d.id,
@@ -859,7 +859,7 @@ export class ContextMenu implements OnInit {
                             })
                         );
                     } else {
-                        const requests: DeleteComponent[] = [];
+                        const requests: DeleteComponentRequest[] = [];
                         selection.each(function (d: any) {
                             requests.push({
                                 id: d.id,

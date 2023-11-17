@@ -22,7 +22,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../state/flow/flow.actions';
 import { Client } from '../../../../../service/client.service';
-import { EditComponent } from '../../../state/flow';
+import { EditComponentDialogRequest } from '../../../state/flow';
 import { ComponentType } from '../../../../../state/shared';
 import { Banner } from '../../common/banner/banner.component';
 import { MatInputModule } from '@angular/material/input';
@@ -56,7 +56,7 @@ export class EditPort {
     portTypeLabel: string;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponent,
+        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
         private client: Client

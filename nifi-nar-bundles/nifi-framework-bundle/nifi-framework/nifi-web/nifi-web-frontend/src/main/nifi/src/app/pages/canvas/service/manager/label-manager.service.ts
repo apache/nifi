@@ -34,7 +34,7 @@ import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ComponentType } from '../../../../state/shared';
-import { UpdateComponent } from '../../state/flow';
+import { UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 
@@ -337,7 +337,7 @@ export class LabelManager {
 
                 // only save the updated bends if necessary
                 if (different) {
-                    const updateLabel: UpdateComponent = {
+                    const updateLabel: UpdateComponentRequest = {
                         id: labelData.id,
                         type: ComponentType.Label,
                         uri: labelData.uri,

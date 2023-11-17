@@ -27,7 +27,7 @@ import { CanvasState } from '../../../state';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { initialState } from '../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../service/storage.service';
-import { BreadcrumbEntity, DeleteComponent, MoveComponent } from '../../../state/flow';
+import { BreadcrumbEntity, DeleteComponentRequest, MoveComponentRequest } from '../../../state/flow';
 
 @Component({
     selector: 'operation-control',
@@ -249,7 +249,7 @@ export class OperationControl {
     }
 
     group(selection: any): void {
-        const moveComponents: MoveComponent[] = [];
+        const moveComponents: MoveComponentRequest[] = [];
         selection.each(function (d: any) {
             moveComponents.push({
                 id: d.id,
@@ -299,7 +299,7 @@ export class OperationControl {
                 })
             );
         } else {
-            const requests: DeleteComponent[] = [];
+            const requests: DeleteComponentRequest[] = [];
             selection.each(function (d: any) {
                 requests.push({
                     id: d.id,

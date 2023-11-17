@@ -22,8 +22,8 @@ import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
     SubmitParameterContextUpdate,
-    CreateParameterContext,
-    DeleteParameterContext,
+    CreateParameterContextRequest,
+    DeleteParameterContextRequest,
     ParameterContextEntity,
     ParameterContextUpdateRequest
 } from '../state/parameter-context-listing';
@@ -55,7 +55,7 @@ export class ParameterContextService {
         return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
     }
 
-    createParameterContext(createParameterContext: CreateParameterContext): Observable<any> {
+    createParameterContext(createParameterContext: CreateParameterContextRequest): Observable<any> {
         return this.httpClient.post(
             `${ParameterContextService.API}/parameter-contexts`,
             createParameterContext.payload
@@ -85,7 +85,7 @@ export class ParameterContextService {
         return this.httpClient.delete(this.stripProtocol(updateRequest.uri));
     }
 
-    deleteParameterContext(deleteParameterContext: DeleteParameterContext): Observable<any> {
+    deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
         const entity: ParameterContextEntity = deleteParameterContext.parameterContext;
         const revision: any = this.client.getRevision(entity);
         return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, {

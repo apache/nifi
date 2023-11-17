@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditPort } from './edit-port.component';
-import { EditComponent } from '../../../state/flow';
+import { EditComponentDialogRequest } from '../../../state/flow';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -29,7 +29,7 @@ describe('EditPort', () => {
     let component: EditPort;
     let fixture: ComponentFixture<EditPort>;
 
-    const data: EditComponent = {
+    const data: EditComponentDialogRequest = {
         type: ComponentType.OutputPort,
         uri: 'https://localhost:4200/nifi-api/output-ports/a687e30e-018b-1000-f904-849a9f8e6bdb',
         entity: {

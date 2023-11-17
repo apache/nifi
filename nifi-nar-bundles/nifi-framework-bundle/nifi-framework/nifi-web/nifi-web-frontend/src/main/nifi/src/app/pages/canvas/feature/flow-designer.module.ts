@@ -17,7 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { FlowDesignerComponent } from './flow-designer.component';
+import { FlowDesigner } from './flow-designer.component';
 import { FlowDesignerRoutingModule } from './flow-designer-routing.module';
 import { HeaderModule } from '../ui/header/header.module';
 import { FooterModule } from '../ui/footer/footer.module';
@@ -31,8 +31,8 @@ import { canvasFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
-    declarations: [FlowDesignerComponent, VersionControlTip],
-    exports: [FlowDesignerComponent],
+    declarations: [FlowDesigner, VersionControlTip],
+    exports: [FlowDesigner],
     imports: [
         CommonModule,
         HeaderModule,

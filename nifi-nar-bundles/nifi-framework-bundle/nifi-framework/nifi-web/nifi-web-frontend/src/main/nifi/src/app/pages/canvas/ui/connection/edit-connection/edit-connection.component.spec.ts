@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditConnectionComponent } from './edit-connection.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { EditConnection } from '../../../state/flow';
+import { EditConnectionDialogRequest } from '../../../state/flow';
 import { ComponentType } from '../../../../../state/shared';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/flow/flow.reducer';
@@ -31,7 +31,7 @@ describe('EditConnectionComponent', () => {
     let component: EditConnectionComponent;
     let fixture: ComponentFixture<EditConnectionComponent>;
 
-    const data: EditConnection = {
+    const data: EditConnectionDialogRequest = {
         type: ComponentType.Connection,
         uri: 'https://localhost:4200/nifi-api/connections/abd5a02c-018b-1000-c602-fe83979f1997',
         entity: {

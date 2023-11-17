@@ -26,7 +26,7 @@ import { NiFiState } from '../../../state';
     templateUrl: './flow-designer.component.html',
     styleUrls: ['./flow-designer.component.scss']
 })
-export class FlowDesignerComponent implements OnInit, OnDestroy {
+export class FlowDesigner implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {

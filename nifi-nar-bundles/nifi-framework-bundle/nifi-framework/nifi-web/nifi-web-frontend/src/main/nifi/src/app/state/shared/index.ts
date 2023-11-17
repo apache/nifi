@@ -47,7 +47,7 @@ export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
 }
 
-export interface EditControllerServiceRequest {
+export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
 }

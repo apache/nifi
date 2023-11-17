@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditControllerService } from './edit-controller-service.component';
-import { EditControllerServiceRequest } from '../../../../state/shared';
+import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
@@ -26,7 +26,7 @@ describe('EditControllerService', () => {
     let component: EditControllerService;
     let fixture: ComponentFixture<EditControllerService>;
 
-    const data: EditControllerServiceRequest = {
+    const data: EditControllerServiceDialogRequest = {
         id: 'ca577df7-018b-1000-6182-90ea0c5d3337',
         controllerService: {
             revision: {

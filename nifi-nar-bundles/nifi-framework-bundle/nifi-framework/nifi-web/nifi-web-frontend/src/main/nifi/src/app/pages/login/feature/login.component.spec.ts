@@ -17,20 +17,20 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { LoginComponent } from './login.component';
+import { Login } from './login.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/user/user.reducer';
 
-describe('LoginComponent', () => {
-    let component: LoginComponent;
-    let fixture: ComponentFixture<LoginComponent>;
+describe('Login', () => {
+    let component: Login;
+    let fixture: ComponentFixture<Login>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginComponent],
+            declarations: [Login],
             providers: [provideMockStore({ initialState })]
         });
-        fixture = TestBed.createComponent(LoginComponent);
+        fixture = TestBed.createComponent(Login);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

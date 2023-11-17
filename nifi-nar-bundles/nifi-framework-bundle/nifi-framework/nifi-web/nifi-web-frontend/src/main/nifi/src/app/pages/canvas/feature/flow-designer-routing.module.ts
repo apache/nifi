@@ -17,20 +17,20 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { FlowDesignerComponent } from './flow-designer.component';
+import { FlowDesigner } from './flow-designer.component';
 import { RootGroupRedirector } from '../ui/root/redirector/root-group-redirector.component';
 import { rootGroupGuard } from '../ui/root/guard/root-group.guard';
 
 const routes: Routes = [
     {
         path: 'process-groups/:processGroupId',
-        component: FlowDesignerComponent,
+        component: FlowDesigner,
         children: [
-            { path: 'bulk/:ids', component: FlowDesignerComponent },
+            { path: 'bulk/:ids', component: FlowDesigner },
             {
                 path: ':type/:id',
-                component: FlowDesignerComponent,
-                children: [{ path: 'edit', component: FlowDesignerComponent }]
+                component: FlowDesigner,
+                children: [{ path: 'edit', component: FlowDesigner }]
             }
         ]
     },

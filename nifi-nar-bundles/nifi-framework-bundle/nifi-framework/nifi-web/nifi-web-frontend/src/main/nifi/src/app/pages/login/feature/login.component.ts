@@ -26,7 +26,7 @@ import { loadAccess } from '../state/access/access.actions';
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class Login implements OnInit {
     access$ = this.store.select(selectAccess);
 
     constructor(private store: Store<LoginState>) {}

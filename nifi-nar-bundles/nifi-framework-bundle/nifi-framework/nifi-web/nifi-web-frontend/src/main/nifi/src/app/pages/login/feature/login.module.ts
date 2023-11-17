@@ -17,7 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LoginComponent } from './login.component';
+import { Login } from './login.component';
 import { LoginRoutingModule } from './login-routing.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -32,8 +32,8 @@ import { LoginMessage } from '../ui/login-message/login-message.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 
 @NgModule({
-    declarations: [LoginComponent, LoginForm, LoginMessage],
-    exports: [LoginComponent],
+    declarations: [Login, LoginForm, LoginMessage],
+    exports: [Login],
     imports: [
         CommonModule,
         LoginRoutingModule,

@@ -17,15 +17,15 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-    CreateReportingTask,
+    CreateReportingTaskRequest,
     CreateReportingTaskSuccess,
-    DeleteReportingTask,
+    DeleteReportingTaskRequest,
     DeleteReportingTaskSuccess,
     LoadReportingTasksResponse,
-    SelectReportingTask,
-    StartReportingTask,
+    SelectReportingTaskRequest,
+    StartReportingTaskRequest,
     StartReportingTaskSuccess,
-    StopReportingTask,
+    StopReportingTaskRequest,
     StopReportingTaskSuccess
 } from './index';
 
@@ -45,7 +45,7 @@ export const openNewReportingTaskDialog = createAction('[Reporting Tasks] Open N
 
 export const createReportingTask = createAction(
     '[Reporting Tasks] Create Reporting Task',
-    props<{ request: CreateReportingTask }>()
+    props<{ request: CreateReportingTaskRequest }>()
 );
 
 export const createReportingTaskSuccess = createAction(
@@ -55,7 +55,7 @@ export const createReportingTaskSuccess = createAction(
 
 export const startReportingTask = createAction(
     '[Reporting Tasks] Start Reporting Task',
-    props<{ request: StartReportingTask }>()
+    props<{ request: StartReportingTaskRequest }>()
 );
 
 export const startReportingTaskSuccess = createAction(
@@ -65,7 +65,7 @@ export const startReportingTaskSuccess = createAction(
 
 export const stopReportingTask = createAction(
     '[Reporting Tasks] Stop Reporting Task',
-    props<{ request: StopReportingTask }>()
+    props<{ request: StopReportingTaskRequest }>()
 );
 
 export const stopReportingTaskSuccess = createAction(
@@ -75,12 +75,12 @@ export const stopReportingTaskSuccess = createAction(
 
 export const promptReportingTaskDeletion = createAction(
     '[Reporting Tasks] Prompt Reporting Task Deletion',
-    props<{ request: DeleteReportingTask }>()
+    props<{ request: DeleteReportingTaskRequest }>()
 );
 
 export const deleteReportingTask = createAction(
     '[Reporting Tasks] Delete Reporting Task',
-    props<{ request: DeleteReportingTask }>()
+    props<{ request: DeleteReportingTaskRequest }>()
 );
 
 export const deleteReportingTaskSuccess = createAction(
@@ -90,5 +90,5 @@ export const deleteReportingTaskSuccess = createAction(
 
 export const selectReportingTask = createAction(
     '[Reporting Tasks] Select Reporting Task',
-    props<{ request: SelectReportingTask }>()
+    props<{ request: SelectReportingTaskRequest }>()
 );

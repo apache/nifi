@@ -19,7 +19,7 @@ import { BulletinEntity, Bundle, DocumentedType, Permissions, Revision } from '.
 
 export const reportingTasksFeatureKey = 'reportingTasks';
 
-export interface CreateReportingTaskRequest {
+export interface CreateReportingTaskDialogRequest {
     reportingTaskTypes: DocumentedType[];
 }
 
@@ -28,7 +28,7 @@ export interface LoadReportingTasksResponse {
     loadedTimestamp: string;
 }
 
-export interface CreateReportingTask {
+export interface CreateReportingTaskRequest {
     reportingTaskType: string;
     reportingTaskBundle: Bundle;
     revision: Revision;
@@ -38,7 +38,7 @@ export interface CreateReportingTaskSuccess {
     reportingTask: ReportingTaskEntity;
 }
 
-export interface StartReportingTask {
+export interface StartReportingTaskRequest {
     reportingTask: ReportingTaskEntity;
 }
 
@@ -46,7 +46,7 @@ export interface StartReportingTaskSuccess {
     reportingTask: ReportingTaskEntity;
 }
 
-export interface StopReportingTask {
+export interface StopReportingTaskRequest {
     reportingTask: ReportingTaskEntity;
 }
 
@@ -54,7 +54,7 @@ export interface StopReportingTaskSuccess {
     reportingTask: ReportingTaskEntity;
 }
 
-export interface DeleteReportingTask {
+export interface DeleteReportingTaskRequest {
     reportingTask: ReportingTaskEntity;
 }
 
@@ -62,7 +62,7 @@ export interface DeleteReportingTaskSuccess {
     reportingTask: ReportingTaskEntity;
 }
 
-export interface SelectReportingTask {
+export interface SelectReportingTaskRequest {
     reportingTask: ReportingTaskEntity;
 }
 

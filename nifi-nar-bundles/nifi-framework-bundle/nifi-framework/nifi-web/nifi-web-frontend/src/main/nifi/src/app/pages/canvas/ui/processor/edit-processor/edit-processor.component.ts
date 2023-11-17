@@ -36,7 +36,7 @@ import {
 } from '../../../../../state/shared';
 import { Client } from '../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { EditComponent } from '../../../state/flow';
+import { EditComponentDialogRequest } from '../../../state/flow';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
@@ -140,7 +140,7 @@ export class EditProcessor {
     runDurationMillis: number;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponent,
+        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
         private nifiCommon: NiFiCommon

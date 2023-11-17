@@ -17,14 +17,14 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FlowDesignerComponent } from './flow-designer.component';
+import { FlowDesigner } from './flow-designer.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../state/flow/flow.reducer';
 import { Component } from '@angular/core';
 
-describe('FlowDesignerComponent', () => {
-    let component: FlowDesignerComponent;
-    let fixture: ComponentFixture<FlowDesignerComponent>;
+describe('FlowDesigner', () => {
+    let component: FlowDesigner;
+    let fixture: ComponentFixture<FlowDesigner>;
 
     @Component({
         selector: 'fd-header',
@@ -46,14 +46,14 @@ describe('FlowDesignerComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowDesignerComponent, MockHeader, MockCanvas, MockFooter],
+            declarations: [FlowDesigner, MockHeader, MockCanvas, MockFooter],
             providers: [
                 provideMockStore({
                     initialState
                 })
             ]
         });
-        fixture = TestBed.createComponent(FlowDesignerComponent);
+        fixture = TestBed.createComponent(FlowDesigner);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

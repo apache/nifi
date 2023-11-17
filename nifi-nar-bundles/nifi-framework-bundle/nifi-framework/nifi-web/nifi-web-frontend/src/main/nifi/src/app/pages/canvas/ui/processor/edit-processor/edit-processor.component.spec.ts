@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditProcessor } from './edit-processor.component';
-import { EditComponent } from '../../../state/flow';
+import { EditComponentDialogRequest } from '../../../state/flow';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../state/shared';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -27,7 +27,7 @@ describe('EditProcessor', () => {
     let component: EditProcessor;
     let fixture: ComponentFixture<EditProcessor>;
 
-    const data: EditComponent = {
+    const data: EditComponentDialogRequest = {
         type: ComponentType.Processor,
         uri: 'https://localhost:4200/nifi-api/processors/d90ac264-018b-1000-1827-a86c8156fd9e',
         entity: {

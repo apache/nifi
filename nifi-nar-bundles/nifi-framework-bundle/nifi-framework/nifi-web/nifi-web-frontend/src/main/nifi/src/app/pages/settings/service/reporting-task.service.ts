@@ -21,11 +21,11 @@ import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
-    CreateReportingTask,
-    DeleteReportingTask,
+    CreateReportingTaskRequest,
+    DeleteReportingTaskRequest,
     ReportingTaskEntity,
-    StartReportingTask,
-    StopReportingTask
+    StartReportingTaskRequest,
+    StopReportingTaskRequest
 } from '../state/reporting-tasks';
 
 @Injectable({ providedIn: 'root' })
@@ -55,7 +55,7 @@ export class ReportingTaskService {
         return this.httpClient.get(`${ReportingTaskService.API}/flow/reporting-tasks`);
     }
 
-    createReportingTask(createReportingTask: CreateReportingTask): Observable<any> {
+    createReportingTask(createReportingTask: CreateReportingTaskRequest): Observable<any> {
         return this.httpClient.post(`${ReportingTaskService.API}/controller/reporting-tasks`, {
             revision: createReportingTask.revision,
             component: {
@@ -65,13 +65,13 @@ export class ReportingTaskService {
         });
     }
 
-    deleteReportingTask(deleteReportingTask: DeleteReportingTask): Observable<any> {
+    deleteReportingTask(deleteReportingTask: DeleteReportingTaskRequest): Observable<any> {
         const entity: ReportingTaskEntity = deleteReportingTask.reportingTask;
         const revision: any = this.client.getRevision(entity);
         return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
     }
 
-    startReportingTask(startReportingTask: StartReportingTask): Observable<any> {
+    startReportingTask(startReportingTask: StartReportingTaskRequest): Observable<any> {
         const entity: ReportingTaskEntity = startReportingTask.reportingTask;
         const revision: any = this.client.getRevision(entity);
         const payload: any = {
@@ -81,7 +81,7 @@ export class ReportingTaskService {
         return this.httpClient.put(`${this.stripProtocol(entity.uri)}/run-status`, payload);
     }
 
-    stopReportingTask(stopReportingTask: StopReportingTask): Observable<any> {
+    stopReportingTask(stopReportingTask: StopReportingTaskRequest): Observable<any> {
         const entity: ReportingTaskEntity = stopReportingTask.reportingTask;
         const revision: any = this.client.getRevision(entity);
         const payload: any = {

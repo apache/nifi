@@ -21,7 +21,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Client } from '../../../../service/client.service';
 import {
     ControllerServiceEntity,
-    EditControllerServiceRequest,
+    EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
@@ -98,7 +98,7 @@ export class EditControllerService {
     ];
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditControllerServiceRequest,
+        @Inject(MAT_DIALOG_DATA) public request: EditControllerServiceDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
         private nifiCommon: NiFiCommon

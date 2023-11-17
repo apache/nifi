@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateReportingTask } from './create-reporting-task.component';
-import { CreateReportingTaskRequest } from '../../../state/reporting-tasks';
+import { CreateReportingTaskDialogRequest } from '../../../state/reporting-tasks';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/extension-types/extension-types.reducer';
@@ -28,7 +28,7 @@ describe('CreateReportingTask', () => {
     let component: CreateReportingTask;
     let fixture: ComponentFixture<CreateReportingTask>;
 
-    const data: CreateReportingTaskRequest = {
+    const data: CreateReportingTaskDialogRequest = {
         reportingTaskTypes: [
             {
                 type: 'org.apache.nifi.reporting.azure.loganalytics.AzureLogAnalyticsProvenanceReportingTask',

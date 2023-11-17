@@ -24,7 +24,7 @@ export interface LoadParameterContextsResponse {
     loadedTimestamp: string;
 }
 
-export interface CreateParameterContext {
+export interface CreateParameterContextRequest {
     payload: any;
 }
 
@@ -49,7 +49,7 @@ export interface PollParameterContextUpdateSuccess {
     requestEntity: ParameterContextUpdateRequestEntity;
 }
 
-export interface DeleteParameterContext {
+export interface DeleteParameterContextRequest {
     parameterContext: ParameterContextEntity;
 }
 
@@ -57,7 +57,7 @@ export interface DeleteParameterContextSuccess {
     parameterContext: ParameterContextEntity;
 }
 
-export interface SelectParameterContext {
+export interface SelectParameterContextRequest {
     id: string;
 }
 
@@ -96,14 +96,11 @@ export interface ParameterContext {
     // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 }
 
+// TODO - Replace this with ProcessGroupEntity was available
 export interface BoundProcessGroup {
     permissions: Permissions;
     id: string;
-    component: {
-        id: string;
-        parentGroupId: string;
-        name: string;
-    };
+    component: any;
 }
 
 export interface ParameterContextListingState {

@@ -19,7 +19,7 @@ import { Component, Inject, Input } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
     BreadcrumbEntity,
-    EditConnection,
+    EditConnectionDialogRequest,
     loadBalanceCompressionStrategies,
     loadBalanceStrategies
 } from '../../../state/flow';
@@ -166,7 +166,7 @@ export class EditConnectionComponent {
     initialCompression: string;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: EditConnection,
+        @Inject(MAT_DIALOG_DATA) private dialogRequest: EditConnectionDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<NiFiState>,
         private canvasUtils: CanvasUtils,
