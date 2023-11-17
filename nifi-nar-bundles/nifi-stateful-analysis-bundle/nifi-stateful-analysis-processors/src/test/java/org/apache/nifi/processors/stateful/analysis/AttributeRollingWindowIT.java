@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.stateful.analysis;
 
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
+import org.apache.commons.math3.util.Precision;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.state.MockStateManager;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -35,10 +38,14 @@ import java.util.Map;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.REL_FAILED_SET_STATE;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_STDDEV_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VARIANCE_KEY;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AttributeRollingWindowIT {
 
+    private static final double EPSILON = 0.000001d; // "Error" threshold for floating-point arithmetic
     @Test
     public void testFailureDueToBadAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
@@ -91,6 +98,8 @@ public class AttributeRollingWindowIT {
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_VALUE_KEY);
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_COUNT_KEY);
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_MEAN_KEY);
+        mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_VARIANCE_KEY);
+        mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_STDDEV_KEY);
     }
 
     private boolean isWindowsEnvironment() {
@@ -117,6 +126,8 @@ public class AttributeRollingWindowIT {
         flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "1.0");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "1");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VARIANCE_KEY, "0.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_STDDEV_KEY, "0.0");
 
         runner.enqueue("2".getBytes(), attributes);
         runner.run(1);
@@ -126,6 +137,8 @@ public class AttributeRollingWindowIT {
         flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "2.0");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "2");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VARIANCE_KEY, "0.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_STDDEV_KEY, "0.0");
 
         Thread.sleep(500L);
 
@@ -137,9 +150,10 @@ public class AttributeRollingWindowIT {
         flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "1.0");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "1");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VARIANCE_KEY, "0.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_STDDEV_KEY, "0.0");
 
     }
-
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
@@ -153,9 +167,8 @@ public class AttributeRollingWindowIT {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "1");
-        for(int i = 1; i<61; i++){
+        for (int i = 1; i < 61; i++) {
             runner.enqueue(String.valueOf(i).getBytes(), attributes);
-
             runner.run();
 
             flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
@@ -166,10 +179,10 @@ public class AttributeRollingWindowIT {
             flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(value));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_VARIANCE_KEY, "0.0");
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_STDDEV_KEY, "0.0");
             Thread.sleep(10L);
         }
-
-
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
         runner.setProperty(AttributeRollingWindow.SUB_WINDOW_LENGTH, "500 ms");
@@ -188,10 +201,48 @@ public class AttributeRollingWindowIT {
             flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(Double.valueOf(i)));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_VARIANCE_KEY, "0.0");
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_STDDEV_KEY, "0.0");
 
             Thread.sleep(10L);
         }
+    }
 
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    public void testVerifyVarianceAndStandardDeviation() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "10 sec");
+
+        MockFlowFile flowFile;
+
+        final Map<String, String> attributes = new HashMap<>();
+        final Variance variance = new Variance();
+        double sum = 0.0D;
+        for (int i = 1; i < 61; i++) {
+            attributes.put("value", String.valueOf(i));
+            runner.enqueue(new byte[]{}, attributes);
+            runner.run();
+
+            flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+            runner.clearTransferState();
+            sum += i;
+            double mean = sum / i;
+            variance.increment(i);
+
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(sum));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
+            assertTrue(Precision.equals(mean, Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_MEAN_KEY)), EPSILON));
+            try {
+                assertTrue(Precision.equals(variance.getResult(), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)), EPSILON));
+            } catch (AssertionFailedError ae) {
+                System.err.println("Error at " + i + ": " + variance.getResult() + " != " + Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)));
+            }
+            assertTrue(Precision.equals(Math.sqrt(variance.getResult()), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_STDDEV_KEY)), EPSILON));
+            Thread.sleep(10L);
+        }
     }
 
     @EnabledIfSystemProperty(named = "nifi.test.unstable",
