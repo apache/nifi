@@ -23,6 +23,7 @@ import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+import com.codahale.metrics.jvm.BufferPoolMetricSet;
 import org.apache.nifi.processor.DataUnit;
 
 import java.io.OutputStream;
@@ -34,6 +35,7 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.lang.management.ManagementFactory;
 
 public class JmxJvmMetrics implements JvmMetrics {
 
@@ -42,6 +44,7 @@ public class JmxJvmMetrics implements JvmMetrics {
     public static final String MEMORY_POOLS = REGISTRY_METRICSET_MEMORY + ".pools";
     static final String REGISTRY_METRICSET_THREADS = "threads";
     static final String REGISTRY_METRICSET_GARBAGE_COLLECTORS = "garbage-collectors";
+    static final String REGISTRY_METRICSET_BUFFER_POOL = "buffer-pool";
     static final String JVM_ATTRIBUTES_NAME = REGISTRY_METRICSET_JVM_ATTRIBUTES + ".name";
     static final String JVM_ATTRIBUTES_UPTIME = REGISTRY_METRICSET_JVM_ATTRIBUTES + ".uptime";
     static final String JVM_ATTRIBUTES_VENDOR = REGISTRY_METRICSET_JVM_ATTRIBUTES + ".vendor";
@@ -54,6 +57,10 @@ public class JmxJvmMetrics implements JvmMetrics {
     static final String MEMORY_HEAP_MAX = REGISTRY_METRICSET_MEMORY + ".heap.max";
     static final String MEMORY_HEAP_COMMITTED = REGISTRY_METRICSET_MEMORY + ".heap.committed";
     static final String MEMORY_HEAP_USAGE = REGISTRY_METRICSET_MEMORY + ".heap.usage";
+    static final String MEMORY_NON_HEAP_INIT = REGISTRY_METRICSET_MEMORY + ".non-heap.init";
+    static final String MEMORY_NON_HEAP_USED = REGISTRY_METRICSET_MEMORY + ".non-heap.used";
+    static final String MEMORY_NON_HEAP_MAX = REGISTRY_METRICSET_MEMORY + ".non-heap.max";
+    static final String MEMORY_NON_HEAP_COMMITTED = REGISTRY_METRICSET_MEMORY + ".non-heap.committed";
     static final String MEMORY_NON_HEAP_USAGE = REGISTRY_METRICSET_MEMORY + ".non-heap.usage";
     static final String THREADS_COUNT = REGISTRY_METRICSET_THREADS + ".count";
     static final String THREADS_DAEMON_COUNT = REGISTRY_METRICSET_THREADS + ".daemon.count";
@@ -73,7 +80,7 @@ public class JmxJvmMetrics implements JvmMetrics {
             metricRegistry.get().register(REGISTRY_METRICSET_THREADS, new ThreadStatesGaugeSet());
             metricRegistry.get().register(REGISTRY_METRICSET_GARBAGE_COLLECTORS, new GarbageCollectorMetricSet());
             metricRegistry.get().register(OS_FILEDESCRIPTOR_USAGE, new FileDescriptorRatioGauge());
-
+            metricRegistry.get().register(REGISTRY_METRICSET_BUFFER_POOL, new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer()));
         }
         return new JmxJvmMetrics();
     }
@@ -144,6 +151,26 @@ public class JmxJvmMetrics implements JvmMetrics {
     }
 
     @Override
+    public double nonHeapInit(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_INIT), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapUsed(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_USED), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapMax(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_MAX), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapCommitted(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_COMMITTED), DataUnit.B);
+    }
+
+    @Override
     public double nonHeapUsage() {
         double usage = (Double) getMetric(MEMORY_NON_HEAP_USAGE);
         return usage < 0 ? -1.0 : usage;
@@ -152,12 +179,77 @@ public class JmxJvmMetrics implements JvmMetrics {
     @Override
     public Map<String, Double> memoryPoolUsage() {
         Set<String> poolNames = getMetricNames(MEMORY_POOLS);
-        Map<String, Double> memoryPoolUsage = new HashMap<>();
+        Map<String, Double> stats = new HashMap<>();
         for (String poolName : poolNames) {
-            memoryPoolUsage.put(poolName, (Double) getMetric(MEMORY_POOLS + "." + poolName + ".usage"));
+            stats.put(poolName, (Double) getMetric(MEMORY_POOLS + "." + poolName + ".usage"));
         }
-        return Collections.unmodifiableMap(memoryPoolUsage);
+        return Collections.unmodifiableMap(stats);
     }
+
+
+    @Override
+    public Map<String, Double> memoryPoolInit(DataUnit dataUnit) {
+        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        Map<String, Double> stats = new HashMap<>();
+        for (String poolName : poolNames) {
+            double stat = (dataUnit == null ? DataUnit.B : dataUnit).convert( (Long) getMetric(MEMORY_POOLS + "." + poolName + ".init"), DataUnit.B);
+            String sanitizedName = poolName.replace("'", "");
+            stats.put(sanitizedName, stat);
+        }
+        return Collections.unmodifiableMap(stats);
+    }
+    @Override
+    public Map<String, Double> memoryPoolUsed(DataUnit dataUnit) {
+        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        Map<String, Double> stats = new HashMap<>();
+        for (String poolName : poolNames) {
+            double stat = (dataUnit == null ? DataUnit.B : dataUnit).convert( (Long) getMetric(MEMORY_POOLS + "." + poolName + ".used"), DataUnit.B);
+            String sanitizedName = poolName.replace("'", "");
+            stats.put(sanitizedName, stat);
+        }
+        return Collections.unmodifiableMap(stats);
+    }
+
+    @Override
+    public Map<String, Double> memoryPoolCommitted(DataUnit dataUnit) {
+        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        Map<String, Double> stats = new HashMap<>();
+        for (String poolName : poolNames) {
+            double stat = (dataUnit == null ? DataUnit.B : dataUnit).convert( (Long) getMetric(MEMORY_POOLS + "." + poolName + ".committed"), DataUnit.B);
+            String sanitizedName = poolName.replace("'", "");
+            stats.put(sanitizedName, stat);
+        }
+        return Collections.unmodifiableMap(stats);
+    }
+
+    @Override
+    public Map<String, Double> memoryPoolMax(DataUnit dataUnit) {
+        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        Map<String, Double> stats = new HashMap<>();
+        for (String poolName : poolNames) {
+            double stat = (dataUnit == null ? DataUnit.B : dataUnit).convert( (Long) getMetric(MEMORY_POOLS + "." + poolName + ".max"), DataUnit.B);
+            String sanitizedName = poolName.replace("'", "");
+            stats.put(sanitizedName, stat);
+        }
+        return Collections.unmodifiableMap(stats);
+    }
+
+    @Override
+    public Map<String, Double> memoryPoolMemoryUsedAfterGC(DataUnit dataUnit) {
+        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        Map<String, Double> stats = new HashMap<>();
+        for (String poolName : poolNames) {
+            String metricName = MEMORY_POOLS + "." + poolName + ".used-after-gc";
+            double usedAfterGC = -1;
+            if (!getMetricNames(metricName).isEmpty()) {
+                usedAfterGC = (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(metricName), DataUnit.B);
+            }
+            String sanitizedName = poolName.replace("'", "");
+            stats.put(sanitizedName, usedAfterGC);
+        }
+        return Collections.unmodifiableMap(stats);
+    }
+
 
     @Override
     public double fileDescriptorUsage() {
@@ -224,6 +316,15 @@ public class JmxJvmMetrics implements JvmMetrics {
 
     @Override
     public Map<String, BufferPoolStats> getBufferPoolStats() {
-        throw new UnsupportedOperationException("This operation has not yet been implemented");
+        final String[] names = {"count", "used", "capacity"};
+        final String[] pools = {"direct", "mapped"};
+        HashMap<String, BufferPoolStats> bufferStats = new HashMap<>();
+        for(String pool: pools) {
+                long count = (Long) getMetric(REGISTRY_METRICSET_BUFFER_POOL + "." + pool + ".count");
+                long used = (Long) getMetric(REGISTRY_METRICSET_BUFFER_POOL + "." + pool + ".used");
+                long capacity = (Long) getMetric(REGISTRY_METRICSET_BUFFER_POOL + "." + pool + ".capacity");
+                bufferStats.put(pool, new BufferPoolStats(count, used, capacity));
+        }
+        return bufferStats;
     }
 }
