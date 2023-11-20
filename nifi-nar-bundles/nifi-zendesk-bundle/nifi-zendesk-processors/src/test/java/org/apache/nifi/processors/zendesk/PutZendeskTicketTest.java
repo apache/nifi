@@ -48,6 +48,7 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PR
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_SUCCESS;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.ZENDESK_RECORD_READER_NAME;
@@ -317,6 +318,38 @@ public class PutZendeskTicketTest {
 
         // then
         testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+    }
+
+    @Test
+    public void testOnTriggerWithZeroRecord() throws InitializationException {
+        MockRecordParser reader = new MockRecordParser();
+
+        testRunner.addControllerService("mock-reader-factory", reader);
+        testRunner.enableControllerService(reader);
+        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+
+        // when
+        testRunner.enqueue(new byte[0]);
+        testRunner.run();
+
+        // then
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        assertEquals("0", flowFile.getAttribute(RECORD_COUNT_ATTRIBUTE_NAME));
+    }
+
+    @Test
+    public void testOnTriggerWithEmptyFlowFileWithoutRecordReader() {
+        MockFlowFile flowFile = new MockFlowFile(1L);
+        flowFile.setData("".getBytes());
+
+        // when
+        testRunner.enqueue(flowFile);
+        testRunner.run();
+
+        // then
+        testRunner.assertTransferCount(REL_FAILURE, 1);
     }
 
     class TestPutZendeskTicket extends PutZendeskTicket {

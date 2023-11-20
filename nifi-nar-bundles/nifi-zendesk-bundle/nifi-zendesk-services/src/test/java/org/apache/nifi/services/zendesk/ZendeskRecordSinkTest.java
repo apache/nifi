@@ -26,7 +26,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -73,7 +72,6 @@ public class ZendeskRecordSinkTest {
 
     private MockWebServer server;
     private TestRunner testRunner;
-    private MockRecordWriter writerFactory;
     private RecordSet recordSet;
     private TestZendeskRecordSink sinkZendeskTicket;
 
@@ -96,10 +94,6 @@ public class ZendeskRecordSinkTest {
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_USER_NAME, "default-zendesk-user-name");
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_AUTHENTICATION_TYPE_NAME, ZendeskAuthenticationType.PASSWORD.getValue());
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_AUTHENTICATION_CREDENTIAL_NAME, "default-zendesk-password");
-
-        writerFactory = new MockRecordWriter();
-        testRunner.addControllerService("writer", writerFactory);
-        testRunner.setProperty(sinkZendeskTicket, ZendeskRecordSink.RECORD_WRITER_FACTORY, "writer");
     }
 
     @AfterEach
@@ -173,7 +167,6 @@ public class ZendeskRecordSinkTest {
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_TYPE_NAME, "@{/type}");
 
-        testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
@@ -209,7 +202,6 @@ public class ZendeskRecordSinkTest {
     public void testSendMessageWithFixPropertiesAndMultipleTickets() throws IOException, InterruptedException {
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
-        testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
@@ -250,7 +242,6 @@ public class ZendeskRecordSinkTest {
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dynamicPropertyTarget1", "@{/dynamicPropertySource1}");
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dp2/dp3/dynamicPropertyTarget2", "@{/dynamicPropertySource2}");
 
-        testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
@@ -293,7 +284,6 @@ public class ZendeskRecordSinkTest {
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dynamicPropertyTarget1", "Constant 1");
         testRunner.setProperty(sinkZendeskTicket, "/dp1/dp2/dp3/dynamicPropertyTarget2", "Constant 2");
 
-        testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
@@ -333,7 +323,6 @@ public class ZendeskRecordSinkTest {
     @Test
     public void testRecordCache() throws IOException, InterruptedException {
         testRunner.setProperty(sinkZendeskTicket, ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
-        testRunner.enableControllerService(writerFactory);
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 

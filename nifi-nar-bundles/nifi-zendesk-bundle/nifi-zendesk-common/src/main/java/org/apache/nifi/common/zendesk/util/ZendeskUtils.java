@@ -18,7 +18,6 @@ package org.apache.nifi.common.zendesk.util;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -32,6 +31,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,8 +51,7 @@ public final class ZendeskUtils {
      */
     public static String getResponseBody(HttpResponseEntity response) {
         try (InputStream responseBodyStream = response.body()) {
-            JsonNode jsonNode = OBJECT_MAPPER.readTree(responseBodyStream);
-            return jsonNode.toString();
+            return new String(responseBodyStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Reading response body has failed", e);
         }

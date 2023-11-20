@@ -30,7 +30,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -180,11 +179,19 @@ public class PutZendeskTicket extends AbstractZendesk {
 
         if (readerFactory == null) {
             try (final InputStream inputStream = session.read(flowFile)) {
+                if (inputStream.available() == 0) {
+                    inputStream.close();
+                    getLogger().error("The incoming FlowFile's content is empty");
+                    session.transfer(session.penalize(flowFile), REL_FAILURE);
+                    return;
+                }
                 final HttpUriBuilder uriBuilder = uriBuilder(ZENDESK_CREATE_TICKET_RESOURCE);
                 uri = uriBuilder.build();
                 response = zendeskClient.performPostRequest(uri, inputStream);
             } catch (IOException e) {
-                throw new ProcessException("Could not read incoming FlowFile", e);
+                getLogger().error("Could not read the incoming FlowFile", e);
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
             }
         } else {
             final String commentBody = context.getProperty(TICKET_COMMENT_BODY).evaluateAttributeExpressions().getValue();
@@ -218,7 +225,9 @@ public class PutZendeskTicket extends AbstractZendesk {
             }
 
             if (zendeskTickets.isEmpty()) {
-                getLogger().info("No records found in incoming FlowFile");
+                getLogger().info("No records found in the incoming FlowFile");
+                flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTRIBUTE_NAME, "0");
+                session.transfer(flowFile, REL_SUCCESS);
                 return;
             }
 

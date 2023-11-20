@@ -32,12 +32,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -46,7 +42,6 @@ import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -58,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static java.lang.String.format;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -83,7 +77,6 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
 
     private final ObjectMapper mapper = new ObjectMapper();
     private Map<String, String> dynamicProperties;
-    private volatile RecordSetWriterFactory writerFactory;
     private Cache<String, ObjectNode> recordCache;
     private ZendeskClient zendeskClient;
 
@@ -111,7 +104,6 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            RecordSinkService.RECORD_WRITER_FACTORY,
             WEB_CLIENT_SERVICE_PROVIDER,
             ZENDESK_SUBDOMAIN,
             ZENDESK_USER,
@@ -143,41 +135,26 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
 
     @Override
     public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
-        final WriteResult writeResult;
         List<ObjectNode> zendeskTickets = new ArrayList<>();
 
-        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), out, attributes)) {
+        Record record;
+        while ((record = recordSet.next()) != null) {
+            ObjectNode baseTicketNode = mapper.createObjectNode();
 
-                writer.beginRecordSet();
-                Record record;
-                while ((record = recordSet.next()) != null) {
-                    ObjectNode baseTicketNode = mapper.createObjectNode();
+            addField("/comment/body", commentBody, baseTicketNode, record);
+            addField("/subject", subject, baseTicketNode, record);
+            addField("/priority", priority, baseTicketNode, record);
+            addField("/type", type, baseTicketNode, record);
 
-                    addField("/comment/body", commentBody, baseTicketNode, record);
-                    addField("/subject", subject, baseTicketNode, record);
-                    addField("/priority", priority, baseTicketNode, record);
-                    addField("/type", type, baseTicketNode, record);
-
-                    for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
-                        addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
-                    }
-
-                    ObjectNode ticketNode = recordCache.getIfPresent(baseTicketNode.toString());
-                    if (ticketNode == null) {
-                        recordCache.put(baseTicketNode.toString(), baseTicketNode);
-                        zendeskTickets.add(baseTicketNode);
-                        writer.write(record);
-                        writer.flush();
-                    }
-                }
-                writeResult = writer.finishRecordSet();
-                writer.flush();
+            for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
+                addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
             }
-        } catch (SchemaNotFoundException e) {
-            final String errorMessage = format("RecordSetWriter could not be created because the schema was not found. The schema name for the RecordSet to write is %s",
-                    recordSet.getSchema().getSchemaName());
-            throw new ProcessException(errorMessage, e);
+
+            ObjectNode ticketNode = recordCache.getIfPresent(baseTicketNode.toString());
+            if (ticketNode == null) {
+                recordCache.put(baseTicketNode.toString(), baseTicketNode);
+                zendeskTickets.add(baseTicketNode);
+            }
         }
 
         if (!zendeskTickets.isEmpty()) {
@@ -194,12 +171,11 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             }
         }
 
-        return writeResult;
+        return WriteResult.of(zendeskTickets.size(), Collections.emptyMap());
     }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        writerFactory = context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         dynamicProperties = getDynamicProperties(context, context.getProperties(), Collections.emptyMap());
 
         commentBody = context.getProperty(ZENDESK_TICKET_COMMENT_BODY).evaluateAttributeExpressions().getValue();

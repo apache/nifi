@@ -42,16 +42,16 @@ public final class RecordPathPropertyUtil {
     /**
      * Resolves the property value to be handled as a record path or a constant value.
      *
-     * @param value  property value to be resolved
-     * @param record record to receive the value from if the field value is a record path
+     * @param propertyValue  property value to be resolved
+     * @param record record to resolve the value from if the property value is a record path
      */
-    public static String resolvePropertyValue(String value, Record record) {
-        if (value != null && !value.isBlank()) {
-            final Matcher matcher = RECORD_PATH_PATTERN.matcher(value);
+    public static String resolvePropertyValue(String propertyValue, Record record) {
+        if (propertyValue != null && !propertyValue.isBlank()) {
+            final Matcher matcher = RECORD_PATH_PATTERN.matcher(propertyValue);
             if (matcher.matches()) {
                 return resolveRecordState(matcher.group(1), record);
             } else {
-                return value;
+                return propertyValue;
             }
         }
 
