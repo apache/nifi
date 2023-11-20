@@ -17,8 +17,6 @@
 package org.apache.nifi.web.filter;
 
 import org.apache.nifi.web.util.RequestUriBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
