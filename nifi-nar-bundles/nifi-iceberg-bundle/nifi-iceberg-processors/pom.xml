@@ -132,7 +132,7 @@
                     <artifactId>bcprov-jdk15on</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.apache.groovy</groupId>
+                    <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>

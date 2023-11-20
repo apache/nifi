@@ -198,6 +198,11 @@
             <version>${derby.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>${derby.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-server-extensions</artifactId>
             <version>${hive.version}</version>

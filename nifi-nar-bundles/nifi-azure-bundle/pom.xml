@@ -27,8 +27,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure.sdk.bom.version>1.2.17</azure.sdk.bom.version>
-        <msal4j.version>1.13.10</msal4j.version>
+        <azure.sdk.bom.version>1.2.18</azure.sdk.bom.version>
+        <msal4j.version>1.14.0</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
 
@@ -67,6 +67,12 @@
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>9.33</version>
+            </dependency>
+            <!-- Override Reactor Netty client 1.0.34 from Azure Identity -->
+            <dependency>
+                <groupId>io.projectreactor.netty</groupId>
+                <artifactId>reactor-netty-http</artifactId>
+                <version>1.0.39</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

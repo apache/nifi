@@ -439,4 +439,9 @@
         <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
         <vulnerabilityName>possible XSS</vulnerabilityName>
     </suppress>
+    <suppress>
+        <notes>Picocli misidentified as LINE library from Android so CVE-2015-0897 does not apply</notes>
+        <packageUrl regex="true">^pkg:maven/info\.picocli/picocli@.*$</packageUrl>
+        <cve>CVE-2015-0897</cve>
+    </suppress>
 </suppressions>
