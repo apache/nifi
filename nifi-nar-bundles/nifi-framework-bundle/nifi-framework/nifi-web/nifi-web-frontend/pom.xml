@@ -139,6 +139,22 @@
 
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/main/nifi/coverage/**/*</exclude>
+                        <exclude>src/main/nifi/node_modules/**/*</exclude>
+                        <exclude>src/main/nifi/src/assets/fonts/**/*</exclude>
+                        <exclude>src/main/nifi/.editorconfig</exclude>
+                        <exclude>src/main/nifi/README.md</exclude>
+                        <exclude>src/main/nifi/proxy.config.mjs</exclude>
+                        <exclude>src/main/nifi/.prettierrc</exclude>
+                        <exclude>src/main/nifi/src/.eslintrc</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
