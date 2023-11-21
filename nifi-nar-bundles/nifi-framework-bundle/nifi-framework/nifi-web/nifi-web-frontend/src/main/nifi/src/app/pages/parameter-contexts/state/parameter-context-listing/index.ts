@@ -15,7 +15,13 @@
  * limitations under the License.
  */
 
-import { ParameterContextReferenceEntity, ParameterEntity, Permissions, Revision } from '../../../../state/shared';
+import {
+    AffectedComponentEntity,
+    ParameterContextReferenceEntity,
+    ParameterEntity,
+    Permissions,
+    Revision
+} from '../../../../state/shared';
 
 export const parameterContextListingFeatureKey = 'parameterContextListing';
 
@@ -65,7 +71,7 @@ export interface ParameterContextUpdateRequest {
     complete: boolean;
     lastUpdated: string;
     percentComponent: number;
-    referencingComponents: any[];
+    referencingComponents: AffectedComponentEntity[];
     requestId: string;
     state: string;
     updateSteps: any[];

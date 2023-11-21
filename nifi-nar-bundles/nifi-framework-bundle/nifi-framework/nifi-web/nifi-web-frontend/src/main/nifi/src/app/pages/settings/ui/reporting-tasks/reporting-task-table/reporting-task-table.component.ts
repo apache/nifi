@@ -35,13 +35,13 @@ export class ReportingTaskTable implements AfterViewInit {
         this.dataSource = new MatTableDataSource<ReportingTaskEntity>(reportingTaskEntities);
         this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (data: ReportingTaskEntity, displayColumn: string) => {
-            if (displayColumn == 'name') {
+            if (displayColumn === 'name') {
                 return this.formatType(data);
-            } else if (displayColumn == 'type') {
+            } else if (displayColumn === 'type') {
                 return this.formatType(data);
-            } else if (displayColumn == 'bundle') {
+            } else if (displayColumn === 'bundle') {
                 return this.formatBundle(data);
-            } else if (displayColumn == 'state') {
+            } else if (displayColumn === 'state') {
                 return this.formatState(data);
             }
             return '';

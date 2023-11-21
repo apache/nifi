@@ -33,7 +33,7 @@ export class Storage {
      * @returns {boolean}
      */
     private checkExpiration(entry: any): boolean {
-        if (entry.expires == null) {
+        if (entry.expires) {
             // get the expiration
             const expires: Date = new Date(entry.expires);
             const now: Date = new Date();
@@ -84,8 +84,8 @@ export class Storage {
 
         // create the entry
         const entry = {
-            expires: expires,
-            item: item
+            expires,
+            item
         };
 
         // store the item

@@ -40,7 +40,14 @@
                 </div>
                 <div class="flex-1 flex flex-col">
                     <div>Referencing Components</div>
-                    <div class="flex-1"></div>
+                    <div class="relative h-full border">
+                        <div class="absolute inset-0 overflow-y-auto p-1">
+                            <parameter-references
+                                [parameterReferences]="
+                                    requestEntity.request.referencingComponents
+                                "></parameter-references>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

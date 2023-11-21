@@ -24,8 +24,8 @@ import { BehaviorSubject, delay, Observable } from 'rxjs';
 export class LoadingService {
     status$: Observable<boolean>;
 
-    loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    requests: Map<string, boolean> = new Map<string, boolean>();
+    private loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+    private requests: Map<string, boolean> = new Map<string, boolean>();
 
     constructor() {
         this.status$ = this.loading.asObservable().pipe(delay(0));

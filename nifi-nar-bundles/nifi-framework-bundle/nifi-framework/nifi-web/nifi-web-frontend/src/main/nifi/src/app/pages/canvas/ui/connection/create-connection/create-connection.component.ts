@@ -51,7 +51,7 @@ import { SourceFunnel } from '../source/source-funnel/source-funnel.component';
 import { DestinationProcessor } from '../destination/destination-processor/destination-processor.component';
 import { DestinationOutputPort } from '../destination/destination-output-port/destination-output-port.component';
 import { SourceInputPort } from '../source/source-input-port/source-input-port.component';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { SourceProcessGroup } from '../source/source-process-group/source-process-group.component';
 import { DestinationProcessGroup } from '../destination/destination-process-group/destination-process-group.component';
 import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
@@ -96,13 +96,25 @@ import { DestinationRemoteProcessGroup } from '../destination/destination-remote
 export class CreateConnection {
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.source.componentType == ComponentType.ProcessGroup) {
-            this.childOutputPorts$ = getChildOutputPorts(this.source.id);
+            this.childOutputPorts$ = getChildOutputPorts(this.source.id).pipe(
+                tap((outputPorts) => {
+                    if (outputPorts && outputPorts.length === 1) {
+                        this.createConnectionForm.get('source')?.setValue(outputPorts[0].id);
+                    }
+                })
+            );
         }
     }
 
     @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<any>) {
         if (this.destination.componentType == ComponentType.ProcessGroup) {
-            this.childInputPorts$ = getChildInputPorts(this.destination.id);
+            this.childInputPorts$ = getChildInputPorts(this.destination.id).pipe(
+                tap((inputPorts) => {
+                    if (inputPorts && inputPorts.length === 1) {
+                        this.createConnectionForm.get('destination')?.setValue(inputPorts[0].id);
+                    }
+                })
+            );
         }
     }
 
@@ -149,18 +161,34 @@ export class CreateConnection {
             this.createConnectionForm.addControl('relationships', new FormControl([], Validators.required));
         }
 
+        let sourceValue: string | null = null;
+        if (this.source.componentType == ComponentType.RemoteProcessGroup) {
+            const outputPorts: any[] = this.source.entity.component.contents.outputPorts;
+            if (outputPorts && outputPorts.length === 1) {
+                sourceValue = outputPorts[0].id;
+            }
+        }
+
         if (
             this.source.componentType == ComponentType.ProcessGroup ||
             this.source.componentType == ComponentType.RemoteProcessGroup
         ) {
-            this.createConnectionForm.addControl('source', new FormControl(null, Validators.required));
+            this.createConnectionForm.addControl('source', new FormControl(sourceValue, Validators.required));
+        }
+
+        let destinationValue: string | null = null;
+        if (this.destination.componentType == ComponentType.RemoteProcessGroup) {
+            const inputPorts: any[] = this.destination.entity.component.contents.inputPorts;
+            if (inputPorts && inputPorts.length === 1) {
+                destinationValue = inputPorts[0].id;
+            }
         }
 
         if (
             this.destination.componentType == ComponentType.ProcessGroup ||
             this.destination.componentType == ComponentType.RemoteProcessGroup
         ) {
-            this.createConnectionForm.addControl('destination', new FormControl(null, Validators.required));
+            this.createConnectionForm.addControl('destination', new FormControl(destinationValue, Validators.required));
         }
     }
 

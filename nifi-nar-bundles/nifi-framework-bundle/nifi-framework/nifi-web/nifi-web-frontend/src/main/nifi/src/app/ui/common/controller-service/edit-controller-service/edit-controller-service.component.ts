@@ -146,7 +146,7 @@ export class EditControllerService {
             const values: { [key: string]: string | null } = {};
             properties.forEach((property) => (values[property.property] = property.value));
             payload.component.properties = values;
-            payload.component.config.sensitiveDynamicPropertyNames = properties
+            payload.component.sensitiveDynamicPropertyNames = properties
                 .filter((property) => property.descriptor.dynamic && property.descriptor.sensitive)
                 .map((property) => property.descriptor.name);
         }

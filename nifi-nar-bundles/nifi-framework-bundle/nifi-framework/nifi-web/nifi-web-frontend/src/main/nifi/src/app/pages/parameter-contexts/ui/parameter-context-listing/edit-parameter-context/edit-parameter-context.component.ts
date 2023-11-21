@@ -37,6 +37,7 @@ import { ParameterTable } from '../parameter-table/parameter-table.component';
 import { Parameter, ParameterEntity } from '../../../../../state/shared';
 import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
+import { ParameterReferences } from '../parameter-references/parameter-references.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -58,7 +59,8 @@ import { ParameterContextInheritance } from '../parameter-context-inheritance/pa
         NifiSpinnerDirective,
         ParameterTable,
         ProcessGroupReferences,
-        ParameterContextInheritance
+        ParameterContextInheritance,
+        ParameterReferences
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })

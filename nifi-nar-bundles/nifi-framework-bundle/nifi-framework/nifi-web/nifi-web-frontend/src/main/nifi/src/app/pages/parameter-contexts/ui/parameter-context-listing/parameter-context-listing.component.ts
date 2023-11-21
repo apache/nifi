@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ParameterContextEntity, ParameterContextListingState } from '../../state/parameter-context-listing';
 import {
@@ -41,7 +41,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     templateUrl: './parameter-context-listing.component.html',
     styleUrls: ['./parameter-context-listing.component.scss']
 })
-export class ParameterContextListing {
+export class ParameterContextListing implements OnInit {
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);
     selectedParameterContextId$ = this.store.select(selectParameterContextIdFromRoute);
 

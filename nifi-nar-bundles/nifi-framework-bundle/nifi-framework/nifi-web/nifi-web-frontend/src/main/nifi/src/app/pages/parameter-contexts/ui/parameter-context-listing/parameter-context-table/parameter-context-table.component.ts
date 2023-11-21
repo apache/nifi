@@ -32,11 +32,11 @@ export class ParameterContextTable implements AfterViewInit {
         this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (data: ParameterContextEntity, displayColumn: string) => {
             if (this.canRead(data)) {
-                if (displayColumn == 'name') {
+                if (displayColumn === 'name') {
                     return this.formatName(data);
-                } else if (displayColumn == 'type') {
+                } else if (displayColumn === 'type') {
                     return this.formatProvider(data);
-                } else if (displayColumn == 'bundle') {
+                } else if (displayColumn === 'bundle') {
                     return this.formatDescription(data);
                 }
             }
