@@ -145,6 +145,7 @@
             <combo-editor
                 *ngIf="hasAllowableValues(editorItem); else nfEditor"
                 [item]="editorItem"
+                [getParameters]="getParameters"
                 (ok)="savePropertyValue(editorItem, $event)"
                 (cancel)="closeEditor()"></combo-editor>
             <ng-template #nfEditor>

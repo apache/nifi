@@ -19,6 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NfEditor } from './nf-editor.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { PropertyItem } from '../../property-table.component';
 
 describe('NfEditor', () => {
     let component: NfEditor;
@@ -30,10 +31,84 @@ describe('NfEditor', () => {
         });
         fixture = TestBed.createComponent(NfEditor);
         component = fixture.componentInstance;
-        fixture.detectChanges();
     });
 
     it('should create', () => {
+        fixture.detectChanges();
         expect(component).toBeTruthy();
+    });
+
+    it('verify value set', () => {
+        const value: string = 'my-group-id';
+        const item: PropertyItem = {
+            property: 'group.id',
+            value,
+            descriptor: {
+                name: 'group.id',
+                displayName: 'Group ID',
+                description:
+                    "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
+                required: true,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: true,
+                expressionLanguageScope: 'Environment variables defined at JVM level and system properties',
+                dependencies: []
+            },
+            id: 3,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            type: 'required'
+        };
+
+        component.item = item;
+        fixture.detectChanges();
+
+        expect(component.nfEditorForm.get('value')?.value).toEqual(value);
+        expect(component.nfEditorForm.get('value')?.disabled).toBeFalse();
+        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeFalse();
+
+        spyOn(component.ok, 'next');
+        component.okClicked();
+        expect(component.ok.next).toHaveBeenCalledWith(value);
+    });
+
+    it('verify empty value set', () => {
+        const value: string = '';
+        const item: PropertyItem = {
+            property: 'group.id',
+            value,
+            descriptor: {
+                name: 'group.id',
+                displayName: 'Group ID',
+                description:
+                  "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
+                required: true,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: true,
+                expressionLanguageScope: 'Environment variables defined at JVM level and system properties',
+                dependencies: []
+            },
+            id: 3,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            type: 'required'
+        };
+
+        component.item = item;
+        fixture.detectChanges();
+
+        expect(component.nfEditorForm.get('value')?.value).toEqual(value);
+        expect(component.nfEditorForm.get('value')?.disabled).toBeTruthy();
+        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeTruthy();
+
+        spyOn(component.ok, 'next');
+        component.okClicked();
+        expect(component.ok.next).toHaveBeenCalledWith(value);
     });
 });
