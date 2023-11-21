@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard.enrichment;
 
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.queryrecord.RecordDataSource;
@@ -28,6 +29,7 @@ import org.apache.nifi.sql.NiFiTable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class SqlJoinStrategy implements RecordJoinStrategy {
     public static final String ENRICHMENT_TABLE_NAME = "ENRICHMENT";
@@ -35,20 +37,23 @@ public class SqlJoinStrategy implements RecordJoinStrategy {
 
     private final SqlJoinCache cache;
     private final ComponentLog logger;
-    private final String sql;
+    private final PropertyValue sqlPropertyValue;
     private final int defaultPrecision;
     private final int defaultScale;
 
-    public SqlJoinStrategy(final SqlJoinCache cache, final String sql, final ComponentLog logger, final int defaultPrecision, final int defaultScale) {
+    public SqlJoinStrategy(final SqlJoinCache cache, final PropertyValue sqlPropertyValue, final ComponentLog logger, final int defaultPrecision, final int defaultScale) {
         this.cache = cache;
-        this.sql = sql;
+        this.sqlPropertyValue = sqlPropertyValue;
         this.logger = logger;
         this.defaultPrecision = defaultPrecision;
         this.defaultScale = defaultScale;
     }
 
     @Override
-    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final ProcessSession session, final RecordSchema outputSchema) throws SQLException {
+    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final Map<String, String> combinedAttributes,
+                final ProcessSession session, final RecordSchema outputSchema) throws SQLException {
+
+        final String sql = sqlPropertyValue.evaluateAttributeExpressions(combinedAttributes).getValue();
         final SqlJoinCalciteParameters calciteParameters = cache.getCalciteParameters(sql, outputSchema, originalInput, enrichmentInput);
 
         final NiFiTable originalTable = calciteParameters.getDatabase().getTable(ORIGINAL_TABLE_NAME);
