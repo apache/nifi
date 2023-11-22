@@ -36,6 +36,7 @@ export interface NewPropertyDialogResponse {
 }
 
 export interface EditParameterRequest {
+    existingParameters?: string[];
     parameter?: Parameter;
 }
 

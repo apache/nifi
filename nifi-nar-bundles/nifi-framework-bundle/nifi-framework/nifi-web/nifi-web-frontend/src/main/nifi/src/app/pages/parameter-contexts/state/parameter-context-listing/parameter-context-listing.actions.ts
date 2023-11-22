@@ -122,3 +122,8 @@ export const selectParameterContext = createAction(
     '[Parameter Context Listing] Select Parameter Context',
     props<{ request: SelectParameterContextRequest }>()
 );
+
+export const showOkDialog = createAction(
+    '[Parameter Context Listing] Show Ok Dialog',
+    props<{ title: string; message: string }>()
+);

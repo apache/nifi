@@ -18,10 +18,11 @@
 <h2 mat-dialog-title>{{ isNew ? 'Add' : 'Edit' }} Property</h2>
 <form class="edit-parameter-form" [formGroup]="editParameterForm">
     <mat-dialog-content>
-        <div>
+        <div class="mb-2">
             <mat-form-field>
                 <mat-label>Name</mat-label>
                 <input matInput formControlName="name" type="text" />
+                <mat-error *ngIf="name.invalid">{{ getNameErrorMessage() }}</mat-error>
             </mat-form-field>
         </div>
         <div>

@@ -26,6 +26,8 @@ import {
     FormGroup,
     FormsModule,
     ReactiveFormsModule,
+    ValidationErrors,
+    ValidatorFn,
     Validators
 } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,6 +35,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
+import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'edit-parameter-dialog',
@@ -46,7 +49,8 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
         ReactiveFormsModule,
         MatRadioModule,
         MatCheckboxModule,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        NgIf
     ],
     templateUrl: './edit-parameter-dialog.component.html',
     styleUrls: ['./edit-parameter-dialog.component.scss']
@@ -55,6 +59,7 @@ export class EditParameterDialog {
     @Input() saving!: boolean;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
 
+    name: FormControl;
     editParameterForm: FormGroup;
     isNew: boolean;
 
@@ -67,8 +72,11 @@ export class EditParameterDialog {
         if (parameter) {
             this.isNew = false;
 
+            // in edit scenarios the existing parameters shouldn't be enforced since the parameter does exist
+            this.name = new FormControl({ value: parameter.name, disabled: true }, Validators.required);
+
             this.editParameterForm = this.formBuilder.group({
-                name: new FormControl({ value: parameter.name, disabled: true }, Validators.required),
+                name: this.name,
                 value: new FormControl(parameter.value),
                 empty: new FormControl(parameter.value == ''),
                 sensitive: new FormControl({ value: parameter.sensitive, disabled: true }, Validators.required),
@@ -77,14 +85,43 @@ export class EditParameterDialog {
         } else {
             this.isNew = true;
 
+            const validators: any[] = [Validators.required];
+            if (request.existingParameters) {
+                validators.push(this.existingParameterValidator(request.existingParameters));
+            }
+            this.name = new FormControl('', validators);
+
             this.editParameterForm = this.formBuilder.group({
-                name: new FormControl('', Validators.required),
+                name: this.name,
                 value: new FormControl(''),
                 empty: new FormControl(false),
                 sensitive: new FormControl({ value: false, disabled: false }, Validators.required),
                 description: new FormControl('')
             });
         }
+    }
+
+    private existingParameterValidator(existingParameters: string[]): ValidatorFn {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const value = control.value;
+            if (value === '') {
+                return null;
+            }
+            if (existingParameters.includes(value)) {
+                return {
+                    existingParameter: true
+                };
+            }
+            return null;
+        };
+    }
+
+    getNameErrorMessage(): string {
+        if (this.name.hasError('required')) {
+            return 'Property name is required.';
+        }
+
+        return this.name.hasError('existingParameter') ? 'A parameter with this name already exists.' : '';
     }
 
     setEmptyStringChanged(): void {

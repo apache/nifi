@@ -29,6 +29,9 @@ import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-too
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../parameter-references/parameter-references.component';
+import { Store } from '@ngrx/store';
+import { ParameterContextListingState } from '../../../state/parameter-context-listing';
+import { showOkDialog } from '../../../../canvas/state/flow/flow.actions';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -64,7 +67,7 @@ export interface ParameterItem {
     ]
 })
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
-    @Input() createNewParameter!: () => Observable<Parameter>;
+    @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
 
     protected readonly TextTip = TextTip;
@@ -79,6 +82,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     onChange!: (parameters: ParameterEntity[]) => void;
 
     constructor(
+        private store: Store<ParameterContextListingState>,
         private changeDetector: ChangeDetectorRef,
         private nifiCommon: NiFiCommon
     ) {}
@@ -135,25 +139,56 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     newParameterClicked(): void {
-        this.createNewParameter()
+        // get the existing parameters to provide to the new parameter dialog but
+        // exclude any items that are currently marked for deletion which can be
+        // unmarked for deletion if the user chooses to enter the same name
+        const existingParameters: string[] = this.dataSource.data
+            .filter((item) => !item.deleted)
+            .map((item) => item.entity.parameter.name);
+
+        this.createNewParameter(existingParameters)
             .pipe(take(1))
             .subscribe((parameter) => {
                 const currentParameterItems: ParameterItem[] = this.dataSource.data;
 
-                const item: ParameterItem = {
-                    deleted: false,
-                    added: true,
-                    dirty: true,
-                    entity: {
-                        canWrite: true,
-                        parameter: {
-                            ...parameter
-                        }
-                    }
-                };
+                // identify if a parameter with the same name already exists (must have been marked
+                // for deletion already)
+                const item: ParameterItem | undefined = currentParameterItems.find(
+                    (item) => item.entity.parameter.name === parameter.name
+                );
 
-                const parameterItems: ParameterItem[] = [...currentParameterItems, item];
-                this.setPropertyItems(parameterItems);
+                if (item) {
+                    if (item.entity.parameter.sensitive !== parameter.sensitive) {
+                        this.store.dispatch(
+                            showOkDialog({
+                                title: 'Parameter Exists',
+                                message:
+                                    'A parameter with this name has been marked for deletion. Please apply this change to delete this parameter from the parameter context before recreating it with a different sensitivity.'
+                            })
+                        );
+                        return;
+                    }
+
+                    // update the existing item
+                    item.deleted = false;
+                    item.entity.parameter = {
+                        ...parameter
+                    };
+                } else {
+                    const newItem: ParameterItem = {
+                        deleted: false,
+                        added: true,
+                        dirty: true,
+                        entity: {
+                            canWrite: true,
+                            parameter: {
+                                ...parameter
+                            }
+                        }
+                    };
+                    const parameterItems: ParameterItem[] = [...currentParameterItems, newItem];
+                    this.setPropertyItems(parameterItems);
+                }
 
                 this.handleChanged();
             });
@@ -265,7 +300,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         this.onChange(this.serializeParameters());
     }
 
-    private serializeParameters(): ParameterEntity[] {
+    private serializeParameters(): any[] {
         const parameters: ParameterItem[] = this.dataSource.data;
 
         // only include dirty items
@@ -273,14 +308,22 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             .filter((item) => item.dirty)
             .filter((item) => !(item.added && item.deleted))
             .map((item) => {
-                return {
-                    parameter: {
-                        name: item.entity.parameter.name,
-                        sensitive: item.entity.parameter.sensitive,
-                        description: item.entity.parameter.description,
-                        value: item.entity.parameter.value
-                    }
-                };
+                if (item.deleted) {
+                    return {
+                        parameter: {
+                            name: item.entity.parameter.name
+                        }
+                    };
+                } else {
+                    return {
+                        parameter: {
+                            name: item.entity.parameter.name,
+                            sensitive: item.entity.parameter.sensitive,
+                            description: item.entity.parameter.description,
+                            value: item.entity.parameter.value
+                        }
+                    };
+                }
             });
     }
 

@@ -65,7 +65,7 @@ import { ParameterReferences } from '../parameter-references/parameter-reference
     styleUrls: ['./edit-parameter-context.component.scss']
 })
 export class EditParameterContext {
-    @Input() createNewParameter!: () => Observable<Parameter>;
+    @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
     @Input() availableParameterContexts$!: Observable<ParameterContextEntity[]>;

@@ -44,6 +44,7 @@ import { selectParameterContexts, selectSaving, selectUpdateRequest } from './pa
 import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { ParameterContextUpdateRequest } from './index';
+import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -94,8 +95,10 @@ export class ParameterContextListingEffects {
                         this.store.select(selectParameterContexts);
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    dialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {
-                        const dialogRequest: EditParameterRequest = {};
+                    dialogReference.componentInstance.createNewParameter = (
+                        existingParameters: string[]
+                    ): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
                             data: dialogRequest,
                             panelClass: 'medium-dialog'
@@ -474,6 +477,23 @@ export class ParameterContextListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/parameter-contexts', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    showOkDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterContextListingActions.showOkDialog),
+                tap((request) => {
+                    this.dialog.open(OkDialog, {
+                        data: {
+                            title: request.title,
+                            message: request.message
+                        },
+                        panelClass: 'medium-dialog'
+                    });
                 })
             ),
         { dispatch: false }
