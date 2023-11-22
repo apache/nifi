@@ -37,7 +37,7 @@
                         >
                     </ng-container>
                     <ng-template #noDescription>
-                        <mat-option [value]="item.value">{{ item.text }}</mat-option>
+                        <mat-option [value]="item.value" [disabled]="item.disabled == true">{{ item.text }}</mat-option>
                     </ng-template>
                 </ng-container>
             </mat-select>
