@@ -227,8 +227,8 @@ export class ParameterContextListingEffects {
                         );
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    editDialogReference.componentInstance.createNewParameter = (): Observable<Parameter> => {
-                        const dialogRequest: EditParameterRequest = {};
+                    editDialogReference.componentInstance.createNewParameter = (existingParameters: string[]): Observable<Parameter> => {
+                        const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
                             data: dialogRequest,
                             panelClass: 'medium-dialog'

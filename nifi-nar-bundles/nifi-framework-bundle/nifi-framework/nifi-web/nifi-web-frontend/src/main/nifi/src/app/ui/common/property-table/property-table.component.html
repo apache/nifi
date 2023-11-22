@@ -112,8 +112,8 @@
                         <!-- TODO - need to prevent navigation if outstanding changes -->
                         <div
                             class="pointer fa fa-long-arrow-right"
-                            *ngIf="canGoTo(item)"
-                            [routerLink]="getServiceLink(item.value) | async"
+                            *ngIf="item.serviceLink"
+                            [routerLink]="item.serviceLink"
                             mat-dialog-close
                             title="Go to"></div>
                         <div

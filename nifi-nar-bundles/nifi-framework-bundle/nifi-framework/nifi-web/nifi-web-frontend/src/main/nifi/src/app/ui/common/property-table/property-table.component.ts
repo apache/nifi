@@ -66,6 +66,7 @@ export interface PropertyItem extends Property {
     dirty: boolean;
     added: boolean;
     type: 'required' | 'userDefined' | 'optional';
+    serviceLink?: string[];
 }
 
 @Component({
@@ -263,12 +264,24 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                     : 'optional'
             };
 
+            this.populateServiceLink(item);
+
             // store the property item in a map for an efficient lookup later
             this.itemLookup.set(property.property, item);
             return item;
         });
 
         this.setPropertyItems(propertyItems);
+    }
+
+    private populateServiceLink(item: PropertyItem): void {
+        if (this.canGoTo(item) && item.value) {
+            this.getServiceLink(item.value).pipe(
+              take(1)
+            ).subscribe((serviceLink: string[]) => {
+                item.serviceLink = serviceLink;
+            });
+        }
     }
 
     private setPropertyItems(propertyItems: PropertyItem[]): void {
@@ -297,6 +310,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                         ? 'userDefined'
                         : 'optional'
                 };
+
+                this.populateServiceLink(item);
 
                 this.itemLookup.set(property.property, item);
 
@@ -412,6 +427,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         if (item.value != newValue) {
             item.value = newValue;
             item.dirty = true;
+
+            this.populateServiceLink(item);
 
             this.handleChanged();
         }
