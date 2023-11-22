@@ -31,13 +31,11 @@ Apache NiFi MiNiFi is an Apache NiFi project, designed to collect data at its so
 
 # Before You Begin
 MiNiFi Java Agent is supported on the following operating systems:
-* Red Hat Enterprise Linux / CentOS 7 (64-bit)
-* Red Hat Enterprise Linux / CentOS 8 (64-bit)
-* Ubuntu Bionic (18.04) (64-bit)
-* Ubuntu Focal Fossa (20.04) (64-bit)
-* Debian 9
-* SUSE Linux Enterprise Server (SLES) 12 SP5 (64-bit)
-* Windows 10, Server 2016 and Server 2019
+* Linux
+* Unix
+* Windows
+* macOS
+
 
 You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/minifi/download.html).
 
