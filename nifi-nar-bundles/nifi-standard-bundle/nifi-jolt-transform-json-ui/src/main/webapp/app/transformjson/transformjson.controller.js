@@ -408,8 +408,8 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
         $scope.processorId = params.id;
         $scope.clientId = params.clientId;
         $scope.revisionId = params.revision;
-        $scope.disconnectedNodeAcknowledged = eval(params.disconnectedNodeAcknowledged);
-        $scope.editable = eval(params.editable);
+        $scope.disconnectedNodeAcknowledged = params.disconnectedNodeAcknowledged === 'true';
+        $scope.editable = params.editable === 'true';
 
         var jsonSpec = $scope.getSpec($scope.transform,$scope.jsonSpec);
         if(jsonSpec != null && jsonSpec != ""){
