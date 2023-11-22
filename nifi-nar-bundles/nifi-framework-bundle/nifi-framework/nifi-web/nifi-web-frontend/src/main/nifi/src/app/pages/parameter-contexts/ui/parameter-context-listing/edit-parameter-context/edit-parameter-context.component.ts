@@ -137,7 +137,11 @@ export class EditParameterContext {
             // @ts-ignore
             const pc: ParameterContextEntity = this.request.parameterContext;
 
-            this.parameters = this.editParameterContextForm.get('parameters')?.value;
+            if (this.editParameterContextForm.get('parameters')?.dirty) {
+                this.parameters = this.editParameterContextForm.get('parameters')?.value;
+            } else {
+                this.parameters = [];
+            }
 
             const payload: any = {
                 revision: this.client.getRevision(pc),
