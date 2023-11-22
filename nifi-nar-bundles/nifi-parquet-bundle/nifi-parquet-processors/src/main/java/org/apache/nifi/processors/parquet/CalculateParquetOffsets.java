@@ -161,30 +161,30 @@ public class CalculateParquetOffsets extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final FlowFile original = session.get();
-        if (original == null) {
+        final FlowFile inputFlowFile = session.get();
+        if (inputFlowFile == null) {
             return;
         }
 
         final long partitionSize = context.getProperty(PROP_RECORDS_PER_SPLIT).asLong();
         final boolean zeroContentOutput = context.getProperty(PROP_ZERO_CONTENT_OUTPUT).asBoolean();
 
-        final long recordOffset = Optional.ofNullable(original.getAttribute(ParquetAttribute.RECORD_OFFSET))
+        final long recordOffset = Optional.ofNullable(inputFlowFile.getAttribute(ParquetAttribute.RECORD_OFFSET))
                 .map(Long::valueOf)
                 .orElse(0L);
 
-        final long recordCount = Optional.ofNullable(original.getAttribute(ParquetAttribute.RECORD_COUNT))
+        final long recordCount = Optional.ofNullable(inputFlowFile.getAttribute(ParquetAttribute.RECORD_COUNT))
                 .map(Long::valueOf)
-                .orElseGet(() -> getRecordCount(session, original) - recordOffset);
+                .orElseGet(() -> getRecordCount(session, inputFlowFile) - recordOffset);
 
         List<FlowFile> partitions = getPartitions(
-                session, original, partitionSize, recordCount, recordOffset, zeroContentOutput);
+                session, inputFlowFile, partitionSize, recordCount, recordOffset, zeroContentOutput);
         session.transfer(partitions, REL_SUCCESS);
         session.adjustCounter("Records Split", recordCount, false);
         session.adjustCounter("Partitions Created", partitions.size(), false);
 
         if (zeroContentOutput) {
-            session.remove(original);
+            session.remove(inputFlowFile);
         }
     }
 
@@ -214,24 +214,24 @@ public class CalculateParquetOffsets extends AbstractProcessor {
 
     private List<FlowFile> getPartitions(
             ProcessSession session,
-            FlowFile flowFile,
+            FlowFile inputFlowFile,
             long partitionSize,
             long recordCount,
             long recordOffset,
             boolean zeroContentOutput
     ) {
-        final long numberOfPartitions = (recordCount / partitionSize) + ((recordCount % partitionSize) > 0 ? 1 : 0);
+        final long numberOfPartitions = Math.ceilDiv(recordCount, partitionSize);
         final List<FlowFile> results = new ArrayList<>((int)Math.min(Integer.MAX_VALUE, numberOfPartitions));
 
         for (long currentPartition = 0; currentPartition < numberOfPartitions; currentPartition++) {
             long addedOffset = currentPartition * partitionSize;
             final FlowFile outputFlowFile;
             if (zeroContentOutput) {
-                outputFlowFile = session.create(flowFile);
+                outputFlowFile = session.create(inputFlowFile);
             } else if (currentPartition == 0) {
-                outputFlowFile = flowFile;
+                outputFlowFile = inputFlowFile;
             } else {
-                outputFlowFile = session.clone(flowFile);
+                outputFlowFile = session.clone(inputFlowFile);
             }
             results.add(
                     session.putAllAttributes(

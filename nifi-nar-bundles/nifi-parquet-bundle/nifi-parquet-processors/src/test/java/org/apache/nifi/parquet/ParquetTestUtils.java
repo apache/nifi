@@ -19,8 +19,8 @@ package org.apache.nifi.parquet;
 import static java.util.stream.Collectors.toList;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
@@ -75,9 +75,11 @@ public class ParquetTestUtils {
     }
 
     private static Schema getSchema() throws IOException {
-        final File schemaFile = new File(SCHEMA_PATH);
-        final String schemaString = IOUtils.toString(new FileInputStream(schemaFile), StandardCharsets.UTF_8);
-        return new Schema.Parser().parse(schemaString);
+        try (InputStream schemaInputStream = ParquetTestUtils.class.getClassLoader().getResourceAsStream("avro/user.avsc")) {
+            assert schemaInputStream != null;
+            final String schemaString = IOUtils.toString(schemaInputStream, StandardCharsets.UTF_8);
+            return new Schema.Parser().parse(schemaString);
+        }
     }
 
     private static ParquetWriter<GenericRecord> createParquetWriter(final Schema schema, final File parquetFile) throws IOException {

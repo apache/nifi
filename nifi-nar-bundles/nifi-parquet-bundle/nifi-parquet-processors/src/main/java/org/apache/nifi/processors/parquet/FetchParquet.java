@@ -103,11 +103,7 @@ public class FetchParquet extends AbstractFetchHDFSRecord {
             readerBuilder.withFilter(FilterCompat.get(OffsetRecordFilter.offset(offset)));
         }
 
-        if (count == null) {
-            return new AvroParquetHDFSRecordReader(readerBuilder.build());
-        } else {
-            return new AvroParquetHDFSRecordReader(readerBuilder.build(), count);
-        }
+        return new AvroParquetHDFSRecordReader(readerBuilder.build(), count);
     }
 
 }

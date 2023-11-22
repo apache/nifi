@@ -44,7 +44,7 @@ public class ParquetRecordReader implements RecordReader {
 
     private final InputStream inputStream;
     private final ParquetReader<GenericRecord> parquetReader;
-    private final Long count;
+    private final Long recordsToRead;
     private long recordsRead = 0;
 
     public ParquetRecordReader(
@@ -62,7 +62,7 @@ public class ParquetRecordReader implements RecordReader {
                 .map(Long::parseLong)
                 .orElse(null);
 
-        count = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
+        recordsToRead = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
                 .map(Long::parseLong)
                 .orElse(null);
 
@@ -132,7 +132,7 @@ public class ParquetRecordReader implements RecordReader {
 
     private GenericRecord readNextRecord() throws IOException {
         // No more records are available
-        if ((count != null) && (recordsRead == count)) {
+        if ((recordsToRead != null) && (recordsRead == recordsToRead)) {
             return null;
         }
         GenericRecord result = parquetReader.read();
