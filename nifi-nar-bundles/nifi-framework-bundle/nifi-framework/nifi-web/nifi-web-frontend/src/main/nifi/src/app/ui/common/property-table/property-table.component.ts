@@ -276,11 +276,11 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     private populateServiceLink(item: PropertyItem): void {
         if (this.canGoTo(item) && item.value) {
-            this.getServiceLink(item.value).pipe(
-              take(1)
-            ).subscribe((serviceLink: string[]) => {
-                item.serviceLink = serviceLink;
-            });
+            this.getServiceLink(item.value)
+                .pipe(take(1))
+                .subscribe((serviceLink: string[]) => {
+                    item.serviceLink = serviceLink;
+                });
         }
     }
 
