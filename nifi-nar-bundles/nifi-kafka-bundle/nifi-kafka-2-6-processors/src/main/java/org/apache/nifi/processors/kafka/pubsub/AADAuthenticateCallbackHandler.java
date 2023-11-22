@@ -95,8 +95,7 @@ public class AADAuthenticateCallbackHandler implements AuthenticateCallbackHandl
         }
     }
 
-    OAuthBearerToken getOAuthBearerToken() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException
-    {
+    OAuthBearerToken getOAuthBearerToken() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException {
         if (this.aadClient == null) {
             synchronized(this) {
                 if (this.aadClient == null) {

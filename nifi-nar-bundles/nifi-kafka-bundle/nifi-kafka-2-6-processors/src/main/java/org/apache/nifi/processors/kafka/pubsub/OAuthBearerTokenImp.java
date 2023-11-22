@@ -22,8 +22,7 @@ import java.util.Date;
 import java.util.Set;
 
 
-public class OAuthBearerTokenImp implements OAuthBearerToken
-{
+public class OAuthBearerTokenImp implements OAuthBearerToken {
     String token;
     long lifetimeMs;
 
