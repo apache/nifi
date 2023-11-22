@@ -37,6 +37,7 @@ MiNiFi Java Agent is supported on the following operating systems:
 * Ubuntu Focal Fossa (20.04) (64-bit)
 * Debian 9
 * SUSE Linux Enterprise Server (SLES) 12 SP5 (64-bit)
+* Windows 10, Server 2016 and Server 2019
 
 You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/minifi/download.html).
 
@@ -81,9 +82,25 @@ To launch MiNiFi as a service:
 sudo service minifi start
 ```
 ## For Windows Users
-For Windows users, navigate to the folder where MiNiFi was installed. Navigate to the `/bin` subdirectory and double-click the _run-minifi.bat_ file.
+For Windows users, navigate to the folder where MiNiFi was installed. Navigate to the `/bin` subdirectory. There are two ways to start MiNiFi. The first method starts the MiNiFi as an application. The second one installs and starts MiNiFi as a windows service.
 
-This launches MiNiFi and leaves it running in the foreground. To shut down NiFi, select the window that was launched and hold the Ctrl key while pressing C.
+### Launch MiNiFi as an application
+To launch MiNiFi as an application you need to execute the `run-minifi.bat` within the `/bin` subdirectory. This launches MiNiFi and leaves it running in the foreground. To shut down MiNiFi, select the window that was launched and hold the Ctrl key while pressing C or execute the `stop-minifi.bat`.
+
+### Install MiNiFi as a windows service
+MiNiFi can be installed as a service by executing the `install-service.bat`. By default, the service name will be `minifi`. It can be changed with the `serviceName` parameter:
+```
+install-service.bat "serviceName=minifi_java"
+```
+The user can be specified which should be used to run the service. For that the `serviceUser` and `serviceUserPassword` parameters need to be used:
+```
+install-service.bat "serviceUser=minifi_user" "serviceUserPassword=password"
+```
+Once MiNiFi get installed as a service, it will always start up after every reboot.
+After the service get installed, it can be started with the `start-service.bat`. If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it:
+```
+start-service.bat "serviceName=minifi_java"
+```
 
 # Working with DataFlows
 When you are working with a MiNiFi dataflow, you should design it, add any additional configuration your environment or use case requires, and then deploy your dataflow. MiNiFi is not designed to accommodate substantial mid-dataflow configuration.
@@ -119,6 +136,7 @@ c2.agent.heartbeat.period=5000
 #(Optional) c2.rest.callTimeout=10 sec
 #(Optional) c2.agent.identifier=123-456-789
 c2.agent.class=agentClassName
+```
 3. Start MiNiFi
 4. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
@@ -309,6 +327,8 @@ For example, this query gets the health, stats, and bulletins for the TailFile p
 ```
 minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
+**Note:** To perform the listed interaction on windows, `minifi.sh` would be replaced by `flowstatus-minifi.bat`.
+Example: `flowstatus-minifi.bat processor:TailFile:health,stats,bulletins`
 
 **Note:** Currently, the script only accepts one high level option at a time.
 
@@ -316,21 +336,41 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 
 For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administration Guide](https://nifi.apache.org/minifi/system-admin-guide.html).
 
-## Stopping MiNiFi
-
+# Stopping MiNiFi
 You can stop MiNiFi at any time.
-
-Stopping MiNiFi:
-
+## For Linux and Mac OS X Users
+### Stopping MiNiFi:
 1. From a terminal window, navigate to the MiNiFi installation directory.
 2. Enter:
 ```
 bin/minifi.sh stop
 ```
-
-Stopping MiNiFi as a service:
-
+### Stopping MiNiFi as a service:
 1. From a terminal window, enter:
 ```
 sudo service minifi stop
+```
+## For Windows Users
+### Stopping MiNiFi:
+The application can be stopped with:
+```
+stop-minifi.bat
+```
+### Stopping MiNiFi as a service:
+The service can be stopped with:
+```
+stop-service.bat
+```
+If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it: 
+```
+stop-service.bat "serviceName=minifi_java"
+```
+### Deleting MiNiFi service:
+This command stops the currently running MiNiFi and deregister the service from the windows registry. Does not delete the MiNiFi installation. The service can be deleted with:
+```
+delete-service.bat
+```
+If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it: 
+```
+delete-service.bat "serviceName=minifi_java"
 ```
