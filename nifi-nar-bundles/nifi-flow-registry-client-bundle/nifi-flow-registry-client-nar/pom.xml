@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-flow-registry-client-bundle</artifactId>
-        <version>1.24.0</version>
+        <version>1.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-flow-registry-client-nar</artifactId>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flow-registry-client-services</artifactId>
-            <version>1.24.0</version>
+            <version>1.25.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
