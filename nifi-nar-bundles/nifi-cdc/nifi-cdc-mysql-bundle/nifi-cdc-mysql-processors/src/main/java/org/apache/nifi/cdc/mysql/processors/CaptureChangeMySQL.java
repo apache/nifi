@@ -485,6 +485,17 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .defaultValue("60000")
             .build();
 
+    public static final PropertyDescriptor HEARTBEAT_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Heartbeat Interval")
+            .displayName("Heartbeat Interval")
+            .description("heartbeatInterval – heartbeat period in milliseconds.the default is 1 seconds." +
+                    "Note that when used together with keepAlive heartbeatInterval MUST be set less than keepAliveInterval.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("1000")
+            .build();
+
     private static final List<PropertyDescriptor> propDescriptors;
 
     private volatile BinaryLogClient binlogClient;
@@ -552,6 +563,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(SSL_CONTEXT_SERVICE);
         pds.add(KEEP_ALIVE);
         pds.add(KEEPALIVE_INTERVAL);
+        pds.add(HEARTBEAT_INTERVAL);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -718,8 +730,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             Boolean keepAlive = context.getProperty(KEEP_ALIVE).evaluateAttributeExpressions().asBoolean();
             Long keepAliveInterval = context.getProperty(KEEPALIVE_INTERVAL).evaluateAttributeExpressions().asLong();
+            Long heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).evaluateAttributeExpressions().asLong();
 
-            connect(hosts, username, password, serverId, driverLocation, driverName, connectTimeout, sslContextService, sslMode, keepAlive, keepAliveInterval);
+            connect(hosts, username, password, serverId, driverLocation, driverName, connectTimeout, sslContextService, sslMode, keepAlive, keepAliveInterval, heartbeatInterval);
         } catch (IOException | IllegalStateException e) {
             if (eventListener != null) {
                 eventListener.stop();
@@ -821,7 +834,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId,
                            String driverLocation, String driverName, long connectTimeout,
-                           final SSLContextService sslContextService, final SSLMode sslMode,  boolean keepAlive, long keepAliveInterval) throws IOException {
+                           final SSLContextService sslContextService, final SSLMode sslMode,  boolean keepAlive, long keepAliveInterval, long heartbeatInterval) throws IOException {
 
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
@@ -879,6 +892,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             binlogClient.setKeepAlive(keepAlive);
             binlogClient.setKeepAliveInterval(keepAliveInterval);
+            binlogClient.setHeartbeatInterval(heartbeatInterval);
 
             try {
                 if (connectTimeout == 0) {
