@@ -15,7 +15,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0-M1</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
@@ -53,7 +53,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>2.0.0-M1</version>
             </dependency>
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
