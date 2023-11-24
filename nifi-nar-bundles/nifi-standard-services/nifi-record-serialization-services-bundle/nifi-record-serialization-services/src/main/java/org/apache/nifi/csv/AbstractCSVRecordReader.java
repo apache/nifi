@@ -17,12 +17,19 @@
 
 package org.apache.nifi.csv;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.io.input.BOMInputStream;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.text.DateFormat;
 import java.util.function.Supplier;
 
@@ -45,8 +52,12 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
 
     protected final RecordSchema schema;
 
-    AbstractCSVRecordReader(final ComponentLog logger, final RecordSchema schema, final boolean hasHeader, final boolean ignoreHeader,
-                            final String dateFormat, final String timeFormat, final String timestampFormat, final boolean trimDoubleQuote, final int skipTopRows) {
+    protected final Reader inputStreamReader;
+
+    AbstractCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
+                            final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote, final int skipTopRows)
+            throws IOException {
+
         this.logger = logger;
         this.schema = schema;
         this.hasHeader = hasHeader;
@@ -76,6 +87,14 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         } else {
             this.timestampFormat = timestampFormat;
             LAZY_TIMESTAMP_FORMAT = () -> DataTypeUtils.getDateFormat(timestampFormat);
+        }
+
+        final InputStream bomInputStream = BOMInputStream.builder().setInputStream(in).get();
+        inputStreamReader = new InputStreamReader(bomInputStream, encoding);
+
+        // Skip the number of rows at the "top" as specified
+        for (int i = 0; i < skipTopRows; i++) {
+            readNextRecord(inputStreamReader, csvFormat.getRecordSeparator());
         }
     }
 
@@ -160,5 +179,47 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     @Override
     public RecordSchema getSchema() {
         return schema;
+    }
+
+    /**
+     * This method searches using the specified Reader character-by-character until the
+     * record separator is found.
+     * @param reader the Reader providing the input
+     * @param recordSeparator the String specifying the end of a record in the input
+     * @throws IOException if an error occurs during reading, including not finding the record separator in the input
+     */
+    protected void readNextRecord(Reader reader, String recordSeparator) throws IOException {
+        int indexIntoSeparator = 0;
+        int recordSeparatorLength = recordSeparator.length();
+        int code = reader.read();
+        while (code != -1) {
+            char nextChar = (char)code;
+            if (recordSeparator.charAt(indexIntoSeparator) == nextChar) {
+                if (++indexIntoSeparator == recordSeparatorLength) {
+                    // We have matched the separator, return the string built so far
+                    return;
+                }
+            } else {
+                // The character didn't match the expected one in the record separator, reset the separator matcher
+                // and check if it is the first character of the separator.
+                indexIntoSeparator = 0;
+                if (recordSeparator.charAt(indexIntoSeparator) == nextChar) {
+                    // This character is the beginning of the record separator, keep it
+                    if (++indexIntoSeparator == recordSeparatorLength) {
+                        // We have matched the separator, return the string built so far
+                        return;
+                    }
+                }
+            }
+            // This defensive check limits a record size to 2GB, this prevents out-of-memory errors if the record separator
+            // is not present in the input (or at least in the first 2GB)
+            if (indexIntoSeparator == Integer.MAX_VALUE) {
+                throw new IOException("2GB input threshold reached, the record is either larger than 2GB or the separator "
+                        + "is not found in the first 2GB of input. Ensure the Record Separator is correct for this FlowFile.");
+            }
+            code = reader.read();
+        }
+        // If the input ends without finding the record separator, an exception is thrown
+        throw new IOException("Record separator not found");
     }
 }

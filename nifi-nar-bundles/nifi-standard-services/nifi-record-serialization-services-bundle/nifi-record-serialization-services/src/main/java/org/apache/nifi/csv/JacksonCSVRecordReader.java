@@ -24,8 +24,6 @@ import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,7 +34,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.DuplicateHeaderMode;
-import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.CharUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
@@ -57,9 +54,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote,
                                   final int skipTopRows) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
-
-        final Reader reader = new InputStreamReader(BOMInputStream.builder().setInputStream(in).get(), encoding);
+        super(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, trimDoubleQuote, skipTopRows);
 
         CsvSchema.Builder csvSchemaBuilder = CsvSchema.builder()
             .setColumnSeparator(csvFormat.getDelimiterString().charAt(0))
@@ -96,7 +91,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 .with(csvSchema)
                 .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
-        recordStream = objReader.readValues(reader);
+        recordStream = objReader.readValues(inputStreamReader);
     }
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,

@@ -51,12 +51,14 @@ public class TestJacksonCSVRecordReader {
         .setSkipHeaderRecord(true)
         .setTrim(true)
         .setQuote('"')
+        .setRecordSeparator("\n")
         .build();
     private final CSVFormat formatWithNullRecordSeparator = CSVFormat.DEFAULT.builder()
         .setHeader()
         .setSkipHeaderRecord(true)
         .setTrim(true)
         .setQuote('"')
+        .setRecordSeparator("\n")
         .setRecordSeparator(null)
         .build();
     private final CSVFormat trimmed4180 = CSVFormat.RFC4180.builder()
@@ -82,12 +84,12 @@ public class TestJacksonCSVRecordReader {
     }
 
     private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format) throws IOException {
-        return createReader(in, schema, format, true);
+        return createReader(in, schema, format, true, 0);
     }
 
-    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format, final boolean trimDoubleQuote, final int skipTopRows) throws IOException {
         return new JacksonCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, 0);
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, skipTopRows);
     }
 
     @Test
@@ -281,7 +283,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -362,7 +364,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -382,7 +384,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -474,7 +476,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -567,7 +569,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -639,7 +641,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord has ignored the first "id" and "name" columns
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, trimmed4180, false, 0)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -744,6 +746,25 @@ public class TestJacksonCSVRecordReader {
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
             assertArrayEquals(expectedValues, record);
 
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testSkipTopRows() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account_skip_top_rows.csv");
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format, true, 3)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+            final Object[] recordValues = record.getValues();
+            final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(expectedValues, recordValues);
             assertNull(reader.nextRecord());
         }
     }

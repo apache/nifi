@@ -22,7 +22,6 @@ import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvRow;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,11 +45,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class FastCSVRecordReader extends AbstractCSVRecordReader {
     private final CsvReader csvReader;
     private final Iterator<CsvRow> csvRowIterator;
-
     private List<RecordField> recordFields;
-
     private Map<String, Integer> headerMap;
-
     private final boolean ignoreHeader;
     private final boolean trimDoubleQuote;
     private final CSVFormat csvFormat;
@@ -58,7 +54,7 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
     public FastCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote,
                                final int skipTopRows) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote, skipTopRows);
+        super(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, trimDoubleQuote, skipTopRows);
         this.ignoreHeader = ignoreHeader;
         this.trimDoubleQuote = trimDoubleQuote;
         this.csvFormat = csvFormat;
@@ -83,7 +79,7 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
             }
         }
 
-        csvReader = builder.build(new InputStreamReader(in, encoding));
+        csvReader = builder.build(inputStreamReader);
         csvRowIterator = csvReader.iterator();
     }
 

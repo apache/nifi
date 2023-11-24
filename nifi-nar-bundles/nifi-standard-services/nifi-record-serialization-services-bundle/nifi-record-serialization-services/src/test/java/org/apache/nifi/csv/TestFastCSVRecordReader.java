@@ -52,7 +52,8 @@ public class TestFastCSVRecordReader {
 
     @BeforeEach
     public void setUp() {
-        format = CSVFormat.RFC4180;
+        // Override the record separator to match the input
+        format = CSVFormat.RFC4180.builder().setRecordSeparator("\n").build();
     }
 
     private List<RecordField> getDefaultFields() {
@@ -68,9 +69,9 @@ public class TestFastCSVRecordReader {
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", false, 0);
     }
 
-    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format, final boolean trimDoubleQuote, final int skipTopRows) throws IOException {
         return new FastCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, 0);
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote, skipTopRows);
     }
 
     @Test
@@ -232,7 +233,7 @@ public class TestFastCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180.builder().setAllowMissingColumnNames(true).build(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180.builder().setAllowMissingColumnNames(true).build(), false, 0)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -313,7 +314,7 @@ public class TestFastCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false, 0)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -333,7 +334,7 @@ public class TestFastCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false, 0)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -408,7 +409,7 @@ public class TestFastCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180, false, 0)) {
 
             try {
                 reader.nextRecord();
@@ -491,7 +492,7 @@ public class TestFastCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final FastCSVRecordReader reader = createReader(fis, schema, format, true)) {
+             final FastCSVRecordReader reader = createReader(fis, schema, format, true, 0)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[]{"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -501,6 +502,25 @@ public class TestFastCSVRecordReader {
             final Object[] secondExpectedValues = new Object[]{"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
             assertArrayEquals(secondExpectedValues, secondRecord);
 
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testSkipTopRows() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account_skip_top_rows.csv");
+             final FastCSVRecordReader reader = createReader(fis, schema, format, true, 3)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+            final Object[] recordValues = record.getValues();
+            final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(expectedValues, recordValues);
             assertNull(reader.nextRecord());
         }
     }
