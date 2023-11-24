@@ -42,16 +42,16 @@ public interface JvmMetrics {
      *
      * @param dataUnit The {@link DataUnit} to which the metric will be converted
      *
-     * @return total Heap and non-heap memory currently used by JVM in the given {@link DataUnit}
+     * @return total heap and non-heap memory currently used by JVM in the given {@link DataUnit}
      */
     double totalUsed(DataUnit dataUnit);
 
     /**
-     * Returns the total memory currently used by the current JVM.
+     * Returns the maximum memory that may be used by the current JVM.
      *
      * @param dataUnit The {@link DataUnit} to which the metric will be converted
      *
-     * @return total Heap and non-heap memory currently used by JVM in the given {@link DataUnit}
+     * @return Maximum total heap and non-heap memory that may be used by JVM in the given {@link DataUnit}
      */
     double totalMax(DataUnit dataUnit);
 
@@ -83,11 +83,11 @@ public interface JvmMetrics {
     double heapUsed(DataUnit dataUnit);
 
     /**
-     * Returns the heap memory currently used by the current JVM.
+     * Returns the maximum heap memory that may be used by the current JVM.
      *
      * @param dataUnit The {@link DataUnit} to which the metric will be converted
      *
-     * @return Heap memory currently used by JVM in the given {@link DataUnit}
+     * @return Maximum Heap memory that may be used by JVM in the given {@link DataUnit}
      */
     double heapMax(DataUnit dataUnit);
 
@@ -106,6 +106,41 @@ public interface JvmMetrics {
      * @return the percentage of the JVM's heap which is being used
      */
     double heapUsage();
+    /**
+     * Returns the non-heap initial memory of the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-Heap initial JVM memory in the given {@link DataUnit}
+     */
+    double nonHeapInit(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory currently used by the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-Heap memory currently used by JVM in the given {@link DataUnit}
+     */
+    double nonHeapUsed(DataUnit dataUnit);
+
+    /**
+     * Returns the maximum non-heap memory that can be used by the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Maximum Non-Heap memory currently available to JVM in the given {@link DataUnit}
+     */
+    double nonHeapMax(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory committed to the JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-Heap memory currently committed to the JVM in the given {@link DataUnit}
+     */
+    double nonHeapCommitted(DataUnit dataUnit);
 
     /**
      * Returns the percentage of the JVM's non-heap memory (e.g., direct buffers) which is being
@@ -121,6 +156,51 @@ public interface JvmMetrics {
      * @return a map of memory pool names to the percentage of that pool which is being used
      */
     Map<String, Double> memoryPoolUsage();
+
+
+    /**
+     * Returns a map of memory pool names to the initial memory size in that pool.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return a map of memory pool names to initial memory size of that pool in the given {@link DataUnit}.
+     */
+    public Map<String, Double> memoryPoolInit(DataUnit dataUnit);
+
+    /**
+     * Returns a map of memory pool names to the used memory in that pool.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return a map of memory pool names to used memory in that pool in the given {@link DataUnit}.
+     */
+    public Map<String, Double> memoryPoolUsed(DataUnit dataUnit);
+
+    /**
+     * Returns a map of memory pool names to the committed memory in that pool.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return a map of memory pool names to committed memory in that pool in the given {@link DataUnit}.
+     */
+    public Map<String, Double> memoryPoolCommitted(DataUnit dataUnit);
+    /**
+     * Returns a map of memory pool names to the maximum memory allowed for that pool.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return a map of memory pool names to maximum memory allowed for that pool in the given {@link DataUnit}.
+     */
+    public Map<String, Double> memoryPoolMax(DataUnit dataUnit);
+
+    /**
+     * Returns a map of memory pool names to the amount of memory used after gc in that pool.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return a map of memory pool names to the amount of memory used after gc of that pool in the given {@link DataUnit}.
+     */
+    public Map<String, Double> memoryPoolMemoryUsedAfterGC(DataUnit dataUnit);
 
     /**
      * Returns the percentage of available file descriptors which are currently in use.
