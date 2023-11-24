@@ -464,8 +464,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor KEEP_ALIVE = new PropertyDescriptor.Builder()
-            .displayName("Keep Alive")
             .name("Keep Alive")
+            .displayName("Keep Alive")
             .description("Used to specify heartbeat messages or queries to be sent after a connection has been idle for a period of time to ensure that " +
                     "the connection remains active. This prevents the database server or middleware from closing the " +
                     "connection on a connection that has been inactive for a long time")
@@ -728,7 +728,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
 
-            Boolean keepAlive = context.getProperty(KEEP_ALIVE).evaluateAttributeExpressions().asBoolean();
+            Boolean keepAlive = context.getProperty(KEEP_ALIVE).asBoolean();
             Long keepAliveInterval = context.getProperty(KEEPALIVE_INTERVAL).evaluateAttributeExpressions().asLong();
             Long heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).evaluateAttributeExpressions().asLong();
 
