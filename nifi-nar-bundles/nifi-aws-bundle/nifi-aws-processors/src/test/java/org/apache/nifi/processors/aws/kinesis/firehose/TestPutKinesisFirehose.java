@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,14 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestPutKinesisFirehose {
     private TestRunner runner;
-    protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
-        runner.setProperty(PutKinesisFirehose.ACCESS_KEY, "abcd");
-        runner.setProperty(PutKinesisFirehose.SECRET_KEY, "secret key");
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "deliveryName");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
         runner.assertValid();
     }
 
@@ -66,10 +65,7 @@ public class TestPutKinesisFirehose {
     public void testWithSizeGreaterThan1MB() {
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE + 1)];
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = 'a';
-        }
+        byte[] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE + 1)];
         runner.enqueue(bytes);
         runner.run(1);
 

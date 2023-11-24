@@ -485,10 +485,33 @@ to pickup any changes seamlessly as soon as the Processor is started.
 
 [[dependencies]]
 == Adding Third-Party Dependencies
+Python based Processors can be a single module, or they can be bundled together as a Python package. How you specify third-party dependencies depends on how
+the Processor is packaged.
 
-Third-party dependencies are defined for a Processor using the `dependencies` member of the `ProcessorDetails` inner class.
-This is a list of Strings that indicate the PyPI modules that the Processor depends on. The format is the same format expected
-by PyPI.
+=== Package-level Dependencies
+
+If one or more Processors are defined within a Python package, the package should define a `requirements.txt` file that declares all third-party dependencies
+that are necessary for any Processor in the package. The file structure will then typically look like this:
+----
+my-python-package/
+│
+├── __init__.py
+│
+├── ProcessorA.py
+│
+├── ProcessorB.py
+│
+└── requirements.txt
+----
+
+In this way, all of the requirements will be loaded from the `requirements.txt` file once for the package. There will be no need to load the dependencies once for
+ProcessorA and once for ProcessorB.
+
+
+=== Processor-Level Dependencies
+If your Processor is not a part of a Python package, its dependencies can be declared using the `dependencies` member of the `ProcessorDetails` inner class.
+This is a list of Strings that indicate the PyPI modules that the Processor depends on. The format is the same format expected by PyPI.
+This provides a convenience for declaring third-party dependencies without requiring that Processors be bundled into a package.
 
 For example, to indicate that a Processor needs `pandas` installed, the implementation might
 look like this:

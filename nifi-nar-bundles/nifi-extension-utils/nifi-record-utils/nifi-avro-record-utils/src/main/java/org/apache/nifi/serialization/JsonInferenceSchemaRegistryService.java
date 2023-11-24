@@ -52,7 +52,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
         this.storeSchemaAccessStrategy(context);
-        this.schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+        this.schemaAccess = context.getProperty(getSchemaAccessStrategyDescriptor()).getValue();
     }
 
     @Override

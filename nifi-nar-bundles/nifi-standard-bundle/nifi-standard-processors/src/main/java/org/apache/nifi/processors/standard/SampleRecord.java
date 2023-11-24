@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.Range;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -46,20 +59,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @SideEffectFree
 @SupportsBatching
@@ -93,8 +92,9 @@ public class SampleRecord extends AbstractProcessor {
                     + "the value of the 'Reservoir Size' property. Note that if the value is very large it may cause memory issues as "
                     + "the reservoir is kept in-memory.");
 
-    private final static Pattern RANGE_PATTERN = Pattern.compile("^([0-9]+)?(-)?([0-9]+)?(,([0-9]+)?-?([0-9]+)?)*?");
-    private final static Pattern INTERVAL_PATTERN = Pattern.compile("([0-9]+)?(-)?([0-9]+)?(?:,|$)");
+    private static final String RANGE_SEPARATOR = ",";
+    private static final Pattern RANGE_PATTERN = Pattern.compile("^([0-9]+)?(-)?([0-9]+)?");
+    private static final Pattern INTERVAL_PATTERN = Pattern.compile("([0-9]+)?(-)?([0-9]+)?(?:,|$)");
 
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
@@ -278,14 +278,14 @@ public class SampleRecord extends AbstractProcessor {
                 recordSetWriter.flush();
                 recordSetWriter.close();
             } catch (final IOException ioe) {
-                getLogger().warn("Failed to close Writer for {}", new Object[]{outFlowFile});
+                getLogger().warn("Failed to close Writer for {}", outFlowFile);
             }
 
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
             attributes.putAll(writeResult.getAttributes());
         } catch (Exception e) {
-            getLogger().error("Error during transmission of records due to {}, routing to failure", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error during transmission of records, routing to failure", e);
             session.transfer(flowFile, REL_FAILURE);
             session.remove(sampledFlowFile);
             return;
@@ -345,20 +345,32 @@ public class SampleRecord extends AbstractProcessor {
             this.rangeExpression = rangeExpression;
         }
 
+        private boolean isRangeExpressionInvalid() {
+            boolean invalid = false;
+            final String[] ranges = rangeExpression.split(RANGE_SEPARATOR);
+            for (final String range : ranges) {
+                final Matcher matcher = RANGE_PATTERN.matcher(range);
+                if (!matcher.matches()) {
+                    invalid = true;
+                    break;
+                }
+            }
+            return invalid;
+        }
+
         @Override
         public void init() throws IOException {
             currentCount = 1;
             ranges.clear();
             writer.beginRecordSet();
-            Matcher validateRangeExpression = RANGE_PATTERN.matcher(rangeExpression);
-            if (!validateRangeExpression.matches()) {
+            if (isRangeExpressionInvalid()) {
                 throw new IOException(rangeExpression + " is not a valid range expression");
             }
             Integer startRange, endRange;
             if (StringUtils.isEmpty(rangeExpression)) {
                 startRange = 0;
                 endRange = Integer.MAX_VALUE;
-                ranges.add(Range.between(startRange, endRange));
+                ranges.add(Range.of(startRange, endRange));
             } else {
                 Matcher m = INTERVAL_PATTERN.matcher(rangeExpression);
                 while (m.find()) {
@@ -386,9 +398,9 @@ public class SampleRecord extends AbstractProcessor {
 
                     if (startRange != null && endRange == null) {
                         // Single value
-                        range = Range.between(startRange, startRange);
+                        range = Range.of(startRange, startRange);
                     } else {
-                        range = Range.between(startRange, endRange);
+                        range = Range.of(startRange, endRange);
                     }
                     ranges.add(range);
                 }

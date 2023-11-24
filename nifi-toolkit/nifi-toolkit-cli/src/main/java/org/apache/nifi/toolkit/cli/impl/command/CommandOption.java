@@ -60,6 +60,8 @@ public enum CommandOption {
     EXT_BUNDLE_GROUP("gr", "group", "The group id of a bundle", true),
     EXT_BUNDLE_ARTIFACT("ar", "artifact", "The artifact id of a bundle", true),
     EXT_BUNDLE_VERSION("ver", "version", "The version of the bundle", true),
+    EXT_BUNDLE_CURRENT_VERSION("cver", "current-version", "The current version of the bundle", true),
+    EXT_QUALIFIED_NAME("extname", "extension-name", "The qualified name of the extension", true),
 
     EXT_TYPE("et", "extensionType", "The type of extension, one of 'PROCESSOR', 'CONTROLLER_SERVICE', or 'REPORTING_TASK'.", true),
     EXT_BUNDLE_TYPE("ebt", "extensionBundleType", "The type of extension bundle, either nifi-nar or minifi-cpp", true),
@@ -77,6 +79,7 @@ public enum CommandOption {
     REGISTRY_CLIENT_NAME("rcn", "registryClientName", "The name of the registry client", true),
     REGISTRY_CLIENT_URL("rcu", "registryClientUrl", "The url of the registry client", true),
     REGISTRY_CLIENT_DESC("rcd", "registryClientDesc", "The description of the registry client", true),
+    REGISTRY_CLIENT_TYPE("rct", "registryClientType", "The type of the registry client", true),
 
     // NiFi - PGs
     PG_ID("pgid", "processGroupId", "The id of a process group", true),
@@ -88,6 +91,11 @@ public enum CommandOption {
 
     POS_X("px", "posX", "The x coordinate of a position", true),
     POS_Y("py", "posY", "The y coordinate of a position", true),
+
+    SOURCE_PG("sourcePg", "source-pg", "The ID of the source process group", true),
+    DESTINATION_PG("destPg", "destination-pg", "The ID of the destination process group", true),
+    SOURCE_OUTPUT_PORT("sourceOutput", "source-output-port", "The name of the output port in the source process group", true),
+    DESTINATION_INPUT_PORT("destInput", "destination-input-port", "The name of the input port in the destination process group", true),
 
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
@@ -109,9 +117,6 @@ public enum CommandOption {
     POLICY_RESOURCE("por", "accessPolicyResource", "The resource of an access policy", true),
     POLICY_ACTION("poa", "accessPolicyAction", "The action of an access policy (read or write)", true),
     OVERWRITE_POLICY("owp", "overwritePolicy", "Overwrite the user list and group list for the access policy", false),
-
-    // NiFi - Templates
-    TEMPLATE_ID("tid", "templateId", "The id of a template", true),
 
     // NiFI - Parameter Contexts
     PARAM_CONTEXT_ID("pcid", "paramContextId", "The id of a parameter context", true),

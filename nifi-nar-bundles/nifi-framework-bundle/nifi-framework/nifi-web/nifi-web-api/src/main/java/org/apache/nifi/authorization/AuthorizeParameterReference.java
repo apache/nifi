@@ -99,7 +99,7 @@ public class AuthorizeParameterReference {
             authorizeParameterReferences(serviceDto.getProperties(), authorizer, parameterContextAuthorizable, user);
         }
 
-        // Note: there is no need to recurse here because when a template/snippet is instantiated, if there are any components in child Process Groups, a new Process Group will be created
+        // Note: there is no need to recurse here because when a snippet is instantiated, if there are any components in child Process Groups, a new Process Group will be created
         // without any Parameter Context, so there is no need to perform any authorization beyond the top-level group where the instantiation is occurring.
     }
 

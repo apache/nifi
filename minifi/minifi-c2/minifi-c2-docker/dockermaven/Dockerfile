@@ -16,9 +16,9 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
-FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS builder
 LABEL stage=builder
 
 ARG UID=1000
@@ -60,7 +60,7 @@ ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
 RUN groupadd -g ${GID} ${MINIFI_C2_USER} \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER}
 
-COPY --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
+COPY --chown=c2:c2 --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
 
 USER ${MINIFI_C2_USER}
 

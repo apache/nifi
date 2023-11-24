@@ -325,12 +325,8 @@ public class ComponentMockUtil {
             final String comments,
             final ScheduledState scheduledState,
             final boolean isValid,
-            final boolean isAuthorized,
-            final List<String> userAccessControl,
-            final List<String> groupAccessControl) {
+            final boolean isAuthorized) {
         final PublicPort result = getPort(PublicPort.class, id, name, Optional.empty(), comments, scheduledState, isValid, isAuthorized);
-        Mockito.when(result.getUserAccessControl()).thenReturn(new HashSet<>(userAccessControl));
-        Mockito.when(result.getGroupAccessControl()).thenReturn(new HashSet<>(groupAccessControl));
         return result;
     }
 
@@ -341,12 +337,8 @@ public class ComponentMockUtil {
             final String versionedId,
             final ScheduledState scheduledState,
             final boolean isValid,
-            final boolean isAuthorized,
-            final List<String> userAccessControl,
-            final List<String> groupAccessControl) {
+            final boolean isAuthorized) {
         final PublicPort result = getPort(PublicPort.class, id, name, Optional.of(versionedId), comments, scheduledState, isValid, isAuthorized);
-        Mockito.when(result.getUserAccessControl()).thenReturn(new HashSet<>(userAccessControl));
-        Mockito.when(result.getGroupAccessControl()).thenReturn(new HashSet<>(groupAccessControl));
         return result;
     }
 

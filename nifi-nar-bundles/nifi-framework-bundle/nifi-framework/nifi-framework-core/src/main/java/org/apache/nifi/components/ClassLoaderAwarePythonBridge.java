@@ -22,7 +22,6 @@ import org.apache.nifi.python.BoundObjectCounts;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
 
 import java.io.IOException;
 import java.util.List;
@@ -97,7 +96,7 @@ public class ClassLoaderAwarePythonBridge implements PythonBridge {
     }
 
     @Override
-    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
             return delegate.createProcessor(identifier, type, version, preferIsolatedProcess);
         }

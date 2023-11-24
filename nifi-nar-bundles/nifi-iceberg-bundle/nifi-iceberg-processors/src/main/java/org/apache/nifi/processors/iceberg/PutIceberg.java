@@ -28,6 +28,7 @@ import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.util.Tasks;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,6 +40,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -68,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
+import static org.apache.nifi.processors.iceberg.IcebergUtils.getDynamicProperties;
 
 @Tags({"iceberg", "put", "table", "store", "record", "parse", "orc", "parquet", "avro"})
 @CapabilityDescription("This processor uses Iceberg API to parse and load records into Iceberg tables. " +
@@ -75,12 +78,19 @@ import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFr
         "The target Iceberg table should already exist and it must have matching schemas with the incoming records, " +
         "which means the Record Reader schema must contain all the Iceberg schema fields, every additional field which is not present in the Iceberg schema will be ignored. " +
         "To avoid 'small file problem' it is recommended pre-appending a MergeRecord processor.")
+@DynamicProperty(
+        name = "A custom key to add to the snapshot summary. The value must start with 'snapshot-property.' prefix.",
+        value = "A custom value to add to the snapshot summary.",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description = "Adds an entry with custom-key and corresponding value in the snapshot summary. The key format must be 'snapshot-property.custom-key'.")
 @WritesAttributes({
         @WritesAttribute(attribute = "iceberg.record.count", description = "The number of records in the FlowFile.")
 })
 public class PutIceberg extends AbstractIcebergProcessor {
 
     public static final String ICEBERG_RECORD_COUNT = "iceberg.record.count";
+    public static final String ICEBERG_SNAPSHOT_SUMMARY_PREFIX = "snapshot-property.";
+    public static final String ICEBERG_SNAPSHOT_SUMMARY_FLOWFILE_UUID = "nifi-flowfile-uuid";
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -106,6 +116,15 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
+            .name("unmatched-column-behavior")
+            .displayName("Unmatched Column Behavior")
+            .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation.")
+            .allowableValues(UnmatchedColumnBehavior.class)
+            .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.getValue())
+            .required(true)
             .build();
 
     static final PropertyDescriptor FILE_FORMAT = new PropertyDescriptor.Builder()
@@ -178,6 +197,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             CATALOG,
             CATALOG_NAMESPACE,
             TABLE_NAME,
+            UNMATCHED_COLUMN_BEHAVIOR,
             FILE_FORMAT,
             MAXIMUM_FILE_SIZE,
             KERBEROS_USER_SERVICE,
@@ -200,6 +220,25 @@ public class PutIceberg extends AbstractIcebergProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator((subject, input, context) -> {
+                    ValidationResult.Builder builder = new ValidationResult.Builder().subject(subject).input(input);
+                    if (subject.startsWith(ICEBERG_SNAPSHOT_SUMMARY_PREFIX)) {
+                        builder.valid(true);
+                    } else {
+                        builder.valid(false).explanation("Dynamic property key must begin with '" + ICEBERG_SNAPSHOT_SUMMARY_PREFIX + "'");
+                    }
+                    return builder.build();
+                })
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
     }
 
     @Override
@@ -234,6 +273,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
     @Override
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
+        final long startNanos = System.nanoTime();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
@@ -255,8 +295,10 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
+            final UnmatchedColumnBehavior unmatchedColumnBehavior =
+                    UnmatchedColumnBehavior.valueOf(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
-            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format);
+            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format, unmatchedColumnBehavior, getLogger());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -281,6 +323,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
+        final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        session.getProvenanceReporter().send(flowFile, table.location(), transferMillis);
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -308,8 +352,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * Appends the pending data files to the given {@link Table}.
      *
      * @param context processor context
-     * @param table  table to append
-     * @param result datafiles created by the {@link TaskWriter}
+     * @param table   table to append
+     * @param result  datafiles created by the {@link TaskWriter}
      */
     void appendDataFiles(ProcessContext context, FlowFile flowFile, Table table, WriteResult result) {
         final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions(flowFile).asInteger();
@@ -320,11 +364,29 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final AppendFiles appender = table.newAppend();
         Arrays.stream(result.dataFiles()).forEach(appender::appendFile);
 
+        addSnapshotSummaryProperties(context, appender, flowFile);
+
         Tasks.foreach(appender)
                 .exponentialBackoff(minimumCommitWaitTime, maximumCommitWaitTime, maximumCommitDuration, 2.0)
                 .retry(numberOfCommitRetries)
                 .onlyRetryOn(CommitFailedException.class)
                 .run(PendingUpdate::commit);
+    }
+
+    /**
+     * Adds the FlowFile's uuid and additional entries provided in Dynamic properties to the snapshot summary.
+     *
+     * @param context  processor context
+     * @param appender table appender to set the snapshot summaries
+     * @param flowFile the FlowFile to get the uuid from
+     */
+    private void addSnapshotSummaryProperties(ProcessContext context, AppendFiles appender, FlowFile flowFile) {
+        appender.set(ICEBERG_SNAPSHOT_SUMMARY_FLOWFILE_UUID, flowFile.getAttribute(CoreAttributes.UUID.key()));
+
+        for (Map.Entry<String, String> dynamicProperty : getDynamicProperties(context, flowFile).entrySet()) {
+            String key = dynamicProperty.getKey().substring(ICEBERG_SNAPSHOT_SUMMARY_PREFIX.length());
+            appender.set(key, dynamicProperty.getValue());
+        }
     }
 
     /**
@@ -350,5 +412,4 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 .retry(3)
                 .run(file -> table.io().deleteFile(file.path().toString()));
     }
-
 }

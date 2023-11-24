@@ -17,6 +17,8 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
@@ -24,9 +26,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +46,6 @@ public class RegistryUtil {
         this.sslContext = sslContext;
     }
 
-
-    public VersionedFlowSnapshot getFlowByID(String bucketID, String flowID) throws IOException, NiFiRegistryException {
-        return getFlowByID(bucketID, flowID, -1);
-    }
 
     public VersionedFlowSnapshot getFlowByID(String bucketID, String flowID, int versionID) throws IOException, NiFiRegistryException {
         if (versionID == -1) {
@@ -116,7 +112,7 @@ public class RegistryUtil {
         if (fetchRemoteFlows) {
             final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
             for (final VersionedProcessGroup child : contents.getProcessGroups()) {
-                populateVersionedContentsRecursively(child, user);
+                populateVersionedContentsRecursively(child);
             }
         }
 
@@ -124,14 +120,14 @@ public class RegistryUtil {
     }
 
 
-    private void populateVersionedContentsRecursively(final VersionedProcessGroup group, final NiFiUser user) throws NiFiRegistryException, IOException {
+    private void populateVersionedContentsRecursively(final VersionedProcessGroup group) throws NiFiRegistryException, IOException {
         if (group == null) {
             return;
         }
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = coordinates.getRegistryUrl();
+            final String registryUrl = coordinates.getStorageLocation();
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
@@ -150,7 +146,6 @@ public class RegistryUtil {
             group.setProcessGroups(contents.getProcessGroups());
             group.setProcessors(contents.getProcessors());
             group.setRemoteProcessGroups(contents.getRemoteProcessGroups());
-            group.setVariables(contents.getVariables());
             group.setFlowFileConcurrency(contents.getFlowFileConcurrency());
             group.setFlowFileOutboundPolicy(contents.getFlowFileOutboundPolicy());
             group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());
@@ -161,7 +156,7 @@ public class RegistryUtil {
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedContentsRecursively(child, user);
+            populateVersionedContentsRecursively(child);
         }
     }
 }

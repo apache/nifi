@@ -21,10 +21,12 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -36,6 +38,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -130,9 +133,7 @@ public interface FlowManager extends ParameterProviderLookup {
      * @throws IllegalStateException if the snippet is not valid because a
      * component in the snippet has an ID that is not unique to this flow, or
      * because it shares an Input Port or Output Port at the root level whose
-     * name already exists in the given ProcessGroup, or because the Template
-     * contains a Processor or a Prioritizer whose class is not valid within
-     * this instance of NiFi.
+     * name already exists in the given ProcessGroup.
      * @throws ProcessorInstantiationException if unable to instantiate a
      * processor
      */
@@ -330,7 +331,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     FlowRegistryClientNode getFlowRegistryClient(String id);
 
-    void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode);
+    void removeFlowRegistryClient(FlowRegistryClientNode clientNode);
 
     Set<FlowRegistryClientNode> getAllFlowRegistryClients();
 
@@ -359,6 +360,7 @@ public interface FlowManager extends ParameterProviderLookup {
      *
      * @param id                The unique id
      * @param name              The ParameterContext name
+     * @param description       The ParameterContext description
      * @param parameters        The Parameters
      * @param inheritedContextIds The identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
      * order in which parameters with conflicting names are resolved. I.e., the Parameter Context whose ID comes first in the List is preferred.
@@ -367,8 +369,8 @@ public interface FlowManager extends ParameterProviderLookup {
      * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
      * by {@link FlowManager#withParameterContextResolution(Runnable)}
      */
-    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<String> inheritedContextIds,
-                                            ParameterProviderConfiguration parameterProviderConfiguration);
+    ParameterContext createParameterContext(String id, String name, String description, Map<String, Parameter> parameters,
+                                            List<String> inheritedContextIds, ParameterProviderConfiguration parameterProviderConfiguration);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.
@@ -392,7 +394,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     /**
      * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port,
-     * Parameter Provider, Reporting Task, Remote Process Group)
+     * Parameter Provider, Reporting Task, Flow Analysis Rule, Remote Process Group)
      */
     Map<String, Integer> getComponentCounts();
 
@@ -401,12 +403,40 @@ public interface FlowManager extends ParameterProviderLookup {
      *
      * Process Groups (and all components within it)
      * Controller Services
-     * Templates
      * Reporting Tasks
+     * Flow Analysis Rules
      * Parameter Contexts
      * Flow Registries
      *
      * @throws IllegalStateException if any of the components is not in a state that it can be deleted.
      */
     void purge();
+
+    // Flow Analysis
+    FlowAnalysisRuleNode createFlowAnalysisRule(
+        final String type,
+        final String id,
+        final BundleCoordinate bundleCoordinate,
+        final boolean firstTimeAdded
+    );
+
+    FlowAnalysisRuleNode createFlowAnalysisRule(
+        final String type,
+        final String id,
+        final BundleCoordinate bundleCoordinate,
+        final Set<URL> additionalUrls,
+        final boolean firstTimeAdded,
+        final boolean register,
+        final String classloaderIsolationKey
+    );
+
+    FlowAnalysisRuleNode getFlowAnalysisRuleNode(final String taskId);
+
+    void removeFlowAnalysisRule(final FlowAnalysisRuleNode reportingTask);
+
+    Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules();
+
+    Optional<FlowAnalyzer> getFlowAnalyzer();
+
+    Optional<RuleViolationsManager> getRuleViolationsManager();
 }

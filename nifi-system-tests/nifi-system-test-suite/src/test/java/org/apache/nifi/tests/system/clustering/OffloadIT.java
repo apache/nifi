@@ -25,11 +25,13 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 public class OffloadIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(OffloadIT.class);
@@ -40,6 +42,9 @@ public class OffloadIT extends NiFiSystemIT {
     }
 
     @Test
+    @Timeout(value = 10, unit = TimeUnit.MINUTES)
+    // Test to ensure that node can be offloaded, reconnected, offloaded several times. This test typically takes only about 1-2 minutes
+    // but can occasionally take 5-6 minutes on Github Actions so we set the timeout to 10 minutes to allow for these occasions
     public void testOffload() throws InterruptedException, IOException, NiFiClientException {
         for (int i=0; i < 5; i++) {
             logger.info("Running iteration {}", i);

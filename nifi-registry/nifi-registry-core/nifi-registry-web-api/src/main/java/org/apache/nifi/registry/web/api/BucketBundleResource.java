@@ -19,11 +19,26 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.registry.event.EventFactory;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.extension.bundle.Bundle;
@@ -38,25 +53,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
 @Component
 @Path("/buckets/{bucketId}/bundles")
 @Api(
-        value = "bucket bundles",
-        description = "Create extension bundles scoped to an existing bucket in the registry. ",
-        authorizations = { @Authorization("Authorization") }
+    value = "bucket bundles",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Create extension bundles scoped to an existing bucket in the registry.")
+})
 public class BucketBundleResource extends ApplicationResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BucketBundleResource.class);
@@ -86,6 +92,22 @@ public class BucketBundleResource extends ApplicationResource {
                     @Extension(name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
                             @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+            }
+    )
+    @ApiImplicitParams(
+            value = {
+                    @ApiImplicitParam(
+                            name = "file",
+                            value = "The binary content of the bundle file being uploaded.",
+                            required = true,
+                            type = "file",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "sha256",
+                            value = "Optional sha256 of the provided bundle",
+                            required = false,
+                            type = "string",
+                            paramType = "formData")
             }
     )
     @ApiResponses({

@@ -176,9 +176,9 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
+        MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client1.onEnabled(clientContext1);
-        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup());
+        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup(), null);
         client2.onEnabled(clientContext2);
 
         try {
@@ -197,9 +197,9 @@ public class TestDistributedMapServerAndClient {
             // Client 1 and 2 fetch the key
             AtomicCacheEntry<String, String, Long> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
             AtomicCacheEntry<String, String, Long> c2 = client2.fetch(key, stringSerializer, stringDeserializer);
-            assertEquals(new Long(0), c1.getRevision().orElse(0L));
+            assertEquals(Long.valueOf(0), c1.getRevision().orElse(0L));
             assertEquals("valueC1-0", c1.getValue());
-            assertEquals(new Long(0), c2.getRevision().orElse(0L));
+            assertEquals(Long.valueOf(0), c2.getRevision().orElse(0L));
             assertEquals("valueC1-0", c2.getValue());
 
             // Client 1 replace
@@ -214,7 +214,7 @@ public class TestDistributedMapServerAndClient {
             // Client 2 fetch the key again
             c2 = client2.fetch(key, stringSerializer, stringDeserializer);
             assertEquals("valueC1-1", c2.getValue());
-            assertEquals(new Long(1), c2.getRevision().orElse(0L));
+            assertEquals(Long.valueOf(1), c2.getRevision().orElse(0L));
 
             // Now, Client 2 knows the correct revision so it can replace the key
             c2.setValue("valueC2-2");
@@ -224,7 +224,7 @@ public class TestDistributedMapServerAndClient {
             // Assert the cache
             c2 = client2.fetch(key, stringSerializer, stringDeserializer);
             assertEquals("valueC2-2", c2.getValue());
-            assertEquals(new Long(2), c2.getRevision().orElse(0L));
+            assertEquals(Long.valueOf(2), c2.getRevision().orElse(0L));
         } finally {
             client1.close();
             client2.close();
@@ -258,7 +258,7 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
+        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         try {
@@ -350,7 +350,7 @@ public class TestDistributedMapServerAndClient {
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
-        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         return client;

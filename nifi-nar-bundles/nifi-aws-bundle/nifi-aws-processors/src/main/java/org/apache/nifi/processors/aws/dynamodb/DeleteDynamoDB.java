@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -37,14 +30,21 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.DeleteRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
+import software.amazon.awssdk.utils.CollectionUtils;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @SupportsBatching
 @SeeAlso({GetDynamoDB.class, PutDynamoDB.class, PutDynamoDBRecord.class})
@@ -59,7 +59,6 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "DynamoDB exception message"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "DynamoDB error code"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "DynamoDB error message"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "DynamoDB error type"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "DynamoDB error service"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "DynamoDB error is retryable"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "DynamoDB error request id"),
@@ -69,13 +68,23 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
     @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
     @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
     })
-public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
+public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
-                HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
-                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE,
-                PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+        TABLE,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        HASH_KEY_NAME,
+        RANGE_KEY_NAME,
+        HASH_KEY_VALUE,
+        RANGE_KEY_VALUE,
+        HASH_KEY_VALUE_TYPE,
+        RANGE_KEY_VALUE_TYPE,
+        BATCH_SIZE,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        SSL_CONTEXT_SERVICE,
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -84,79 +93,88 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
+        final List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
         if (flowFiles == null || flowFiles.size() == 0) {
             return;
         }
 
-        Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
+        final Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
 
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
 
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
-        final String hashKeyValueType = context.getProperty(HASH_KEY_VALUE_TYPE).getValue();
         final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
-        final String rangeKeyValueType = context.getProperty(RANGE_KEY_VALUE_TYPE).getValue();
 
-        TableWriteItems tableWriteItems = new TableWriteItems(table);
+        final Map<String, Collection<WriteRequest>> tableNameRequestItemsMap = new HashMap<>();
+        final Collection<WriteRequest> requestItems = new ArrayList<>();
+        tableNameRequestItemsMap.put(table, requestItems);
 
-        for (FlowFile flowFile : flowFiles) {
-            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
-            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
+        for (final FlowFile flowFile : flowFiles) {
+            final AttributeValue hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
+            final AttributeValue rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
 
-            if ( ! isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
+            if (!isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
                 continue;
             }
 
-            if ( ! isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
+            if (!isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
                 continue;
             }
 
-            if ( rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString()) ) {
-                tableWriteItems.addHashOnlyPrimaryKeysToDelete(hashKeyName, hashKeyValue);
-            } else {
-                tableWriteItems.addHashAndRangePrimaryKeyToDelete(hashKeyName,
-                        hashKeyValue, rangeKeyName, rangeKeyValue);
+            final Map<String, AttributeValue> keyMap = new HashMap<>();
+            keyMap.put(hashKeyName, hashKeyValue);
+            if (!isBlank(rangeKeyValue)) {
+                keyMap.put(rangeKeyName, rangeKeyValue);
             }
+            final DeleteRequest deleteRequest = DeleteRequest.builder()
+                    .key(keyMap)
+                    .build();
+            final WriteRequest writeRequest = WriteRequest.builder().deleteRequest(deleteRequest).build();
+            requestItems.add(writeRequest);
+
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
         }
 
-        if ( keysToFlowFileMap.isEmpty() ) {
+        if (keysToFlowFileMap.isEmpty()) {
             return;
         }
 
-        final DynamoDB dynamoDB = getDynamoDB(context);
+        final DynamoDbClient client = getClient(context);
 
         try {
-            BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);
+            final BatchWriteItemRequest batchWriteItemRequest = BatchWriteItemRequest.builder().requestItems(tableNameRequestItemsMap).build();
+            final BatchWriteItemResponse response = client.batchWriteItem(batchWriteItemRequest);
 
-            handleUnprocessedItems(session, keysToFlowFileMap, table, hashKeyName, hashKeyValueType, rangeKeyName,
-               rangeKeyValueType, outcome);
+            if (CollectionUtils.isNotEmpty(response.unprocessedItems())) {
+                // Handle unprocessed items
+                final List<WriteRequest> unprocessedItems = response.unprocessedItems().get(table);
+                for (final WriteRequest writeRequest : unprocessedItems) {
+                    final Map<String, AttributeValue> item = writeRequest.deleteRequest().key();
+                    final AttributeValue hashKeyValue = item.get(hashKeyName);
+                    final AttributeValue rangeKeyValue = item.get(rangeKeyName);
+
+                    sendUnprocessedToUnprocessedRelationship(session, keysToFlowFileMap, hashKeyValue, rangeKeyValue);
+                }
+            }
 
             // All non unprocessed items are successful
-            for (FlowFile flowFile : keysToFlowFileMap.values()) {
+            for (final FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successfully deleted item from dynamodb : " + table);
-                session.transfer(flowFile,REL_SUCCESS);
+                session.transfer(flowFile, REL_SUCCESS);
             }
-        } catch(AmazonServiceException exception) {
+        } catch (final AwsServiceException exception) {
             getLogger().error("Could not process flowFiles due to service exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        } catch(AmazonClientException exception) {
-            getLogger().error("Could not process flowFiles due to client exception : " + exception.getMessage());
-            List<FlowFile> failedFlowFiles = processClientException(session, flowFiles, exception);
+        } catch (final SdkException exception) {
+            getLogger().error("Could not process flowFiles due to SDK exception : " + exception.getMessage());
+            List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        } catch(Exception exception) {
+        } catch (final Exception exception) {
             getLogger().error("Could not process flowFiles due to exception : " + exception.getMessage());
             List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected Map<String, AttributeValue> getRequestItem(WriteRequest writeRequest) {
-        return writeRequest.getDeleteRequest().getKey();
-    }
 }

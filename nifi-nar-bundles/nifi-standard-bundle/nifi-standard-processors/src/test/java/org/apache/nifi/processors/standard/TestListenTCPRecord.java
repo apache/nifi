@@ -26,7 +26,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -45,11 +44,9 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestListenTCPRecord {
@@ -225,7 +222,12 @@ public class TestListenTCPRecord {
                 final OutputStream outputStream = socket.getOutputStream();
                 outputStream.write(DATA.getBytes(StandardCharsets.UTF_8));
                 outputStream.flush();
-            } catch (final IOException e) {
+                /**
+                 * Once NIFI-12098 is resolved this sleep can be removed.  Without the sleep
+                 * on some systems (Windows builds often) the build can fail and lockup indefinitely.
+                 */
+                Thread.sleep(3000);
+            } catch (final IOException | InterruptedException e) {
                 LOGGER.error("Failed Sending Records to Port [{}]", port, e);
             }
         });
@@ -236,9 +238,6 @@ public class TestListenTCPRecord {
         while (getSuccessCount() < expectedTransferred) {
             runner.run(1, false, false);
             iterations++;
-
-            final Optional<LogMessage> firstErrorMessage = runner.getLogger().getErrorMessages().stream().findFirst();
-            assertNull(firstErrorMessage.orElse(null));
         }
         LOGGER.info("Completed after iterations [{}]", iterations);
     }

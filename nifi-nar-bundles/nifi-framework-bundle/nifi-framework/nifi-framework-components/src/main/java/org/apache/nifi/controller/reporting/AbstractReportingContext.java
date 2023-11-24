@@ -32,7 +32,6 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingContext;
@@ -51,18 +50,15 @@ public abstract class AbstractReportingContext implements ReportingContext {
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final ParameterLookup parameterLookup;
-    private final VariableRegistry variableRegistry;
 
-    public AbstractReportingContext(final ReportingTaskNode reportingTaskNode, final BulletinRepository bulletinRepository,
-                                    final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider controllerServiceProvider,
-                                    final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
+    public AbstractReportingContext(final ReportingTaskNode reportingTaskNode, final BulletinRepository bulletinRepository, final Map<PropertyDescriptor, String> properties,
+            final ControllerServiceProvider controllerServiceProvider, final ParameterLookup parameterLookup) {
 
         this.bulletinRepository = bulletinRepository;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = controllerServiceProvider;
         this.reportingTaskNode = reportingTaskNode;
         this.parameterLookup = parameterLookup;
-        this.variableRegistry = variableRegistry;
         this.preparedQueries = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -109,8 +105,7 @@ public abstract class AbstractReportingContext implements ReportingContext {
 
         final String configuredValue = properties.get(property);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-        return new StandardPropertyValue(resourceContext, configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property),
-            variableRegistry);
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property));
     }
 
     @Override

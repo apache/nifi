@@ -19,33 +19,31 @@ package org.apache.nifi.reporting.sql;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.sql.bulletins.BulletinTable;
-import org.apache.nifi.reporting.sql.connectionstatus.ConnectionStatusTable;
-import org.apache.nifi.reporting.sql.connectionstatuspredictions.ConnectionStatusPredictionsTable;
-import org.apache.nifi.reporting.sql.flowconfighistory.FlowConfigHistoryTable;
-import org.apache.nifi.reporting.sql.metrics.JvmMetricsTable;
-import org.apache.nifi.reporting.sql.processgroupstatus.ProcessGroupStatusTable;
-import org.apache.nifi.reporting.sql.processorstatus.ProcessorStatusTable;
-import org.apache.nifi.reporting.sql.provenance.ProvenanceTable;
+import org.apache.nifi.reporting.sql.datasources.BulletinDataSource;
+import org.apache.nifi.reporting.sql.datasources.ConnectionStatusDataSource;
+import org.apache.nifi.reporting.sql.datasources.ConnectionStatusPredictionDataSource;
+import org.apache.nifi.reporting.sql.datasources.FlowConfigHistoryDataSource;
+import org.apache.nifi.reporting.sql.datasources.GroupStatusCache;
+import org.apache.nifi.reporting.sql.datasources.JvmMetricsDataSource;
+import org.apache.nifi.reporting.sql.datasources.ProcessGroupStatusDataSource;
+import org.apache.nifi.reporting.sql.datasources.ProcessorStatusDataSource;
+import org.apache.nifi.reporting.sql.datasources.ProvenanceDataSource;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
+import org.apache.nifi.sql.CalciteDatabase;
+import org.apache.nifi.sql.NiFiTable;
+import org.apache.nifi.sql.ResettableDataSource;
 import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
@@ -64,12 +62,6 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     public MetricsSqlQueryService(ComponentLog logger, final int defaultPrecision, final int defaultScale) {
         this.defaultPrecision = defaultPrecision;
         this.defaultScale = defaultScale;
-        try {
-            DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
-        } catch (final SQLException e) {
-            throw new ProcessException("Failed to load Calcite JDBC Driver", e);
-        }
-
         this.logger = logger;
     }
 
@@ -77,9 +69,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         return logger;
     }
 
-    public QueryResult query(final ReportingContext context, final String sql)
-            throws Exception {
-
+    public QueryResult query(final ReportingContext context, final String sql) throws Exception {
         final Supplier<CachedStatement> statementBuilder = () -> {
             try {
                 return buildCachedStatement(sql, context);
@@ -128,7 +118,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         try {
             recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale);
         } catch (final SQLException e) {
-            getLogger().error("Error creating record set from query results due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Error creating record set from query results due to {}", e.getMessage(), e);
         }
 
         return recordSet;
@@ -148,59 +138,55 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     }
 
     private CachedStatement buildCachedStatement(final String sql, final ReportingContext context) throws Exception {
+        final CalciteDatabase database = new CalciteDatabase();
 
-        final CalciteConnection connection = createConnection();
-        final SchemaPlus rootSchema = createRootSchema(connection);
+        final GroupStatusCache groupStatusCache = new GroupStatusCache(Duration.ofSeconds(60));
 
-        final ConnectionStatusTable connectionStatusTable = new ConnectionStatusTable(context, getLogger());
-        rootSchema.add("CONNECTION_STATUS", connectionStatusTable);
+        final ResettableDataSource connectionStatusDataSource = new ConnectionStatusDataSource(context, groupStatusCache);
+        final NiFiTable connectionStatusTable = new NiFiTable("CONNECTION_STATUS", connectionStatusDataSource, getLogger());
+        database.addTable(connectionStatusTable);
+
         if (context.isAnalyticsEnabled()) {
-            final ConnectionStatusPredictionsTable connectionStatusPredictionsTable = new ConnectionStatusPredictionsTable(context, getLogger());
-            rootSchema.add("CONNECTION_STATUS_PREDICTIONS", connectionStatusPredictionsTable);
+            final ResettableDataSource predictionDataSource = new ConnectionStatusPredictionDataSource(context, groupStatusCache);
+            final NiFiTable connectionStatusPredictionsTable = new NiFiTable("CONNECTION_STATUS_PREDICTIONS", predictionDataSource, getLogger());
+            database.addTable(connectionStatusPredictionsTable);
         } else {
             getLogger().debug("Analytics is not enabled, CONNECTION_STATUS_PREDICTIONS table is not available for querying");
         }
-        final ProcessorStatusTable processorStatusTable = new ProcessorStatusTable(context, getLogger());
-        rootSchema.add("PROCESSOR_STATUS", processorStatusTable);
-        final ProcessGroupStatusTable processGroupStatusTable = new ProcessGroupStatusTable(context, getLogger());
-        rootSchema.add("PROCESS_GROUP_STATUS", processGroupStatusTable);
-        final JvmMetricsTable jvmMetricsTable = new JvmMetricsTable(context, getLogger());
-        rootSchema.add("JVM_METRICS", jvmMetricsTable);
-        final BulletinTable bulletinTable = new BulletinTable(context, getLogger());
-        rootSchema.add("BULLETINS", bulletinTable);
-        final ProvenanceTable provenanceTable = new ProvenanceTable(context, getLogger());
-        rootSchema.add("PROVENANCE", provenanceTable);
-        final FlowConfigHistoryTable flowConfigHistoryTable = new FlowConfigHistoryTable(context, getLogger());
-        rootSchema.add("FLOW_CONFIG_HISTORY", flowConfigHistoryTable);
 
-        rootSchema.setCacheEnabled(false);
+        final ResettableDataSource processorStatusDataSource = new ProcessorStatusDataSource(context, groupStatusCache);
+        final NiFiTable processorStatusTable = new NiFiTable("PROCESSOR_STATUS", processorStatusDataSource, getLogger());
+        database.addTable(processorStatusTable);
 
+        final ResettableDataSource processGroupStatusDataSource = new ProcessGroupStatusDataSource(context, groupStatusCache);
+        final NiFiTable processGroupStatusTable = new NiFiTable("PROCESS_GROUP_STATUS", processGroupStatusDataSource, getLogger());
+        database.addTable(processGroupStatusTable);
+
+        final ResettableDataSource jvmMetricsDataSource = new JvmMetricsDataSource();
+        final NiFiTable jvmMetricsTable = new NiFiTable("JVM_METRICS", jvmMetricsDataSource, getLogger());
+        database.addTable(jvmMetricsTable);
+
+        final ResettableDataSource bulletinDataSource = new BulletinDataSource(context);
+        final NiFiTable bulletinTable = new NiFiTable("BULLETINS", bulletinDataSource, getLogger());
+        database.addTable(bulletinTable);
+
+        final ResettableDataSource provenanceDataSource = new ProvenanceDataSource(context);
+        final NiFiTable provenanceTable = new NiFiTable("PROVENANCE", provenanceDataSource, getLogger());
+        database.addTable(provenanceTable);
+
+        final ResettableDataSource flowConfigHistoryDataSource = new FlowConfigHistoryDataSource(context);
+        final NiFiTable flowConfigHistoryTable = new NiFiTable("FLOW_CONFIG_HISTORY", flowConfigHistoryDataSource, getLogger());
+        database.addTable(flowConfigHistoryTable);
+
+        final Connection connection = database.getConnection();
         final PreparedStatement stmt = connection.prepareStatement(sql);
-        return new CachedStatement(stmt, connection);
-    }
-
-    private SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
-        final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-        // Add any custom functions here
-        return rootSchema;
-    }
-
-    private CalciteConnection createConnection() {
-        final Properties properties = new Properties();
-        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
-
-        try {
-            final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
-            return connection.unwrap(CalciteConnection.class);
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
+        return new CachedStatement(stmt, database);
     }
 
     private void clearQueue(final BlockingQueue<CachedStatement> statementQueue) {
         CachedStatement stmt;
         while ((stmt = statementQueue.poll()) != null) {
-            closeQuietly(stmt.getStatement(), stmt.getConnection());
+            closeQuietly(stmt.getStatement(), stmt.getDatabase());
         }
     }
 
@@ -226,26 +212,9 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         clearQueue(queue);
     }
 
-    private class PreparedStatementException extends RuntimeException {
-
-        public PreparedStatementException() {
-            super();
-        }
-
-        public PreparedStatementException(String message) {
-            super(message);
-        }
-
-        public PreparedStatementException(String message, Throwable cause) {
-            super(message, cause);
-        }
-
-        public PreparedStatementException(Throwable cause) {
+    private static class PreparedStatementException extends RuntimeException {
+        public PreparedStatementException(final Throwable cause) {
             super(cause);
-        }
-
-        public PreparedStatementException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-            super(message, cause, enableSuppression, writableStackTrace);
         }
     }
 }

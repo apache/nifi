@@ -57,25 +57,20 @@ public enum RemoteProcessGroupStatusDescriptor {
         "Received Bytes Per Second",
         "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second",
         Formatter.DATA_SIZE,
-        s -> s.getReceivedContentSize().longValue() / 300L),
+        s -> s.getReceivedContentSize() / 300L),
 
     SENT_BYTES_PER_SECOND(
         "sentBytesPerSecond",
         "Sent Bytes Per Second",
         "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second",
         Formatter.DATA_SIZE,
-        s -> s.getSentContentSize().longValue() / 300L),
+        s -> s.getSentContentSize() / 300L),
 
     TOTAL_BYTES_PER_SECOND("totalBytesPerSecond",
         "Total Bytes Per Second",
         "The sum of the send and receive data rate from the remote system in the past 5 minutes in terms of Bytes Per Second",
         Formatter.DATA_SIZE,
-        new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf((status.getReceivedContentSize().longValue() + status.getSentContentSize().longValue()) / 300L);
-            }
-        }),
+        status -> (status.getReceivedContentSize() + status.getSentContentSize()) / 300L),
 
     AVERAGE_LINEAGE_DURATION(
         "averageLineageDuration",
@@ -83,24 +78,24 @@ public enum RemoteProcessGroupStatusDescriptor {
         "The average amount of time that a FlowFile took to process from receipt to drop in the past 5 minutes. For Processors that do not terminate FlowFiles, this value will be 0.",
         Formatter.DURATION,
         s -> s.getAverageLineageDuration(TimeUnit.MILLISECONDS),
-        new ValueReducer<StatusSnapshot, Long>() {
-            @Override
-            public Long reduce(final List<StatusSnapshot> values) {
-                long millis = 0L;
-                int count = 0;
+            new ValueReducer<>() {
+                @Override
+                public Long reduce(final List<StatusSnapshot> values) {
+                    long millis = 0L;
+                    long count = 0;
 
-                for (final StatusSnapshot snapshot : values) {
-                    final long sent = snapshot.getStatusMetric(SENT_COUNT.getDescriptor()).longValue();
-                    count += sent;
+                    for (final StatusSnapshot snapshot : values) {
+                        final long sent = snapshot.getStatusMetric(SENT_COUNT.getDescriptor());
+                        count += sent;
 
-                    final long avgMillis = snapshot.getStatusMetric(AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue();
-                    final long totalMillis = avgMillis * sent;
-                    millis += totalMillis;
+                        final long avgMillis = snapshot.getStatusMetric(AVERAGE_LINEAGE_DURATION.getDescriptor());
+                        final long totalMillis = avgMillis * sent;
+                        millis += totalMillis;
+                    }
+
+                    return count == 0 ? 0 : millis / count;
                 }
-
-                return count == 0 ? 0 : millis / count;
-            }
-        });
+            });
 
 
     private final MetricDescriptor<RemoteProcessGroupStatus> descriptor;

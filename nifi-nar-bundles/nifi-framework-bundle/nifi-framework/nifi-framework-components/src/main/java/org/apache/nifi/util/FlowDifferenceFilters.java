@@ -30,11 +30,9 @@ import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
-import org.apache.nifi.registry.flow.diff.FlowDifferenceUtil;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
@@ -58,13 +56,10 @@ public class FlowDifferenceFilters {
      */
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
-            || isVariableValueChange(difference)
             || isSensitivePropertyDueToGhosting(difference, flowManager)
-            || isAncestorVariableAdded(difference, flowManager)
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
             || isPublicPortNameChange(difference)
-            || isIgnorableVersionedFlowCoordinateChange(difference)
             || isNewPropertyWithDefaultValue(difference, flowManager)
             || isNewRelationshipAutoTerminatedAndDefaulted(difference, localGroup, flowManager)
             || isScheduledStateNew(difference)
@@ -180,34 +175,6 @@ public class FlowDifferenceFilters {
         return false;
     }
 
-    public static Predicate<FlowDifference> FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES = (fd) -> !isIgnorableVersionedFlowCoordinateChange(fd);
-
-    public static boolean isIgnorableVersionedFlowCoordinateChange(final FlowDifference fd) {
-        if (fd.getDifferenceType() == DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED) {
-            final VersionedComponent componentA = fd.getComponentA();
-            final VersionedComponent componentB = fd.getComponentB();
-
-            if (componentA instanceof VersionedProcessGroup && componentB instanceof VersionedProcessGroup) {
-                final VersionedProcessGroup versionedProcessGroupA = (VersionedProcessGroup) componentA;
-                final VersionedProcessGroup versionedProcessGroupB = (VersionedProcessGroup) componentB;
-
-                final VersionedFlowCoordinates coordinatesA = versionedProcessGroupA.getVersionedFlowCoordinates();
-                final VersionedFlowCoordinates coordinatesB = versionedProcessGroupB.getVersionedFlowCoordinates();
-
-                if (coordinatesA != null && coordinatesB != null) {
-                    if (coordinatesA.getStorageLocation() != null || coordinatesB.getStorageLocation() != null) {
-                        return false;
-                    }
-
-                    return  !FlowDifferenceUtil.areRegistryStrictlyEqual(coordinatesA, coordinatesB)
-                            && FlowDifferenceUtil.areRegistryUrlsEqual(coordinatesA, coordinatesB)
-                            && coordinatesA.getVersion() == coordinatesB.getVersion();
-                }
-            }
-        }
-
-        return false;
-    }
 
     private static boolean isNewZIndexLabelConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         final Object valueA = fd.getValueA();
@@ -374,30 +341,6 @@ public class FlowDifferenceFilters {
         }
         if ("RUNNING".equals(scheduledStateA) && ("STOPPED".equals(scheduledStateB) || "ENABLED".equals(scheduledStateB))) {
             return true;
-        }
-
-        return false;
-    }
-
-    public static boolean isVariableValueChange(final FlowDifference flowDifference) {
-        return flowDifference.getDifferenceType() == DifferenceType.VARIABLE_CHANGED;
-    }
-
-    public static boolean isAncestorVariableAdded(final FlowDifference fd, final FlowManager flowManager) {
-        if (fd.getDifferenceType() == DifferenceType.VARIABLE_ADDED) {
-            if (fd.getComponentA() instanceof InstantiatedVersionedComponent) {
-                final InstantiatedVersionedComponent componentA = (InstantiatedVersionedComponent) fd.getComponentA();
-                final ProcessGroup processGroup = flowManager.getGroup(componentA.getInstanceIdentifier());
-                if (processGroup.getVariableRegistry().getVariableKey(fd.getFieldName().get()) == null)  {
-                    return true;
-                }
-            } else if (fd.getComponentB() instanceof InstantiatedVersionedComponent) {
-                final InstantiatedVersionedComponent componentB = (InstantiatedVersionedComponent) fd.getComponentB();
-                final ProcessGroup processGroup = flowManager.getGroup(componentB.getInstanceIdentifier());
-                if (processGroup.getVariableRegistry().getVariableKey(fd.getFieldName().get()) == null)  {
-                    return true;
-                }
-            }
         }
 
         return false;

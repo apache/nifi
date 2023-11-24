@@ -43,23 +43,19 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
         }
 
         switch (component.getConnectableType()) {
-            case PROCESSOR: {
+            case PROCESSOR -> {
                 final ProcessorNode processorNode = (ProcessorNode) component;
                 processorNode.getProcessGroup().startProcessor(processorNode, false);
-                break;
             }
-            case INPUT_PORT: {
+            case INPUT_PORT -> {
                 final Port port = (Port) component;
                 port.getProcessGroup().startInputPort(port);
-                break;
             }
-            case OUTPUT_PORT: {
+            case OUTPUT_PORT -> {
                 final Port port = (Port) component;
                 port.getProcessGroup().startOutputPort(port);
-                break;
             }
-            case REMOTE_INPUT_PORT:
-            case REMOTE_OUTPUT_PORT: {
+            case REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> {
                 final RemoteGroupPort port = (RemoteGroupPort) component;
                 port.getRemoteProcessGroup().startTransmitting(port);
             }

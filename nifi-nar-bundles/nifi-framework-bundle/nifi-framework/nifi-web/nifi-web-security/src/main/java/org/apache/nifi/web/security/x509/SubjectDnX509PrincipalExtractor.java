@@ -17,6 +17,8 @@
 package org.apache.nifi.web.security.x509;
 
 import java.security.cert.X509Certificate;
+
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
@@ -25,8 +27,7 @@ import org.springframework.security.web.authentication.preauth.x509.X509Principa
 public class SubjectDnX509PrincipalExtractor implements X509PrincipalExtractor {
 
     @Override
-    public Object extractPrincipal(X509Certificate cert) {
-        return cert.getSubjectDN().getName().trim();
+    public Object extractPrincipal(final X509Certificate cert) {
+        return StandardPrincipalFormatter.getInstance().getSubject(cert);
     }
-
 }

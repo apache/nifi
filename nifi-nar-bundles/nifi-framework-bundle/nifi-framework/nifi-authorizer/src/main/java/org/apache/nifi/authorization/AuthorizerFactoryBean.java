@@ -16,6 +16,27 @@
  */
 package org.apache.nifi.authorization;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -43,28 +64,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Factory bean for loading the configured authorizer.
@@ -445,24 +444,18 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         for (final Method method : authorizerClass.getMethods()) {
             if (method.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
+                final Class<?>[] argumentTypes = method.getParameterTypes();
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
+                // look for setters (single argument)
+                if (argumentTypes.length == 1) {
+                    final Class<?> argumentType = argumentTypes[0];
 
-                    // look for setters (single argument)
-                    if (argumentTypes.length == 1) {
-                        final Class<?> argumentType = argumentTypes[0];
-
-                        // look for well known types
-                        if (NiFiProperties.class.isAssignableFrom(argumentType)) {
-                            // nifi properties injection
-                            method.invoke(instance, properties);
-                        }
+                    // look for well known types
+                    if (NiFiProperties.class.isAssignableFrom(argumentType)) {
+                        // nifi properties injection
+                        method.invoke(instance, properties);
                     }
-                } finally {
-                    method.setAccessible(isAccessible);
                 }
             }
         }
@@ -477,24 +470,18 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         for (final Field field : authorizerClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = field.isAccessible();
                 field.setAccessible(true);
 
-                try {
-                    // get the type
-                    final Class<?> fieldType = field.getType();
+                // get the type
+                final Class<?> fieldType = field.getType();
 
-                    // only consider this field if it isn't set yet
-                    if (field.get(instance) == null) {
-                        // look for well known types
-                        if (NiFiProperties.class.isAssignableFrom(fieldType)) {
-                            // nifi properties injection
-                            field.set(instance, properties);
-                        }
+                // only consider this field if it isn't set yet
+                if (field.get(instance) == null) {
+                    // look for well known types
+                    if (NiFiProperties.class.isAssignableFrom(fieldType)) {
+                        // nifi properties injection
+                        field.set(instance, properties);
                     }
-
-                } finally {
-                    field.setAccessible(isAccessible);
                 }
             }
         }

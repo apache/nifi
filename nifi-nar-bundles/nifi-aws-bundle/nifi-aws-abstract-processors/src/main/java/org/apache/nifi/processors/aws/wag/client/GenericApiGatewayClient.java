@@ -2,8 +2,10 @@ package org.apache.nifi.processors.aws.wag.client;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceClient;
+import com.amazonaws.AmazonWebServiceResponse;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.DefaultRequest;
+import com.amazonaws.Response;
 import com.amazonaws.auth.AWS4Signer;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.http.AmazonHttpClient;
@@ -12,6 +14,7 @@ import com.amazonaws.http.HttpMethodName;
 import com.amazonaws.http.HttpResponseHandler;
 import com.amazonaws.http.JsonResponseHandler;
 import com.amazonaws.internal.auth.DefaultSignerProvider;
+import com.amazonaws.protocol.json.JsonErrorResponseMetadata;
 import com.amazonaws.protocol.json.JsonOperationMetadata;
 import com.amazonaws.protocol.json.SdkStructuredPlainJsonFactory;
 import com.amazonaws.regions.Region;
@@ -19,9 +22,9 @@ import com.amazonaws.transform.JsonErrorUnmarshaller;
 import com.amazonaws.transform.JsonUnmarshallerContext;
 import com.amazonaws.transform.Unmarshaller;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,14 +36,16 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
     private final JsonResponseHandler<GenericApiGatewayResponse> responseHandler;
     private final HttpResponseHandler<AmazonServiceException> errorResponseHandler;
     private final AWSCredentialsProvider credentials;
-    private String apiKey;
+    private final String apiKey;
     private final AWS4Signer signer;
+    private final URI endpoint;
+    private final String region;
 
     GenericApiGatewayClient(ClientConfiguration clientConfiguration, String endpoint, Region region,
                             AWSCredentialsProvider credentials, String apiKey, AmazonHttpClient httpClient) {
         super(clientConfiguration);
-        setRegion(region);
-        setEndpoint(endpoint);
+        this.endpoint = URI.create(endpoint);
+        this.region = region.getName();
         this.credentials = credentials;
         this.apiKey = apiKey;
         this.signer = new AWS4Signer();
@@ -50,14 +55,16 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
         final JsonOperationMetadata metadata = new JsonOperationMetadata().withHasStreamingSuccessResponse(false).withPayloadJson(false);
         final Unmarshaller<GenericApiGatewayResponse, JsonUnmarshallerContext> responseUnmarshaller = in -> new GenericApiGatewayResponse(in.getHttpResponse());
         this.responseHandler = SdkStructuredPlainJsonFactory.SDK_JSON_FACTORY.createResponseHandler(metadata, responseUnmarshaller);
-        JsonErrorUnmarshaller defaultErrorUnmarshaller = new JsonErrorUnmarshaller(GenericApiGatewayException.class, null) {
+
+        final JsonErrorResponseMetadata errorResponseMetadata = new JsonErrorResponseMetadata();
+        final JsonErrorUnmarshaller defaultErrorUnmarshaller = new JsonErrorUnmarshaller(GenericApiGatewayException.class, null) {
             @Override
-            public AmazonServiceException unmarshall(JsonNode jsonContent) throws Exception {
+            public AmazonServiceException unmarshall(final JsonNode jsonContent) {
                 return new GenericApiGatewayException(jsonContent.toString());
             }
         };
-        this.errorResponseHandler = SdkStructuredPlainJsonFactory.SDK_JSON_FACTORY.createErrorResponseHandler(
-                Collections.singletonList(defaultErrorUnmarshaller), null);
+
+        this.errorResponseHandler = SdkStructuredPlainJsonFactory.SDK_JSON_FACTORY.createErrorResponseHandler(errorResponseMetadata, List.of(defaultErrorUnmarshaller));
 
         if (httpClient != null) {
             super.client = httpClient;
@@ -71,7 +78,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
     private GenericApiGatewayResponse execute(HttpMethodName method, String resourcePath, Map<String, String> headers, Map<String,List<String>> parameters, InputStream content) {
         final ExecutionContext executionContext = buildExecutionContext();
 
-        DefaultRequest request = new DefaultRequest(API_GATEWAY_SERVICE_NAME);
+        DefaultRequest<?> request = new DefaultRequest<>(API_GATEWAY_SERVICE_NAME);
         request.setHttpMethod(method);
         request.setContent(content);
         request.setEndpoint(this.endpoint);
@@ -80,18 +87,25 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
         if (parameters != null) {
             request.setParameters(parameters);
         }
-        return this.client.execute(request, responseHandler, errorResponseHandler, executionContext).getAwsResponse();
+
+        final Response<AmazonWebServiceResponse<GenericApiGatewayResponse>> response = client.requestExecutionBuilder()
+                .request(request)
+                .errorResponseHandler(errorResponseHandler)
+                .executionContext(executionContext)
+                .execute(responseHandler);
+
+        return response.getAwsResponse().getResult();
     }
 
     private ExecutionContext buildExecutionContext() {
-        final ExecutionContext executionContext = ExecutionContext.builder().withSignerProvider(
-                new DefaultSignerProvider(this, signer)).build();
+        final ExecutionContext executionContext = ExecutionContext.builder()
+                .withSignerProvider(new DefaultSignerProvider(this, signer))
+                .build();
         executionContext.setCredentialsProvider(credentials);
-        executionContext.setSigner(signer);
         return executionContext;
     }
 
-    private Map<String, String> buildRequestHeaders(Map<String, String> headers, String apiKey) {
+    private Map<String, String> buildRequestHeaders(Map<String, String> headers, final String apiKey) {
         if (headers == null) {
             headers = new HashMap<>();
         }
@@ -103,6 +117,10 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
 
     public URI getEndpoint() {
         return this.endpoint;
+    }
+
+    public String getRegion() {
+        return region;
     }
 
     @Override

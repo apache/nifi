@@ -16,34 +16,12 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.AmazonHttpClient;
 import com.amazonaws.http.HttpMethodName;
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
@@ -51,7 +29,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -61,18 +39,37 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayClient;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayClientBuilder;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayRequest;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayRequestBuilder;
 import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayResponse;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
 /**
  * This class is the base class for invoking aws gateway api endpoints
  */
-public abstract class AbstractAWSGatewayApiProcessor extends
-                                                     AbstractAWSCredentialsProviderProcessor<GenericApiGatewayClient> {
+public abstract class AbstractAWSGatewayApiProcessor extends AbstractAWSCredentialsProviderProcessor<GenericApiGatewayClient> {
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
     private volatile Pattern regexAttributesToSend = null;
@@ -106,21 +103,23 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     // processing, including when converting http headers, copying attributes, etc.
     // This set includes our strings defined above as well as some standard flowfile
     // attributes.
-    public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(
-        Arrays.asList(STATUS_CODE, STATUS_MESSAGE, RESOURCE_NAME_ATTR, TRANSACTION_ID, "uuid",
-                      "filename", "path")));
+    public static final Set<String> IGNORED_ATTRIBUTES = Set.of(STATUS_CODE,
+            STATUS_MESSAGE,
+            RESOURCE_NAME_ATTR,
+            TRANSACTION_ID,
+            CoreAttributes.UUID.key(),
+            CoreAttributes.FILENAME.key(),
+            CoreAttributes.PATH.key());
 
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("aws-gateway-http-method")
             .displayName("HTTP Method")
-            .description(
-                "HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)."
+            .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)."
                     + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators
-                    .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_AWS_API_KEY = new PropertyDescriptor.Builder()
@@ -141,16 +140,6 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    // we use our own region, because the way the base sets the region after the client is created
-    // resets the endpoint and breaks everything
-    public static final PropertyDescriptor PROP_AWS_GATEWAY_API_REGION = new PropertyDescriptor.Builder()
-            .name("aws-gateway-region")
-            .displayName("Amazon Region")
-            .required(true)
-            .allowableValues(AbstractAWSProcessor.getAvailableRegions())
-            .defaultValue(AbstractAWSProcessor.createAllowableValue(Regions.DEFAULT_REGION).getValue())
-            .build();
-
     public static final PropertyDescriptor PROP_RESOURCE_NAME = new PropertyDescriptor.Builder()
             .name("aws-gateway-resource")
             .displayName("Amazon Gateway Api ResourceName")
@@ -161,13 +150,11 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     public static final PropertyDescriptor PROP_QUERY_PARAMS = new PropertyDescriptor.Builder()
             .name("aws-gateway-query-parameters")
             .displayName("Query Parameters")
-            .description(
-                "The query parameters for this request in the form of Name=Value separated by &")
+            .description("The query parameters for this request in the form of Name=Value separated by &")
             .displayName("Query Parameters")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators
-                    .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
@@ -185,19 +172,16 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     public static final PropertyDescriptor PROP_PUT_OUTPUT_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("aws-gateway-put-response-body-in-attribute")
             .displayName("Put Response Body In Attribute")
-            .description(
-                "If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
+            .description("If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
                     + "FlowFile. The attribute key to put to is determined by evaluating value of this property. ")
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                AttributeExpression.ResultType.STRING))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor PROP_OUTPUT_RESPONSE_REGARDLESS = new PropertyDescriptor.Builder()
             .name("aws-gateway-always-output-response")
             .displayName("Always Output Response")
-            .description(
-                "Will force a response FlowFile to be generated and routed to the 'Response' relationship regardless of what the server status code received is "
+            .description("Will force a response FlowFile to be generated and routed to the 'Response' relationship regardless of what the server status code received is "
                     + "or if the processor is configured to put the server response body in the request attribute. In the later configuration a request FlowFile with the "
                     + "response body in the attribute and a typical response FlowFile will be emitted to their respective relationships.")
             .required(false)
@@ -208,8 +192,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     public static final PropertyDescriptor PROP_PENALIZE_NO_RETRY = new PropertyDescriptor.Builder()
             .name("aws-gateway-penalize-no-retry")
             .displayName("Penalize on \"No Retry\"")
-            .description("Enabling this property will penalize FlowFiles that are routed to the \"No Retry\" " +
-                    "relationship.")
+            .description("Enabling this property will penalize FlowFiles that are routed to the \"No Retry\" relationship.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
@@ -234,10 +217,11 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             .description(
                 "The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
                     + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to "
-                    + DEFAULT_CONTENT_TYPE).required(true).expressionLanguageSupported(true)
+                    + DEFAULT_CONTENT_TYPE)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-            .addValidator(StandardValidators
-                    .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .addValidator(Validator.VALID)
             .build();
 
     public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
@@ -261,32 +245,13 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("aws-gateway-connection-timeout")
-            .displayName("Connection Timeout")
-            .description("Max wait time for connection to remote service.")
-            .required(false)
-            .defaultValue("10 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("aws-gateway-read-timeout")
-            .displayName("Read Timeout")
-            .description("Max wait time for response from remote service.")
-            .required(false)
-            .defaultValue("50 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                                                                     AttributeExpression.ResultType.STRING,
-                                                                     true))
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
     }
@@ -334,22 +299,28 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                                                                    .getValue();
                     // user is not expected to encode, that will be done by the aws client
                     // but we may need to when validating
-                    final String encodedInput = URLEncoder.encode(evaluatedInput, "UTF-8");
+                    final String encodedInput = URLEncoder.encode(evaluatedInput, StandardCharsets.UTF_8);
                     final String url = String.format("http://www.foo.com?%s", encodedInput);
-                    new URL(url);
-                    results.add(new ValidationResult.Builder().subject(PROP_QUERY_PARAMS.getName())
-                                                              .input(input)
-                                                              .explanation("Valid URL params")
-                                                              .valid(true).build());
+                    URI.create(url).toURL();
+
+                    results.add(new ValidationResult.Builder()
+                            .subject(PROP_QUERY_PARAMS.getName())
+                            .input(input)
+                            .explanation("Valid URL params")
+                            .valid(true)
+                            .build());
                 } catch (final Exception e) {
-                    results.add(new ValidationResult.Builder().subject(PROP_QUERY_PARAMS.getName())
-                                                              .input(input).explanation(
-                            "Not a valid set of URL params").valid(false).build());
+                    results.add(new ValidationResult.Builder()
+                            .subject(PROP_QUERY_PARAMS.getName())
+                            .input(input)
+                            .explanation("Not a valid set of URL params")
+                            .valid(false)
+                            .build());
                 }
             }
         }
-        final String method = trimToEmpty(validationContext.getProperty(PROP_METHOD).getValue())
-            .toUpperCase();
+
+        final String method = trimToEmpty(validationContext.getProperty(PROP_METHOD).getValue()).toUpperCase();
 
         // if there are expressions do not validate
         if (!(validationContext.isExpressionLanguageSupported(PROP_METHOD.getName())
@@ -367,30 +338,19 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     }
 
     @Override
-    protected GenericApiGatewayClient createClient(final ProcessContext context,
-                                                   final AWSCredentialsProvider awsCredentialsProvider,
-                                                   final ClientConfiguration clientConfiguration) {
-
+    protected GenericApiGatewayClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         GenericApiGatewayClientBuilder builder = new GenericApiGatewayClientBuilder()
-            .withCredentials(awsCredentialsProvider).withClientConfiguration(clientConfiguration)
-            .withEndpoint(context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue()).withRegion(
-                Region.getRegion(
-                    Regions.fromName(context.getProperty(PROP_AWS_GATEWAY_API_REGION).getValue())));
-        if (context.getProperty(PROP_AWS_API_KEY).isSet()) {
-            builder = builder.withApiKey(context.getProperty(PROP_AWS_API_KEY).evaluateAttributeExpressions().getValue());
-        }
+                .withCredentials(credentialsProvider).withClientConfiguration(config)
+                .withEndpoint(context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue())
+                .withRegion(region)
+                .withApiKey(context.getProperty(PROP_AWS_API_KEY).evaluateAttributeExpressions().getValue());
+
         if (providedClient != null) {
             builder = builder.withHttpClient(providedClient);
         }
-        return builder.build();
-    }
 
-    @Override
-    @Deprecated
-    protected GenericApiGatewayClient createClient(final ProcessContext context,
-                                                   final AWSCredentials credentials,
-                                                   final ClientConfiguration clientConfiguration) {
-        return createClient(context, new AWSStaticCredentialsProvider(credentials), clientConfiguration);
+        return builder.build();
     }
 
     protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
@@ -498,8 +458,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             }
         }
 
-        String contentType = context.getProperty(PROP_CONTENT_TYPE)
-                                    .evaluateAttributeExpressions(requestAttributes).getValue();
+        String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestAttributes).getValue();
         final boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
         contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
         if (methodName == HttpMethodName.PUT || methodName == HttpMethodName.POST
@@ -556,21 +515,23 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected Map<String, String> convertAttributesFromHeaders(final GenericApiGatewayResponse responseHttp) {
         // create a new hashmap to store the values from the connection
         final  Map<String, String> map = new HashMap<>();
-        responseHttp.getHttpResponse().getHeaders().entrySet().forEach((entry) -> {
-
-            final String key = entry.getKey();
-            final String value = entry.getValue();
-
+        responseHttp.getHttpResponse().getAllHeaders().forEach((key, headers) -> {
             if (key == null) {
                 return;
             }
+
+            final String joined = headers.stream()
+                    .map(String::trim)
+                    .filter(str -> !str.isEmpty())
+                    .collect(Collectors.joining(","));
+
             // we ignore any headers with no actual values (rare)
-            if (StringUtils.isBlank(value)) {
+            if (StringUtils.isBlank(joined)) {
                 return;
             }
 
             // put the csv into the map
-            map.put(key, value);
+            map.put(key, joined);
         });
 
         return map;
@@ -646,17 +607,17 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected void logResponse(final ComponentLog logger, final GenericApiGatewayResponse response) {
         try {
             logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                    new Object[]{response.getHttpResponse().getHttpRequest().getURI().toURL().toExternalForm(), getLogString(response.getHttpResponse().getHeaders())});
+                    new Object[]{response.getHttpResponse().getHttpRequest().getURI().toURL().toExternalForm(), getLogString(response.getHttpResponse().getAllHeaders())});
         } catch (MalformedURLException e) {
             logger.debug(e.getMessage());
         }
     }
 
-    protected String getLogString(final Map<String, String> map) {
+    protected String getLogString(final Map<String, ?> map) {
         final StringBuilder sb = new StringBuilder();
         if (map != null && map.size() > 0) {
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                String value = entry.getValue();
+            for (Map.Entry<String, ?> entry : map.entrySet()) {
+                final Object value = entry.getValue();
                 sb.append("\t");
                 sb.append(entry.getKey());
                 sb.append(": ");

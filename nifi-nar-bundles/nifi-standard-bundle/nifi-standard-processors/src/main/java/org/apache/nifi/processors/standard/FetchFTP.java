@@ -25,16 +25,19 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.processors.standard.util.FileTransfer;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
+
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"ftp", "get", "retrieve", "files", "fetch", "remote", "ingest", "source", "input"})
 @CapabilityDescription("Fetches the content of a file from a remote FTP server and overwrites the contents of an incoming FlowFile with the content of the remote file.")
@@ -44,8 +47,39 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
     @WritesAttribute(attribute = "ftp.remote.port", description = "The port that was used to communicate with the remote FTP server"),
     @WritesAttribute(attribute = "ftp.remote.filename", description = "The name of the remote file that was pulled"),
     @WritesAttribute(attribute = "filename", description = "The filename is updated to point to the filename fo the remote file"),
-    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute")
+    @WritesAttribute(attribute = "path", description = "If the Remote File contains a directory name, that directory name will be added to the FlowFile using the 'path' attribute"),
+    @WritesAttribute(attribute = "fetch.failure.reason", description = "The name of the failure relationship applied when routing to any failure relationship")
 })
+@MultiProcessorUseCase(
+    description = "Retrieve all files in a directory of an FTP Server",
+    keywords = {"ftp", "file", "transform", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListFTP.class,
+            configuration = """
+                The "Hostname" property should be set to the fully qualified hostname of the FTP Server. It's a good idea to parameterize \
+                    this property by setting it to something like `#{FTP_SERVER}`.
+                The "Remote Path" property must be set to the directory on the FTP Server where the files reside. If the flow being built is to be reused elsewhere, \
+                    it's a good idea to parameterize this property by setting it to something like `#{FTP_REMOTE_PATH}`.
+                Configure the "Username" property to the appropriate username for logging into the FTP Server. It's usually a good idea to parameterize this property \
+                    by setting it to something like `#{FTP_USERNAME}`.
+                Configure the "Password" property to the appropriate password for the provided username. It's usually a good idea to parameterize this property \
+                    by setting it to something like `#{FTP_PASSWORD}`.
+
+                The 'success' Relationship of this Processor is then connected to FetchFTP.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchFTP.class,
+            configuration = """
+                "Hostname" = "${ftp.remote.host}"
+                "Remote File" = "${path}/${filename}"
+                "Username" = "${ftp.listing.user}"
+                "Password" = "#{FTP_PASSWORD}"
+                """
+        )
+    }
+)
 public class FetchFTP extends FetchFileTransfer {
 
     @Override

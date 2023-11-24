@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -35,6 +36,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -75,6 +77,65 @@ import java.util.stream.Stream;
         description = "Allows users to specify values to use to replace fields in the record that match the RecordPath.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SeeAlso({ConvertRecord.class})
+@UseCase(
+    description = "Combine multiple fields into a single field.",
+    keywords = {"combine", "concatenate", "recordpath"},
+    configuration = """
+        "Replacement Value Strategy" = "Record Path Value"
+
+        A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to place the result in.
+        The value of the property uses the CONCAT Record Path function to concatenate multiple values together, potentially using other string literal values.
+        For example, to combine the `title`, `firstName` and `lastName` fields into a single field named `fullName`, we add a property with the name `/fullName` \
+        and a value of `CONCAT(/title, ' ', /firstName, ' ', /lastName)`
+        """
+)
+@UseCase(
+    description = "Change the value of a record field to an explicit value.",
+    keywords = {"change", "update", "replace", "transform"},
+    configuration = """
+        "Replacement Value Strategy" = "Literal Value"
+
+        A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to place the result in.
+        The value of the property is the explicit value to set the field to. For example, we can set any field with a name of `txId`, regardless of its level in the data's hierarchy, \
+        to `1111-1111` by adding a property with a name of `//txId` and a value of `1111-1111`
+    """
+)
+@UseCase(
+    description = "Copy the value of one record field to another record field.",
+    keywords = {"change", "update", "copy", "recordpath", "hierarchy", "transform"},
+    configuration = """
+            "Replacement Value Strategy" = "Record Path Value"
+
+            A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to update.
+            The value of the property is a RecordPath identifying the field to copy the value from.
+            For example, we can copy the value of `/identifiers/all/imei` to the `identifier` field at the root level, by adding a property named \
+            `/identifier` with a value of `/identifiers/all/imei`.
+        """
+)
+@UseCase(
+    description = "Enrich data by injecting the value of an attribute into each Record.",
+    keywords = {"enrich", "attribute", "change", "update", "replace", "insert", "transform"},
+    configuration = """
+        "Replacement Value Strategy" = "Literal Value"
+
+        A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to place the result in.
+        The value of the property is an Expression Language expression that references the attribute of interest. We can, for example, insert a new field name \
+        `filename` into each record by adding a property named `/filename` with a value of `${filename}`
+        """
+)
+@UseCase(
+    description = "Change the format of a record field.",
+    keywords = {"change", "update", "replace", "insert", "transform", "format", "date/time", "timezone", "expression language"},
+    configuration = """
+        "Replacement Value Strategy" = "Literal Value"
+
+        A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to update.
+        The value is an Expression Language expression that references the `field.value` variable. For example, to change the date/time format of \
+        a field named `txDate` from `year-month-day` format to `month/day/year` format, we add a property named `/txDate` with a value of \
+        `${field.value:toDate('yyyy-MM-dd'):format('MM/dd/yyyy')}`. We could also change the timezone of a timestamp field (and insert the timezone for clarity) by using a value of \
+        `${field.value:toDate('yyyy-MM-dd HH:mm:ss', 'UTC-0400'):format('yyyy-MM-dd HH:mm:ss Z', 'UTC')}`.
+        """
+)
 public class UpdateRecord extends AbstractRecordProcessor {
     private static final String FIELD_NAME = "field.name";
     private static final String FIELD_VALUE = "field.value";
@@ -94,8 +155,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             + "and the Record Path results in multiple values for a given Record, the input FlowFile will be routed to the 'failure' Relationship.");
 
     static final PropertyDescriptor REPLACEMENT_VALUE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("replacement-value-strategy")
-        .displayName("Replacement Value Strategy")
+        .name("Replacement Value Strategy")
         .description("Specifies how to interpret the configured replacement values")
         .allowableValues(LITERAL_VALUES, RECORD_PATH_VALUES)
         .defaultValue(LITERAL_VALUES.getValue())
@@ -108,6 +168,12 @@ public class UpdateRecord extends AbstractRecordProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(REPLACEMENT_VALUE_STRATEGY);
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("replacement-value-strategy", REPLACEMENT_VALUE_STRATEGY.getName());
     }
 
     @Override

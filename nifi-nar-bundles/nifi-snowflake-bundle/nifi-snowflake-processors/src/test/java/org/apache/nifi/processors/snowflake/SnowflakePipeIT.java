@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import java.security.Security;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,16 +28,9 @@ import org.apache.nifi.processors.snowflake.util.SnowflakeAttributes;
 import org.apache.nifi.processors.snowflake.util.SnowflakeInternalStageType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class SnowflakePipeIT implements SnowflakeConfigAware {
-
-    @BeforeAll
-    static void setUpOnce() {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     @Test
     void shouldPutIntoInternalStage() throws Exception {

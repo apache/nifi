@@ -17,13 +17,6 @@
 
 package org.apache.nifi.processors.aws.ml.translate;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.textract.model.ThrottlingException;
-import com.amazonaws.services.translate.AmazonTranslateClient;
-import com.amazonaws.services.translate.model.DescribeTextTranslationJobRequest;
-import com.amazonaws.services.translate.model.DescribeTextTranslationJobResult;
-import com.amazonaws.services.translate.model.JobStatus;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -32,8 +25,15 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
+import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor;
+import software.amazon.awssdk.services.translate.TranslateClient;
+import software.amazon.awssdk.services.translate.TranslateClientBuilder;
+import software.amazon.awssdk.services.translate.model.DescribeTextTranslationJobRequest;
+import software.amazon.awssdk.services.translate.model.DescribeTextTranslationJobResponse;
+import software.amazon.awssdk.services.translate.model.JobStatus;
+import software.amazon.awssdk.services.translate.model.LimitExceededException;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
 @CapabilityDescription("Retrieves the current status of an AWS Translate job.")
@@ -41,52 +41,66 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
 @WritesAttributes({
         @WritesAttribute(attribute = "outputLocation", description = "S3 path-style output location of the result.")
 })
-public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonTranslateClient> {
+public class GetAwsTranslateJobStatus extends AbstractAwsMachineLearningJobStatusProcessor<TranslateClient, TranslateClientBuilder> {
+
     @Override
-    protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranslateClient) AmazonTranslateClient.builder()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withCredentials(credentialsProvider)
-                .build();
+    protected TranslateClientBuilder createClientBuilder(final ProcessContext context) {
+        return TranslateClient.builder();
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
-        String awsTaskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         try {
-            DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(context, awsTaskId);
-            JobStatus status = JobStatus.fromValue(describeTextTranslationJobResult.getTextTranslationJobProperties().getJobStatus());
+            final DescribeTextTranslationJobResponse job = getJob(context, flowFile);
+            final JobStatus status = job.textTranslationJobProperties().jobStatus();
 
-            if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
-                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
-                session.penalize(flowFile);
-                session.transfer(flowFile, REL_RUNNING);
-            } else if (status == JobStatus.COMPLETED) {
-                session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, describeTextTranslationJobResult.getTextTranslationJobProperties().getOutputDataConfig().getS3Uri());
-                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
-                session.transfer(flowFile, REL_SUCCESS);
-            } else if (status == JobStatus.FAILED || status == JobStatus.COMPLETED_WITH_ERROR) {
-                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
-                session.transfer(flowFile, REL_FAILURE);
+            flowFile = writeToFlowFile(session, flowFile, job);
+            final Relationship transferRelationship;
+            String failureReason = null;
+            switch (status) {
+                case IN_PROGRESS:
+                case SUBMITTED:
+                case STOP_REQUESTED:
+                    flowFile = session.penalize(flowFile);
+                    transferRelationship = REL_RUNNING;
+                    break;
+                case COMPLETED:
+                    flowFile = session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.textTranslationJobProperties().outputDataConfig().s3Uri());
+                    transferRelationship = REL_SUCCESS;
+                    break;
+                case FAILED:
+                case COMPLETED_WITH_ERROR:
+                    failureReason = job.textTranslationJobProperties().message();
+                    transferRelationship = REL_FAILURE;
+                    break;
+                case STOPPED:
+                    failureReason = String.format("Job [%s] is stopped", job.textTranslationJobProperties().jobId());
+                    transferRelationship = REL_FAILURE;
+                    break;
+                default:
+                    failureReason = "Unknown Job Status";
+                    transferRelationship = REL_FAILURE;
             }
-        } catch (ThrottlingException e) {
+            if (failureReason != null) {
+                flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
+            }
+            session.transfer(flowFile, transferRelationship);
+        } catch (final LimitExceededException e) {
             getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
-            return;
-        } catch (Exception e) {
-            getLogger().warn("Failed to get Polly Job status", e);
+        } catch (final Exception e) {
+            getLogger().warn("Failed to get Translate Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
-    private DescribeTextTranslationJobResult getStatusString(ProcessContext context, String awsTaskId) {
-        DescribeTextTranslationJobRequest request = new DescribeTextTranslationJobRequest().withJobId(awsTaskId);
-        DescribeTextTranslationJobResult translationJobsResult = getClient(context).describeTextTranslationJob(request);
-        return translationJobsResult;
+    private DescribeTextTranslationJobResponse getJob(final ProcessContext context, final FlowFile flowFile) {
+        final String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final DescribeTextTranslationJobRequest request = DescribeTextTranslationJobRequest.builder().jobId(taskId).build();
+        return getClient(context).describeTextTranslationJob(request);
     }
 }

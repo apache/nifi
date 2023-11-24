@@ -28,10 +28,12 @@ import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 
 /**
@@ -223,6 +225,23 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
             return getRequestBuilder(target).post(
                     Entity.entity(reportingTask, MediaType.APPLICATION_JSON),
                     ReportingTaskEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VersionedReportingTaskImportResponseEntity importReportingTasks(VersionedReportingTaskImportRequestEntity importRequestEntity)
+            throws NiFiClientException, IOException {
+        if (importRequestEntity == null) {
+            throw new IllegalArgumentException("Import request entity cannot be null");
+        }
+
+        return executeAction("Error creating reporting task", () -> {
+            final WebTarget target = controllerTarget.path("reporting-tasks/import");
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(importRequestEntity, MediaType.APPLICATION_JSON),
+                    VersionedReportingTaskImportResponseEntity.class
             );
         });
     }

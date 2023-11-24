@@ -17,6 +17,20 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
@@ -29,11 +43,8 @@ import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -58,29 +69,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -148,50 +141,6 @@ public class TestPutKudu {
         testRunner.enableControllerService(readerFactory);
     }
 
-    @Test
-    public void testCustomValidate() throws InitializationException {
-        createRecordReader(1);
-
-        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
-        testRunner.assertNotValid();
-
-        testRunner.removeProperty(PutKudu.KERBEROS_PRINCIPAL);
-        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
-        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
-        testRunner.assertValid();
-
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("unit-test-principal", "unit-test-keytab");
-        testRunner.addControllerService("kerb", kerberosCredentialsService);
-        testRunner.enableControllerService(kerberosCredentialsService);
-        testRunner.setProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE, "kerb");
-        testRunner.assertNotValid();
-
-        testRunner.removeProperty(PutKudu.KERBEROS_PRINCIPAL);
-        testRunner.removeProperty(PutKudu.KERBEROS_PASSWORD);
-        testRunner.assertValid();
-
-        final KerberosUserService kerberosUserService = enableKerberosUserService(testRunner);
-        testRunner.setProperty(PutKudu.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
-        testRunner.assertNotValid();
-
-        testRunner.removeProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE);
-        testRunner.assertValid();
-
-        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
-        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
-        testRunner.assertNotValid();
-    }
-
-    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
-        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
-        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
-        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
-        runner.enableControllerService(kerberosUserService);
-        return kerberosUserService;
-    }
 
     @Test
     public void testWriteKuduWithDefaults() throws InitializationException {
@@ -221,39 +170,6 @@ public class TestPutKudu {
         assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
     }
 
-    @Test
-    public void testKerberosEnabled() throws InitializationException {
-        createRecordReader(1);
-
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("unit-test-principal", "unit-test-keytab");
-        testRunner.addControllerService("kerb", kerberosCredentialsService);
-        testRunner.enableControllerService(kerberosCredentialsService);
-
-        testRunner.setProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE, "kerb");
-
-        testRunner.run(1, false);
-
-        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
-        assertTrue(proc.loggedIn());
-        assertFalse(proc.loggedOut());
-
-        testRunner.run(1, true, false);
-        assertTrue(proc.loggedOut());
-    }
-
-    @Test
-    public void testInsecureClient() throws InitializationException {
-        createRecordReader(1);
-
-        testRunner.run(1, false);
-
-        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
-        assertFalse(proc.loggedIn());
-        assertFalse(proc.loggedOut());
-
-        testRunner.run(1, true, false);
-        assertFalse(proc.loggedOut());
-    }
 
 
     @Test
@@ -751,7 +667,7 @@ public class TestPutKudu {
                     flowFileResponses = flowFileResponses.subList(sliceSize, flowFileResponses.size());
 
                     List<OperationResponse> batch = new ArrayList<>();
-                    for (OperationResponse response : slice.stream().flatMap(List::stream).collect(Collectors.toList())) {
+                    for (OperationResponse response : slice.stream().flatMap(List::stream).toList()) {
                         if (batch.size() == batchSize) {
                             flushes.add(batch);
                             batch = new ArrayList<>();
@@ -813,25 +729,5 @@ public class TestPutKudu {
     @Test
     public void testKuduPartialFailuresOnManualFlush() throws Exception {
         testKuduPartialFailure(FlushMode.MANUAL_FLUSH);
-    }
-
-    public static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
-        private final String keytab;
-        private final String principal;
-
-        public MockKerberosCredentialsService(final String keytab, final String principal) {
-            this.keytab = keytab;
-            this.principal = principal;
-        }
-
-        @Override
-        public String getKeytab() {
-            return keytab;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return principal;
-        }
     }
 }

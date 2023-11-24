@@ -20,6 +20,7 @@ package org.apache.nifi.minifi.toolkit.configuration;
 import java.io.FileNotFoundException;
 import java.io.OutputStream;
 
+@FunctionalInterface
 public interface PathOutputStreamFactory {
     OutputStream create(String path) throws FileNotFoundException;
 }

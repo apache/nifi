@@ -22,11 +22,6 @@
     <artifactId>nifi-registry-web-docs</artifactId>
     <packaging>war</packaging>
 
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -54,8 +49,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
         </dependency>
     </dependencies>
 </project>

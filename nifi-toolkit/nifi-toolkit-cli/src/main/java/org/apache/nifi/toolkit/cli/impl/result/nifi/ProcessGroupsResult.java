@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
@@ -34,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -45,8 +45,7 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
 
     public ProcessGroupsResult(final ResultType resultType, final List<ProcessGroupDTO> processGroups) {
         super(resultType);
-        this.processGroups = processGroups;
-        Validate.notNull(this.processGroups);
+        this.processGroups = Objects.requireNonNull(processGroups);
         this.processGroups.sort(Comparator.comparing(ProcessGroupDTO::getName));
     }
 

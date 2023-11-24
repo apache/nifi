@@ -16,21 +16,8 @@
  */
 package org.apache.nifi.processor.util;
 
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.components.resource.ResourceCardinality;
-import org.apache.nifi.components.resource.ResourceType;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.util.FormatUtils;
-
 import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.NumberFormat;
@@ -40,6 +27,14 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.util.FormatUtils;
 
 public class StandardValidators {
 
@@ -291,9 +286,6 @@ public class StandardValidators {
             }
         }
     };
-    // Old name retained for compatibility
-    @Deprecated
-    public static final Validator ISO8061_INSTANT_VALIDATOR = ISO8601_INSTANT_VALIDATOR;
 
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR = new Validator() {
         @Override
@@ -350,7 +342,7 @@ public class StandardValidators {
     };
 
     /**
-     * This validator will evaluate an expression using ONLY environment and variable registry properties,
+     * This validator will evaluate an expression using ONLY environment properties,
      * then validate that the result is a supported character set.
      */
     public static final Validator CHARACTER_SET_VALIDATOR_WITH_EVALUATION = new Validator() {
@@ -548,7 +540,7 @@ public class StandardValidators {
 
                 try {
                     final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                    new URL(evaluatedInput);
+                    URI.create(evaluatedInput).toURL();
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
                 } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();
@@ -557,47 +549,6 @@ public class StandardValidators {
         };
     }
 
-    /**
-     * @deprecated use {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesExternalResource(ResourceCardinality, ResourceType, ResourceType...)
-     * identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL}
-     * instead.
-     */
-    @Deprecated
-    public static Validator createURLorFileValidator() {
-        return (subject, input, context) -> {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            }
-
-            try {
-                PropertyValue propertyValue = context.newPropertyValue(input);
-                String evaluatedInput = (propertyValue == null) ? input : propertyValue.evaluateAttributeExpressions().getValue();
-
-                boolean validUrl = true;
-
-                // First check to see if it is a valid URL
-                try {
-                    new URL(evaluatedInput);
-                } catch (MalformedURLException mue) {
-                    validUrl = false;
-                }
-
-                boolean validFile = true;
-                if (!validUrl) {
-                    // Check to see if it is a file and it exists
-                    final File file = new File(evaluatedInput);
-                    validFile = file.exists();
-                }
-
-                final boolean valid = validUrl || validFile;
-                final String reason = valid ? "Valid URL or file" : "Not a valid URL or file";
-                return new ValidationResult.Builder().subject(subject).input(input).explanation(reason).valid(valid).build();
-
-            } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL or file").valid(false).build();
-            }
-        };
-    }
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
                                                 Validator elementValidator) {
@@ -689,7 +640,7 @@ public class StandardValidators {
                                     .subject(subject)
                                     .input(input)
                                     .valid(false)
-                                    .explanation("Failed to evaluate the Attribute Expression Language due to " + e.toString())
+                                .explanation("Failed to evaluate the Attribute Expression Language due to " + e)
                                     .build();
                         }
                     } else {
@@ -748,7 +699,7 @@ public class StandardValidators {
                                     .subject(subject)
                                     .input(value)
                                     .valid(false)
-                                    .explanation("Failed to evaluate the Attribute Expression Language due to " + e.toString())
+                                .explanation("Failed to evaluate the Attribute Expression Language due to " + e)
                                     .build();
                         }
                     } else {
@@ -828,6 +779,34 @@ public class StandardValidators {
         };
     }
 
+    public static Validator createNonNegativeFloatingPointValidator(final double maximum) {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
+                String reason = null;
+                try {
+                    final double doubleValue = Double.parseDouble(input);
+                    if (doubleValue < 0) {
+                        reason = "Value must be non-negative but was " + doubleValue;
+                    }
+                    final double maxPlusDelta = maximum + 0.00001D;
+                    if (doubleValue < 0 || doubleValue > maxPlusDelta) {
+                        reason = "Value must be between 0 and " + maximum + " but was " + doubleValue;
+                    }
+                } catch (final NumberFormatException e) {
+                    reason = "not a valid integer";
+                }
+
+                return new ValidationResult.Builder().subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            }
+
+        };
+    }
+
     //
     //
     // SPECIFIC VALIDATOR IMPLEMENTATIONS THAT CANNOT BE ANONYMOUS CLASSES
@@ -845,8 +824,8 @@ public class StandardValidators {
         public TimePeriodValidator(final long minValue, final TimeUnit minTimeUnit, final long maxValue, final TimeUnit maxTimeUnit) {
             this.minNanos = TimeUnit.NANOSECONDS.convert(minValue, minTimeUnit);
             this.maxNanos = TimeUnit.NANOSECONDS.convert(maxValue, maxTimeUnit);
-            this.minValueEnglish = minValue + " " + minTimeUnit.toString();
-            this.maxValueEnglish = maxValue + " " + maxTimeUnit.toString();
+            this.minValueEnglish = minValue + " " + minTimeUnit;
+            this.maxValueEnglish = maxValue + " " + maxTimeUnit;
         }
 
         @Override

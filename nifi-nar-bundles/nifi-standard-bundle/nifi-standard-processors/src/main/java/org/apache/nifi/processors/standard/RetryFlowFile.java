@@ -91,7 +91,7 @@ public class RetryFlowFile extends AbstractProcessor {
                     "based on configuration.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("flowfile.retries")
             .build();
     public static final PropertyDescriptor MAXIMUM_RETRIES = new PropertyDescriptor.Builder()

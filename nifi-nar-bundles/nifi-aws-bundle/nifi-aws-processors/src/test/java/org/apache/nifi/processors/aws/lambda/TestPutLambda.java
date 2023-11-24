@@ -17,13 +17,9 @@
 package org.apache.nifi.processors.aws.lambda;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.lambda.AWSLambdaClient;
-import com.amazonaws.services.lambda.model.InvalidParameterValueException;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
-import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.util.Base64;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,12 +27,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvalidParameterValueException;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 
 public class TestPutLambda {
@@ -44,29 +49,25 @@ public class TestPutLambda {
     private TestRunner runner = null;
     private PutLambda mockPutLambda = null;
 
-    private AWSLambdaClient mockLambdaClient = null;
+    private LambdaClient mockLambdaClient = null;
 
     @BeforeEach
     public void setUp() {
-        mockLambdaClient = Mockito.mock(AWSLambdaClient.class);
+        mockLambdaClient = Mockito.mock(LambdaClient.class);
         mockPutLambda = new PutLambda() {
             @Override
-            protected AWSLambdaClient getClient(ProcessContext context) {
+            protected LambdaClient getClient(final ProcessContext context) {
                 return mockLambdaClient;
             }
         };
         runner = TestRunners.newTestRunner(mockPutLambda);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test
     public void testSizeGreaterThan6MB() {
-        runner = TestRunners.newTestRunner(PutLambda.class);
-        runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
-        runner.assertValid();
+        runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         byte [] largeInput = new byte[6000001];
-        for (int i = 0; i < 6000001; i++) {
-            largeInput[i] = 'a';
-        }
         runner.enqueue(largeInput);
         runner.run(1);
 
@@ -78,11 +79,12 @@ public class TestPutLambda {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         runner.enqueue("TestContent");
 
-        InvokeResult invokeResult = new InvokeResult();
-        invokeResult.setStatusCode(200);
-        invokeResult.setLogResult(Base64.encodeAsString("test-log-result".getBytes()));
-        invokeResult.setPayload(ByteBuffer.wrap("test-payload".getBytes()));
-        Mockito.when(mockLambdaClient.invoke(Mockito.any(InvokeRequest.class))).thenReturn(invokeResult);
+        final InvokeResponse invokeResult = InvokeResponse.builder()
+                .statusCode(200)
+                .logResult(Base64.encodeAsString("test-log-result".getBytes()))
+                .payload(SdkBytes.fromString("test-payload", Charset.defaultCharset()))
+                .build();
+        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenReturn(invokeResult);
 
         runner.assertValid();
         runner.run(1);
@@ -90,7 +92,7 @@ public class TestPutLambda {
         ArgumentCaptor<InvokeRequest> captureRequest = ArgumentCaptor.forClass(InvokeRequest.class);
         Mockito.verify(mockLambdaClient, Mockito.times(1)).invoke(captureRequest.capture());
         InvokeRequest request = captureRequest.getValue();
-        assertEquals("test-function", request.getFunctionName());
+        assertEquals("test-function", request.functionName());
 
         runner.assertAllFlowFilesTransferred(PutLambda.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutLambda.REL_SUCCESS);
@@ -104,7 +106,10 @@ public class TestPutLambda {
     public void testPutLambdaParameterException() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         runner.enqueue("TestContent");
-        Mockito.when(mockLambdaClient.invoke(Mockito.any(InvokeRequest.class))).thenThrow(new InvalidParameterValueException("TestFail"));
+        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenThrow(InvalidParameterValueException.builder()
+                .message("TestFail")
+                .awsErrorDetails(AwsErrorDetails.builder().errorMessage("TestFail").errorCode("400").build())
+                .build());
 
         runner.assertValid();
         runner.run(1);
@@ -116,7 +121,10 @@ public class TestPutLambda {
     public void testPutLambdaTooManyRequestsException() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         runner.enqueue("TestContent");
-        Mockito.when(mockLambdaClient.invoke(Mockito.any(InvokeRequest.class))).thenThrow(new TooManyRequestsException("TestFail"));
+        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenThrow(TooManyRequestsException.builder()
+                .message("TestFail")
+                .awsErrorDetails(AwsErrorDetails.builder().errorMessage("TestFail").errorCode("400").build())
+                .build());
 
         runner.assertValid();
         runner.run(1);
@@ -131,7 +139,7 @@ public class TestPutLambda {
     public void testPutLambdaAmazonException() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         runner.enqueue("TestContent");
-        Mockito.when(mockLambdaClient.invoke(Mockito.any(InvokeRequest.class))).thenThrow(new AmazonServiceException("TestFail"));
+        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenThrow(new AmazonServiceException("TestFail"));
 
         runner.assertValid();
         runner.run(1);

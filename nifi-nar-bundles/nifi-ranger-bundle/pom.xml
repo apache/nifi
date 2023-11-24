@@ -37,18 +37,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override zookeeper -->
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>${zookeeper.version}</version>
-            </dependency>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
                 <groupId>commons-beanutils</groupId>
@@ -71,7 +59,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.31</version>
+                <version>9.33</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -100,7 +88,13 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
+            </dependency>
+            <!-- Override Jettison from Ranger -->
+            <dependency>
+                <groupId>org.codehaus.jettison</groupId>
+                <artifactId>jettison</artifactId>
+                <version>1.5.4</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

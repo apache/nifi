@@ -21,7 +21,7 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -57,7 +57,7 @@ public class NodeRestartWithNewNodeIdIT extends NiFiSystemIT {
         // Wait for the second node to reconnect.
         waitForAllNodesConnected();
 
-        final ClusteSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
+        final ClusterSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
         // 2/2 because we replaced the state directory with a different state that had a different identifier. This will result in
         // 2 nodes each with a different UUID but the same hostname & port, but we should see that the cluster removes the old Node
         // Identifier, so we will have only 2 nodes total.

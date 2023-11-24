@@ -16,10 +16,34 @@
  */
 package org.apache.nifi.processors.slack;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonString;
+import javax.json.stream.JsonParsingException;
+import javax.net.ssl.SSLContext;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -48,27 +72,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.stream.JsonParsingException;
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
+import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"slack", "post", "notify", "upload", "message"})
 @CapabilityDescription("Sends a message on Slack. The FlowFile content (e.g. an image) can be uploaded and attached to the message.")
@@ -184,6 +188,12 @@ public class PostSlack extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are routed to success after being successfully sent to Slack")
@@ -194,18 +204,26 @@ public class PostSlack extends AbstractProcessor {
             .description("FlowFiles are routed to failure if unable to be sent to Slack")
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(POST_MESSAGE_URL, FILE_UPLOAD_URL, ACCESS_TOKEN, CHANNEL, TEXT, UPLOAD_FLOWFILE, FILE_TITLE, FILE_NAME, FILE_MIME_TYPE));
+    public static final List<PropertyDescriptor> properties = List.of(
+        POST_MESSAGE_URL,
+        FILE_UPLOAD_URL,
+        ACCESS_TOKEN,
+        CHANNEL,
+        TEXT,
+        UPLOAD_FLOWFILE,
+        FILE_TITLE,
+        FILE_NAME,
+        FILE_MIME_TYPE,
+        SSL_CONTEXT_SERVICE);
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    public static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private final SortedSet<PropertyDescriptor> attachmentProperties = Collections.synchronizedSortedSet(new TreeSet<>());
 
     private volatile PoolingHttpClientConnectionManager connManager;
     private volatile CloseableHttpClient client;
 
-    private static final ContentType MIME_TYPE_PLAINTEXT_UTF8 = ContentType.create("text/plain", Charset.forName("UTF-8"));
+    private static final ContentType MIME_TYPE_PLAINTEXT_UTF8 = ContentType.create("text/plain", StandardCharsets.UTF_8);
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
@@ -232,18 +250,27 @@ public class PostSlack extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void initDynamicProperties(ProcessContext context) {
+    public void onScheduled(ProcessContext context) {
         attachmentProperties.clear();
         attachmentProperties.addAll(
                 context.getProperties().keySet()
                         .stream()
                         .filter(PropertyDescriptor::isDynamic)
-                        .collect(Collectors.toList()));
-    }
+                    .toList());
 
-    @OnScheduled
-    public void initHttpResources() {
-        connManager = new PoolingHttpClientConnectionManager();
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+        if (sslService != null) {
+            final SSLContext sslContext = sslService.createContext();
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .register("https", new SSLConnectionSocketFactory(sslContext))
+                    .build();
+
+            connManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        } else {
+            connManager = new PoolingHttpClientConnectionManager();
+        }
 
         client = HttpClientBuilder.create()
                 .setConnectionManager(connManager)
@@ -415,7 +442,7 @@ public class PostSlack extends AbstractProcessor {
             jsonBuilder.add("attachments", jsonArrayBuilder);
         }
 
-        return new StringEntity(jsonBuilder.build().toString(), Charset.forName("UTF-8"));
+        return new StringEntity(jsonBuilder.build().toString(), StandardCharsets.UTF_8);
     }
 
     private HttpEntity createFileMessageRequestBody(ProcessContext context, ProcessSession session, FlowFile flowFile) throws PostSlackException {
@@ -440,7 +467,7 @@ public class PostSlack extends AbstractProcessor {
         String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         if (fileName == null || fileName.isEmpty()) {
             fileName = "file";
-            getLogger().warn("File name not specified, has been set to {}.", new Object[]{ fileName });
+            getLogger().warn("File name not specified, has been set to {}.", fileName);
         }
         multipartBuilder.addTextBody("filename", fileName, MIME_TYPE_PLAINTEXT_UTF8);
 
@@ -448,12 +475,12 @@ public class PostSlack extends AbstractProcessor {
         String mimeTypeStr = context.getProperty(FILE_MIME_TYPE).evaluateAttributeExpressions(flowFile).getValue();
         if (mimeTypeStr == null || mimeTypeStr.isEmpty()) {
             mimeType = ContentType.APPLICATION_OCTET_STREAM;
-            getLogger().warn("Mime type not specified, has been set to {}.", new Object[]{ mimeType.getMimeType() });
+            getLogger().warn("Mime type not specified, has been set to {}.", mimeType.getMimeType());
         } else {
             mimeType = ContentType.getByMimeType(mimeTypeStr);
             if (mimeType == null) {
                 mimeType = ContentType.APPLICATION_OCTET_STREAM;
-                getLogger().warn("Unknown mime type specified ({}), has been set to {}.", new Object[]{ mimeTypeStr, mimeType.getMimeType() });
+                getLogger().warn("Unknown mime type specified ({}), has been set to {}.", mimeTypeStr, mimeType.getMimeType());
             }
         }
 

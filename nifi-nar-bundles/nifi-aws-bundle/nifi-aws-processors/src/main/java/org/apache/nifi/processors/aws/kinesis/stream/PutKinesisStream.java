@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.PutRecordsRequest;
-import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
-import com.amazonaws.services.kinesis.model.PutRecordsResult;
-import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -37,12 +32,18 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
+import software.amazon.awssdk.services.kinesis.model.PutRecordsRequest;
+import software.amazon.awssdk.services.kinesis.model.PutRecordsRequestEntry;
+import software.amazon.awssdk.services.kinesis.model.PutRecordsResponse;
+import software.amazon.awssdk.services.kinesis.model.PutRecordsResultEntry;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ import java.util.Random;
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
 @SeeAlso(ConsumeKinesisStream.class)
-public class PutKinesisStream extends AbstractKinesisStreamProcessor {
+public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, KinesisClientBuilder> {
     /**
      * Kinesis put record response error message
      */
@@ -103,14 +104,25 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
             .sensitive(false)
             .build();
 
-    public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractKinesisStreamProcessor.KINESIS_STREAM_NAME)
+    static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KINESIS_STREAM_NAME, KINESIS_PARTITION_KEY, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
-                AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, ENDPOINT_OVERRIDE));
+    public static final List<PropertyDescriptor> properties = List.of(
+        KINESIS_STREAM_NAME,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        KINESIS_PARTITION_KEY,
+        BATCH_SIZE,
+        MAX_MESSAGE_BUFFER_SIZE_MB,
+        TIMEOUT,
+        PROXY_CONFIGURATION_SERVICE,
+        ENDPOINT_OVERRIDE);
 
     /** A random number generator for cases where partition key is not available */
     protected Random randomPartitionKeyGenerator = new Random();
@@ -126,72 +138,58 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
 
-        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_ERROR_MESSAGE);
+        final List<FlowFile> flowFiles = KinesisProcessorUtils.filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_ERROR_MESSAGE, getLogger());
 
-        HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
-        HashMap<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<String, List<PutRecordsRequestEntry>>();
+        final HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
+        final HashMap<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<>();
 
-        final AmazonKinesisClient client = getClient(context);
-
+        final KinesisClient client = getClient(context);
 
         try {
 
-            List<FlowFile> failedFlowFiles = new ArrayList<>();
-            List<FlowFile> successfulFlowFiles = new ArrayList<>();
+            final List<FlowFile> failedFlowFiles = new ArrayList<>();
+            final List<FlowFile> successfulFlowFiles = new ArrayList<>();
 
             // Prepare batch of records
-            for (int i = 0; i < flowFiles.size(); i++) {
-                FlowFile flowFile = flowFiles.get(i);
-
-                String streamName = context.getProperty(KINESIS_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();;
+            for (final FlowFile flowFile : flowFiles) {
+                final String streamName = context.getProperty(KINESIS_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
-                PutRecordsRequestEntry record = new PutRecordsRequestEntry().withData(ByteBuffer.wrap(baos.toByteArray()));
+                final PutRecordsRequestEntry.Builder recordBuilder = PutRecordsRequestEntry.builder().data(SdkBytes.fromByteArray(baos.toByteArray()));
 
-                String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
-                        .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
+                final String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
+                        .evaluateAttributeExpressions(flowFile).getValue();
 
-                if (StringUtils.isBlank(partitionKey) == false) {
-                    record.setPartitionKey(partitionKey);
-                } else {
-                    record.setPartitionKey(Integer.toString(randomPartitionKeyGenerator.nextInt()));
-                }
+                recordBuilder.partitionKey(StringUtils.isBlank(partitionKey) ? Integer.toString(randomPartitionKeyGenerator.nextInt()) : partitionKey);
 
-                if (recordHash.containsKey(streamName) == false) {
-                    recordHash.put(streamName, new ArrayList<>());
-                }
-                if (hashFlowFiles.containsKey(streamName) == false) {
-                    hashFlowFiles.put(streamName, new ArrayList<>());
-                }
-
-                hashFlowFiles.get(streamName).add(flowFile);
-                recordHash.get(streamName).add(record);
+                hashFlowFiles.computeIfAbsent(streamName, key -> new ArrayList<>()).add(flowFile);
+                recordHash.computeIfAbsent(streamName, key -> new ArrayList<>()).add(recordBuilder.build());
             }
 
-            for (Map.Entry<String, List<PutRecordsRequestEntry>> entryRecord : recordHash.entrySet()) {
-                String streamName = entryRecord.getKey();
-                List<PutRecordsRequestEntry> records = entryRecord.getValue();
+            for (final Map.Entry<String, List<PutRecordsRequestEntry>> entryRecord : recordHash.entrySet()) {
+                final String streamName = entryRecord.getKey();
+                final List<PutRecordsRequestEntry> records = entryRecord.getValue();
 
-                if (records.size() > 0) {
+                if (!records.isEmpty()) {
+                    final PutRecordsRequest putRecordRequest = PutRecordsRequest.builder()
+                            .streamName(streamName)
+                            .records(records)
+                            .build();
+                    final PutRecordsResponse response = client.putRecords(putRecordRequest);
 
-                    PutRecordsRequest putRecordRequest = new PutRecordsRequest();
-                    putRecordRequest.setStreamName(streamName);
-                    putRecordRequest.setRecords(records);
-                    PutRecordsResult results = client.putRecords(putRecordRequest);
-
-                    List<PutRecordsResultEntry> responseEntries = results.getRecords();
-                    for (int i = 0; i < responseEntries.size(); i++ ) {
-                        PutRecordsResultEntry entry = responseEntries.get(i);
+                    final List<PutRecordsResultEntry> responseEntries = response.records();
+                    for (int i = 0; i < responseEntries.size(); i++) {
+                        final PutRecordsResultEntry entry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
                         Map<String,String> attributes = new HashMap<>();
-                        attributes.put(AWS_KINESIS_SHARD_ID, entry.getShardId());
-                        attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.getSequenceNumber());
+                        attributes.put(AWS_KINESIS_SHARD_ID, entry.shardId());
+                        attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.sequenceNumber());
 
-                        if (StringUtils.isBlank(entry.getErrorCode()) == false) {
-                            attributes.put(AWS_KINESIS_ERROR_CODE, entry.getErrorCode());
-                            attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.getErrorMessage());
+                        if (StringUtils.isNotBlank(entry.errorCode())) {
+                            attributes.put(AWS_KINESIS_ERROR_CODE, entry.errorCode());
+                            attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.errorMessage());
                             flowFile = session.putAllAttributes(flowFile, attributes);
                             failedFlowFiles.add(flowFile);
                         } else {
@@ -204,19 +202,25 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                 records.clear();
             }
 
-            if ( failedFlowFiles.size() > 0 ) {
+            if (!failedFlowFiles.isEmpty()) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
-                getLogger().error("Failed to publish to kinesis records {}", new Object[]{failedFlowFiles});
+                getLogger().error("Failed to publish to kinesis records {}", failedFlowFiles);
             }
-            if ( successfulFlowFiles.size() > 0 ) {
+            if (!successfulFlowFiles.isEmpty()) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                getLogger().debug("Successfully published to kinesis records {}", new Object[]{successfulFlowFiles});
+                getLogger().debug("Successfully published to kinesis records {}", successfulFlowFiles);
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish due to exception {} flowfiles {} ", new Object[]{exception, flowFiles});
+            getLogger().error("Failed to publish due to exception {} flowfiles {} ", exception, flowFiles);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }
     }
+
+    @Override
+    protected KinesisClientBuilder createClientBuilder(final ProcessContext context) {
+        return KinesisClient.builder();
+    }
+
 }

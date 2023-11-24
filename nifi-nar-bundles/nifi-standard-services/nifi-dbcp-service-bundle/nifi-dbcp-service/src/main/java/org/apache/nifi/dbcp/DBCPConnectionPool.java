@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
@@ -44,17 +54,6 @@ import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
@@ -81,7 +80,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinit
 @DynamicProperties({
         @DynamicProperty(name = "JDBC property name",
                 value = "JDBC property value",
-                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
                 description = "JDBC driver property name and value applied to JDBC connections."),
         @DynamicProperty(name = "SENSITIVE.JDBC property name",
                 value = "JDBC property value",
@@ -120,7 +119,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
@@ -259,7 +258,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
             builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
         } else {
-            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
+            builder.expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT);
         }
 
         return builder.build();
@@ -272,7 +271,12 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                 .map(descriptor -> {
                     final PropertyValue propertyValue = context.getProperty(descriptor);
                     if (descriptor.isSensitive()) {
-                        final String propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                        final String propertyName;
+                        if (StringUtils.startsWith(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX)) {
+                            propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                        } else {
+                            propertyName = descriptor.getName();
+                        }
                         return new AbstractMap.SimpleEntry<>(propertyName, propertyValue.getValue());
                     } else {
                         return new AbstractMap.SimpleEntry<>(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
@@ -296,12 +300,12 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             try {
-                final Driver driver = (Driver) clazz.newInstance();
+                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(driver);
                 return DriverManager.getDriver(url);
             } catch (final SQLException e2) {
                 throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
-            } catch (final IllegalAccessException | InstantiationException e2) {
+            } catch (final Exception e2) {
                 throw new ProcessException("Creating driver instance is failed", e2);
             }
         }

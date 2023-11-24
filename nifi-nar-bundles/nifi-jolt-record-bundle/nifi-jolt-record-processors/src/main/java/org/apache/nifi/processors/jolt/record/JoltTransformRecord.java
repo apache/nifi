@@ -161,7 +161,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(JOLT_SPEC, CUSTOMR)
+            .dependsOn(JOLT_TRANSFORM, CUSTOMR)
             .build();
 
     static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
@@ -169,10 +169,10 @@ public class JoltTransformRecord extends AbstractProcessor {
             .displayName("Custom Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
-            .dependsOn(JOLT_SPEC, CUSTOMR)
+            .dependsOn(JOLT_TRANSFORM, CUSTOMR)
             .build();
 
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -486,7 +486,7 @@ public class JoltTransformRecord extends AbstractProcessor {
     private String readTransform(final PropertyValue propertyValue) {
         final ResourceReference resourceReference = propertyValue.asResource();
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
-            return reader.lines().collect(Collectors.joining());
+            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
             throw new UncheckedIOException("Read JOLT Transform failed", e);
         }

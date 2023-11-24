@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
-import org.apache.nifi.web.api.entity.PortEntity;
-
 import java.io.IOException;
+import org.apache.nifi.web.api.entity.PortEntity;
 
 public interface OutputPortClient {
 
@@ -29,12 +28,6 @@ public interface OutputPortClient {
     PortEntity updateOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 
     PortEntity deleteOutputPort(PortEntity entity) throws NiFiClientException, IOException;
-
-    /**
-     * @deprecated use startOutputPort
-     */
-    @Deprecated
-    PortEntity startInpuOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 
     PortEntity startOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 

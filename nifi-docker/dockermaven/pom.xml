@@ -52,14 +52,13 @@
                                                 </tags>
                                                 <dockerFile>Dockerfile</dockerFile>
                                                 <contextDir>${project.basedir}</contextDir>
+                                                <optimise>true</optimise>
                                                 <args>
-                                                    <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                                    <IMAGE_NAME>${docker.jdk.image.name}</IMAGE_NAME>
                                                     <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
-                                                    <UID>1000</UID>
-                                                    <GID>1000</GID>
                                                     <NIFI_VERSION>${project.version}</NIFI_VERSION>
-                                                    <NIFI_BINARY>target/nifi-${nifi.version}-bin.zip</NIFI_BINARY>
-                                                    <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${nifi.version}-bin.zip</NIFI_TOOLKIT_BINARY>
+                                                    <NIFI_BINARY>target/nifi-${project.version}-bin.zip</NIFI_BINARY>
+                                                    <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${project.version}-bin.zip</NIFI_TOOLKIT_BINARY>
                                                     <NIFI_SCRIPTS>target/sh</NIFI_SCRIPTS>
                                                 </args>
                                             </build>

@@ -20,23 +20,16 @@ package org.apache.nifi.processors.standard.enrichment;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.calcite.RecordPathFunctions;
-import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.queryrecord.RecordDataSource;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.sql.CalciteDatabase;
+import org.apache.nifi.sql.NiFiTable;
 import org.apache.nifi.util.Tuple;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -52,8 +45,9 @@ public class SqlJoinCache implements AutoCloseable {
         this.logger = logger;
     }
 
-    public SqlJoinCalciteParameters getCalciteParameters(final String sql, final ProcessSession session, final RecordSchema schema, final RecordJoinInput originalInput,
-                                                          final RecordJoinInput enrichmentInput) throws SQLException {
+    public SqlJoinCalciteParameters getCalciteParameters(final String sql, final RecordSchema schema, final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput)
+        throws SQLException {
+
         final Tuple<String, RecordSchema> tuple = new Tuple<>(sql, schema);
         final BlockingQueue<SqlJoinCalciteParameters> queue = calciteParameterQueues.get(tuple, key -> new LinkedBlockingQueue<>());
 
@@ -62,7 +56,7 @@ public class SqlJoinCache implements AutoCloseable {
             return cachedStmt;
         }
 
-        return createCalciteParameters(sql, session, originalInput, enrichmentInput, queue);
+        return createCalciteParameters(sql, originalInput, enrichmentInput);
     }
 
     public void returnCalciteParameters(final String sql, final RecordSchema schema, final SqlJoinCalciteParameters parameters) {
@@ -74,35 +68,18 @@ public class SqlJoinCache implements AutoCloseable {
         }
     }
 
-    private SqlJoinCalciteParameters createCalciteParameters(final String sql, final ProcessSession session, final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput,
-                                                             final BlockingQueue<SqlJoinCalciteParameters> parameterQueue) throws SQLException {
-        final CalciteConnection connection = createCalciteConnection();
+    private SqlJoinCalciteParameters createCalciteParameters(final String sql, final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput) throws SQLException {
+        final CalciteDatabase database = new CalciteDatabase();
+        RecordPathFunctions.addToDatabase(database);
 
-        final SchemaPlus rootSchema = RecordPathFunctions.createRootSchema(connection);
+        final NiFiTable originalTable = new NiFiTable(SqlJoinStrategy.ORIGINAL_TABLE_NAME, RecordDataSource.createTableSchema(originalInput.getRecordSchema()), logger);
+        database.addTable(originalTable);
 
-        final FlowFileTable originalTable = new FlowFileTable(session, originalInput.getFlowFile(), originalInput.getRecordSchema(), originalInput.getRecordReaderFactory(), logger);
-        rootSchema.add("ORIGINAL", originalTable);
+        final NiFiTable enrichmentTable = new NiFiTable(SqlJoinStrategy.ENRICHMENT_TABLE_NAME, RecordDataSource.createTableSchema(enrichmentInput.getRecordSchema()), logger);
+        database.addTable(enrichmentTable);
 
-        final FlowFileTable enrichmentTable = new FlowFileTable(session, enrichmentInput.getFlowFile(), enrichmentInput.getRecordSchema(), enrichmentInput.getRecordReaderFactory(), logger);
-        rootSchema.add("ENRICHMENT", enrichmentTable);
-
-        rootSchema.setCacheEnabled(false);
-
-        final PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        return new SqlJoinCalciteParameters(sql, connection, preparedStatement, originalTable, enrichmentTable);
-    }
-
-    private CalciteConnection createCalciteConnection() {
-        final Properties properties = new Properties();
-        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
-
-        try {
-            final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
-            final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
-            return calciteConnection;
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
+        final PreparedStatement preparedStatement = database.getConnection().prepareStatement(sql);
+        return new SqlJoinCalciteParameters(sql, database, preparedStatement);
     }
 
     private void onCacheEviction(final Tuple<String, RecordSchema> key, final BlockingQueue<SqlJoinCalciteParameters> queue, final RemovalCause cause) {

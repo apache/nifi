@@ -22,6 +22,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -62,6 +63,8 @@ public interface TestRunner {
      *         method
      */
     ProcessContext getProcessContext();
+
+    boolean isYieldCalled();
 
     /**
      * Performs exactly the same operation as calling {@link #run(int)} with a
@@ -995,17 +998,6 @@ public interface TestRunner {
     void setConnected(boolean isConnected);
 
     /**
-     * Sets the value of the variable with the given name to be the given value. This exposes the variable
-     * for use by the Expression Language.
-     *
-     * @param name the name of the variable to set
-     * @param value the value of the variable
-     *
-     * @throws NullPointerException if either the name or the value is null
-     */
-    void setVariable(String name, String value);
-
-    /**
      * Returns the current value of the variable with the given name
      *
      * @param name the name of the variable whose value should be returned.
@@ -1013,17 +1005,21 @@ public interface TestRunner {
      *
      * @throws NullPointerException if the name is null
      */
-    String getVariableValue(String name);
+    String getEnvironmentVariableValue(String name);
 
     /**
-     * Removes the variable with the given name from this Test Runner, if it is set.
+     * Sets the value of the variable with the given name to be the given value. This exposes the variable
+     * for use by the Expression Language.
      *
-     * @param name the name of the variable to remove
-     * @return the value that was set for the variable, or <code>null</code> if the variable was not set
+     * NOTE - this method is only for testing purposes as we only support variables coming from environment
+     * and system variables. This usage is to avoid the need to set env/sys variables in the tests.
      *
-     * @throws NullPointerException if the name is null
+     * @param name the name of the variable to set
+     * @param value the value of the variable
+     *
+     * @throws NullPointerException if either the name or the value is null
      */
-    String removeVariable(String name);
+    void setEnvironmentVariableValue(String name, String value);
 
     /**
      * Asserts that all FlowFiles meet all conditions.
@@ -1069,4 +1065,13 @@ public interface TestRunner {
      * @param eventType Provenance event type
      */
      void assertProvenanceEvent(ProvenanceEventType eventType);
+
+    /**
+     * Causes the TestRunner to call the Processor's {@link Processor#migrateProperties(PropertyConfiguration)} method. The effects that are
+     * caused by calling the method are applied, as they would be in a running NiFi instance. Unlike in a running NiFi instance, though, the
+     * operations that were performed are captured so that they can be examined and assertions made about the migration that occurred.
+     *
+     * @return the results of migrating properties
+     */
+    PropertyMigrationResult migrateProperties();
 }

@@ -251,7 +251,7 @@ public class TestDistributedSetServerAndClient {
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedSetCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedSetCacheClientService.PORT, String.valueOf(port));
-        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         return client;

@@ -39,7 +39,7 @@ import org.apache.nifi.processors.pgp.attributes.HashAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.SigningStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
 import org.apache.nifi.processors.pgp.io.EncodingStreamCallback;
-import org.apache.nifi.processors.pgp.io.KeyIdentifierConverter;
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPOnePassSignature;

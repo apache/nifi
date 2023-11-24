@@ -16,41 +16,51 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.auth.PropertiesFileCredentialsProvider;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.CreateStreamRequest;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
+import java.io.File;
 
 public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
 
-    private final static String CREDENTIALS_FILE =
-            System.getProperty("user.home") + "/aws-credentials.properties";
+    private final static File CREDENTIALS_FILE = new File(System.getProperty("user.home") + "/aws-credentials.properties");
 
     @BeforeEach
-    public void setUp() throws InterruptedException {
-        System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
+    public void setUp() throws InterruptedException, InitializationException {
+        Assumptions.assumeTrue(CREDENTIALS_FILE.exists());
 
-        kinesis = AmazonKinesisClient.builder()
-                .withCredentials(new PropertiesFileCredentialsProvider(CREDENTIALS_FILE))
-                .withRegion(REGION)
+        System.setProperty("aws.cborEnabled", "false");
+
+        kinesis = KinesisClient.builder()
+                .credentialsProvider(new PropertiesCredentialsProvider(CREDENTIALS_FILE))
+                .httpClient(ApacheHttpClient.create())
+                .region(Region.of(REGION))
                 .build();
 
-        kinesis.createStream(KINESIS_STREAM_NAME, 1);
+        kinesis.createStream(CreateStreamRequest.builder().streamName(KINESIS_STREAM_NAME).shardCount(1).build());
 
-        dynamoDB = AmazonDynamoDBClient.builder()
-                .withCredentials(new PropertiesFileCredentialsProvider(CREDENTIALS_FILE))
-                .withRegion(REGION)
+        dynamoDB = DynamoDbClient.builder()
+                .credentialsProvider(new PropertiesCredentialsProvider(CREDENTIALS_FILE))
+                .region(Region.of(REGION))
+                .httpClient(ApacheHttpClient.create())
                 .build();
 
         waitForKinesisToInitialize();
 
         runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE.getAbsolutePath());
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
-        runner.setProperty(ConsumeKinesisStream.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-service");
         runner.setProperty(ConsumeKinesisStream.REGION, REGION);
         runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
         runner.assertValid();

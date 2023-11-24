@@ -20,7 +20,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
@@ -71,9 +70,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -89,6 +88,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -118,19 +118,13 @@ public class StandardExtensionService implements ExtensionService {
                                     final BundlePersistenceProvider bundlePersistenceProvider,
                                     final Validator validator,
                                     final NiFiRegistryProperties properties) {
-        this.extensionSerializer = extensionSerializer;
+        this.extensionSerializer = Objects.requireNonNull(extensionSerializer);
         this.extensionDocWriter = extensionDocWriter;
-        this.metadataService = metadataService;
-        this.extractors = extractors;
-        this.bundlePersistenceProvider = bundlePersistenceProvider;
-        this.validator = validator;
-        this.extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
-        Validate.notNull(this.extensionSerializer);
-        Validate.notNull(this.metadataService);
-        Validate.notNull(this.extractors);
-        Validate.notNull(this.bundlePersistenceProvider);
-        Validate.notNull(this.validator);
-        Validate.notNull(this.extensionsWorkingDir);
+        this.metadataService = Objects.requireNonNull(metadataService);
+        this.extractors = Objects.requireNonNull(extractors);
+        this.bundlePersistenceProvider = Objects.requireNonNull(bundlePersistenceProvider);
+        this.validator = Objects.requireNonNull(validator);
+        this.extensionsWorkingDir = Objects.requireNonNull(properties.getExtensionsWorkingDirectory());
     }
 
     private <T>  void validate(T t, String invalidMessage) {

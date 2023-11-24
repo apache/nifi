@@ -25,10 +25,12 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -49,6 +51,7 @@ import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,6 +59,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,6 +78,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ReportingTaskNode> allReportingTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, FlowAnalysisRuleNode> allFlowAnalysisRules = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ParameterProviderNode> allParameterProviders = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, FlowRegistryClientNode> allFlowRegistryClients = new ConcurrentHashMap<>();
 
@@ -83,6 +88,8 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     private volatile ControllerServiceProvider controllerServiceProvider;
     private volatile PythonBridge pythonBridge;
+    private volatile FlowAnalyzer flowAnalyzer;
+    private volatile RuleViolationsManager ruleViolationsManager;
     private volatile ProcessGroup rootGroup;
 
     private final ThreadLocal<Boolean> withParameterContextResolution = ThreadLocal.withInitial(() -> false);
@@ -94,9 +101,16 @@ public abstract class AbstractFlowManager implements FlowManager {
         this.flowInitializedCheck = flowInitializedCheck;
     }
 
-    public void initialize(final ControllerServiceProvider controllerServiceProvider, final PythonBridge pythonBridge) {
+    public void initialize(
+            final ControllerServiceProvider controllerServiceProvider,
+            final PythonBridge pythonBridge,
+            final FlowAnalyzer flowAnalyzer,
+            final RuleViolationsManager ruleViolationsManager
+    ) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.pythonBridge = pythonBridge;
+        this.flowAnalyzer = flowAnalyzer;
+        this.ruleViolationsManager = ruleViolationsManager;
     }
 
     public ProcessGroup getGroup(final String id) {
@@ -108,7 +122,10 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     public void onProcessGroupRemoved(final ProcessGroup group) {
-        allProcessGroups.remove(group.getIdentifier());
+        String identifier = group.getIdentifier();
+        allProcessGroups.remove(identifier);
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public void onProcessorAdded(final ProcessorNode procNode) {
@@ -120,6 +137,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowFileEventRepository.purgeTransferEvents(identifier);
         allProcessors.remove(identifier);
         pythonBridge.onProcessorRemoved(identifier, procNode.getComponentType(), procNode.getBundleCoordinate().getVersion());
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Set<ProcessorNode> findAllProcessors(final Predicate<ProcessorNode> filter) {
@@ -178,6 +197,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = connection.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allConnections.remove(identifier);
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Connection getConnection(final String id) {
@@ -226,6 +247,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         componentCounts.put("Processors", allProcessors.size());
         componentCounts.put("Controller Services", getAllControllerServices().size());
         componentCounts.put("Reporting Tasks", getAllReportingTasks().size());
+        componentCounts.put("Flow Analysis Rules", getAllFlowAnalysisRules().size());
         componentCounts.put("Process Groups", allProcessGroups.size() - 2); // -2 to account for the root group because we don't want it in our counts and the 'root group alias' key.
         componentCounts.put("Remote Process Groups", getRootGroup().findAllRemoteProcessGroups().size());
         componentCounts.put("Parameter Providers", getAllParameterProviders().size());
@@ -265,13 +287,6 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         final ProcessGroup rootGroup = getRootGroup();
 
-        // Delete templates from all levels first. This allows us to avoid having to purge each individual Process Group recursively
-        // and instead just delete all child Process Groups after removing the connections to/from those Process Groups.
-        for (final ProcessGroup group : rootGroup.findAllProcessGroups()) {
-            group.getTemplates().forEach(group::removeTemplate);
-        }
-        rootGroup.getTemplates().forEach(rootGroup::removeTemplate);
-
         rootGroup.getConnections().forEach(rootGroup::removeConnection);
         rootGroup.getProcessors().forEach(rootGroup::removeProcessor);
         rootGroup.getFunnels().forEach(rootGroup::removeFunnel);
@@ -286,9 +301,10 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         getRootControllerServices().forEach(this::removeRootControllerService);
         getAllReportingTasks().forEach(this::removeReportingTask);
+        getAllFlowAnalysisRules().forEach(this::removeFlowAnalysisRule);
         getAllParameterProviders().forEach(this::removeParameterProvider);
 
-        getAllFlowRegistryClients().forEach(this::removeFlowRegistryClientNode);
+        getAllFlowRegistryClients().forEach(this::removeFlowRegistryClient);
 
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
@@ -306,12 +322,16 @@ public abstract class AbstractFlowManager implements FlowManager {
             reportingTask.verifyCanDelete();
         }
 
+        for (final FlowAnalysisRuleNode flowAnalysisRule : getAllFlowAnalysisRules()) {
+            flowAnalysisRule.verifyCanDelete();
+        }
+
         for (final ParameterProviderNode parameterProvider : getAllParameterProviders()) {
             parameterProvider.verifyCanDelete();
         }
 
         final ProcessGroup rootGroup = getRootGroup();
-        rootGroup.verifyCanDelete(true, true);
+        rootGroup.verifyCanDelete(true);
     }
 
     public Set<ControllerServiceNode> getAllControllerServices() {
@@ -333,6 +353,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = inputPort.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allInputPorts.remove(identifier);
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Port getInputPort(final String id) {
@@ -347,6 +369,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = outputPort.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allOutputPorts.remove(identifier);
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Port getOutputPort(final String id) {
@@ -361,6 +385,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = funnel.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allFunnels.remove(identifier);
+
+        removeRuleViolationsForSubject(identifier);
     }
 
     public Funnel getFunnel(final String id) {
@@ -433,6 +459,58 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     public void onReportingTaskAdded(final ReportingTaskNode taskNode) {
         allReportingTasks.put(taskNode.getIdentifier(), taskNode);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        return createFlowAnalysisRule(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true, null);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode getFlowAnalysisRuleNode(final String taskId) {
+        return allFlowAnalysisRules.get(taskId);
+    }
+
+    @Override
+    public void removeFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRuleNode) {
+        final FlowAnalysisRuleNode existing = allFlowAnalysisRules.get(flowAnalysisRuleNode.getIdentifier());
+        if (existing == null || existing != flowAnalysisRuleNode) {
+            throw new IllegalStateException("Flow Analysis Rule " + flowAnalysisRuleNode + " does not exist in this Flow");
+        }
+
+        flowAnalysisRuleNode.verifyCanDelete();
+
+        final Class<?> taskClass = flowAnalysisRuleNode.getFlowAnalysisRule().getClass();
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, flowAnalysisRuleNode.getFlowAnalysisRule().getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, flowAnalysisRuleNode.getFlowAnalysisRule(), flowAnalysisRuleNode.getConfigurationContext());
+        }
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : flowAnalysisRuleNode.getEffectivePropertyValues().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                if (value != null) {
+                    final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
+                    if (serviceNode != null) {
+                        serviceNode.removeReference(flowAnalysisRuleNode, descriptor);
+                    }
+                }
+            }
+        }
+
+        allFlowAnalysisRules.remove(flowAnalysisRuleNode.getIdentifier());
+        LogRepositoryFactory.removeRepository(flowAnalysisRuleNode.getIdentifier());
+
+        getExtensionManager().removeInstanceClassLoader(flowAnalysisRuleNode.getIdentifier());
+    }
+
+    @Override
+    public Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules() {
+        return new HashSet<>(allFlowAnalysisRules.values());
+    }
+
+    protected void onFlowAnalysisRuleAdded(final FlowAnalysisRuleNode flowAnalysisRuleNode) {
+        allFlowAnalysisRules.put(flowAnalysisRuleNode.getIdentifier(), flowAnalysisRuleNode);
     }
 
     @Override
@@ -516,8 +594,8 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
-                                                   final List<String> inheritedContextIds,
+    public ParameterContext createParameterContext(final String id, final String name, final String description,
+                                                   final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
                                                    final ParameterProviderConfiguration parameterProviderConfiguration) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
@@ -536,6 +614,7 @@ public abstract class AbstractFlowManager implements FlowManager {
                 .parameterProviderConfiguration(parameterProviderConfiguration)
                 .build();
         parameterContext.setParameters(parameters);
+        parameterContext.setDescription(description);
 
         if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {
             if (!withParameterContextResolution.get()) {
@@ -607,4 +686,20 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     protected abstract Authorizable getParameterContextParent();
+
+    @Override
+    public Optional<FlowAnalyzer> getFlowAnalyzer() {
+        return Optional.ofNullable(flowAnalyzer);
+    }
+
+    @Override
+    public Optional<RuleViolationsManager> getRuleViolationsManager() {
+        return Optional.ofNullable(ruleViolationsManager);
+    }
+
+    private void removeRuleViolationsForSubject(String identifier) {
+        if (ruleViolationsManager != null) {
+            ruleViolationsManager.removeRuleViolationsForSubject(identifier);
+        }
+    }
 }

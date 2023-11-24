@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import java.net.Socket;
-import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Standard implementation attempts to read X.509 certificates from an SSLSocket
@@ -61,8 +61,7 @@ public class StandardSocketPeerIdentityProvider implements SocketPeerIdentityPro
                 logger.warn("Peer Identity not found: Peer Certificates not provided [{}:{}]", peerHost, peerPort);
             } else {
                 final X509Certificate peerCertificate = (X509Certificate) peerCertificates[0];
-                final Principal subjectDistinguishedName = peerCertificate.getSubjectDN();
-                peerIdentity = subjectDistinguishedName.getName();
+                peerIdentity = StandardPrincipalFormatter.getInstance().getSubject(peerCertificate);
             }
         } catch (final SSLPeerUnverifiedException e) {
             logger.warn("Peer Identity not found: Peer Unverified [{}:{}]", peerHost, peerPort);

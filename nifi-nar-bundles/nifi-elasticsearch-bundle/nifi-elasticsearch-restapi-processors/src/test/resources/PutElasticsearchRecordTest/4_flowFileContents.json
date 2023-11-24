@@ -1,0 +1,46 @@
+[
+    {
+        "id": "rec-1",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-2",
+        "op": "create",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-3",
+        "op": "update",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-4",
+        "op": "upsert",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-5",
+        "op": "create",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello",
+        "code": null
+    },
+    {
+        "id": "rec-6",
+        "op": "delete",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello",
+        "code": 101
+    }
+]

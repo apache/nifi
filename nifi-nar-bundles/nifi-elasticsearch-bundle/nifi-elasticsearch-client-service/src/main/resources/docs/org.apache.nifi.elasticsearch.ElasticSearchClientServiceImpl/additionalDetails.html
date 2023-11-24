@@ -50,5 +50,15 @@
     Elasticsearch sniffing best practices: What, when, why, how</a> for more details of the best practices.
 </p>
 
+<h2>Resources Usage Consideration</h2>
+
+<p>
+    This Elasticsearch client relies on a <code>RestClient</code> using the Apache HTTP Async Client. By default, it will start one
+    dispatcher thread, and a number of worker threads used by the connection manager. There will be as many worker thread as the number
+    of locally detected processors/cores on the NiFi host. Consequently, it is highly recommended to have only one instance of this
+    controller service per remote Elasticsearch destination and have this controller service shared across all of the Elasticsearch
+    processors of the NiFi flows. Having a very high number of instances could lead to resource starvation and result in OOM errors.
+</p>
+
 </body>
 </html>

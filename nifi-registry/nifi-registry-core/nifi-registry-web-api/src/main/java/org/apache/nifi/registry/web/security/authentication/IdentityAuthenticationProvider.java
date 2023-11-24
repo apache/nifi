@@ -28,8 +28,6 @@ import org.apache.nifi.registry.security.authorization.UserGroupProvider;
 import org.apache.nifi.registry.security.authorization.user.NiFiUserDetails;
 import org.apache.nifi.registry.security.authorization.user.StandardNiFiUser;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -40,8 +38,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IdentityAuthenticationProvider implements AuthenticationProvider {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityAuthenticationProvider.class);
 
     protected Authorizer authorizer;
     protected final IdentityProvider identityProvider;

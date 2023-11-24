@@ -62,7 +62,7 @@ public class ScriptingComponentUtils {
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     /** A property descriptor for specifying the body of a script */
@@ -79,7 +79,7 @@ public class ScriptingComponentUtils {
             .name("Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .build();
 

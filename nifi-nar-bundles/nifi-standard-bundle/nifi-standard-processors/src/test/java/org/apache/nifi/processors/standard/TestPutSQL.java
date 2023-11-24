@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
@@ -57,8 +38,26 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
+import javax.xml.bind.DatatypeConverter;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
@@ -78,6 +77,7 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+    private static final Random random = new Random();
 
     /**
      * Setting up Connection pooling is expensive operation.
@@ -395,6 +395,32 @@ public class TestPutSQL {
         assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testFailInMiddleWithNumberFormatException() throws InitializationException, ProcessException {
+        final TestRunner runner = initTestRunner();
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "false");
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "hello");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
@@ -1260,7 +1286,7 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 1);
-        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_RETRY);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_RETRY);
     }
 
     @Test
@@ -1411,7 +1437,7 @@ public class TestPutSQL {
 
         // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
-        assertNonSQLExceptionRelatedAttribute(runner);
+        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
@@ -1700,8 +1726,14 @@ public class TestPutSQL {
         }
     }
 
+    private byte[] randomBytes(final int count) {
+        final byte[] bytes = new byte[count];
+        random.nextBytes(bytes);
+        return bytes;
+    }
+
     private String fixedSizeByteArrayAsASCIIString(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
         StringBuilder sbBytes = new StringBuilder();
         for (int i = bytes.position(); i < bytes.limit(); i++)
@@ -1711,12 +1743,12 @@ public class TestPutSQL {
     }
 
     private String fixedSizeByteArrayAsHexString(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printHexBinary(bBinary);
     }
 
     private String fixedSizeByteArrayAsBase64String(int length){
-        byte[] bBinary = RandomUtils.nextBytes(length);
+        byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
     }
 
@@ -1744,8 +1776,8 @@ public class TestPutSQL {
         });
     }
 
-    private static void assertNonSQLExceptionRelatedAttribute(final TestRunner runner) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+    private static void assertNonSQLErrorRelatedAttributes(final TestRunner runner,  Relationship relationship) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> {
             ff.assertAttributeExists("error.message");
         });

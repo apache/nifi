@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -46,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 
@@ -72,7 +72,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             + "FlowFiles and the File Size will be ignored. Finally, if Expression Language is used, evaluation will be performed only once "
             + "per batch of generated FlowFiles")
         .required(false)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(NON_EMPTY_VALIDATOR)
         .build();
     static final PropertyDescriptor STATE_SCOPE = new Builder()
@@ -120,7 +120,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamic(true)
             .build();
     }

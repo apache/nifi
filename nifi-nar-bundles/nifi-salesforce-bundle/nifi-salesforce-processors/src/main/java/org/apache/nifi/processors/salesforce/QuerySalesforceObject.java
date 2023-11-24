@@ -152,7 +152,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("sObject Name")
             .description("The Salesforce sObject to be queried")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
@@ -162,7 +162,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("Field Names")
             .description("Comma-separated list of field names requested from the sObject to be queried. When this field is left empty, all fields are queried.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
@@ -194,7 +194,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     + "The processor will return only those records with a timestamp value newer than the timestamp recorded after the last processor run."
             )
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
@@ -205,7 +205,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(AGE_FIELD)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
@@ -216,7 +216,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("Initial Age Start Time")
             .description("This property specifies the start time that the processor applies when running the first query.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(AGE_FIELD)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)

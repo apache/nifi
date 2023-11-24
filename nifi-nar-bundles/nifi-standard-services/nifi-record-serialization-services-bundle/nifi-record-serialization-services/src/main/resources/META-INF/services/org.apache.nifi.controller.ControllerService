@@ -38,3 +38,4 @@ org.apache.nifi.xml.XMLReader
 org.apache.nifi.xml.XMLRecordSetWriter
 org.apache.nifi.windowsevent.WindowsEventLogReader
 org.apache.nifi.schema.inference.VolatileSchemaCache
+org.apache.nifi.yaml.YamlTreeReader

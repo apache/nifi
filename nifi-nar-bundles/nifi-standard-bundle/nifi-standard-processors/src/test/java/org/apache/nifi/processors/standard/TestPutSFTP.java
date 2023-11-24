@@ -67,6 +67,8 @@ class TestPutSFTP {
         runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
         runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
         runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
+
+        runner.setProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT, Boolean.FALSE.toString());
         runner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, Boolean.FALSE.toString());
         runner.setProperty(SFTPTransfer.BATCH_SIZE, Integer.toString(BATCH_SIZE));
         runner.setProperty(SFTPTransfer.REMOTE_PATH, REMOTE_DIRECTORY);

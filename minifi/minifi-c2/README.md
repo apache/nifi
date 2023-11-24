@@ -38,17 +38,16 @@ When using the `CacheConfigurationProvider`, by default, the server will look fo
 
 The pattern can be configured in [./conf/minifi-c2-context.xml](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) and the default value (${class}/config) will replace ${class} with the class query parameter and then look for CLASS/config.CONTENT_TYPE.vVERSION in the directory structure.
 
-Ex: http://localhost:10090/c2/config?class=raspi&version=1 with an Accept header that matches text/yml would result in [./files/raspi3/config.text.yml.v1](./minifi-c2-assembly/src/main/resources/files/raspi3/config.text.yml.v1) and omitting the version parameter would look for the highest version number in the directory.
+Ex: http://localhost:10090/c2/config?class=raspi&version=1 with an Accept header that matches application/json would result in [./files/raspi3/config.application.json.v1](./minifi-c2-assembly/src/main/resources/files/raspi3/config.application.json.v1) and omitting the version parameter would look for the highest version number in the directory.
 
 The version resolution is cached in memory to accommodate many devices polling periodically.  The cache duration can be configured with additional arguments in  [./conf/minifi-c2-context.xml](../minifi-integration-tests/src/test/resources/c2/hierarchical/c2-edge2/conf/minifi-c2-context.xml#L55) that call the [overloaded constructor.](./minifi-c2-service/src/main/java/org/apache/nifi/minifi/c2/service/ConfigService.java#L81)
 
 MiNiFi Java agents can be configured to poll the C2 server by [configuring the PullHttpChangeIngestor in their bootstrap.conf.](../minifi-integration-tests/src/test/resources/c2/hierarchical/minifi-edge1/bootstrap.conf#L37)
 
 ### Configuration Providers:
-There are three `ConfigurationProvider` implementations provided out of the box.
+There are two `ConfigurationProvider` implementations provided out of the box.
 1. The [CacheConfigurationProvider](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) looks at a directory on the filesystem or in an Amazon S3 bucket. Which backend storage is used can be selected in `minifi-c2-context.xml` via the constructors to `CacheConfigurationProvider`.
 2. The [DelegatingConfigurationProvider](./minifi-c2-integration-tests/src/test/resources/c2-unsecure-delegating/conf/minifi-c2-context.xml) delegates to another C2 server to allow for hierarchical C2 structures to help with scaling and/or bridging networks.
-3. The [NiFiRestConfigurationProvider](./minifi-c2-integration-tests/src/test/resources/c2-unsecure-rest/conf/minifi-c2-context.xml) pulls templates from a NiFi instance over its REST API. (Note: sensitive values are NOT included in templates so this is unsuitable for flows with sensitive configuration currently)
 
 ### Example network diagram:
 Below is a network diagram showing the different configurations tested by [our hierarchical integration test docker-compose file.](../minifi-integration-tests/src/test/resources/docker-compose-c2-hierarchical.yml)  It consists of a "cluster" network where real processing might occur as well as 3 "edge" networks that can get configuration from the cluster network a few different ways.  The edge1 instance can directly access the authoritative C2 server via HTTPS.  The edge2 instance is representative of a segmented network where the MiNiFi agents can talk to a local delegating C2 server over HTTP which asks the authoritative C2 server over HTTPS.  The edge 3 instance can talk to the authoritative C2 server through a Squid proxy over HTTPS.

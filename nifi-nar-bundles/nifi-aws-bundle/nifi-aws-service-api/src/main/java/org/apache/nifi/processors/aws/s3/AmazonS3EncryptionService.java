@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.controller.ControllerService;
+
+import java.util.function.Consumer;
 
 /**
  * This interface defines how clients interact with an S3 encryption service.
@@ -69,11 +70,9 @@ public interface AmazonS3EncryptionService extends ControllerService {
     /**
      * Create an S3 encryption client.
      *
-     * @param credentialsProvider AWS credentials provider.
-     * @param clientConfiguration Client configuration.
-     * @return {@link AmazonS3Client}, perhaps an {@link com.amazonaws.services.s3.AmazonS3EncryptionClient}
+     * @param clientBuilder a Consumer that is responsible for configuring the client builder
      */
-    AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration);
+    AmazonS3 createEncryptionClient(Consumer<AmazonS3Builder<?, ?>> clientBuilder);
 
     /**
      * @return The KMS region associated with the service, as a String.

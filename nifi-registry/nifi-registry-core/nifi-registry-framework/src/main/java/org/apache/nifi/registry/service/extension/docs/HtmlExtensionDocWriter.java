@@ -353,8 +353,8 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     String text = "Supports Expression Language: true";
-                    final String perFF = " (will be evaluated using flow file attributes and variable registry)";
-                    final String registry = " (will be evaluated using variable registry only)";
+                    final String perFF = " (will be evaluated using flow file attributes and Environment variables)";
+                    final String registry = " (will be evaluated using Environment variables only)";
                     final InputRequirement inputRequirement = extension.getInputRequirement();
 
                     switch(property.getExpressionLanguageScope()) {
@@ -365,7 +365,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                                 text += perFF;
                             }
                             break;
-                        case VARIABLE_REGISTRY:
+                        case ENVIRONMENT:
                             text += registry;
                             break;
                         case NONE:
@@ -502,10 +502,10 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 } else {
                     switch(elScope) {
                         case FLOWFILE_ATTRIBUTES:
-                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and variable registry)";
+                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and env/syst variables registry)";
                             break;
-                        case VARIABLE_REGISTRY:
-                            text = "Supports Expression Language: true (will be evaluated using variable registry only)";
+                        case ENVIRONMENT:
+                            text = "Supports Expression Language: true (will be evaluated using env/syst variables registry only)";
                             break;
                         case NONE:
                         default:

@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -27,6 +31,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -39,11 +44,6 @@ import org.apache.nifi.record.path.RecordFieldRemover;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.record.Record;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 
 @SideEffectFree
@@ -59,13 +59,29 @@ import java.util.List;
 @WritesAttributes({
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
-@DynamicProperty(name = "(Ignored)", value = "A RecordPath to the field to be removed.",
-        description = "Allows users to specify fields to remove that match the RecordPath.",
+@DynamicProperty(name = "A description of the field to remove",
+    value = "A RecordPath to the field to be removed.",
+    description = "Any field that matches the RecordPath set as the value will be removed.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SeeAlso({UpdateRecord.class})
+@UseCase(
+    description = "Remove one or more fields from a Record, where the names of the fields to remove are known.",
+    keywords = {"record", "field", "drop", "remove", "delete", "expunge", "recordpath"},
+    configuration = """
+        Configure the Record Reader according to the incoming data format.
+        Configure the Record Writer according to the desired output format.
+
+        For each field that you want to remove, add a single new property to the Processor.
+        The name of the property can be anything but it's recommended to use a brief description of the field.
+        The value of the property is a RecordPath that matches the field to remove.
+
+        For example, to remove the `name` and `email` fields, add two Properties:
+        `name` = `/name`
+        `email` = `/email`
+        """
+)
 public class RemoveRecordField extends AbstractRecordProcessor {
     private volatile RecordPathCache recordPathCache;
-    private volatile List<RecordFieldRemover.RecordPathRemovalProperties> recordPathsToRemove;
 
     private static final String ROOT_PATH = "/";
 
@@ -111,24 +127,21 @@ public class RemoveRecordField extends AbstractRecordProcessor {
     @OnScheduled
     public void collectRecordPaths(final ProcessContext context) {
         recordPathCache = new RecordPathCache(context.getProperties().size() * 2);
-
-        recordPathsToRemove = null;
     }
 
     @Override
     protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
-        if (recordPathsToRemove == null) {
-            recordPathsToRemove = new ArrayList<>(context.getProperties().size());
-            context.getProperties().keySet().forEach(property -> {
-                if (property.isDynamic()) {
-                    // validate RecordPath from Expression Language (if applicable)
-                    final String recordPath = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-                    if (ROOT_PATH.equals(recordPath)) {
-                        throw new ProcessException(String.format("The root Record Path %s cannot be removed for %s", ROOT_PATH, property.getDisplayName()));
-                    }
-                    recordPathsToRemove.add(new RecordFieldRemover.RecordPathRemovalProperties(recordPath));
+        final List<RecordFieldRemover.RecordPathRemovalProperties> recordPathsToRemove = new ArrayList<>();
+        for (final PropertyDescriptor property : context.getProperties().keySet()) {
+            if (property.isDynamic()) {
+                // validate RecordPath from Expression Language (if applicable)
+                final String recordPath = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
+                if (ROOT_PATH.equals(recordPath)) {
+                    throw new ProcessException(String.format("The root Record Path %s cannot be removed for %s", ROOT_PATH, property.getDisplayName()));
                 }
-            });
+
+                recordPathsToRemove.add(new RecordFieldRemover.RecordPathRemovalProperties(recordPath));
+            }
         }
 
         final RecordFieldRemover recordFieldRemover = new RecordFieldRemover(record, recordPathCache);

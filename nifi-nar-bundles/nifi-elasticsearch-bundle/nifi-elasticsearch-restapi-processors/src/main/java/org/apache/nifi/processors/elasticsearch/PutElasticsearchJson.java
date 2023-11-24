@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -28,6 +27,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -58,12 +58,14 @@ import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
-@CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries.")
+@CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries. " +
+        "Each FlowFile is treated as a document to be sent to the Elasticsearch _bulk API. Multiple FlowFiles can be batched together into each Request sent to Elasticsearch.")
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.put.error",
                 description = "The error message if there is an issue parsing the FlowFile, sending the parsed document to Elasticsearch or parsing the Elasticsearch response"),
         @WritesAttribute(attribute = "elasticsearch.bulk.error", description = "The _bulk response if there was an error during processing the document within Elasticsearch.")
 })
+@SeeAlso(PutElasticsearchRecord.class)
 @DynamicProperties({
         @DynamicProperty(
                 name = "The name of the Bulk request header",
@@ -71,6 +73,7 @@ import java.util.stream.Collectors;
                 expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
                 description = "Prefix: " + AbstractPutElasticsearch.BULK_HEADER_PREFIX +
                         " - adds the specified property name/value as a Bulk request header in the Elasticsearch Bulk API body used for processing. " +
+                        "If the value is null or blank, the Bulk header will be omitted for the document operation. " +
                         "These parameters will override any matching parameters in the _bulk request body."),
         @DynamicProperty(
                 name = "The name of a URL query parameter to add",
@@ -179,7 +182,6 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     )));
 
     private boolean outputErrors;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     Set<Relationship> getBaseRelationships() {
@@ -261,7 +263,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         try (final InputStream inStream = session.read(input)) {
             final byte[] result = IOUtils.toByteArray(inStream);
             @SuppressWarnings("unchecked")
-            final Map<String, Object> contentMap = objectMapper.readValue(new String(result, charset), Map.class);
+            final Map<String, Object> contentMap = mapper.readValue(new String(result, charset), Map.class);
 
             final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(indexOp);
             operations.add(new IndexOperationRequest(index, type, id, contentMap, o, scriptMap, scriptedUpsert, dynamicTemplatesMap, bulkHeaderFields));
@@ -284,7 +286,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     private Map<String, Object> getMapFromAttribute(final PropertyDescriptor propertyDescriptor, final ProcessContext context, final FlowFile input) {
         final String dynamicTemplates = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(input).getValue();
         try {
-            return StringUtils.isNotBlank(dynamicTemplates) ? MAPPER.readValue(dynamicTemplates, Map.class) : Collections.emptyMap();
+            return StringUtils.isNotBlank(dynamicTemplates) ? mapper.readValue(dynamicTemplates, Map.class) : Collections.emptyMap();
         } catch (final JsonProcessingException jpe) {
             throw new ProcessException(propertyDescriptor.getDisplayName() + " must be a String parsable into a JSON Object", jpe);
         }
@@ -300,7 +302,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             errors.forEach((index, error) -> {
                 String errorMessage;
                 try {
-                    errorMessage = objectMapper.writeValueAsString(error);
+                    errorMessage = mapper.writeValueAsString(error);
                 } catch (JsonProcessingException e) {
                     errorMessage = String.format(
                             "{\"error\": {\"type\": \"elasticsearch_response_parse_error\", \"reason\": \"%s\"}}",

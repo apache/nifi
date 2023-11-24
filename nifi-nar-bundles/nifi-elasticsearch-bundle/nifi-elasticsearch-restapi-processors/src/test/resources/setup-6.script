@@ -14,8 +14,9 @@
 # limitations under the License.
 
 #create mapping
-PUT:messages/:{ "mappings":{"_doc":{ "properties":{ "msg":{"type":"keyword"}}}}}
+PUT:messages/:{ "mappings":{"_doc":{ "properties":{ "msg":{"type":"keyword"}, "num":{"type":"integer"}}}}}
 
 #add document
-PUT:messages/_doc/1:{ "msg":"one" }
-
+PUT:messages/_doc/1:{ "msg":"one", "num": 1 }
+PUT:messages/_doc/2:{ "msg":"two", "num": 2 }
+PUT:messages/_doc/3:{ "msg":"three", "num": 3 }

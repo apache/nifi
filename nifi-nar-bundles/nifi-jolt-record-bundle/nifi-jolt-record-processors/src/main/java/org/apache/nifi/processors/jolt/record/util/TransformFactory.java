@@ -17,11 +17,6 @@
 
 package org.apache.nifi.processors.jolt.record.util;
 
-import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
@@ -33,86 +28,68 @@ import com.bazaarvoice.jolt.Sortr;
 import com.bazaarvoice.jolt.SpecDriven;
 import com.bazaarvoice.jolt.chainr.spec.ChainrEntry;
 import com.bazaarvoice.jolt.exception.SpecException;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class TransformFactory {
 
     public static JoltTransform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
-
-        if (transformType.equals("jolt-transform-default")) {
-            return new Defaultr(specJson);
-        } else if (transformType.equals("jolt-transform-shift")) {
-            return new Shiftr(specJson);
-        } else if (transformType.equals("jolt-transform-remove")) {
-            return new Removr(specJson);
-        } else if (transformType.equals("jolt-transform-card")) {
-            return new CardinalityTransform(specJson);
-        } else if(transformType.equals("jolt-transform-sort")){
-            return new Sortr();
-        } else if(transformType.equals("jolt-transform-modify-default")){
-          return new Modifier.Defaultr(specJson);
-        } else if(transformType.equals("jolt-transform-modify-overwrite")){
-            return new Modifier.Overwritr(specJson);
-        } else if(transformType.equals("jolt-transform-modify-define")){
-            return new Modifier.Definr(specJson);
-        } else{
-            return new Chainr(getChainrJoltTransformations(classLoader,specJson));
-        }
-
+        return switch (transformType) {
+            case "jolt-transform-default" -> new Defaultr(specJson);
+            case "jolt-transform-shift" -> new Shiftr(specJson);
+            case "jolt-transform-remove" -> new Removr(specJson);
+            case "jolt-transform-card" -> new CardinalityTransform(specJson);
+            case "jolt-transform-sort" -> new Sortr();
+            case "jolt-transform-modify-default" -> new Modifier.Defaultr(specJson);
+            case "jolt-transform-modify-overwrite" -> new Modifier.Overwritr(specJson);
+            case "jolt-transform-modify-define" -> new Modifier.Definr(specJson);
+            default -> new Chainr(getChainrJoltTransformations(classLoader, specJson));
+        };
     }
 
-    @SuppressWarnings("unchecked")
     public static JoltTransform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
-        final Class clazz = classLoader.loadClass(customTransformType);
-        if(SpecDriven.class.isAssignableFrom(clazz)){
-            final Constructor constructor = clazz.getConstructor(Object.class);
+        final Class<?> clazz = classLoader.loadClass(customTransformType);
+        if (SpecDriven.class.isAssignableFrom(clazz)) {
+            final Constructor<?> constructor = clazz.getConstructor(Object.class);
             return (JoltTransform)constructor.newInstance(specJson);
-
-        }else{
-            return (JoltTransform)clazz.newInstance();
+        } else {
+            return (JoltTransform) clazz.getDeclaredConstructor().newInstance();
         }
     }
 
 
     protected static List<JoltTransform> getChainrJoltTransformations(ClassLoader classLoader, Object specJson) throws Exception{
-        if(!(specJson instanceof List)) {
+        if (!(specJson instanceof List)) {
             throw new SpecException("JOLT Chainr expects a JSON array of objects - Malformed spec.");
         } else {
+            final List<?> operations = (List<?>) specJson;
 
-            List operations = (List)specJson;
-
-            if(operations.isEmpty()) {
+            if (operations.isEmpty()) {
                 throw new SpecException("JOLT Chainr passed an empty JSON array.");
             } else {
+                final List<JoltTransform> entries = new ArrayList<>(operations.size());
 
-                ArrayList<JoltTransform> entries = new ArrayList<>(operations.size());
-
-                for(Object chainrEntryObj : operations) {
-
-                    if(!(chainrEntryObj instanceof Map)) {
+                for (final Object chainrEntryObj : operations) {
+                    if (!(chainrEntryObj instanceof Map)) {
                         throw new SpecException("JOLT ChainrEntry expects a JSON map - Malformed spec");
+                    }
+
+                    final Map<?, ?> chainrEntryMap = (Map<?, ?>) chainrEntryObj;
+                    final String opString = (String) chainrEntryMap.get("operation");
+                    final String operationClassName;
+
+                    if (opString == null) {
+                        throw new SpecException("JOLT Chainr 'operation' must implement Transform or ContextualTransform");
                     } else {
-                        Map chainrEntryMap = (Map)chainrEntryObj;
-                        String opString = (String) chainrEntryMap.get("operation");
-                        String operationClassName;
-
-                        if(opString == null) {
-                            throw new SpecException("JOLT Chainr \'operation\' must implement Transform or ContextualTransform");
-                        } else {
-
-                            operationClassName = ChainrEntry.STOCK_TRANSFORMS.getOrDefault(opString, opString);
-
-                            entries.add(getCustomTransform(classLoader,operationClassName,chainrEntryMap.get("spec")));
-                        }
+                        operationClassName = ChainrEntry.STOCK_TRANSFORMS.getOrDefault(opString, opString);
+                        entries.add(getCustomTransform(classLoader, operationClassName, chainrEntryMap.get("spec")));
                     }
                 }
 
                 return entries;
             }
         }
-
     }
-
-
-
-
 }

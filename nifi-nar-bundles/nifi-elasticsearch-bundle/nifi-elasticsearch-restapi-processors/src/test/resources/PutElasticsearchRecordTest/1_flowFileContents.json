@@ -1,0 +1,55 @@
+[
+    {
+        "id": "rec-1",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello",
+        "ts": 1606481723000
+    },
+    {
+        "id": "rec-2",
+        "op": "index",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-3",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-4",
+        "op": "index",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello",
+        "scripted_upsert": null
+    },
+    {
+        "id": "rec-5",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "",
+        "script": {
+            "source": "some script",
+            "language": "painless"
+        },
+        "scripted_upsert": false,
+        "dynamic_templates": null
+    },
+    {
+        "id": "rec-6",
+        "op": "create",
+        "index": "bulk_b",
+        "type": "message",
+        "msg": null,
+        "script": null,
+        "scripted_upsert": true,
+        "dynamic_templates": "{\n    \"my_field\": \"keyword\",\n    \"your_field\": {\n        \"type\": \"text\",\n        \"keyword\": {\n            \"type\": \"text\"\n        }\n    }\n}"
+    }
+]

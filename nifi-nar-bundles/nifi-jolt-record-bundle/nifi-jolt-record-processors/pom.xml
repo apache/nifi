@@ -33,12 +33,14 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -73,8 +75,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -104,12 +104,15 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/TestJoltTransformRecord/input.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/chainrSpecWithSingleLineComment.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/customChainrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/chainrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/cardrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/cardrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/flattenSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/flattenedOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</exclude>

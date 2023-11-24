@@ -1,0 +1,324 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 1,
+  "maxEventDrivenThreadCount": 1,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "templates": [],
+  "rootGroup": {
+    "identifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+    "instanceIdentifier": "Root-Group",
+    "name": "ReplaceTextExpressionLanguageCSVReformatting",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "a72307a6-334b-3f99-9c2d-5afb7b5586df",
+        "instanceIdentifier": "65eff572-176c-3c6b-87d8-a998fc4c84fc",
+        "name": "Generate Empty File",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "File Size": "0b",
+          "Batch Size": "1",
+          "Unique FlowFiles": "false",
+          "Data Format": "Text"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "1 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "743f266d-082c-3bbb-b457-a5eb6940d929",
+        "instanceIdentifier": "d123f462-2b54-39b8-a717-e394fb09e040",
+        "name": "Reformat Date Column",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.ReplaceText",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Regular Expression": "(.*?),(.*?),(\\d+.*)",
+          "Replacement Value": "$1,$2,${ '$3':toDate('ddMMMyyyy'):format('yyyy/MM/dd') }",
+          "Evaluation Mode": "Line-by-Line",
+          "Line-by-Line Evaluation Mode": "All",
+          "Character Set": "UTF-8",
+          "Maximum Buffer Size": "1 MB",
+          "Replacement Strategy": "Regex Replace"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "failure"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "d3d76b70-a28c-31ea-8336-1ffa4b982615",
+        "instanceIdentifier": "8c6c54be-7db6-333f-8c3b-d6e7b02411ff",
+        "name": "No-Op Termination",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-update-attribute-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Store State": "Do not store state",
+          "canonical-value-lookup-cache-size": "100"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "77d72911-c2d7-3c59-bef9-1cb83402d671",
+        "instanceIdentifier": "b1df6002-f956-30e0-aa23-d433eb8dbe2f",
+        "name": "Set CSV Content",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.ReplaceText",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Regular Expression": "(?s)(^.*$)",
+          "Replacement Value": "2006,10-01-2004,10may2004\n2007,15-05-2006,10jun2005\n2009,8-8-2008,10aug2008",
+          "Evaluation Mode": "Line-by-Line",
+          "Line-by-Line Evaluation Mode": "All",
+          "Character Set": "UTF-8",
+          "Maximum Buffer Size": "1 MB",
+          "Replacement Strategy": "Regex Replace"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "failure"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+      {
+        "identifier": "a20347bd-fd67-3add-b5d2-8e9afb1837de",
+        "instanceIdentifier": "b2314dba-819a-31c9-ae88-6334102062e2",
+        "name": "Generate Empty File/success/Set CSV Content",
+        "source": {
+          "id": "a72307a6-334b-3f99-9c2d-5afb7b5586df",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Generate Empty File",
+          "comments": "",
+          "instanceIdentifier": "65eff572-176c-3c6b-87d8-a998fc4c84fc"
+        },
+        "destination": {
+          "id": "77d72911-c2d7-3c59-bef9-1cb83402d671",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Set CSV Content",
+          "comments": "",
+          "instanceIdentifier": "b1df6002-f956-30e0-aa23-d433eb8dbe2f"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "8448d199-a002-3c9c-bad1-ab7fc8ec15dc",
+        "instanceIdentifier": "d6fa1548-86ff-367a-b37a-4202543ad298",
+        "name": "Set CSV Content/success/Reformat Date Column",
+        "source": {
+          "id": "77d72911-c2d7-3c59-bef9-1cb83402d671",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Set CSV Content",
+          "comments": "",
+          "instanceIdentifier": "b1df6002-f956-30e0-aa23-d433eb8dbe2f"
+        },
+        "destination": {
+          "id": "743f266d-082c-3bbb-b457-a5eb6940d929",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Reformat Date Column",
+          "comments": "",
+          "instanceIdentifier": "d123f462-2b54-39b8-a717-e394fb09e040"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "90c17470-19e0-312d-8b30-fc3013705fa1",
+        "instanceIdentifier": "9c98948a-3ff1-344c-b890-2230c8008079",
+        "name": "Reformat Date Column/success/No-Op Termination",
+        "source": {
+          "id": "743f266d-082c-3bbb-b457-a5eb6940d929",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Reformat Date Column",
+          "comments": "",
+          "instanceIdentifier": "d123f462-2b54-39b8-a717-e394fb09e040"
+        },
+        "destination": {
+          "id": "d3d76b70-a28c-31ea-8336-1ffa4b982615",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "No-Op Termination",
+          "comments": "",
+          "instanceIdentifier": "8c6c54be-7db6-333f-8c3b-d6e7b02411ff"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "componentType": "PROCESS_GROUP",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  }
+}

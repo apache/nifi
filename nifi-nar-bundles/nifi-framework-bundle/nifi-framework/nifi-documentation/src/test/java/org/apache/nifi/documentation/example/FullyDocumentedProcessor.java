@@ -81,7 +81,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .description("The input directory from which to pull files")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
@@ -103,21 +103,19 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .defaultValue("0 sec")
             .build();
 
-    @SuppressWarnings("deprecation")
     public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
             .name("Optional Property")
             .description("This is a property you can use or not")
             .required(false)
-            .expressionLanguageSupported(true) // test documentation of deprecated method
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    @SuppressWarnings("deprecation")
     public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
             .name("Type")
             .description("This is the type of something that you can choose.  It has several possible values")
             .allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name")
             .required(true)
-            .expressionLanguageSupported(false) // test documentation of deprecated method
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SERVICE_PROPERTY = new PropertyDescriptor.Builder()

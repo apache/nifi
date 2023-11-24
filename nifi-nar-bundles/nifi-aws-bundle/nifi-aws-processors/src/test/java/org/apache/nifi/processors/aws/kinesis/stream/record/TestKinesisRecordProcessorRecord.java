@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
-import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -40,7 +35,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import software.amazon.kinesis.exceptions.InvalidStateException;
+import software.amazon.kinesis.exceptions.ShutdownException;
+import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
+import software.amazon.kinesis.processor.RecordProcessorCheckpointer;
+import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +59,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,8 +71,7 @@ public class TestKinesisRecordProcessorRecord {
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Mock
-    private ProcessSessionFactory processSessionFactory;
+    private final ProcessSessionFactory processSessionFactory = mock(ProcessSessionFactory.class);
 
     private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
     private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
@@ -82,15 +81,13 @@ public class TestKinesisRecordProcessorRecord {
     private final RecordSetWriterFactory writer = new JsonRecordSetWriter();
 
     @Mock
-    private IRecordProcessorCheckpointer checkpointer;
+    private final RecordProcessorCheckpointer checkpointer = mock(RecordProcessorCheckpointer.class);
 
     @Mock
-    private Record kinesisRecord;
+    private final KinesisClientRecord kinesisRecord = mock(KinesisClientRecord.class);
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        MockitoAnnotations.initMocks(this);
-
         runner.addControllerService("record-reader", reader);
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.enableControllerService(reader);
@@ -116,12 +113,13 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessRecordsEmpty() {
-        final ProcessRecordsInput processRecordsInput = new ProcessRecordsInput()
-                .withRecords(Collections.emptyList())
-                .withCheckpointer(checkpointer)
-                .withCacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
-                .withCacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
-                .withMillisBehindLatest(100L);
+        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
+                .records(Collections.emptyList())
+                .checkpointer(checkpointer)
+                .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
+                .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
+                .millisBehindLatest(100L)
+                .build();
 
         // would checkpoint (but should skip because there are no records processed)
         fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
@@ -148,25 +146,29 @@ public class TestKinesisRecordProcessorRecord {
         final Date firstDate = Date.from(Instant.now().minus(1, ChronoUnit.MINUTES));
         final Date secondDate = new Date();
 
-        final ProcessRecordsInput processRecordsInput = new ProcessRecordsInput()
-                .withRecords(Arrays.asList(
-                        new Record().withApproximateArrivalTimestamp(firstDate)
-                                .withPartitionKey("partition-1")
-                                .withSequenceNumber("1")
-                                .withData(ByteBuffer.wrap("{\"record\":\"1\"}\n{\"record\":\"1b\"}".getBytes(StandardCharsets.UTF_8))),
-                        new Record().withApproximateArrivalTimestamp(null)
-                                .withPartitionKey("partition-no-date")
-                                .withSequenceNumber("no-date")
-                                .withData(ByteBuffer.wrap("{\"record\":\"no-date\"}".getBytes(StandardCharsets.UTF_8))),
-                        new Record().withApproximateArrivalTimestamp(secondDate)
-                                .withPartitionKey("partition-2")
-                                .withSequenceNumber("2")
-                                .withData(ByteBuffer.wrap("{\"record\":\"2\"}".getBytes(StandardCharsets.UTF_8)))
+        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
+                .records(Arrays.asList(
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(firstDate.toInstant())
+                                .partitionKey("partition-1")
+                                .sequenceNumber("1")
+                                .data(ByteBuffer.wrap("{\"record\":\"1\"}\n{\"record\":\"1b\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build(),
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                .partitionKey("partition-no-date")
+                                .sequenceNumber("no-date")
+                                .data(ByteBuffer.wrap("{\"record\":\"no-date\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build(),
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(secondDate.toInstant())
+                                .partitionKey("partition-2")
+                                .sequenceNumber("2")
+                                .data(ByteBuffer.wrap("{\"record\":\"2\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build()
                 ))
-                .withCheckpointer(checkpointer)
-                .withCacheEntryTime(null)
-                .withCacheExitTime(null)
-                .withMillisBehindLatest(null);
+                .checkpointer(checkpointer)
+                .cacheEntryTime(null)
+                .cacheExitTime(null)
+                .millisBehindLatest(null)
+                .build();
 
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
         if (endpointOverridden) {
@@ -201,24 +203,27 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessPoisonPillRecordButNoRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
-        final ProcessRecordsInput processRecordsInput = new ProcessRecordsInput()
-                .withRecords(Arrays.asList(
-                        new Record().withApproximateArrivalTimestamp(null)
-                                .withPartitionKey("partition-1")
-                                .withSequenceNumber("1")
-                                .withData(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8))),
+        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
+                .records(Arrays.asList(
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                .partitionKey("partition-1")
+                                .sequenceNumber("1")
+                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build(),
                         kinesisRecord,
-                        new Record().withApproximateArrivalTimestamp(null)
-                                .withPartitionKey("partition-3")
-                                .withSequenceNumber("3")
-                                .withData(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                .partitionKey("partition-3")
+                                .sequenceNumber("3")
+                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build()
                 ))
-                .withCheckpointer(checkpointer)
-                .withCacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
-                .withCacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
-                .withMillisBehindLatest(100L);
+                .checkpointer(checkpointer)
+                .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
+                .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
+                .millisBehindLatest(100L)
+                .build();
 
-        when(kinesisRecord.getData()).thenThrow(new IllegalStateException("illegal state"));
+        when(kinesisRecord.data()).thenThrow(new IllegalStateException("illegal state"));
         when(kinesisRecord.toString()).thenReturn("poison-pill");
 
         fixture.setKinesisShardId("test-shard");
@@ -238,7 +243,7 @@ public class TestKinesisRecordProcessorRecord {
         session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 0);
 
         // check the "poison pill" record was retried a 2nd time
-        assertNull(verify(kinesisRecord, times(2)).getData());
+        assertNull(verify(kinesisRecord, times(2)).data());
         verify(checkpointer, times(1)).checkpoint();
 
         assertFalse(runner.getLogger().getErrorMessages().isEmpty());
@@ -249,27 +254,30 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessUnparsableRecordWithRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
-        final ProcessRecordsInput processRecordsInput = new ProcessRecordsInput()
-                .withRecords(Arrays.asList(
-                        new Record().withApproximateArrivalTimestamp(null)
-                                .withPartitionKey("partition-1")
-                                .withSequenceNumber("1")
-                                .withData(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8))),
+        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
+                .records(Arrays.asList(
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                .partitionKey("partition-1")
+                                .sequenceNumber("1")
+                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build(),
                         kinesisRecord,
-                        new Record().withApproximateArrivalTimestamp(null)
-                                .withPartitionKey("partition-3")
-                                .withSequenceNumber("3")
-                                .withData(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                .partitionKey("partition-3")
+                                .sequenceNumber("3")
+                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                .build()
                 ))
-                .withCheckpointer(checkpointer)
-                .withCacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
-                .withCacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
-                .withMillisBehindLatest(100L);
+                .checkpointer(checkpointer)
+                .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
+                .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
+                .millisBehindLatest(100L)
+                .build();
 
-        when(kinesisRecord.getData()).thenReturn(ByteBuffer.wrap("invalid-json".getBytes(StandardCharsets.UTF_8)));
-        when(kinesisRecord.getPartitionKey()).thenReturn("unparsable-partition");
-        when(kinesisRecord.getSequenceNumber()).thenReturn("unparsable-sequence");
-        when(kinesisRecord.getApproximateArrivalTimestamp()).thenReturn(null);
+        when(kinesisRecord.data()).thenReturn(ByteBuffer.wrap("invalid-json".getBytes(StandardCharsets.UTF_8)));
+        when(kinesisRecord.partitionKey()).thenReturn("unparsable-partition");
+        when(kinesisRecord.sequenceNumber()).thenReturn("unparsable-sequence");
+        when(kinesisRecord.approximateArrivalTimestamp()).thenReturn(null);
 
         fixture.setKinesisShardId("test-shard");
 
@@ -291,10 +299,10 @@ public class TestKinesisRecordProcessorRecord {
         failureFlowFiles.get(0).assertAttributeExists("record.error.message");
 
         // check the invalid json record was *not* retried a 2nd time
-        assertNull(verify(kinesisRecord, times(1)).getPartitionKey());
-        assertNull(verify(kinesisRecord, times(1)).getSequenceNumber());
-        assertNull(verify(kinesisRecord, times(1)).getApproximateArrivalTimestamp());
-        assertNull(verify(kinesisRecord, times(2)).getData());
+        assertNull(verify(kinesisRecord, times(1)).partitionKey());
+        assertNull(verify(kinesisRecord, times(1)).sequenceNumber());
+        assertNull(verify(kinesisRecord, times(1)).approximateArrivalTimestamp());
+        assertNull(verify(kinesisRecord, times(1)).data());
         verify(checkpointer, times(1)).checkpoint();
 
         assertEquals(1, runner.getLogger().getErrorMessages().size());

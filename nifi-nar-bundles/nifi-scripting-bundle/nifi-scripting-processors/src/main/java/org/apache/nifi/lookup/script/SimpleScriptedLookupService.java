@@ -33,14 +33,13 @@ import java.util.Set;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupAttribute, e.g.)
  */
-@Tags({"lookup", "script", "invoke", "groovy", "python", "jython"})
+@Tags({"lookup", "script", "invoke", "groovy"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from "
         + "an incoming flow file. The script is expected to return an optional string value rather than an arbitrary object (record, e.g.). "
         + "Also the scripted lookup service should implement StringLookupService, otherwise the getValueType() method must be implemented even "
-        + "though it will be ignored, as SimpleScriptedLookupService returns String as the value type on the script's behalf. Please note that due to "
-        + "a bug in Jython that remains unresolved, it is not possible to use Jython to write a script for this service in Python.")
+        + "though it will be ignored, as SimpleScriptedLookupService returns String as the value type on the script's behalf.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {

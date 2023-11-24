@@ -87,7 +87,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         .displayName("Folder ID")
         .description("The ID of the folder from which to pull list of files.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .build();
 

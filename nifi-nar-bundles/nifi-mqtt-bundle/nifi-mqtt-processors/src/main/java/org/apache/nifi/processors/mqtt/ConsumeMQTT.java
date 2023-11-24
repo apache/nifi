@@ -134,7 +134,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .name("Topic Filter")
             .description("The MQTT topic filter to designate the topics to subscribe to.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 

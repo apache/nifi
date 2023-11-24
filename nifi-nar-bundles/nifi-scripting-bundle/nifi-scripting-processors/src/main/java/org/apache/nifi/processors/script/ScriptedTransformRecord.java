@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SupportsBatching
 @SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"record", "transform", "script", "groovy", "jython", "python", "update", "modify", "filter"})
+@Tags({"record", "transform", "script", "groovy", "update", "modify", "filter"})
 @Restricted(restrictions = {
     @Restriction(requiredPermission = RequiredPermission.EXECUTE_CODE,
         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
@@ -227,10 +227,10 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
             final long millis = System.currentTimeMillis() - startMillis;
             session.getProvenanceReporter().modifyContent(flowFile, "Transformed " + transformCount + " Records, Dropped " + counts.getDroppedCount() + " Records", millis);
         } catch (final ProcessException e) {
-            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", new Object[] {counts.getRecordCount(), flowFile}, e.getCause());
+            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", counts.getRecordCount(), flowFile, e.getCause());
             session.transfer(flowFile, REL_FAILURE);
         } catch (final Exception e) {
-            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", new Object[] {counts.getRecordCount(), flowFile}, e);
+            getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", counts.getRecordCount(), flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

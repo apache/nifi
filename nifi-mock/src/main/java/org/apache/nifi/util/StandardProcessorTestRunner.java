@@ -41,7 +41,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.jupiter.api.Assertions;
@@ -87,7 +87,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final boolean triggerSerially;
     private final MockStateManager processorStateManager;
     private final Map<String, MockStateManager> controllerServiceStateManagers = new HashMap<>();
-    private final MockVariableRegistry variableRegistry;
 
     private int numThreads = 1;
     private MockSessionFactory sessionFactory;
@@ -99,6 +98,9 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final MockComponentLog logger;
     private boolean enforceReadStreamsClosed = true;
     private boolean validateExpressionUsage = true;
+
+    // This only for testing purposes as we don't want to set env/sys variables in the tests
+    private final Map<String, String> environmentVariables = new HashMap<>();
 
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
@@ -123,9 +125,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
-        this.variableRegistry = new MockVariableRegistry();
 
-        this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables);
         this.kerberosContext = kerberosContext;
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);
@@ -167,6 +168,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public MockProcessContext getProcessContext() {
         return context;
+    }
+
+    @Override
+    public boolean isYieldCalled() {
+        return getProcessContext().isYieldCalled();
     }
 
     @Override
@@ -253,6 +259,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
     }
 
+    @Override
     public void unSchedule() {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
@@ -261,6 +268,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
     }
 
+    @Override
     public void stop() {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
@@ -681,7 +689,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -700,7 +708,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -723,7 +731,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         try {
             // Create a config context to pass into the controller service's OnDisabled method (it will be ignored if the controller service has no arguments)
-            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
             configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service, configContext);
         } catch (final Exception e) {
@@ -746,7 +754,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         // ensure controller service is valid before enabling
-        final MockValidationContext mockValidationContext = new MockValidationContext(context, null, variableRegistry);
+        final MockValidationContext mockValidationContext = new MockValidationContext(context, null);
         mockValidationContext.setValidateExpressions(validateExpressionUsage);
         final ValidationContext serviceValidationContext = mockValidationContext.getControllerServiceValidationContext(service);
 
@@ -759,7 +767,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
             configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
@@ -834,7 +842,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
         final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
         final boolean dependencySatisfied = validationContext.isDependencySatisfied(property, processor::getPropertyDescriptor);
 
         final ValidationResult validationResult;
@@ -987,26 +995,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public String getVariableValue(final String name) {
+    public String getEnvironmentVariableValue(final String name) {
         Objects.requireNonNull(name);
-
-        return variableRegistry.getVariableValue(name);
+        if(environmentVariables.containsKey(name)) {
+            return environmentVariables.get(name);
+        } else {
+            return EnvironmentVariables.ENVIRONMENT_VARIABLES.getEnvironmentVariableValue(name);
+        }
     }
 
     @Override
-    public void setVariable(final String name, final String value) {
-        Objects.requireNonNull(name);
-        Objects.requireNonNull(value);
-
-        final VariableDescriptor descriptor = new VariableDescriptor.Builder(name).build();
-        variableRegistry.setVariable(descriptor, value);
-    }
-
-    @Override
-    public String removeVariable(final String name) {
-        Objects.requireNonNull(name);
-
-        return variableRegistry.removeVariable(new VariableDescriptor.Builder(name).build());
+    public void setEnvironmentVariableValue(String name, String value) {
+        environmentVariables.put(name, value);
     }
 
     /**
@@ -1065,5 +1065,50 @@ public class StandardProcessorTestRunner implements TestRunner {
                         .map(ProvenanceEventRecord::getEventType)
                         .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
+    }
+
+    @Override
+    public PropertyMigrationResult migrateProperties() {
+        final MockPropertyConfiguration mockPropertyConfiguration = new MockPropertyConfiguration(getProcessContext().getAllProperties());
+        getProcessor().migrateProperties(mockPropertyConfiguration);
+
+        final PropertyMigrationResult migrationResult = mockPropertyConfiguration.toPropertyMigrationResult();
+        final Set<MockPropertyConfiguration.CreatedControllerService> services = migrationResult.getCreatedControllerServices();
+
+        RuntimeException serviceCreationException = null;
+        for (final MockPropertyConfiguration.CreatedControllerService service : services) {
+            final ControllerService serviceImpl;
+            try {
+                final Class<?> clazz = Class.forName(service.implementationClassName());
+                final Object newInstance = clazz.getDeclaredConstructor().newInstance();
+                if (!(newInstance instanceof ControllerService)) {
+                    throw new RuntimeException(clazz + " is not a Controller Service");
+                }
+
+                serviceImpl = (ControllerService) newInstance;
+                addControllerService(service.id(), serviceImpl, service.serviceProperties());
+            } catch (final Exception e) {
+                if (serviceCreationException == null) {
+                    if (e instanceof RuntimeException) {
+                        serviceCreationException = (RuntimeException) e;
+                    } else {
+                        serviceCreationException = new RuntimeException(e);
+                    }
+                } else {
+                    serviceCreationException.addSuppressed(e);
+                }
+            }
+        }
+
+        if (serviceCreationException != null) {
+            throw serviceCreationException;
+        }
+
+        final Map<String, String> updatedProperties = mockPropertyConfiguration.getRawProperties();
+        final MockProcessContext processContext = getProcessContext();
+        processContext.clearProperties();
+        updatedProperties.forEach(processContext::setProperty);
+
+        return migrationResult;
     }
 }

@@ -44,11 +44,13 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -63,7 +65,9 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -85,22 +89,22 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-                                     final ValidationContextFactory validationContextFactory, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
+                                     final ValidationContextFactory validationContextFactory, final ReloadComponent reloadComponent,
+                                     final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
                 reportingTask.getComponent().getClass().getSimpleName(), reportingTask.getComponent().getClass().getCanonicalName(),
-                variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
+                reloadComponent, extensionManager, validationTrigger, false);
     }
 
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
+                                     final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                     final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
                                      final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.reportingTaskRef = new AtomicReference<>(new ReportingTaskDetails(reportingTask));
         this.processScheduler = processScheduler;
@@ -201,7 +205,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), getVariableRegistry());
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
     }
 
     @Override
@@ -424,4 +428,32 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.empty();
     }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final ReportingTask task = getReportingTask();
+
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), task.getClass(), getIdentifier())) {
+            task.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the reporting tasks's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
+            overwriteProperties(propertyConfig.getProperties());
+        }
+    }
+
 }

@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<PaginatedJsonQueryParameters> {
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
@@ -77,18 +78,12 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     static final List<PropertyDescriptor> paginatedPropertyDescriptors;
 
     static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(QUERY_ATTRIBUTE);
-        descriptors.add(INDEX);
-        descriptors.add(TYPE);
-        descriptors.add(CLIENT_SERVICE);
-        descriptors.add(SEARCH_RESULTS_SPLIT);
-        descriptors.add(SEARCH_RESULTS_FORMAT);
-        descriptors.add(AGGREGATION_RESULTS_SPLIT);
-        descriptors.add(AGGREGATION_RESULTS_FORMAT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(
+                // replace SEARCH_RESULTS_SPLIT property to allow additional output strategies
+                queryPropertyDescriptors.stream().map(pd -> AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.equals(pd) ? SEARCH_RESULTS_SPLIT : pd).collect(Collectors.toList())
+        );
         descriptors.add(PAGINATION_TYPE);
         descriptors.add(PAGINATION_KEEP_ALIVE);
-        descriptors.add(OUTPUT_NO_HITS);
 
         paginatedPropertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -118,10 +113,13 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             // execute query/scroll
             final String queryJson = updateQueryJson(newQuery, paginatedJsonQueryParameters);
+            final Map<String, String> requestParameters = getDynamicProperties(context, input);
             if (!newQuery && paginationType == PaginationType.SCROLL) {
+                if (!requestParameters.isEmpty()) {
+                    getLogger().warn("Elasticsearch _scroll API does not accept query parameters, ignoring dynamic properties {}", requestParameters.keySet());
+                }
                 response = clientService.get().scroll(queryJson);
             } else {
-                final Map<String, String> requestParameters = getDynamicProperties(context, input);
                 if (paginationType == PaginationType.SCROLL) {
                     requestParameters.put("scroll", paginatedJsonQueryParameters.getKeepAlive());
                 }
@@ -145,8 +143,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                 );
             }
 
-            // mark the paginated query for expiry if there are no hits (no more pages to obtain so stop looping on this query)
-            updatePageExpirationTimestamp(paginatedJsonQueryParameters, !response.getHits().isEmpty());
+            updateQueryParameters(paginatedJsonQueryParameters, response);
 
             hitsFlowFiles = handleResponse(response, newQuery, paginatedJsonQueryParameters, hitsFlowFiles, session, input, stopWatch);
         } while (!response.getHits().isEmpty() && (input != null || hitStrategy == ResultOutputStrategy.PER_QUERY));
@@ -268,11 +265,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     List<FlowFile> handleHits(final List<Map<String, Object>> hits, final boolean newQuery, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
                               final ProcessSession session, final FlowFile parent, final Map<String, String> attributes,
                               final List<FlowFile> hitsFlowFiles, final String transitUri, final StopWatch stopWatch) throws IOException {
-        paginatedJsonQueryParameters.incrementPageCount();
         attributes.put("page.number", Integer.toString(paginatedJsonQueryParameters.getPageCount()));
 
         if (hitStrategy == ResultOutputStrategy.PER_QUERY) {
-
             final List<Map<String, Object>> formattedHits = formatHits(hits);
             combineHits(formattedHits, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles, newQuery);
 
@@ -289,8 +284,11 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         return hitsFlowFiles;
     }
 
-    private void updatePageExpirationTimestamp(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final boolean hasHits) {
-        final String keepAliveDuration = "PT" + (hasHits ? paginatedJsonQueryParameters.getKeepAlive() : "0s");
+    void updateQueryParameters(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final SearchResponse response) {
+        paginatedJsonQueryParameters.incrementPageCount();
+
+        // mark the paginated query for expiry if there are no hits (no more pages to obtain so stop looping on this query)
+        final String keepAliveDuration = "PT" + (!response.getHits().isEmpty() ? paginatedJsonQueryParameters.getKeepAlive() : "0s");
         paginatedJsonQueryParameters.setPageExpirationTimestamp(
                 String.valueOf(Instant.now().plus(Duration.parse(keepAliveDuration)).toEpochMilli())
         );

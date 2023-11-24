@@ -20,44 +20,6 @@ import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
-import java.net.Proxy;
-import java.net.Proxy.Type;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.Principal;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
 import okhttp3.Cache;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
@@ -100,6 +62,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -109,8 +72,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
-import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
+import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.HttpHeader;
 import org.apache.nifi.processors.standard.http.HttpMethod;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
@@ -123,6 +86,45 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.Proxy;
+import java.net.Proxy.Type;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.Principal;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @SupportsSensitiveDynamicProperties
@@ -130,7 +132,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-        + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
+        + " When the HTTP Method is PUT, POST or PATCH, the FlowFile contents are included as the body of the request and FlowFile attributes are converted"
+        + " to HTTP headers, optionally, based on configuration properties.")
 @WritesAttributes({
         @WritesAttribute(attribute = InvokeHTTP.STATUS_CODE, description = "The status code that is returned"),
         @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
@@ -185,7 +188,6 @@ public class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_CLASS,
             EXCEPTION_MESSAGE,
             CoreAttributes.UUID.key(),
-            CoreAttributes.FILENAME.key(),
             CoreAttributes.PATH.key()
     )));
 
@@ -200,8 +202,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor HTTP_URL = new PropertyDescriptor.Builder()
-            .name("Remote URL")
-            .displayName("HTTP URL")
+            .name("HTTP URL")
             .description("HTTP remote URL including a scheme of http or https, as well as a hostname or IP address with optional port and path elements.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -209,8 +210,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor HTTP2_DISABLED = new PropertyDescriptor.Builder()
-            .name("disable-http2")
-            .displayName("HTTP/2 Disabled")
+            .name("HTTP/2 Disabled")
             .description("Disable negotiation of HTTP/2 protocol. HTTP/2 requires TLS. HTTP/1.1 protocol supported is required when HTTP/2 is disabled.")
             .required(true)
             .defaultValue("False")
@@ -226,7 +226,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection Timeout")
-            .displayName("Socket Connect Timeout")
             .description("Maximum time to wait for initial socket connection to the HTTP URL.")
             .required(true)
             .defaultValue("5 secs")
@@ -234,8 +233,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOCKET_READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Read Timeout")
-            .displayName("Socket Read Timeout")
+            .name("Socket Read Timeout")
             .description("Maximum time to wait for receiving responses from a socket connection to the HTTP URL.")
             .required(true)
             .defaultValue("15 secs")
@@ -244,7 +242,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor SOCKET_WRITE_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Socket Write Timeout")
-            .displayName("Socket Write Timeout")
             .description("Maximum time to wait for write operations while sending requests from a socket connection to the HTTP URL.")
             .required(true)
             .defaultValue("15 secs")
@@ -252,8 +249,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOCKET_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("idle-timeout")
-            .displayName("Socket Idle Timeout")
+            .name("Socket Idle Timeout")
             .description("Maximum time to wait before closing idle connections to the HTTP URL.")
             .required(true)
             .defaultValue("5 mins")
@@ -261,8 +257,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOCKET_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("max-idle-connections")
-            .displayName("Socket Idle Connections")
+            .name("Socket Idle Connections")
             .description("Maximum number of idle connections to the HTTP URL.")
             .required(true)
             .defaultValue("5")
@@ -270,24 +265,21 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider")
-            .displayName("Request OAuth2 Access Token Provider")
+            .name("Request OAuth2 Access Token Provider")
             .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(false)
             .build();
 
     public static final PropertyDescriptor REQUEST_USERNAME = new PropertyDescriptor.Builder()
-            .name("Basic Authentication Username")
-            .displayName("Request Username")
+            .name("Request Username")
             .description("The username provided for authentication of HTTP requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
             .required(false)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
             .build();
 
     public static final PropertyDescriptor REQUEST_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Basic Authentication Password")
-            .displayName("Request Password")
+            .name("Request Password")
             .description("The password provided for authentication of HTTP requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
             .required(false)
             .sensitive(true)
@@ -295,8 +287,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_DIGEST_AUTHENTICATION_ENABLED = new PropertyDescriptor.Builder()
-            .name("Digest Authentication")
-            .displayName("Request Digest Authentication Enabled")
+            .name("Request Digest Authentication Enabled")
             .description("Enable Digest Authentication on HTTP requests with Username and Password credentials as described in RFC 7616.")
             .required(false)
             .defaultValue("false")
@@ -305,8 +296,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_FAILURE_PENALIZATION_ENABLED = new PropertyDescriptor.Builder()
-            .name("Penalize on \"No Retry\"")
-            .displayName("Request Failure Penalization Enabled")
+            .name("Request Failure Penalization Enabled")
             .description("Enable penalization of request FlowFiles when receiving HTTP response with a status code between 400 and 499.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
@@ -314,8 +304,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_BODY_ENABLED = new PropertyDescriptor.Builder()
-            .name("send-message-body")
-            .displayName("Request Body Enabled")
+            .name("Request Body Enabled")
             .description("Enable sending HTTP request body for PATCH, POST, or PUT methods.")
             .defaultValue(Boolean.TRUE.toString())
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
@@ -324,20 +313,16 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_FORM_DATA_NAME = new PropertyDescriptor.Builder()
-            .name("form-body-form-name")
-            .displayName("Request Multipart Form-Data Name")
+            .name("Request Multipart Form-Data Name")
             .description("Enable sending HTTP request body formatted using multipart/form-data and using the form name configured.")
             .required(false)
-            .addValidator(
-                    StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true)
-            )
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(REQUEST_BODY_ENABLED, Boolean.TRUE.toString())
             .build();
 
     public static final PropertyDescriptor REQUEST_FORM_DATA_FILENAME_ENABLED = new PropertyDescriptor.Builder()
-            .name("set-form-filename")
-            .displayName("Request Multipart Form-Data Filename Enabled")
+            .name("Request Multipart Form-Data Filename Enabled")
             .description("Enable sending the FlowFile filename attribute as the filename parameter in the Content-Disposition Header for multipart/form-data HTTP requests.")
             .required(false)
             .defaultValue(Boolean.TRUE.toString())
@@ -346,8 +331,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED = new PropertyDescriptor.Builder()
-            .name("Use Chunked Encoding")
-            .displayName("Request Chunked Transfer-Encoding Enabled")
+            .name("Request Chunked Transfer-Encoding Enabled")
             .description("Enable sending HTTP requests with the Transfer-Encoding Header set to chunked, and disable sending the Content-Length Header. " +
                     "Transfer-Encoding applies to the body in HTTP/1.1 requests as described in RFC 7230 Section 3.3.1")
             .required(true)
@@ -357,8 +341,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_CONTENT_ENCODING = new PropertyDescriptor.Builder()
-            .name("Content-Encoding")
-            .displayName("Request Content-Encoding")
+            .name("Request Content-Encoding")
             .description("HTTP Content-Encoding applied to request body during transmission. The receiving server must support the selected encoding to avoid request failures.")
             .required(true)
             .defaultValue(ContentEncodingStrategy.DISABLED.getValue())
@@ -367,8 +350,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_CONTENT_TYPE = new PropertyDescriptor.Builder()
-            .name("Content-Type")
-            .displayName("Request Content-Type")
+            .name("Request Content-Type")
             .description("HTTP Content-Type Header applied to when sending an HTTP request body for PATCH, POST, or PUT methods. " +
                     String.format("The Content-Type defaults to %s when not configured.", DEFAULT_CONTENT_TYPE))
             .required(true)
@@ -379,8 +361,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_DATE_HEADER_ENABLED = new PropertyDescriptor.Builder()
-            .name("Include Date Header")
-            .displayName("Request Date Header Enabled")
+            .name("Request Date Header Enabled")
             .description("Enable sending HTTP Date Header on HTTP requests as described in RFC 7231 Section 7.1.1.2.")
             .required(true)
             .defaultValue("True")
@@ -389,19 +370,18 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_HEADER_ATTRIBUTES_PATTERN = new PropertyDescriptor.Builder()
-            .name("Attributes to Send")
-            .displayName("Request Header Attributes Pattern")
-            .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
-                    + "If not defined, no attributes are sent as headers. Dynamic properties will be sent as headers. "
-                    + "The dynamic property name will be the header key and the dynamic property value will be interpreted as expression "
-                    + "language will be the header value.")
+            .name("Request Header Attributes Pattern")
+            .description("Regular expression that defines which FlowFile attributes to send as HTTP headers in the request. "
+                    + "If not defined, no attributes are sent as headers. Dynamic properties will be always be sent as headers. "
+                    + "The dynamic property name will be the header key and the dynamic property value, interpreted as Expression "
+                    + "Language, will be the header value. Attributes and their values are limited to ASCII characters due to "
+                    + "the requirement of the HTTP protocol.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REQUEST_USER_AGENT = new PropertyDescriptor.Builder()
-            .name("Useragent")
-            .displayName("Request User-Agent")
+            .name("Request User-Agent")
             .description("HTTP User-Agent Header applied to requests. RFC 7231 Section 5.5.3 describes recommend formatting.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -409,16 +389,14 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-            .name("Put Response Body In Attribute")
-            .displayName("Response Body Attribute Name")
+            .name("Response Body Attribute Name")
             .description("FlowFile attribute name used to write an HTTP response body for FlowFiles transferred to the Original relationship.")
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Length To Put In Attribute")
-            .displayName("Response Body Attribute Size")
+            .name("Response Body Attribute Size")
             .description("Maximum size in bytes applied when writing an HTTP response body to a FlowFile attribute. Attributes exceeding the maximum will be truncated.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("256")
@@ -426,8 +404,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_BODY_IGNORED = new PropertyDescriptor.Builder()
-            .name("ignore-response-content")
-            .displayName("Response Body Ignored")
+            .name("Response Body Ignored")
             .description("Disable writing HTTP response FlowFiles to Response relationship")
             .required(true)
             .defaultValue(Boolean.FALSE.toString())
@@ -435,8 +412,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_CACHE_ENABLED = new PropertyDescriptor.Builder()
-            .name("use-etag")
-            .displayName("Response Cache Enabled")
+            .name("Response Cache Enabled")
             .description("Enable HTTP response caching described in RFC 7234. Caching responses considers ETag and other headers.")
             .required(true)
             .defaultValue(Boolean.FALSE.toString())
@@ -444,8 +420,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("etag-max-cache-size")
-            .displayName("Response Cache Size")
+            .name("Response Cache Size")
             .description("Maximum size of HTTP response cache in bytes. Caching responses considers ETag and other headers.")
             .required(true)
             .defaultValue("10MB")
@@ -454,17 +429,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_COOKIE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("cookie-strategy")
+            .name("Response Cookie Strategy")
             .description("Strategy for accepting and persisting HTTP cookies. Accepting cookies enables persistence across multiple requests.")
-            .displayName("Response Cookie Strategy")
             .required(true)
             .defaultValue(CookieStrategy.DISABLED.name())
             .allowableValues(CookieStrategy.values())
             .build();
 
     public static final PropertyDescriptor RESPONSE_GENERATION_REQUIRED = new PropertyDescriptor.Builder()
-            .name("Always Output Response")
-            .displayName("Response Generation Required")
+            .name("Response Generation Required")
             .description("Enable generation and transfer of a FlowFile to the Response relationship regardless of HTTP response received.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
@@ -472,9 +445,8 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("flow-file-naming-strategy")
+            .name("Response FlowFile Naming Strategy")
             .description("Determines the strategy used for setting the filename attribute of FlowFiles transferred to the Response relationship.")
-            .displayName("Response FlowFile Naming Strategy")
             .required(true)
             .defaultValue(FlowFileNamingStrategy.RANDOM.name())
             .allowableValues(
@@ -485,8 +457,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED = new PropertyDescriptor.Builder()
-            .name("Add Response Headers to Request")
-            .displayName("Response Header Request Attributes Enabled")
+            .name("Response Header Request Attributes Enabled")
             .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original relationship.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
@@ -494,8 +465,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESPONSE_REDIRECTS_ENABLED = new PropertyDescriptor.Builder()
-            .name("Follow Redirects")
-            .displayName("Response Redirects Enabled")
+            .name("Response Redirects Enabled")
             .description("Enable following HTTP redirects sent with HTTP 300 series responses as described in RFC 7231 Section 6.4.")
             .required(true)
             .defaultValue("True")
@@ -507,7 +477,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             HTTP_METHOD,
             HTTP_URL,
             HTTP2_DISABLED,
@@ -542,7 +512,7 @@ public class InvokeHTTP extends AbstractProcessor {
             RESPONSE_FLOW_FILE_NAMING_STRATEGY,
             RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED,
             RESPONSE_REDIRECTS_ENABLED
-    ));
+    );
 
     public static final Relationship ORIGINAL = new Relationship.Builder()
             .name("Original")
@@ -569,13 +539,13 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("Request FlowFiles transferred when receiving socket communication errors.")
             .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             ORIGINAL,
             RESPONSE,
             RETRY,
             NO_RETRY,
             FAILURE
-    )));
+    );
 
     // RFC 2616 Date Time Formatter with hard-coded GMT Zone and US Locale. RFC 2616 Section 3.3 indicates the header should not be localized
     private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
@@ -622,6 +592,40 @@ public class InvokeHTTP extends AbstractProcessor {
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("Connection Timeout", SOCKET_CONNECT_TIMEOUT.getName());
+        config.renameProperty("Read Timeout", SOCKET_READ_TIMEOUT.getName());
+        config.renameProperty("Remote URL", HTTP_URL.getName());
+        config.renameProperty("disable-http2", HTTP2_DISABLED.getName());
+        config.renameProperty("idle-timeout", SOCKET_IDLE_TIMEOUT.getName());
+        config.renameProperty("max-idle-connections", SOCKET_IDLE_CONNECTIONS.getName());
+        config.renameProperty("oauth2-access-token-provider", REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
+        config.renameProperty("Basic Authentication Username", REQUEST_USERNAME.getName());
+        config.renameProperty("Basic Authentication Password", REQUEST_PASSWORD.getName());
+        config.renameProperty("Digest Authentication", REQUEST_DIGEST_AUTHENTICATION_ENABLED.getName());
+        config.renameProperty("Penalize on \"No Retry\"", REQUEST_FAILURE_PENALIZATION_ENABLED.getName());
+        config.renameProperty("send-message-body", REQUEST_BODY_ENABLED.getName());
+        config.renameProperty("form-body-form-name", REQUEST_FORM_DATA_NAME.getName());
+        config.renameProperty("set-form-filename", REQUEST_FORM_DATA_FILENAME_ENABLED.getName());
+        config.renameProperty("Use Chunked Encoding", REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED.getName());
+        config.renameProperty("Content-Encoding", REQUEST_CONTENT_ENCODING.getName());
+        config.renameProperty("Content-Type", REQUEST_CONTENT_TYPE.getName());
+        config.renameProperty("Include Date Header", REQUEST_DATE_HEADER_ENABLED.getName());
+        config.renameProperty("Attributes to Send", REQUEST_HEADER_ATTRIBUTES_PATTERN.getName());
+        config.renameProperty("Useragent", REQUEST_USER_AGENT.getName());
+        config.renameProperty("Put Response Body In Attribute", RESPONSE_BODY_ATTRIBUTE_NAME.getName());
+        config.renameProperty("Max Length To Put In Attribute", RESPONSE_BODY_ATTRIBUTE_SIZE.getName());
+        config.renameProperty("ignore-response-content", RESPONSE_BODY_IGNORED.getName());
+        config.renameProperty("use-etag", RESPONSE_CACHE_ENABLED.getName());
+        config.renameProperty("etag-max-cache-size", RESPONSE_CACHE_SIZE.getName());
+        config.renameProperty("cookie-strategy", RESPONSE_COOKIE_STRATEGY.getName());
+        config.renameProperty("Always Output Response", RESPONSE_GENERATION_REQUIRED.getName());
+        config.renameProperty("flow-file-naming-strategy", RESPONSE_FLOW_FILE_NAMING_STRATEGY.getName());
+        config.renameProperty("Add Response Headers to Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED.getName());
+        config.renameProperty("Follow Redirects", RESPONSE_REDIRECTS_ENABLED.getName());
     }
 
     @Override
@@ -835,7 +839,7 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URL url = new URL(urlProperty);
+            final URL url = URI.create(urlProperty).toURL();
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
             logRequest(logger, httpRequest);

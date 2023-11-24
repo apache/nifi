@@ -28,10 +28,10 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.jupiter.api.Assertions;
@@ -55,7 +55,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private final String componentName;
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
     private final StateManager stateManager;
-    private final VariableRegistry variableRegistry;
 
     private String annotationData = null;
     private boolean yieldCalled = false;
@@ -74,12 +73,15 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile boolean isPrimaryNode;
     private volatile boolean isConnected = true;
 
+    // This is only for testing purposes as we don't want to set env/sys variables in the tests
+    private Map<String, String> environmentVariables;
+
     public MockProcessContext(final ConfigurableComponent component) {
-        this(component, null);
+        this(component, null, new MockStateManager(component), null);
     }
 
     public MockProcessContext(final ConfigurableComponent component, final String componentName) {
-        this(component, componentName, new MockStateManager(component), VariableRegistry.EMPTY_REGISTRY);
+        this(component, componentName, new MockStateManager(component), null);
     }
 
     /**
@@ -87,25 +89,24 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      *
      * @param component being mocked
      * @param stateManager state manager
-     * @param variableRegistry variableRegistry
      */
-    public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager, final VariableRegistry variableRegistry) {
-        this(component,null,stateManager,variableRegistry);
+    public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager) {
+        this(component, null, stateManager, null);
     }
 
     public MockProcessContext(final ControllerService component,
                               final MockProcessContext context,
                               final StateManager stateManager,
-                              final VariableRegistry variableRegistry) {
-        this(component, null, context, stateManager, variableRegistry);
+                              final Map<String, String> environmentVariables) {
+        this(component, null, context, stateManager, environmentVariables);
     }
 
     public MockProcessContext(final ControllerService component,
                               final String componentName,
                               final MockProcessContext context,
                               final StateManager stateManager,
-                              final VariableRegistry variableRegistry) {
-        this(component, componentName, stateManager, variableRegistry);
+                              final Map<String, String> environmentVariables) {
+        this(component, componentName, stateManager, environmentVariables);
 
         try {
             annotationData = context.getControllerServiceAnnotationData(component);
@@ -125,17 +126,16 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      * @param component being mocked
      * @param componentName the name to be given the component;
      * @param stateManager state manager
-     * @param variableRegistry variableRegistry
      */
     public MockProcessContext(final ConfigurableComponent component,
                               final String componentName,
                               final StateManager stateManager,
-                              final VariableRegistry variableRegistry) {
+                              final Map<String, String> environmentVariables) {
         this.component = Objects.requireNonNull(component);
         this.componentName = componentName == null ? "" : componentName;
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
-        this.variableRegistry = variableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
 
@@ -154,7 +154,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String setPropertyValue = properties.get(canonicalDescriptor);
         final String propValue = (setPropertyValue == null) ? canonicalDescriptor.getDefaultValue() : setPropertyValue;
 
-        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, canonicalDescriptor, true, variableRegistry);
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, canonicalDescriptor, true, environmentVariables);
         return propertyValue;
     }
 
@@ -169,13 +169,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
         final boolean alreadyEvaluated = !this.allowExpressionValidation;
-        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, variableRegistry);
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, environmentVariables);
         return propertyValue;
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, variableRegistry);
+        return new MockPropertyValue(rawValue, this, environmentVariables);
     }
 
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
@@ -202,7 +202,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         requireNonNull(value, "Cannot set property to null value; if the intent is to remove the property, call removeProperty instead");
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
 
-        final ValidationResult result = fullyPopulatedDescriptor.validate(value, new MockValidationContext(this, stateManager, variableRegistry));
+        final ValidationResult result = fullyPopulatedDescriptor.validate(value, new MockValidationContext(this, stateManager));
         String oldValue = properties.put(fullyPopulatedDescriptor, value);
         if (oldValue == null) {
             oldValue = fullyPopulatedDescriptor.getDefaultValue();
@@ -313,7 +313,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      */
     public Collection<ValidationResult> validate() {
         final List<ValidationResult> results = new ArrayList<>();
-        final ValidationContext validationContext = new MockValidationContext(this, stateManager, variableRegistry);
+        final ValidationContext validationContext = new MockValidationContext(this, stateManager);
         final Collection<ValidationResult> componentResults = component.validate(validationContext);
         results.addAll(componentResults);
 
@@ -501,7 +501,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     @Override
     public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
-        if (property == null || !property.isExpressionLanguageSupported()) {
+        if (property == null || property.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
             return false;
         }
 
@@ -519,7 +519,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return componentName;
     }
 
-    protected void setMaxConcurrentTasks(int maxConcurrentTasks) {
+    public void setMaxConcurrentTasks(int maxConcurrentTasks) {
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
@@ -575,5 +575,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public boolean isRelationshipRetried(Relationship relationship) {
         return false;
+    }
+
+    public Map<String, String> getEnvironmentVariables() {
+        return environmentVariables;
     }
 }

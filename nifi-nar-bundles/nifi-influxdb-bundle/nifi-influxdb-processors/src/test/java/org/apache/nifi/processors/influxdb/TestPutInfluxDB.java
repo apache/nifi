@@ -122,7 +122,7 @@ public class TestPutInfluxDB {
     @Test
     public void testPasswordEL() {
         runner = TestRunners.newTestRunner(mockPutInfluxDB);
-        runner.setVariable("influxdb.password", "password");
+        runner.setEnvironmentVariableValue("influxdb.password", "password");
         runner.setProperty(PutInfluxDB.PASSWORD, "${influxdb.password}");
         runner.setProperty(PutInfluxDB.DB_NAME, "test");
         runner.setProperty(PutInfluxDB.USERNAME, "username");
@@ -137,7 +137,7 @@ public class TestPutInfluxDB {
     @Test
     public void testUsernameEL() {
         runner = TestRunners.newTestRunner(mockPutInfluxDB);
-        runner.setVariable("influxdb.username", "username");
+        runner.setEnvironmentVariableValue("influxdb.username", "username");
         runner.setProperty(PutInfluxDB.PASSWORD, "password");
         runner.setProperty(PutInfluxDB.DB_NAME, "test");
         runner.setProperty(PutInfluxDB.USERNAME, "${influxdb.username}");
@@ -174,7 +174,7 @@ public class TestPutInfluxDB {
 
     @Test
     public void testSizeGreaterThanThresholdUsingEL() {
-        runner.setVariable("max.record.size", "1 B");
+        runner.setEnvironmentVariableValue("max.record.size", "1 B");
         runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "${max.record.size}");
         runner.assertValid();
         byte [] bytes = new byte[2];

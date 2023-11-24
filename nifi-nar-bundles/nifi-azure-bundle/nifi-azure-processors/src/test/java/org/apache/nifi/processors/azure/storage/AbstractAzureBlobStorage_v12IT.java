@@ -53,7 +53,7 @@ import java.util.UUID;
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
 
 public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorageIT {
-
+    protected static final String SERVICE_ID = "credentials-service";
     protected static final String BLOB_NAME = "blob1";
     protected static final byte[] BLOB_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
     protected static final String KEY_ID_VALUE = "key:id";
@@ -82,7 +82,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
     protected void setUpCredentials() throws Exception {
         String serviceId = "credentials-service";
         AzureStorageCredentialsService_v12 service = new AzureStorageCredentialsControllerService_v12();
-        runner.addControllerService(serviceId, service);
+        runner.addControllerService(SERVICE_ID, service);
         runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME, getAccountName());
         if (getEndpointSuffix() != null) {
             runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ENDPOINT_SUFFIX, getEndpointSuffix());
@@ -91,7 +91,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
-        runner.setProperty(AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE, serviceId);
+        runner.setProperty(AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE, SERVICE_ID);
     }
 
     @BeforeEach

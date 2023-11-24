@@ -191,7 +191,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
                             new Object[] {responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8")});
             }
         } catch (final Exception e) {
-            getLogger().error("Error during communication with Splunk: {}", new Object[] {e.getMessage()}, e);
+            getLogger().error("Error during communication with Splunk: {}", e.getMessage(), e);
 
             if (responseMessage != null) {
                 try {
@@ -264,7 +264,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
                 }
             } catch (final UnsupportedEncodingException e) {
-                getLogger().error("Could not be initialized because of: {}", new Object[]{e.getMessage()}, e);
+                getLogger().error("Could not be initialized because of: {}", e.getMessage(), e);
                 throw new ProcessException(e);
             }
 

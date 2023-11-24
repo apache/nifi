@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authorization.AccessPolicyProvider;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.UserGroupProvider;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.components.state.StateProvider;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
-import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.NiFiProperties;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,15 +29,40 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.AccessPolicyProvider;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.UserGroupProvider;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.NiFiProperties;
 
 /**
  * THREAD SAFE
  */
 public class NarThreadContextClassLoader extends URLClassLoader {
 
-    static final ContextSecurityManager contextSecurityManager = new ContextSecurityManager();
     private final ClassLoader forward = ClassLoader.getSystemClassLoader();
     private static final List<Class<?>> narSpecificClasses = new ArrayList<>();
 
@@ -69,6 +70,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(Processor.class);
         narSpecificClasses.add(FlowFilePrioritizer.class);
         narSpecificClasses.add(ReportingTask.class);
+        narSpecificClasses.add(FlowAnalysisRule.class);
         narSpecificClasses.add(ParameterProvider.class);
         narSpecificClasses.add(Validator.class);
         narSpecificClasses.add(InputStreamCallback.class);
@@ -133,29 +135,27 @@ public class NarThreadContextClassLoader extends URLClassLoader {
     }
 
     private ClassLoader lookupClassLoader() {
-        final Class<?>[] classStack = contextSecurityManager.getExecutionStack();
+        // When new Threads are created, the new Thread inherits the ClassLoaderContext of
+        // the caller. However, the call stack of that new Thread may not trace back to any NiFi-specific
+        // code. Therefore, the NarThreadContextClassLoader will be unable to find the appropriate NAR
+        // ClassLoader. As a result, we want to set the ContextClassLoader to the NAR ClassLoader that
+        // contains the class or resource that we are looking for.
+        // This locks the current Thread into the appropriate NAR ClassLoader Context. The framework will change
+        // the ContextClassLoader back to the NarThreadContextClassLoader as appropriate via the
+        // {@link FlowEngine.beforeExecute(Thread, Runnable)} and
+        // {@link FlowEngine.afterExecute(Thread, Runnable)} methods.
 
-        for (Class<?> currentClass : classStack) {
-            final Class<?> narClass = findNarClass(currentClass);
-            if (narClass != null) {
-                final ClassLoader desiredClassLoader = narClass.getClassLoader();
-
-                // When new Threads are created, the new Thread inherits the ClassLoaderContext of
-                // the caller. However, the call stack of that new Thread may not trace back to any NiFi-specific
-                // code. Therefore, the NarThreadContextClassLoader will be unable to find the appropriate NAR
-                // ClassLoader. As a result, we want to set the ContextClassLoader to the NAR ClassLoader that
-                // contains the class or resource that we are looking for.
-                // This locks the current Thread into the appropriate NAR ClassLoader Context. The framework will change
-                // the ContextClassLoader back to the NarThreadContextClassLoader as appropriate via the
-                // {@link FlowEngine.beforeExecute(Thread, Runnable)} and
-                // {@link FlowEngine.afterExecute(Thread, Runnable)} methods.
-                if (desiredClassLoader instanceof NarClassLoader) {
-                    Thread.currentThread().setContextClassLoader(desiredClassLoader);
-                }
-                return desiredClassLoader;
-            }
-        }
-        return forward;
+        final StackWalker walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+        final Optional<ClassLoader> callerClassLoader = walker.walk(s ->
+            s.map(StackWalker.StackFrame::getDeclaringClass)
+                .map(this::findNarClass)
+                .filter(Objects::nonNull)
+                .map(Class::getClassLoader)
+                .map(cl->cl instanceof NarClassLoader ? cl : null)
+                .filter(Objects::nonNull)
+                .findFirst());
+        callerClassLoader.ifPresent(Thread.currentThread()::setContextClassLoader);
+        return callerClassLoader.orElse(forward);
     }
 
     private Class<?> findNarClass(final Class<?> cls) {
@@ -179,14 +179,6 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         return SingletonHolder.instance;
     }
 
-    static class ContextSecurityManager extends SecurityManager {
-
-        Class<?>[] getExecutionStack() {
-            return getClassContext();
-        }
-    }
-
-
     /**
      * Constructs an instance of the given type using either default no args
      * constructor or a constructor which takes a NiFiProperties object
@@ -202,7 +194,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
-                                throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException {
         return createInstance(extensionManager, implementationClassName, typeDefinition, nifiProperties, UUID.randomUUID().toString());
     }
 
@@ -222,7 +214,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties,
-                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
@@ -239,8 +231,8 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
             Thread.currentThread().setContextClassLoader(instanceClassLoader);
             final Class<?> desiredClass = instanceClass.asSubclass(typeDefinition);
-            if(nifiProperties == null){
-                return typeDefinition.cast(desiredClass.newInstance());
+            if (nifiProperties == null) {
+                return typeDefinition.cast(desiredClass.getDeclaredConstructor().newInstance());
             }
             Constructor<?> constructor = null;
 

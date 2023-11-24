@@ -487,9 +487,9 @@ public class PutCassandraRecordTest {
 
         testRunner.assertValid();
 
-        testRunner.setVariable("contact.points", "localhost:9042");
-        testRunner.setVariable("user", "username");
-        testRunner.setVariable("pass", "password");
+        testRunner.setEnvironmentVariableValue("contact.points", "localhost:9042");
+        testRunner.setEnvironmentVariableValue("user", "username");
+        testRunner.setEnvironmentVariableValue("pass", "password");
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);

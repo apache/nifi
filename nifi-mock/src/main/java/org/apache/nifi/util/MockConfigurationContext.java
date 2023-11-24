@@ -21,7 +21,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,28 +32,25 @@ public class MockConfigurationContext implements ConfigurationContext {
     private final Map<PropertyDescriptor, String> properties;
     private final ControllerServiceLookup serviceLookup;
     private final ControllerService service;
-    private final VariableRegistry variableRegistry;
     private volatile boolean validateExpressions;
 
-    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
-            final ControllerServiceLookup serviceLookup) {
-        this(null, properties, serviceLookup, VariableRegistry.EMPTY_REGISTRY);
-    }
+    // This is only for testing purposes as we don't want to set env/sys variables in the tests
+    private Map<String, String> environmentVariables;
 
     public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
             final ControllerServiceLookup serviceLookup,
-            final VariableRegistry variableRegistry) {
-        this(null, properties, serviceLookup, variableRegistry);
+            final Map<String, String> environmentVariables) {
+        this(null, properties, serviceLookup, environmentVariables);
     }
 
     public MockConfigurationContext(final ControllerService service,
             final Map<PropertyDescriptor, String> properties,
             final ControllerServiceLookup serviceLookup,
-            final VariableRegistry variableRegistry) {
+            final Map<String, String> environmentVariables) {
         this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup == null ? new EmptyControllerServiceLookup() : serviceLookup;
-        this.variableRegistry = variableRegistry;
+        this.environmentVariables = environmentVariables;
     }
 
     public void setValidateExpressions(final boolean validate) {
@@ -70,7 +66,7 @@ public class MockConfigurationContext implements ConfigurationContext {
         }
 
         final boolean alreadyEvaluated = !validateExpressions;
-        return new MockPropertyValue(value, serviceLookup, canonicalDescriptor, alreadyEvaluated, variableRegistry);
+        return new MockPropertyValue(value, serviceLookup, canonicalDescriptor, alreadyEvaluated, environmentVariables);
     }
 
     @Override

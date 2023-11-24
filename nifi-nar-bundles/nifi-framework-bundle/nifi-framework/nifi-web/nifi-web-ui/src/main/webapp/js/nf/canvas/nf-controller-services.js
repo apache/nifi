@@ -866,7 +866,7 @@
             }
 
             // always include a button to view the usage
-            var markup = '<div title="Usage" class="pointer controller-service-usage fa fa-book"></div>';
+            var markup = '<div title="View Documentation" class="pointer controller-service-usage fa fa-book"></div>';
 
             var hasComments = !nfCommon.isBlank(dataContext.component.comments);
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
@@ -1090,7 +1090,7 @@
                 } else if (target.hasClass('delete-controller-service')) {
                     nfControllerService.promptToDeleteController(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
-                    nfComponentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
+                    nfComponentState.showState(controllerServiceEntity, controllerServiceEntity.component.state === 'DISABLED');
                 } else if (target.hasClass('change-version-controller-service')) {
                     nfComponentVersion.promptForVersionChange(controllerServiceEntity);
                 } else if (target.hasClass('edit-access-policies')) {

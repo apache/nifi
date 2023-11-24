@@ -17,6 +17,13 @@
 
 package org.apache.nifi.stateless.engine;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -62,25 +69,15 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
-import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class ComponentBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ComponentBuilder.class);
@@ -134,14 +131,13 @@ public class ComponentBuilder {
         final LoggableComponent<Processor> loggableProcessor = createLoggableProcessor();
         final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
-        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableProcessor, identifier, validationContextFactory, processScheduler, controllerServiceProvider,
-            componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
+            reloadComponent, extensionManager, validationTrigger);
 
         logger.info("Created Processor of type {} with identifier {}", type, identifier);
 
@@ -151,14 +147,13 @@ public class ComponentBuilder {
     public FlowRegistryClientNode buildFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         final LoggableComponent<FlowRegistryClient> client = createLoggableFlowRegistryClient();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
-        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
 
         final FlowRegistryClientNode clientNode = new StandardFlowRegistryClientNode(null, flowManager, client, identifier, validationContextFactory,
-                controllerServiceProvider, type, client.getComponent().getClass().getCanonicalName(), componentVariableRegistry, reloadComponent, extensionManager,
+                controllerServiceProvider, type, client.getComponent().getClass().getCanonicalName(), reloadComponent, extensionManager,
                 validationTrigger, false);
         logger.info("Flow Registry Client Node of type {} with identifier {}", type, identifier);
         return clientNode;
@@ -166,7 +161,7 @@ public class ComponentBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance(), new StandardLoggingContext(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.getDeclaredConstructor().newInstance(), new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
             final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
             final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
@@ -180,14 +175,13 @@ public class ComponentBuilder {
         final LoggableComponent<ReportingTask> reportingTaskComponent = createLoggableReportingTask();
         final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
-        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
 
         final ReportingTaskNode taskNode = new StatelessReportingTaskNode(reportingTaskComponent, identifier, statelessEngine, flowManager,
-            processScheduler, validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
+            processScheduler, validationContextFactory, reloadComponent, extensionManager, validationTrigger);
 
         logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
         return taskNode;
@@ -215,14 +209,13 @@ public class ComponentBuilder {
         final LoggableComponent<ParameterProvider> parameterProviderComponent = createLoggableParameterProvider();
         final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
-        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
 
         final ParameterProviderNode taskNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
-                validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
+                validationContextFactory, reloadComponent, extensionManager, validationTrigger);
 
         logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
         return taskNode;
@@ -250,7 +243,6 @@ public class ComponentBuilder {
         final StateManagerProvider stateManagerProvider = statelessEngine.getStateManagerProvider();
         final ControllerServiceProvider serviceProvider = statelessEngine.getControllerServiceProvider();
         final KerberosConfig kerberosConfig = statelessEngine.getKerberosConfig();
-        final VariableRegistry rootVariableRegistry = statelessEngine.getRootVariableRegistry();
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
         final NodeTypeProvider nodeTypeProvider = new StatelessNodeTypeProvider();
@@ -274,7 +266,7 @@ public class ComponentBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
-            final ControllerService serviceImpl = controllerServiceClass.newInstance();
+            final ControllerService serviceImpl = controllerServiceClass.getDeclaredConstructor().newInstance();
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
@@ -300,10 +292,9 @@ public class ComponentBuilder {
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(serviceImpl, bundleCoordinate, terminationAwareLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
 
-            final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(rootVariableRegistry);
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                identifier, validationContextFactory, serviceProvider, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+                identifier, validationContextFactory, serviceProvider, reloadComponent, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
@@ -330,7 +321,9 @@ public class ComponentBuilder {
         }
     }
 
-    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException,
+        InstantiationException, NoSuchMethodException, InvocationTargetException {
+
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
@@ -347,12 +340,12 @@ public class ComponentBuilder {
                 }
             }
 
-            final Set<URL>  classpathUrls = additionalClassPathUrls == null ? Collections.emptySet() : additionalClassPathUrls;
+            final Set<URL> classpathUrls = additionalClassPathUrls == null ? Collections.emptySet() : additionalClassPathUrls;
             final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle, classpathUrls);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
-            final Object extensionInstance = rawClass.newInstance();
+            final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
             final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 

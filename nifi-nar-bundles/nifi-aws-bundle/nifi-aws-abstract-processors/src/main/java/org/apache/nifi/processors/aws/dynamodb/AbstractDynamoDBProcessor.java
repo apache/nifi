@@ -16,7 +16,22 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import java.math.BigDecimal;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,31 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-
 /**
  * Base class for NiFi dynamo db related processors
  */
-public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonDynamoDBClient> {
+public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor<DynamoDbClient, DynamoDbClientBuilder> {
 
     public static final Relationship REL_UNPROCESSED = new Relationship.Builder().name("unprocessed")
             .description("FlowFiles are routed to unprocessed relationship when DynamoDB is not able to process "
@@ -68,7 +62,6 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final String DYNAMODB_ERROR_EXCEPTION_MESSAGE = "dynamodb.error.exception.message";
     public static final String DYNAMODB_ERROR_CODE = "dynamodb.error.code";
     public static final String DYNAMODB_ERROR_MESSAGE = "dynamodb.error.message";
-    public static final String DYNAMODB_ERROR_TYPE = "dynamodb.error.type";
     public static final String DYNAMODB_ERROR_SERVICE = "dynamodb.error.service";
     public static final String DYNAMODB_ERROR_RETRYABLE = "dynamodb.error.retryable";
     public static final String DYNAMODB_ERROR_REQUEST_ID = "dynamodb.error.request.id";
@@ -83,7 +76,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table Name")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The DynamoDB table name")
             .build();
@@ -124,7 +117,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor HASH_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Hash Key Name")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The hash key name of the item")
             .build();
@@ -132,7 +125,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor RANGE_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Range Key Name")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The range key name of the item")
             .build();
@@ -140,15 +133,15 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor JSON_DOCUMENT = new PropertyDescriptor.Builder()
             .name("Json Document attribute")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("The Json document to be retrieved from the dynamodb item")
+            .description("The Json document to be retrieved from the dynamodb item ('s' type in the schema)")
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch items for each request (between 1 and 50)")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createLongValidator(1, 50, true))
             .defaultValue("1")
             .description("The items to be retrieved in one batch")
@@ -159,11 +152,9 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .description("Character set of data in the document")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue(Charset.defaultCharset().name())
             .build();
-
-    protected volatile DynamoDB dynamoDB;
 
     public static final Set<Relationship> dynamoDBrelationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED)));
@@ -173,66 +164,24 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return dynamoDBrelationships;
     }
 
-    /**
-     * Create client using credentials provider. This is the preferred way for creating clients
-     */
     @Override
-    protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().debug("Creating client with credentials provider");
-        return new AmazonDynamoDBClient(credentialsProvider, config);
+    protected DynamoDbClientBuilder createClientBuilder(final ProcessContext context) {
+        return DynamoDbClient.builder();
     }
 
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Deprecated
-    @Override
-    protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().debug("Creating client with aws credentials");
-        return new AmazonDynamoDBClient(credentials, config);
-    }
+    protected AttributeValue getAttributeValue(final ProcessContext context, final PropertyDescriptor type, final PropertyDescriptor value, final Map<String, String> attributes) {
+        final AttributeValue.Builder builder = AttributeValue.builder();
+        final String propertyValue = context.getProperty(value).evaluateAttributeExpressions(attributes).getValue();
+        if (propertyValue == null) {
+            return null;
+        }
 
-    protected Object getValue(final ProcessContext context, final PropertyDescriptor type, final PropertyDescriptor value, final Map<String, String> attributes) {
-        if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
-            return context.getProperty(value).evaluateAttributeExpressions(attributes).getValue();
+        if (context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
+            builder.s(propertyValue);
         } else {
-            return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(attributes).getValue());
+            builder.n(propertyValue);
         }
-    }
-
-    protected Object getAttributeValue(final ProcessContext context, final PropertyDescriptor propertyType, final AttributeValue value) {
-        if ( context.getProperty(propertyType).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
-            if ( value == null ) return null;
-            else return value.getS();
-        } else {
-            if ( value == null ) return null;
-            else return new BigDecimal(value.getN());
-        }
-    }
-
-    protected DynamoDB getDynamoDB(final AmazonDynamoDBClient client) {
-        return new DynamoDB(client);
-    }
-
-    protected synchronized DynamoDB getDynamoDB(ProcessContext context) {
-        if (dynamoDB == null) {
-            dynamoDB = getDynamoDB(getClient(context));
-        }
-        return dynamoDB;
-    }
-
-    protected Object getValue(Map<String, AttributeValue> item, String keyName, String valueType) {
-        if ( ALLOWABLE_VALUE_STRING.getValue().equals(valueType)) {
-            AttributeValue val = item.get(keyName);
-            if ( val == null ) return val;
-            else return val.getS();
-        } else {
-            AttributeValue val = item.get(keyName);
-            if ( val == null ) return val;
-            else return val.getN();
-        }
+        return builder.build();
     }
 
     protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles, Exception exception) {
@@ -244,32 +193,31 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return failedFlowFiles;
     }
 
-    protected List<FlowFile> processClientException(final ProcessSession session, List<FlowFile> flowFiles,
-            AmazonClientException exception) {
-        List<FlowFile> failedFlowFiles = new ArrayList<>();
+    protected List<FlowFile> processSdkException(final ProcessSession session, final List<FlowFile> flowFiles,
+            final SdkException exception) {
+        final List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
             Map<String,String> attributes = new HashMap<>();
-            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
+            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
+            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
             flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }
         return failedFlowFiles;
     }
 
-    protected List<FlowFile> processServiceException(final ProcessSession session, List<FlowFile> flowFiles,
-            AmazonServiceException exception) {
-        List<FlowFile> failedFlowFiles = new ArrayList<>();
+    protected List<FlowFile> processServiceException(final ProcessSession session, final List<FlowFile> flowFiles,
+            final AwsServiceException exception) {
+        final List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
             Map<String,String> attributes = new HashMap<>();
             attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            attributes.put(DYNAMODB_ERROR_CODE, exception.getErrorCode() );
-            attributes.put(DYNAMODB_ERROR_MESSAGE, exception.getErrorMessage() );
-            attributes.put(DYNAMODB_ERROR_TYPE, exception.getErrorType().name() );
-            attributes.put(DYNAMODB_ERROR_SERVICE, exception.getServiceName() );
-            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
-            attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
-            attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
+            attributes.put(DYNAMODB_ERROR_CODE, exception.awsErrorDetails().errorCode() );
+            attributes.put(DYNAMODB_ERROR_MESSAGE, exception.awsErrorDetails().errorMessage() );
+            attributes.put(DYNAMODB_ERROR_SERVICE, exception.awsErrorDetails().serviceName() );
+            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
+            attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.requestId() );
+            attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.statusCode()) );
             flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }
@@ -283,19 +231,24 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      * @param hashKeyValue the items hash key value
      * @param rangeKeyValue the items hash key value
      */
-    protected void sendUnprocessedToUnprocessedRelationship(final ProcessSession session, Map<ItemKeys, FlowFile> keysToFlowFileMap, Object hashKeyValue, Object rangeKeyValue) {
-        ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
+    protected void sendUnprocessedToUnprocessedRelationship(final ProcessSession session, final Map<ItemKeys, FlowFile> keysToFlowFileMap,
+                                                            final AttributeValue hashKeyValue, final AttributeValue rangeKeyValue) {
+        final ItemKeys itemKeys = new ItemKeys(hashKeyValue, rangeKeyValue);
 
         FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
+        if (flowFile == null) {
+            return;
+        }
+
         flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_UNPROCESSED, itemKeys.toString());
-        session.transfer(flowFile,REL_UNPROCESSED);
+        session.transfer(flowFile, REL_UNPROCESSED);
 
         getLogger().error("Unprocessed key " + itemKeys + " for flow file " + flowFile);
 
         keysToFlowFileMap.remove(itemKeys);
     }
 
-    protected boolean isRangeKeyValueConsistent(final String rangeKeyName, final Object rangeKeyValue, final ProcessSession session, FlowFile flowFile) {
+    protected boolean isRangeKeyValueConsistent(final String rangeKeyName, final AttributeValue rangeKeyValue, final ProcessSession session, FlowFile flowFile) {
         try {
             validateRangeKeyValue(rangeKeyName, rangeKeyValue);
         } catch (final IllegalArgumentException e) {
@@ -309,14 +262,13 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return true;
     }
 
-    protected void validateRangeKeyValue(final String rangeKeyName, final Object rangeKeyValue) {
+    protected void validateRangeKeyValue(final String rangeKeyName, final AttributeValue rangeKeyValue) {
         boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
-        boolean isRangeValueNull = rangeKeyValue == null;
         boolean isConsistent = true;
-        if (!isRangeNameBlank && (isRangeValueNull || StringUtils.isBlank(rangeKeyValue.toString()))) {
+        if (!isRangeNameBlank && isBlank(rangeKeyValue)) {
             isConsistent = false;
         }
-        if (isRangeNameBlank &&  (!isRangeValueNull && !StringUtils.isBlank(rangeKeyValue.toString()))) {
+        if (isRangeNameBlank && !isBlank(rangeKeyValue)) {
             isConsistent = false;
         }
         if (!isConsistent) {
@@ -324,8 +276,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         }
     }
 
-    protected boolean isHashKeyValueConsistent(String hashKeyName, Object hashKeyValue, ProcessSession session,
-            FlowFile flowFile) {
+    protected boolean isHashKeyValueConsistent(final String hashKeyName, final AttributeValue hashKeyValue, final ProcessSession session, FlowFile flowFile) {
 
         boolean isConsistent = true;
 
@@ -342,14 +293,17 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
     }
 
-    protected void validateHashKeyValue(final Object hashKeyValue) {
-        if (hashKeyValue == null || StringUtils.isBlank(hashKeyValue.toString())) {
+    protected void validateHashKeyValue(final AttributeValue hashKeyValue) {
+        if (isBlank(hashKeyValue)) {
             throw new IllegalArgumentException(String.format("Hash key value is required.  Provided value was '%s'", hashKeyValue));
         }
     }
 
-    @OnStopped
-    public void onStopped() {
-        this.dynamoDB = null;
+    /**
+     * @param attributeValue At attribute value
+     * @return True if the AttributeValue is null or both 's' and 'n' are null or blank
+     */
+    protected static boolean isBlank(final AttributeValue attributeValue) {
+        return attributeValue == null || (StringUtils.isBlank(attributeValue.s()) && StringUtils.isBlank(attributeValue.n()));
     }
 }

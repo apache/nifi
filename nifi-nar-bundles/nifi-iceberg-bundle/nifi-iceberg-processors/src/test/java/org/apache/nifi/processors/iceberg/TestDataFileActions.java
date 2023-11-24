@@ -32,6 +32,8 @@ import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
@@ -79,10 +81,12 @@ public class TestDataFileActions {
     );
 
     private PutIceberg icebergProcessor;
+    private ComponentLog logger;
 
     @BeforeEach
     public void setUp() {
         icebergProcessor = new PutIceberg();
+        logger = new MockComponentLogger();
     }
 
     @DisabledOnOs(WINDOWS)
@@ -103,7 +107,7 @@ public class TestDataFileActions {
         IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, new Random().nextLong(), FileFormat.PARQUET, null);
         TaskWriter<Record> taskWriter = taskWriterFactory.create();
 
-        IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), abortSchema, FileFormat.PARQUET);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), abortSchema, FileFormat.PARQUET, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
 
         for (MapRecord record : recordList) {
             taskWriter.write(recordConverter.convert(record));

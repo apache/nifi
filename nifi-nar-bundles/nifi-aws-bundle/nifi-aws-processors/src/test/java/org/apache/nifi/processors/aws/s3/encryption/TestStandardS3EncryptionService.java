@@ -66,7 +66,7 @@ public class TestStandardS3EncryptionService {
 
     @Test
     public void testCreateClientReturnsNull() {
-        assertNull(service.createEncryptionClient(null, null));
+        assertNull(service.createEncryptionClient(null));
     }
 
     @Test

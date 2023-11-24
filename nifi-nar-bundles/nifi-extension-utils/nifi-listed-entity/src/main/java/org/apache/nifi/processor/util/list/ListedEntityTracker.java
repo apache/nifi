@@ -96,7 +96,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                     " If a cached entity's timestamp becomes older than specified time window, that entity will be removed from the cached already-listed entities." +
                     " %s", NOTE))
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("3 hours")
             .build();
 
@@ -121,7 +121,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                     " so that listing state can be tracked per NiFi node rather than cluster wide" +
                     " when tracking state is scoped to LOCAL. %s", NOTE))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname()}")
             .build();
 

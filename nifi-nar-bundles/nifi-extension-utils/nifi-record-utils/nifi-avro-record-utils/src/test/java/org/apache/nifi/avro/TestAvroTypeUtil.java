@@ -18,6 +18,23 @@
 package org.apache.nifi.avro;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -41,24 +58,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -607,7 +606,7 @@ public class TestAvroTypeUtil {
         final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
 
         // Create an overall record schema with the amount field
-        final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
+        final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
 
         // Create an example Avro record with the amount field of type fixed and a logical type of decimal
         final BigDecimal expectedBigDecimal = new BigDecimal("1234567890.12345678");
@@ -629,7 +628,7 @@ public class TestAvroTypeUtil {
         final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
 
         // Create an overall record schema with the amount field
-        final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
+        final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
 
         // Create an example Avro record with the amount field of type binary and a logical type of decimal
         final BigDecimal expectedBigDecimal = new BigDecimal("1234567890.12345678");
@@ -771,16 +770,16 @@ public class TestAvroTypeUtil {
     public void testMapToRecordConversion() {
         final Charset charset = Charset.forName("UTF-8");
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonMap("Hello", "World"),
-                Schema.createRecord(Collections.singletonList(new Field("Hello", Schema.create(Type.STRING), "", ""))), charset);
+            Schema.createRecord(null, null, null, false, Collections.singletonList(new Field("Hello", Schema.create(Type.STRING), "", ""))), charset);
         assertTrue(o instanceof Record);
         assertEquals("World", ((Record) o).get("Hello"));
     }
 
     @Test
     public void testListAndMapConversion() {
-        Schema s = Schema.createRecord(Arrays.asList(
-            new Field("List", Schema.createArray(Schema.createRecord(
-                Arrays.asList(
+        Schema s = Schema.createRecord(null, null, null, false, List.of(
+            new Field("List", Schema.createArray(Schema.createRecord(null, null, null, false,
+                List.of(
                     new Field("Message", Schema.create(Type.STRING), "", "")
                 )
             )), "", null)
@@ -1269,6 +1268,6 @@ public class TestAvroTypeUtil {
                 new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", defaultLongMap)
         );
 
-        return Schema.createRecord(avroFields);
+        return Schema.createRecord(null, null, null, false, avroFields);
     }
 }

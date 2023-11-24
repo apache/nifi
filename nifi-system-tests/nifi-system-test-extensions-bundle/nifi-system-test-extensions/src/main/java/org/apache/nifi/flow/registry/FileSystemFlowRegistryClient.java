@@ -38,7 +38,7 @@ import org.apache.nifi.util.file.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,12 +46,25 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
+    private static final String TEST_FLOWS_BUCKET = "test-flows";
+
+    private static final Set<String> FLOW_IDS = Set.of(
+            "first-flow",
+            "flow-with-invalid-connection",
+            "port-moved-groups",
+            "Parent",
+            "Child"
+    );
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     {
@@ -77,15 +90,16 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String storageLocation) {
         try {
-            final URL url = new URL(storageLocation);
-            final File file = new java.io.File(url.toURI());
-            final Path path = file.toPath();
+            final Path rootPath = getRootDirectory(context).toPath().normalize();
+            final URI location = URI.create(storageLocation);
+            final Path storageLocationPath = Paths.get(location.getPath()).normalize();
 
-            final String configuredDirectory = context.getProperty(DIRECTORY).getValue();
-            final Path rootPath = Paths.get(configuredDirectory);
-
-            // If this doesn't throw an Exception, the given storageLocation is relative to the root path
-            rootPath.relativize(path);
+            if (storageLocationPath.startsWith(rootPath)) {
+                // If this doesn't throw an Exception, the given storageLocation is relative to the root path
+                Objects.requireNonNull(rootPath.relativize(storageLocationPath));
+            } else {
+                return false;
+            }
         } catch (final Exception e) {
             return false;
         }
@@ -101,8 +115,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
             throw new IOException("Cannot get listing of directory " + rootDir.getAbsolutePath());
         }
 
-        final Set<FlowRegistryBucket> buckets = Arrays.stream(children).map(this::toBucket).collect(Collectors.toSet());
-        return buckets;
+        return Arrays.stream(children).map(this::toBucket).collect(Collectors.toSet());
     }
 
     private FlowRegistryBucket toBucket(final File file) {
@@ -131,17 +144,14 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public FlowRegistryBucket getBucket(final FlowRegistryClientConfigurationContext context, final String bucketId) {
         final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final FlowRegistryBucket bucket = toBucket(bucketDir);
-        return bucket;
+        final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketId));
+        return toBucket(bucketDir);
     }
 
     @Override
     public RegisteredFlow registerFlow(final FlowRegistryClientConfigurationContext context, final RegisteredFlow flow) throws IOException {
-        final File rootDir = getRootDirectory(context);
         final String bucketId = flow.getBucketIdentifier();
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flow.getIdentifier());
+        final File flowDir = getFlowDirectory(context, bucketId, flow.getIdentifier());
         Files.createDirectories(flowDir.toPath());
 
         return flow;
@@ -149,9 +159,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlow deregisterFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
-        final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
 
         final File[] versionDirs = flowDir.listFiles();
 
@@ -168,9 +176,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlow getFlow(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) {
-        final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
 
         final File[] versionDirs = flowDir.listFiles();
 
@@ -187,7 +193,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
     @Override
     public Set<RegisteredFlow> getFlows(final FlowRegistryClientConfigurationContext context, final String bucketId) throws IOException {
         final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
+        final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketId));
         final File[] flowDirs = bucketDir.listFiles();
         if (flowDirs == null) {
             throw new IOException("Could not get listing of directory " + bucketDir);
@@ -204,16 +210,12 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final int version) throws IOException {
-        final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
-        final File versionDir = new File(flowDir, String.valueOf(version));
-        final File snapshotFile = new File(versionDir, "snapshot.json");
-
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final Pattern intPattern = Pattern.compile("\\d+");
         final File[] versionFiles = flowDir.listFiles(file -> intPattern.matcher(file.getName()).matches());
 
         final JsonFactory factory = new JsonFactory(objectMapper);
+        final File snapshotFile = getSnapshotFile(context, bucketId, flowId, version);
         try (final JsonParser parser = factory.createParser(snapshotFile)) {
             final RegisteredFlowSnapshot snapshot = parser.readValueAs(RegisteredFlowSnapshot.class);
             populateBucket(snapshot, bucketId);
@@ -265,22 +267,19 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot) throws IOException {
-        final File rootDir = getRootDirectory(context);
         final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         final String bucketId = metadata.getBucketIdentifier();
         final String flowId = metadata.getFlowIdentifier();
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final long version = metadata.getVersion();
-
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
-        final File versionDir = new File(flowDir, String.valueOf(version));
+        final File versionDir = getChildLocation(flowDir, Paths.get(String.valueOf(version)));
 
         // Create the directory for the version, if it doesn't exist.
         if (!versionDir.exists()) {
             Files.createDirectories(versionDir.toPath());
         }
 
-        final File snapshotFile = new File(versionDir, "snapshot.json");
+        final File snapshotFile = getSnapshotFile(context, bucketId, flowId, version);
 
         final RegisteredFlowSnapshot fullyPopulated = fullyPopulate(flowSnapshot, flowDir);
         final JsonFactory factory = new JsonFactory(objectMapper);
@@ -330,7 +329,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
             flow.setPermissions(createAllowAllPermissions());
 
             final File[] flowVersionDirs = flowDir.listFiles();
-            final int versionCount = flowVersionDirs == null ? 0 : flowVersionDirs.length;;
+            final int versionCount = flowVersionDirs == null ? 0 : flowVersionDirs.length;
             flow.setVersionCount(versionCount);
 
             final RegisteredFlowVersionInfo versionInfo = new RegisteredFlowVersionInfo();
@@ -354,9 +353,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
-        final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
         if (versionDirs == null) {
             throw new IOException("Could not list directories of " + flowDir);
@@ -380,9 +377,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     public int getLatestVersion(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) throws IOException {
-        final File rootDir = getRootDirectory(context);
-        final File bucketDir = new File(rootDir, bucketId);
-        final File flowDir = new File(bucketDir, flowId);
+        final File flowDir = getFlowDirectory(context, bucketId, flowId);
         final File[] versionDirs = flowDir.listFiles();
         if (versionDirs == null) {
             throw new IOException("Cannot list directories of " + flowDir);
@@ -393,5 +388,47 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
             .mapToInt(Integer::parseInt)
             .max();
         return greatestValue.orElse(-1);
+    }
+
+    private File getSnapshotFile(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final long version) {
+        final File flowDirectory = getFlowDirectory(context, bucketId, flowId);
+        final File versionDirectory = getChildLocation(flowDirectory, Paths.get(String.valueOf(version)));
+        return new File(versionDirectory, "snapshot.json");
+    }
+
+    private File getFlowDirectory(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId) {
+        final File rootDir = getRootDirectory(context);
+        final File bucketDir = getChildLocation(rootDir, getValidatedBucketPath(bucketId));
+        return getChildLocation(bucketDir, getFlowPath(flowId));
+    }
+
+    private File getChildLocation(final File parentDir, final Path childLocation) {
+        final Path parentPath = parentDir.toPath().normalize();
+        final Path childPath = parentPath.resolve(childLocation.normalize());
+        if (childPath.startsWith(parentPath)) {
+            return childPath.toFile();
+        }
+        throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+    }
+
+    private Path getFlowPath(final String flowId) {
+        final Optional<String> flowIdFound = FLOW_IDS.stream().filter(id -> id.equals(flowId)).findFirst();
+        if (flowIdFound.isPresent()) {
+            return Paths.get(flowIdFound.get());
+        }
+
+        try {
+            final UUID flowIdentifier = UUID.fromString(flowId);
+            return Paths.get(flowIdentifier.toString());
+        } catch (final RuntimeException e) {
+            throw new IllegalArgumentException(String.format("Flow ID [%s] not validated", flowId));
+        }
+    }
+
+    private Path getValidatedBucketPath(final String id) {
+        if (TEST_FLOWS_BUCKET.equals(id)) {
+            return Paths.get(TEST_FLOWS_BUCKET);
+        }
+        throw new IllegalArgumentException(String.format("Bucket [%s] not validated", id));
     }
 }

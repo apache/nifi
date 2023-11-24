@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.cs.tests.system.CountService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -35,7 +36,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.nifi.components.Validator.VALID;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 
 public class WriteToFileReportingTask extends AbstractReportingTask {
 
@@ -45,7 +45,7 @@ public class WriteToFileReportingTask extends AbstractReportingTask {
         .description("The File to write to")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor TEXT = new Builder()
         .name("Text")
@@ -53,7 +53,7 @@ public class WriteToFileReportingTask extends AbstractReportingTask {
         .description("The Text to Write")
         .required(false)
         .addValidator(VALID)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor COUNT_SERVICE = new Builder()
         .name("Count Service")

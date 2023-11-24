@@ -123,11 +123,11 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
         LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
         C2OperationState operationState = assetUpdatePrecondition.test(assetFileName, forceDownload)
-            ? c2Client.retrieveUpdateContent(callbackUrl.get())
-            .map(content -> assetPersistFunction.apply(assetFileName, content)
-                ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
-                : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
-            .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
+            ? c2Client.retrieveUpdateAssetContent(callbackUrl.get())
+                .map(content -> assetPersistFunction.apply(assetFileName, content)
+                    ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
+                    : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
+                .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
             : operationState(NO_OPERATION, UPDATE_ASSET_PRECONDITIONS_WERE_NOT_MET);
 
         return operationAck(operationId, operationState);

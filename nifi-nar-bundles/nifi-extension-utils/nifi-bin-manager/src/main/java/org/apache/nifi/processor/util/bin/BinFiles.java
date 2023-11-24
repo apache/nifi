@@ -288,7 +288,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     final String groupingIdentifier = getGroupId(context, flowFile, session);
                     flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
                 } catch (final Exception e) {
-                    getLogger().error("Could not determine which Bin to add {} to; will route to failure", new Object[] {flowFile}, e);
+                    getLogger().error("Could not determine which Bin to add {} to; will route to failure", flowFile, e);
                     session.transfer(flowFile, REL_FAILURE);
                     session.commitAsync();
                 }

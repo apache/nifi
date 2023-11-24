@@ -22,6 +22,8 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -44,6 +46,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -57,10 +60,10 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.ParameterUpdate;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.validation.RuleViolation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +102,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final AtomicReference<String> annotationData = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final ComponentVariableRegistry variableRegistry;
     private final ReloadComponent reloadComponent;
     private final ExtensionManager extensionManager;
 
@@ -119,8 +121,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                 final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+                                 final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                                 final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
@@ -128,7 +130,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.reloadComponent = reloadComponent;
-        this.variableRegistry = variableRegistry;
         this.validationTrigger = validationTrigger;
         this.extensionManager = extensionManager;
         this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
@@ -190,7 +191,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 if (!StringUtils.isEmpty(value)) {
                     final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup());
                     final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
                     additionalUrls.addAll(references.asURLs());
                 }
@@ -229,6 +230,30 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return false;
+    }
+
+    /**
+     * Overwrite current Component properties using provided values with values decrypted when necessary by the caller
+     *
+     * @param properties Map of Property Name to Value
+     */
+    protected void overwriteProperties(final Map<String, String> properties) {
+        // Update properties.
+        final Map<String, String> updatedProperties = new HashMap<>(properties);
+        final Set<String> sensitiveDynamicPropNames = new HashSet<>();
+        for (final String propertyName : updatedProperties.keySet()) {
+            final PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
+            if (descriptor != null && descriptor.isDynamic() && descriptor.isSensitive()) {
+                sensitiveDynamicPropNames.add(propertyName);
+            }
+        }
+
+        // Set a null value for any property that is not specified, so that it will be removed.
+        for (final PropertyDescriptor descriptor : getProperties().keySet()) {
+            updatedProperties.putIfAbsent(descriptor.getName(), null);
+        }
+
+        setProperties(updatedProperties, true, sensitiveDynamicPropNames);
     }
 
     /**
@@ -378,16 +403,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             final long startNanos = System.nanoTime();
 
-            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
-            for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
-                final String rawValue = entry.getValue();
-                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
-
-                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
-                descriptorToConfigMap.put(descriptor, propertyConfiguration);
-            }
-
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = createDescriptorToConfigMap(propertyValues);
             final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
                 getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
 
@@ -438,6 +454,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return results;
     }
 
+    private static Map<PropertyDescriptor, PropertyConfiguration> createDescriptorToConfigMap(final Map<PropertyDescriptor, String> propertyValues) {
+        final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String rawValue = entry.getValue();
+            final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
+            descriptorToConfigMap.put(descriptor, propertyConfiguration);
+        }
+        return descriptorToConfigMap;
+    }
+
     @Override
     public Set<String> getReferencedParameterNames() {
         return Collections.unmodifiableSet(parameterReferenceCounts.keySet());
@@ -461,6 +490,58 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return referencedAttributes;
     }
 
+    private String resolveAllowableValue(final String explicitValue, final PropertyDescriptor descriptor) {
+        if (explicitValue == null || descriptor == null) {
+            return null;
+        }
+
+        final List<AllowableValue> allowableValues = descriptor.getAllowableValues();
+        if (allowableValues == null || allowableValues.isEmpty()) {
+            return explicitValue;
+        }
+
+        // Check for an exact match
+        for (final AllowableValue allowableValue : allowableValues) {
+            if (Objects.equals(allowableValue.getValue(), explicitValue)) {
+                return explicitValue;
+            }
+        }
+
+        // Check for a value that is equal ignoring case
+        for (final AllowableValue allowableValue : allowableValues) {
+            if (allowableValue.getValue().equalsIgnoreCase(explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // Check for an exact match against the display name
+        for (final AllowableValue allowableValue : allowableValues) {
+            final String displayName = allowableValue.getDisplayName();
+            if (displayName == null) {
+                continue;
+            }
+
+            if (Objects.equals(displayName, explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // Check for a match against display name, ignoring case
+        for (final AllowableValue allowableValue : allowableValues) {
+            final String displayName = allowableValue.getDisplayName();
+            if (displayName == null) {
+                continue;
+            }
+
+            if (displayName.equalsIgnoreCase(explicitValue)) {
+                return allowableValue.getValue();
+            }
+        }
+
+        // No match found - just return the explicit value
+        return explicitValue;
+    }
+
     // Keep setProperty/removeProperty private so that all calls go through setProperties
     private void setProperty(final PropertyDescriptor descriptor, final PropertyConfiguration propertyConfiguration, final Function<PropertyDescriptor, PropertyConfiguration> valueToCompareFunction) {
         // Remove current PropertyDescriptor to force updated instance references
@@ -469,6 +550,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
         properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
+        final String resolvedValue = resolveAllowableValue(effectiveValue, descriptor);
 
         // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
         // If it previously referenced a Controller Service, we need to also remove that reference.
@@ -479,7 +561,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 .map(oldEffectiveValue -> serviceProvider.getControllerServiceNode(oldEffectiveValue))
                 .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
 
-            Optional.ofNullable(effectiveValue)
+            Optional.ofNullable(resolvedValue)
                 .map(serviceProvider::getControllerServiceNode)
                 .ifPresent(newNode -> newNode.addReference(this, descriptor));
         }
@@ -490,7 +572,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
                 final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
-                onPropertyModified(descriptor, oldValue, effectiveValue);
+                onPropertyModified(descriptor, oldValue, resolvedValue);
             } catch (final Exception e) {
                 // nothing really to do here...
                 logger.error("Failed to notify {} that property {} changed", this, descriptor, e);
@@ -575,6 +657,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getPropertyValues((descriptor, config) -> getConfigValue(config, isResolveParameter(descriptor, config)));
     }
 
+    /**
+     * Converts from a Map of PropertyDescriptor to value, to a Map of property name to value
+     *
+     * @param propertyValues the property values to convert
+     * @return a Map whose keys are the names of the properties instead of descriptors
+     */
+    public Map<String, String> toPropertyNameMap(final Map<PropertyDescriptor, String> propertyValues) {
+        final Map<String, String> converted = new HashMap<>();
+        propertyValues.forEach((key, value) -> converted.put(key.getName(), value));
+        return converted;
+    }
+
     private Map<PropertyDescriptor, String> getPropertyValues(final BiFunction<PropertyDescriptor, PropertyConfiguration, String> valueFunction) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
@@ -612,6 +706,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
             value = property.getDefaultValue();
         }
         return value;
+    }
+
+    protected String mapRawValueToEffectiveValue(final String rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+
+        final ParameterLookup parameterLookup = getParameterLookup();
+        if (parameterLookup == null) {
+            return rawValue;
+        }
+
+        final ParameterTokenList parameterTokenList = new ExpressionLanguageAgnosticParameterParser().parseTokens(rawValue);
+        final String effectiveValue = parameterTokenList.substitute(parameterLookup);
+        return effectiveValue;
     }
 
     @Override
@@ -758,6 +867,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
         Throwable failureCause = null;
+
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
                 return Collections.singletonList(
@@ -769,6 +879,26 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 );
             }
 
+            final ConfigurableComponent component = getComponent();
+            if (component instanceof final AsyncLoadedProcessor asyncLoadedProcessor) {
+                if (!asyncLoadedProcessor.isLoaded()) {
+                    final String explanation = switch (asyncLoadedProcessor.getState()) {
+                        case INITIALIZING_ENVIRONMENT -> "Initializing runtime environment for the Processor.";
+                        case DEPENDENCY_DOWNLOAD_FAILED -> "Failed to download one or more Processor dependencies. See logs for additional details.";
+                        case DOWNLOADING_DEPENDENCIES -> "In the process of downloading third-party dependencies required by the Processor.";
+                        case LOADING_PROCESSOR_CODE -> "In the process of loading Processor code";
+                        case LOADING_PROCESSOR_CODE_FAILED -> "Failed to parse or load Processor code. See logs for additional details.";
+                        default -> null;
+                    };
+
+                    return Collections.singletonList(new ValidationResult.Builder()
+                        .subject("Processor")
+                        .explanation(explanation)
+                        .valid(false)
+                        .build());
+                }
+            }
+
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
             invalidParameterResults.addAll(validateConfig());
 
@@ -778,13 +908,29 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return invalidParameterResults;
             }
 
-            final List<ValidationResult> validationResults = new ArrayList<>();
             final Collection<ValidationResult> results = getComponent().validate(validationContext);
-            validationResults.addAll(results);
+            final List<ValidationResult> validationResults = new ArrayList<>(results);
 
             // validate selected controller services implement the API required by the processor
             final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
             validationResults.addAll(referencedServiceValidationResults);
+
+            performFlowAnalysisOnThis();
+
+            getValidationContextFactory().getRuleViolationsManager().ifPresent(ruleViolationsManager -> {
+                Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
+                for (RuleViolation ruleViolation : ruleViolations) {
+                    if (ruleViolation.getEnforcementPolicy() == EnforcementPolicy.ENFORCE) {
+                        validationResults.add(
+                            new ValidationResult.Builder()
+                                .subject(getComponent().getClass().getSimpleName())
+                                .valid(false)
+                                .explanation(ruleViolation.getViolationMessage())
+                                .build()
+                        );
+                    }
+                }
+            });
 
             logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, validationResults);
 
@@ -994,6 +1140,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return null;
     }
 
+    protected void performFlowAnalysisOnThis() {
+    }
+
     private ValidationResult createInvalidResult(final String serviceId, final String propertyName, final String explanation) {
         return new ValidationResult.Builder()
             .input(serviceId)
@@ -1044,7 +1193,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public PropertyDescriptor getPropertyDescriptor(final String name) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             final PropertyDescriptor propertyDescriptor = getComponent().getPropertyDescriptor(name);
-            if (propertyDescriptor.isDynamic() && sensitiveDynamicPropertyNames.get().contains(name)) {
+            if (propertyDescriptor.isDynamic() && isSensitiveDynamicProperty(name)) {
                 return new PropertyDescriptor.Builder().fromPropertyDescriptor(propertyDescriptor).sensitive(true).build();
             } else {
                 return propertyDescriptor;
@@ -1330,19 +1479,22 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return context;
             }
 
+            boolean cacheValidationContext = true;
+            if (getComponent() instanceof final AsyncLoadedProcessor asyncLoadedProcessor) {
+                cacheValidationContext = asyncLoadedProcessor.isLoaded();
+            }
+
             context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext(), true);
 
-            this.validationContext = context;
-            logger.debug("Updating validation context to {}", context);
+            if (cacheValidationContext) {
+                this.validationContext = context;
+                logger.debug("Updating validation context to {}", context);
+            }
+
             return context;
         } finally {
             lock.unlock();
         }
-    }
-
-    @Override
-    public ComponentVariableRegistry getVariableRegistry() {
-        return this.variableRegistry;
     }
 
     protected ReloadComponent getReloadComponent() {

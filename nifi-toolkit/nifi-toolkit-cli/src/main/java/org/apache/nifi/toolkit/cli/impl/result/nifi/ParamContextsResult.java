@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
@@ -38,6 +37,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -49,7 +49,7 @@ public class ParamContextsResult extends AbstractWritableResult<ParameterContext
 
     public ParamContextsResult(final ResultType resultType, final ParameterContextsEntity parameterContexts) {
         super(resultType);
-        this.parameterContexts = Validate.notNull(parameterContexts);
+        this.parameterContexts = Objects.requireNonNull(parameterContexts);
         this.results = new ArrayList<>();
 
         // If there is a param context that the user doesn't have permissions to then the entity will be returned with

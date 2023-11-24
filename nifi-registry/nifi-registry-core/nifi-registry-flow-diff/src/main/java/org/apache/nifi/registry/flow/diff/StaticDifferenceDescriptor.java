@@ -65,21 +65,13 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
             case SCHEDULED_STATE_CHANGED:
                 description = String.format("%s %s has a Scheduled State of %s in %s but %s in %s", componentA.getComponentType(), getId(componentA), valueA, flowAName, valueB, flowBName);
                 break;
-            case VARIABLE_ADDED:
-                description = String.format("Variable '%s' exists for Process Group with ID %s in %s but not in %s",
-                    fieldName, getId(componentB), flowBName, flowAName);
-                break;
-            case VARIABLE_REMOVED:
-                description = String.format("Variable '%s' exists for Process Group with ID %s in %s but not in %s",
-                    fieldName, getId(componentA), flowAName, flowBName);
-                break;
             case VERSIONED_FLOW_COORDINATES_CHANGED:
                 if (valueA instanceof VersionedFlowCoordinates && valueB instanceof VersionedFlowCoordinates) {
                     final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) valueA;
                     final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) valueB;
 
                     // If the two vary only by version, then use a more concise message. If anything else is different, then use a fully explanation.
-                    if (Objects.equals(coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
+                    if (Objects.equals(coordinatesA.getStorageLocation(), coordinatesB.getStorageLocation()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
                             && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId()) && coordinatesA.getVersion() != coordinatesB.getVersion()) {
 
                         description = String.format("Flow Version is %s in %s but %s in %s", coordinatesA.getVersion(), flowAName, coordinatesB.getVersion(), flowBName);

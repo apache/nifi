@@ -138,8 +138,8 @@ public class SSLContextServiceTest {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         SSLContextService service = new StandardSSLContextService();
         runner.addControllerService("test-good1", service);
-        runner.setVariable("keystore", tlsConfiguration.getKeystorePath());
-        runner.setVariable("truststore", tlsConfiguration.getTruststorePath());
+        runner.setEnvironmentVariableValue("keystore", tlsConfiguration.getKeystorePath());
+        runner.setEnvironmentVariableValue("truststore", tlsConfiguration.getTruststorePath());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "${keystore}");
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().getType());
@@ -218,8 +218,8 @@ public class SSLContextServiceTest {
 
         // Manually validate the service (expecting cached result to be returned)
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
-        // This service does not use the state manager or variable registry
-        final ValidationContext validationContext = new MockValidationContext(processContext, null, null);
+        // This service does not use the state manager
+        final ValidationContext validationContext = new MockValidationContext(processContext, null);
 
         // Even though the keystore file is no longer present, because no property changed, the cached result is still valid
         Collection<ValidationResult> validationResults = service.customValidate(validationContext);
@@ -249,24 +249,6 @@ public class SSLContextServiceTest {
         runner.enableControllerService(service);
 
         runner.setProperty("SSL Context Svc ID", "test-good2");
-        runner.assertValid();
-        assertNotNull(service);
-        service.createContext();
-    }
-
-    @Test
-    @Deprecated
-    public void testGoodKeyOnly() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        SSLContextService service = new StandardSSLContextService();
-        HashMap<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), tlsConfiguration.getKeystorePath());
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().getType());
-        runner.addControllerService("test-good3", service, properties);
-        runner.enableControllerService(service);
-
-        runner.setProperty("SSL Context Svc ID", "test-good3");
         runner.assertValid();
         assertNotNull(service);
         service.createContext();

@@ -17,9 +17,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-kudu-bundle</artifactId>
@@ -27,7 +28,7 @@
 
     <properties>
         <exclude.tests>None</exclude.tests>
-        <kudu.version>1.16.0</kudu.version>
+        <kudu.version>1.17.0</kudu.version>
     </properties>
 
     <modules>

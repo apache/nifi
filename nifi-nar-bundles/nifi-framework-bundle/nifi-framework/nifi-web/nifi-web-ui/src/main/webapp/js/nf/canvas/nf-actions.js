@@ -33,7 +33,6 @@
                 'nf.GoTo',
                 'nf.ng.Bridge',
                 'nf.Shell',
-                'nf.VariableRegistry',
                 'nf.ComponentState',
                 'nf.FlowVersion',
                 'nf.Draggable',
@@ -58,8 +57,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -77,7 +76,6 @@
                 require('nf.GoTo'),
                 require('nf.ng.Bridge'),
                 require('nf.Shell'),
-                require('nf.VariableRegistry'),
                 require('nf.ComponentState'),
                 require('nf.FlowVersion'),
                 require('nf.Draggable'),
@@ -117,7 +115,6 @@
             root.nf.GoTo,
             root.nf.ng.Bridge,
             root.nf.Shell,
-            root.nf.VariableRegistry,
             root.nf.ComponentState,
             root.nf.FlowVersion,
             root.nf.Draggable,
@@ -143,7 +140,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -1859,22 +1856,6 @@
         },
 
         /**
-         * Opens the variable registry for the specified selection of the current group if the selection is emtpy.
-         *
-         * @param {selection} selection
-         */
-        openVariableRegistry: function (selection) {
-            if (selection.empty()) {
-                nfVariableRegistry.showVariables(nfCanvasUtils.getGroupId());
-            } else if (selection.size() === 1) {
-                var selectionData = selection.datum();
-                if (nfCanvasUtils.isProcessGroup(selection)) {
-                    nfVariableRegistry.showVariables(selectionData.id);
-                }
-            }
-        },
-
-        /**
          * Opens the parameter context for the specified selection of the current group if the selection is empty.
          *
          * @param {selection} selection
@@ -2131,130 +2112,6 @@
 
             // move the current selection into the parent group
             nfCanvasUtils.moveComponentsToParent(selection);
-        },
-
-        /**
-         * Uploads a new template.
-         */
-        uploadTemplate: function () {
-            $('#upload-template-dialog').modal('show');
-        },
-
-        /**
-         * Creates a new template based off the currently selected components. If no components
-         * are selected, a template of the entire canvas is made.
-         */
-        template: function () {
-            var selection = nfCanvasUtils.getSelection();
-
-            // if no components are selected, use the entire graph
-            if (selection.empty()) {
-                selection = d3.selectAll('g.component, g.connection');
-            }
-
-            // ensure that components have been specified
-            if (selection.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Create Template',
-                    dialogContent: "The current selection is not valid to create a template."
-                });
-                return;
-            }
-
-            // remove dangling edges (where only the source or destination is also selected)
-            selection = nfCanvasUtils.trimDanglingEdges(selection);
-
-            // ensure that components specified are valid
-            if (selection.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Create Template',
-                    dialogContent: "The current selection is not valid to create a template."
-                });
-                return;
-            }
-
-            // prompt for the template name
-            $('#new-template-dialog').modal('setButtonModel', [{
-                buttonText: 'Create',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                handler: {
-                    click: function () {
-                        // get the template details
-                        var templateName = $('#new-template-name').val();
-
-                        // ensure the template name is not blank
-                        if (nfCommon.isBlank(templateName)) {
-                            nfDialog.showOkDialog({
-                                headerText: 'Configuration Error',
-                                dialogContent: "The name of the template must be specified."
-                            });
-                            return;
-                        }
-
-                        // hide the dialog
-                        $('#new-template-dialog').modal('hide');
-
-                        // get the description
-                        var templateDescription = $('#new-template-description').val();
-
-                        // create a snippet
-                        var parentGroupId = nfCanvasUtils.getGroupId();
-                        var snippet = nfSnippet.marshal(selection, parentGroupId);
-
-                        // create the snippet
-                        nfSnippet.create(snippet).done(function (response) {
-                            var createSnippetEntity = {
-                                'name': templateName,
-                                'description': templateDescription,
-                                'snippetId': response.snippet.id,
-                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
-                            };
-
-                            // create the template
-                            $.ajax({
-                                type: 'POST',
-                                url: config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates',
-                                data: JSON.stringify(createSnippetEntity),
-                                dataType: 'json',
-                                contentType: 'application/json'
-                            }).done(function () {
-                                // show the confirmation dialog
-                                nfDialog.showOkDialog({
-                                    headerText: 'Create Template',
-                                    dialogContent: "Template '" + nfCommon.escapeHtml(templateName) + "' was successfully created."
-                                });
-                            }).always(function () {
-                                // clear the template dialog fields
-                                $('#new-template-name').val('');
-                                $('#new-template-description').val('');
-                            }).fail(nfErrorHandler.handleAjaxError);
-                        }).fail(nfErrorHandler.handleAjaxError);
-                    }
-                }
-            }, {
-                buttonText: 'Cancel',
-                color: {
-                    base: '#E3E8EB',
-                    hover: '#C7D2D7',
-                    text: '#004849'
-                },
-                handler: {
-                    click: function () {
-                        // clear the template dialog fields
-                        $('#new-template-name').val('');
-                        $('#new-template-description').val('');
-
-                        $('#new-template-dialog').modal('hide');
-                    }
-                }
-            }]).modal('show');
-
-            // auto focus on the template name
-            $('#new-template-name').focus();
         },
 
         /**

@@ -16,7 +16,20 @@
  */
 package org.apache.nifi.registry.db;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.extension.ExtensionFilterParams;
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntityType;
@@ -42,25 +55,11 @@ import org.apache.nifi.registry.db.mapper.TagCountEntityMapper;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.manifest.ExtensionType;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.service.MetadataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 @Repository
 public class DatabaseMetadataService implements MetadataService {
@@ -583,17 +582,17 @@ public class DatabaseMetadataService implements MetadataService {
 
         args.addAll(bucketIds);
 
-        final List<BundleEntity> bundleEntities = jdbcTemplate.query(sqlBuilder.toString(), args.toArray(), new BundleEntityRowMapper());
+        final List<BundleEntity> bundleEntities = jdbcTemplate.query(sqlBuilder.toString(), new BundleEntityRowMapper(), args.toArray());
         return populateVersionCounts(bundleEntities);
     }
 
     @Override
     public List<BundleEntity> getBundlesByBucket(final String bucketId) {
-        final StringBuilder sqlBuilder = new StringBuilder(BASE_BUNDLE_SQL)
-                .append(" AND b.id = ?")
-                .append(" ORDER BY eb.group_id ASC, eb.artifact_id ASC");
+        final String sqlBuilder = BASE_BUNDLE_SQL +
+            " AND b.id = ?" +
+            " ORDER BY eb.group_id ASC, eb.artifact_id ASC";
 
-        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder.toString(), new BundleEntityRowMapper(), bucketId);
+        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder, new BundleEntityRowMapper(), bucketId);
         return populateVersionCounts(bundles);
     }
 
@@ -766,7 +765,7 @@ public class DatabaseMetadataService implements MetadataService {
         args.addAll(bucketIdentifiers);
 
         final List<BundleVersionEntity> bundleVersionEntities = jdbcTemplate.query(
-                sqlBuilder.toString(), args.toArray(), new BundleVersionEntityRowMapper());
+            sqlBuilder.toString(), new BundleVersionEntityRowMapper(), args.toArray());
 
         return bundleVersionEntities;
     }
@@ -1015,7 +1014,7 @@ public class DatabaseMetadataService implements MetadataService {
         }
 
         sqlBuilder.append(" ORDER BY e.name ASC");
-        return jdbcTemplate.query(sqlBuilder.toString(), args.toArray(), new ExtensionEntityRowMapper());
+        return jdbcTemplate.query(sqlBuilder.toString(), new ExtensionEntityRowMapper(), args.toArray());
     }
 
     @Override
@@ -1037,15 +1036,14 @@ public class DatabaseMetadataService implements MetadataService {
                 .append(" AND ep.group_id = ? ")
                 .append(" AND ep.artifact_id = ? ")
                 .append(" AND ep.version = ?")
-                .append(")")
-                .toString();
+            .append(")");
 
         args.add(providedServiceAPI.getClassName());
         args.add(providedServiceAPI.getGroupId());
         args.add(providedServiceAPI.getArtifactId());
         args.add(providedServiceAPI.getVersion());
 
-        return jdbcTemplate.query(sqlBuilder.toString(), args.toArray(), new ExtensionEntityRowMapper());
+        return jdbcTemplate.query(sqlBuilder.toString(), new ExtensionEntityRowMapper(), args.toArray());
     }
 
     @Override

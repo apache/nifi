@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -55,6 +56,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -68,6 +70,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 /**
  * <p>
@@ -1165,6 +1170,9 @@ public class RunNiFi {
 
         nifiPropsFilename = nifiPropsFilename.trim();
 
+        String maximumHeapSize = null;
+        String minimumHeapSize = null;
+
         final List<String> javaAdditionalArgs = new ArrayList<>();
         for (final Map.Entry<String, String> entry : props.entrySet()) {
             final String key = entry.getKey();
@@ -1172,6 +1180,12 @@ public class RunNiFi {
 
             if (key.startsWith("java.arg")) {
                 javaAdditionalArgs.add(value);
+                if (value.startsWith("-Xms")) {
+                    minimumHeapSize = StringUtils.substringAfter(value, "-Xms");
+                }
+                if (value.startsWith("-Xmx")) {
+                    maximumHeapSize = StringUtils.substringAfter(value, "-Xmx");
+                }
             }
         }
 
@@ -1197,8 +1211,7 @@ public class RunNiFi {
             cpFiles.add(file.getAbsolutePath());
         }
 
-        String runtimeJavaVersion = System.getProperty("java.version");
-        defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
+        defaultLogger.info(getPlatformDetails(minimumHeapSize, maximumHeapSize));
 
         final StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
@@ -1251,6 +1264,7 @@ public class RunNiFi {
         cmd.add("-classpath");
         cmd.add(classPath);
         cmd.addAll(javaAdditionalArgs);
+
         cmd.add("-Dnifi.properties.file.path=" + nifiPropsFilename);
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=NiFi");
@@ -1390,6 +1404,37 @@ public class RunNiFi {
                 }
             }
         }
+    }
+
+    private String getPlatformDetails(final String minimumHeapSize, final String maximumHeapSize) {
+        final Map<String, String> details = new LinkedHashMap<String, String>(6);
+
+        details.put("javaVersion", System.getProperty("java.version"));
+        details.put("availableProcessors", Integer.toString(Runtime.getRuntime().availableProcessors()));
+
+        try {
+            final ObjectName osObjectName = ManagementFactory.getOperatingSystemMXBean().getObjectName();
+            final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+            final Object maxOpenFileCount = mBeanServer.getAttribute(osObjectName, "MaxFileDescriptorCount");
+            if (maxOpenFileCount!= null) {
+                details.put("maxOpenFileDescriptors", String.valueOf(maxOpenFileCount));
+            }
+            final Object totalPhysicalMemory = mBeanServer.getAttribute(osObjectName, "TotalPhysicalMemorySize");
+            if (totalPhysicalMemory != null) {
+                details.put("totalPhysicalMemoryMB", String.valueOf(((Long) totalPhysicalMemory) / (1024*1024)));
+            }
+        } catch (final Throwable t) {
+            // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
+        }
+
+        if (minimumHeapSize != null) {
+            details.put("minimumHeapSize", minimumHeapSize);
+        }
+        if (maximumHeapSize != null) {
+            details.put("maximumHeapSize", maximumHeapSize);
+        }
+
+        return details.toString();
     }
 
     private void writeSensitiveKeyFile(Map<String, String> props, Path sensitiveKeyFile) throws IOException {

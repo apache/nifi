@@ -91,8 +91,7 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "Additional Details...");
 
         // check expression language scope
-        assertContains(results, "Supports Expression Language: true (will be evaluated using variable registry only)");
-        assertContains(results, "Supports Expression Language: true (undefined scope)");
+        assertContains(results, "Supports Expression Language: true (will be evaluated using Environment variables only)");
 
         // Check Property Values
         assertContains(results, "Enabled");

@@ -103,9 +103,13 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
+        return getStorageClient(context, STORAGE_CREDENTIALS_SERVICE, flowFile);
+    }
+
+    protected BlobServiceClient getStorageClient(PropertyContext context, PropertyDescriptor storageCredentialsServiceProperty, FlowFile flowFile) {
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
 
-        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(storageCredentialsServiceProperty).asControllerService(AzureStorageCredentialsService_v12.class);
         final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
         final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);

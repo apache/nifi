@@ -21,6 +21,20 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -34,16 +48,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
@@ -79,6 +85,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link ListGCSBucket} which do not consume Google Cloud resources.
  */
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ListGCSBucketTest extends AbstractGCSTest {
     private static final String PREFIX = "test-prefix";
     private static final Boolean USE_GENERATIONS = true;
@@ -240,19 +247,27 @@ public class ListGCSBucketTest extends AbstractGCSTest {
     @Mock
     Page<Blob> mockBlobPage;
 
-    private Blob buildMockBlob(String bucket, String key, long updateTime) {
+    private Blob buildMockBlob(final String bucket, final String key, final long updateTime) {
         final Blob blob = mock(Blob.class);
         when(blob.getBucket()).thenReturn(bucket);
         when(blob.getName()).thenReturn(key);
-        when(blob.getUpdateTime()).thenReturn(updateTime);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(offsetDateTime(updateTime));
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(offsetDateTime(updateTime));
         return blob;
     }
 
-    private Blob buildMockBlobWithoutBucket(String bucket, String key, long updateTime) {
+    private Blob buildMockBlobWithoutBucket(final String bucket, final String key, final long updateTime) {
         final Blob blob = mock(Blob.class);
         when(blob.getName()).thenReturn(key);
-        when(blob.getUpdateTime()).thenReturn(updateTime);
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(offsetDateTime(updateTime));
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(offsetDateTime(updateTime));
         return blob;
+    }
+
+    private OffsetDateTime offsetDateTime(final long value) {
+        final Instant instant = Instant.ofEpochMilli(value);
+        final LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+        return OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
     }
 
     private void verifyConfigVerification(final TestRunner runner, final ListGCSBucket processor, final int expectedCount) {
@@ -653,8 +668,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(blob.getMetageneration()).thenReturn(METAGENERATION);
         when(blob.getSelfLink()).thenReturn(URI);
         when(blob.getContentDisposition()).thenReturn(CONTENT_DISPOSITION);
-        when(blob.getCreateTime()).thenReturn(CREATE_TIME);
-        when(blob.getUpdateTime()).thenReturn(UPDATE_TIME);
+        when(blob.getCreateTimeOffsetDateTime()).thenReturn(offsetDateTime(CREATE_TIME));
+        when(blob.getUpdateTimeOffsetDateTime()).thenReturn(offsetDateTime(UPDATE_TIME));
 
         final Iterable<Blob> mockList = Collections.singletonList(blob);
 

@@ -25,26 +25,16 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.entity.TemplateEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.io.ByteArrayInputStream;
-import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,8 +43,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @ExtendWith(MockitoExtension.class)
 public class TestProcessGroupResource {
@@ -78,48 +66,6 @@ public class TestProcessGroupResource {
         }
     }
 
-    /** This test creates a malformed template upload request to exercise error handling and sanitization */
-    @Test
-    public void testUploadShouldHandleMalformedTemplate(@Mock HttpServletRequest request, @Mock UriInfo uriInfo) throws Exception {
-        final String templateWithXssPlain = "<?xml version=\"1.0\" encoding='><script xmlns=\"http://www.w3.org/1999/xhtml\">alert(JSON.stringify(localstorage));</script><errorResponse test='?>";
-        Response response = processGroupResource.uploadTemplate(request, uriInfo, "1",
-                false, new ByteArrayInputStream(templateWithXssPlain.getBytes()));
-
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
-    }
-
-    /** This test creates a malformed template import request to exercise error handling and sanitization */
-    @Test
-    public void testImportShouldHandleMalformedTemplate(@Mock NiFiProperties niFiProperties, @Mock TemplateResource templateResource,
-                                                        @Mock TemplateDTO mockIAETemplate, @Mock TemplateDTO mockExceptionTemplate,
-                                                        @Mock TemplateEntity mockIAETemplateEntity, @Mock TemplateEntity mockExceptionTemplateEntity,
-                                                        @Mock HttpServletRequest mockRequest) {
-        when(niFiProperties.isNode()).thenReturn(false);
-        when(serviceFacade.importTemplate(any(TemplateDTO.class), anyString(), any())).thenAnswer((Answer<TemplateDTO>) invocationOnMock -> invocationOnMock.getArgument(0));
-        when(mockIAETemplate.getName()).thenReturn("mockIAETemplate");
-        when(mockIAETemplate.getUri()).thenThrow(new IllegalArgumentException("Expected exception with <script> element"));
-        when(mockIAETemplate.getSnippet()).thenReturn(new FlowSnippetDTO());
-        when(mockExceptionTemplate.getName()).thenReturn("mockExceptionTemplate");
-        when(mockExceptionTemplate.getUri()).thenThrow(new RuntimeException("Expected exception with <script> element"));
-        when(mockExceptionTemplate.getSnippet()).thenReturn(new FlowSnippetDTO());
-        when(mockIAETemplateEntity.getTemplate()).thenReturn(mockIAETemplate);
-        when(mockExceptionTemplateEntity.getTemplate()).thenReturn(mockExceptionTemplate);
-
-        processGroupResource.properties = niFiProperties;
-        processGroupResource.serviceFacade = serviceFacade;
-        processGroupResource.setTemplateResource(templateResource);
-        processGroupResource.httpServletRequest = mockRequest;
-
-        List<Response> responses = Stream.of(mockIAETemplateEntity, mockExceptionTemplateEntity)
-                .map(templateEntity -> processGroupResource.importTemplate(mockRequest, "1", templateEntity))
-                .collect(Collectors.toList());
-
-        responses.forEach(response -> {
-            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-            assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
-        });
-    }
     @Test
     public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized(@Mock HttpServletRequest httpServletRequest, @Mock NiFiProperties properties) {
         when(httpServletRequest.getHeader(any())).thenReturn(null);
@@ -138,7 +84,7 @@ public class TestProcessGroupResource {
         revisionDTO.setVersion(1L);
 
         processGroupEntity.setRevision(revisionDTO);
-        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupUpdateStrategy.CURRENT_GROUP.name());
+        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupRecursivity.DIRECT_CHILDREN.name());
         processGroupEntity.setComponent(groupDTO);
 
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));

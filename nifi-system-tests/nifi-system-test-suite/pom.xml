@@ -24,6 +24,30 @@
     <artifactId>nifi-system-test-suite</artifactId>
     <packaging>jar</packaging>
 
+    <profiles>
+        <profile>
+            <id>include-python-integration-tests</id>
+            <activation>
+                <property>
+                    <name>include-python-integration-tests</name>
+                    <value>!true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>PythonProcessorIT.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -85,10 +109,10 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/flows/mismatched-flows/flow1.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/mismatched-flows/flow2.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/with-connection.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/without-connection.xml.gz</exclude>
+                        <exclude>src/test/resources/flows/mismatched-flows/flow1.json.gz</exclude>
+                        <exclude>src/test/resources/flows/mismatched-flows/flow2.json.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/with-connection.json.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/without-connection.json.gz</exclude>
                         <exclude>src/test/resources/keystore.jks</exclude>
                         <exclude>src/test/resources/truststore.jks</exclude>
                     </excludes>
@@ -102,6 +126,24 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-client-dto</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-components</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-cluster-protocol</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-core-api</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
@@ -169,12 +211,22 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-bootstrap</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -213,6 +265,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
@@ -226,6 +284,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions2-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-alternate-config-extensions-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>

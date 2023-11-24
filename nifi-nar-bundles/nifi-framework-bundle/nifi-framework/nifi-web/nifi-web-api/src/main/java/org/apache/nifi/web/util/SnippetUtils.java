@@ -404,7 +404,24 @@ public final class SnippetUtils {
     public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, boolean isCopy) {
         final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);
         resolveNameConflicts(snippetCopy, group);
+        removeTopLevelVersionedIds(snippetContents);
         return snippetCopy;
+    }
+
+    private void removeTopLevelVersionedIds(final FlowSnippetDTO snippetContents) {
+        removeVersionedIds(snippetContents.getProcessors());
+        removeVersionedIds(snippetContents.getLabels());
+        removeVersionedIds(snippetContents.getConnections());
+        removeVersionedIds(snippetContents.getInputPorts());
+        removeVersionedIds(snippetContents.getOutputPorts());
+        removeVersionedIds(snippetContents.getRemoteProcessGroups());
+        removeVersionedIds(snippetContents.getFunnels());
+    }
+
+    private <T extends ComponentDTO> void removeVersionedIds(final Collection<T> components) {
+        if (components != null) {
+            components.forEach(c -> c.setVersionedComponentId(null));
+        }
     }
 
     private void resolveNameConflicts(final FlowSnippetDTO snippetContents, final ProcessGroup group) {

@@ -88,7 +88,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
         .description("If uniquness enforcement is enabled and the file hash is part of the constraint, this must be set to an attribute that " +
                 "exists on all incoming flowfiles.")
         .defaultValue("hash.value")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     static final PropertyDescriptor CHUNK_SIZE = new PropertyDescriptor.Builder()

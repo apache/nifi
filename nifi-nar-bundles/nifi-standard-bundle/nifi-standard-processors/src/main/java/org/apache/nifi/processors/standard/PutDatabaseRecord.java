@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -95,7 +96,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
@@ -111,6 +112,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
 @WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the flow file will be routed to failure or retry, and this attribute "
         + "will be populated with the cause of the error.")
+@UseCase(description = "Insert records into a database")
 public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNormalizer {
 
     public static final String UPDATE_TYPE = "UPDATE";
@@ -181,26 +183,24 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             .build();
 
     static final PropertyDescriptor STATEMENT_TYPE_RECORD_PATH = new Builder()
-            .name("Statement Type Record Path")
-            .displayName("Statement Type Record Path")
-            .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE.")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .expressionLanguageSupported(NONE)
-            .dependsOn(STATEMENT_TYPE, USE_RECORD_PATH)
-            .build();
+        .name("Statement Type Record Path")
+        .displayName("Statement Type Record Path")
+        .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE.")
+        .required(true)
+        .addValidator(new RecordPathValidator())
+        .expressionLanguageSupported(NONE)
+        .dependsOn(STATEMENT_TYPE, USE_RECORD_PATH)
+        .build();
 
     static final PropertyDescriptor DATA_RECORD_PATH = new Builder()
-            .name("Data Record Path")
-            .displayName("Data Record Path")
-            .description("If specified, this property denotes a RecordPath that will be evaluated against each " +
-                    "incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
-                    " the database instead of sending the entire incoming Record. If not specified, the entire " +
-                    "incoming Record will be published to the database.")
-            .required(false)
-            .addValidator(new RecordPathValidator())
-            .expressionLanguageSupported(NONE)
-            .build();
+        .name("Data Record Path")
+        .displayName("Data Record Path")
+        .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
+            " the database instead of sending the entire incoming Record. If not specified, the entire incoming Record will be published to the database.")
+        .required(false)
+        .addValidator(new RecordPathValidator())
+        .expressionLanguageSupported(NONE)
+        .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new Builder()
             .name("put-db-record-dcbp-service")
@@ -344,7 +344,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new Builder()
@@ -384,14 +384,14 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
         });
 
         DB_TYPE = new Builder()
-                .name("db-type")
-                .displayName("Database Type")
-                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-                .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
-                .defaultValue("Generic")
-                .required(false)
-                .build();
+            .name("db-type")
+            .displayName("Database Type")
+            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+            .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
+            .defaultValue("Generic")
+            .required(false)
+            .build();
 
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -449,14 +449,15 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
         DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
         String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
         if ((UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert())
-                || (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
+            || (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
             validationResults.add(new ValidationResult.Builder()
-                    .subject(STATEMENT_TYPE.getDisplayName())
-                    .valid(false)
-                    .explanation(databaseAdapter.getName() + " does not support " + statementType)
-                    .build()
+                .subject(STATEMENT_TYPE.getDisplayName())
+                .valid(false)
+                .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                .build()
             );
         }
+
         return validationResults;
     }
 
@@ -531,7 +532,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             if (rollbackOnFailure) {
                 session.rollback();
             } else {
-                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown" : e.getMessage()));
+                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, (e.getMessage() == null ? "Unknown": e.getMessage()));
                 session.transfer(flowFile, relationship);
             }
 
@@ -617,7 +618,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
 
     private void executeDML(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
                             final Connection con, final RecordReader recordReader, final String explicitStatementType, final DMLSettings settings)
-            throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
+        throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
 
         final ComponentLog log = getLogger();
 
@@ -661,7 +662,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
         }
 
         // build the fully qualified table name
-        final String fqTableName = generateTableName(settings, catalog, schemaName, tableName, tableSchema);
+        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         final Map<String, PreparedSqlAndColumns> preparedSql = new HashMap<>();
         int currentBatchSize = 0;
@@ -724,7 +725,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                     if (currentBatchSize > 0 && ps != lastPreparedStatement && lastPreparedStatement != null) {
                         batchIndex++;
                         log.debug("Executing query {} because Statement Type changed between Records for {}; fieldIndexes: {}; batch index: {}; batch size: {}",
-                                sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
+                            sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
                         lastPreparedStatement.executeBatch();
 
                         session.adjustCounter("Batches Executed", 1, false);
@@ -736,6 +737,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                     final RecordSchema recordSchema = currentRecord.getSchema();
                     final Map<String, ColumnDescription> columns = tableSchema.getColumns();
+
                     int deleteIndex = 0;
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
@@ -826,7 +828,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                     if (++currentBatchSize == maxBatchSize) {
                         batchIndex++;
                         log.debug("Executing query {} because batch reached max size for {}; fieldIndexes: {}; batch index: {}; batch size: {}",
-                                sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
+                            sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
                         session.adjustCounter("Batches Executed", 1, false);
                         ps.executeBatch();
                         currentBatchSize = 0;
@@ -855,7 +857,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                             ps.setNull(index, Types.BLOB);
                             return;
                         } catch (SQLException e) {
-                            throw new IOException("Unable to setNull() on prepared statement", e);
+                            throw new IOException("Unable to setNull() on prepared statement" , e);
                         }
                     } else {
                         throw new IOException("Expected BLOB to be of type byte[] but is instead " + value.getClass().getName());
@@ -898,7 +900,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                             ps.setNull(index, Types.BLOB);
                             return;
                         } catch (SQLException e) {
-                            throw new IOException("Unable to setNull() on prepared statement", e);
+                            throw new IOException("Unable to setNull() on prepared statement" , e);
                         }
                     } else {
                         throw new IOException("Expected VARBINARY/LONGVARBINARY to be of type byte[] but is instead " + value.getClass().getName());
@@ -935,7 +937,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
                     ps.setObject(index, value, sqlType);
                 }
             } catch (SQLException e) {
-                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType, e);
+                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType , e);
             }
         }
     }
@@ -955,7 +957,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             final RecordFieldType fieldType = fieldValue.getField().getDataType().getFieldType();
             if (fieldType != RecordFieldType.RECORD) {
                 throw new ProcessException("RecordPath " + dataRecordPath.getPath() + " evaluated against Record expected to return one or more Records but encountered field of type" +
-                        " " + fieldType);
+                    " " + fieldType);
             }
         }
 
@@ -1130,7 +1132,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
 
     SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
                                          final TableSchema tableSchema, final DMLSettings settings)
-            throws IllegalArgumentException, SQLException, MalformedRecordException {
+        throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
@@ -1507,8 +1509,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             SchemaKey schemaKey = (SchemaKey) o;
 
             if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
-                return false;
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) return false;
             return tableName.equals(schemaKey.tableName);
         }
     }
@@ -1620,6 +1621,5 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
         }
     }
-
 
 }

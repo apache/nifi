@@ -14,19 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi;
 
-import org.apache.nifi.headless.HeadlessNiFiServer;
-import org.apache.nifi.minifi.bootstrap.BootstrapListener;
-import org.apache.nifi.minifi.c2.C2NifiClientService;
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.minifi.status.StatusConfigReporter;
-import org.apache.nifi.minifi.status.StatusRequestException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.headless.HeadlessNiFiServer;
+import org.apache.nifi.minifi.bootstrap.BootstrapListener;
+import org.apache.nifi.minifi.c2.C2NifiClientService;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.minifi.status.StatusConfigReporter;
+import org.apache.nifi.minifi.status.StatusRequestException;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  *
  */
@@ -80,12 +88,26 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
     private void initC2() {
         if (Boolean.parseBoolean(getNiFiProperties().getProperty(MiNiFiProperties.C2_ENABLE.getKey(), MiNiFiProperties.C2_ENABLE.getDefaultValue()))) {
-            logger.info("C2 enabled, creating a C2 client instance");
-            c2NifiClientService = new C2NifiClientService(getNiFiProperties(), getFlowController(), bootstrapListener);
+            NiFiProperties niFiProperties = getNiFiProperties();
+            enabledFlowIngestors(niFiProperties).ifPresentOrElse(
+                flowIngestors -> {
+                    logger.warn("Due to enabled flow ingestor(s) [{}] C2 client is not created. Please disable flow ingestors when using C2", flowIngestors);
+                    c2NifiClientService = null;
+                },
+                () -> {
+                    logger.info("C2 enabled, creating a C2 client instance");
+                    c2NifiClientService = new C2NifiClientService(niFiProperties, getFlowController(), bootstrapListener, getFlowService());
+                });
         } else {
             logger.debug("C2 Property [{}] missing or disabled: C2 client not created", MiNiFiProperties.C2_ENABLE.getKey());
             c2NifiClientService = null;
         }
+    }
+
+    private Optional<String> enabledFlowIngestors(NiFiProperties niFiProperties) {
+        return ofNullable(niFiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_NOTIFIER_INGESTORS.getKey(), EMPTY))
+            .map(String::trim)
+            .filter(StringUtils::isNotBlank);
     }
 
     private void startHeartbeat() {
@@ -106,7 +128,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
                 bootstrapListener = new BootstrapListener(this, port);
                 bootstrapListener.start();
-            } catch(IOException e){
+            } catch (IOException e) {
                 throw new UncheckedIOException("Failed to start MiNiFi because of Bootstrap listener initialization error", e);
             } catch (NumberFormatException e) {
                 throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");

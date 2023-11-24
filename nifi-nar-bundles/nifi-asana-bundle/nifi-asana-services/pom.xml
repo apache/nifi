@@ -39,6 +39,11 @@
             <artifactId>nifi-asana-services-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- Included for StringUtils -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-utils</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.asana</groupId>
             <artifactId>asana</artifactId>

@@ -51,7 +51,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         .build();
 
     private static final Set<Relationship> relationships;
-    private static final List<PropertyDescriptor> propertyDescriptors;
+    static final List<PropertyDescriptor> byQueryPropertyDescriptors;
 
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
@@ -63,13 +63,16 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         relationships = Collections.unmodifiableSet(rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(QUERY_DEFINITION_STYLE);
         descriptors.add(QUERY);
+        descriptors.add(QUERY_CLAUSE);
+        descriptors.add(SCRIPT);
         descriptors.add(QUERY_ATTRIBUTE);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
         descriptors.add(CLIENT_SERVICE);
 
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
+        byQueryPropertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     abstract String getTookAttribute();
@@ -86,8 +89,8 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
     }
 
     @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return byQueryPropertyDescriptors;
     }
 
     @Override

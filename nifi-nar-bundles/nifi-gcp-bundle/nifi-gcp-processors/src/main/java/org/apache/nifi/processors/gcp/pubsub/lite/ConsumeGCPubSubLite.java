@@ -93,7 +93,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .description("Name of the Google Cloud Pub/Sub Subscription. Example: projects/8476107443/locations/europe-west1-d/subscriptions/my-lite-subscription")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor BYTES_OUTSTANDING = new PropertyDescriptor
@@ -102,7 +102,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .description("The number of quota bytes that may be outstanding to the client.")
             .required(true)
             .defaultValue("10 MB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
@@ -112,7 +112,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .description("The number of messages that may be outstanding to the client.")
             .required(true)
             .defaultValue("1000")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 

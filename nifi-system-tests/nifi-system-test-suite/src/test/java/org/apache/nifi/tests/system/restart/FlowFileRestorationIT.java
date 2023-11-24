@@ -63,8 +63,6 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
 
         final File nifiHome = nifiInstance.getInstanceDirectory();
         final File confDir = new File(nifiHome, "conf");
-        final File flowXmlGz = new File(confDir, "flow.xml.gz");
-        assertTrue(flowXmlGz.delete());
 
         final File flowJsonGz = new File(confDir, "flow.json.gz");
         final byte[] flowJsonGzBytes = Files.readAllBytes(flowJsonGz.toPath());

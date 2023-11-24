@@ -66,16 +66,6 @@
         <url-pattern>/counters</url-pattern>
     </servlet-mapping>
 
-    <!-- servlet to map to templates page -->
-    <servlet>
-        <servlet-name>NiFiTemplates</servlet-name>
-        <jsp-file>/WEB-INF/pages/templates.jsp</jsp-file>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>NiFiTemplates</servlet-name>
-        <url-pattern>/templates</url-pattern>
-    </servlet-mapping>
-
     <!-- servlet to map to users page -->
     <servlet>
         <servlet-name>NiFiUsers</servlet-name>

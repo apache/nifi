@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-@Tags({"record", "validate", "script", "groovy", "jython", "python"})
+@Tags({"record", "validate", "script", "groovy"})
 @CapabilityDescription(
         "This processor provides the ability to validate records in FlowFiles using the user-provided script. " +
         "The script is expected to have a record as incoming argument and return with a boolean value. " +

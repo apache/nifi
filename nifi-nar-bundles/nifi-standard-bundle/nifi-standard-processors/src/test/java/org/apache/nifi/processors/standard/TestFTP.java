@@ -269,6 +269,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FetchFTP.REL_NOT_FOUND);
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
     }
 
     @Test
@@ -290,6 +291,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FetchFTP.REL_PERMISSION_DENIED);
+        runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
     }
 
     @Test
@@ -300,8 +302,8 @@ public class TestFTP {
         fs.add(fileEntry);
 
         final TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
-        runner.setVariable("host", LOCALHOST_ADDRESS);
-        runner.setVariable("port", Integer.toString(ftpPort));
+        runner.setEnvironmentVariableValue("host", LOCALHOST_ADDRESS);
+        runner.setEnvironmentVariableValue("port", Integer.toString(ftpPort));
 
         runner.setProperty(ListFTP.HOSTNAME, "${host}");
         runner.setProperty(FTPTransfer.PORT, "${port}");

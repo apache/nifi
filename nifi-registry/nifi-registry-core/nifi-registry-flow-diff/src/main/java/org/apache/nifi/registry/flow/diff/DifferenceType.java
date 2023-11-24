@@ -94,6 +94,11 @@ public enum DifferenceType {
     CONCURRENT_TASKS_CHANGED("Concurrent Tasks Changed"),
 
     /**
+     * The component has a different enforcement policy in each of the flows
+     */
+    ENFORCEMENT_POLICY_CHANGED("Enforcement Policy Changed"),
+
+    /**
      * The component has a different value for the timeout in each of the flows
      */
     TIMEOUT_CHANGED("Timeout Changed"),
@@ -216,6 +221,11 @@ public enum DifferenceType {
     POSITION_CHANGED("Position Changed"),
 
     /**
+     * The height and/or width size of the component is different in each of the flows
+     */
+    SIZE_CHANGED("Size Changed"),
+
+    /**
      * The stylistic configuration of the component is different in each of the flows
      */
     STYLE_CHANGED("Style Changed"),
@@ -284,21 +294,6 @@ public enum DifferenceType {
      * The zindex value is different in each of the components
      */
     ZINDEX_CHANGED("z-index Changed"),
-
-    /**
-     * The variable does not exist in Flow A but exists in Flow B
-     */
-    VARIABLE_ADDED("Variable Added to Process Group"),
-
-    /**
-     * The variable does not exist in Flow B but exists in Flow A
-     */
-    VARIABLE_REMOVED("Variable Removed from Process Group"),
-
-    /**
-     * THe value of the variable is different in each of the flows
-     */
-    VARIABLE_CHANGED("Value of Variable was changed"),
 
     /**
      * The API of the Controller Service is different in each of the flows

@@ -14,80 +14,90 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.MINIFI_CONFIG_FILE_KEY;
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.generateConfigFiles;
+import static java.nio.ByteBuffer.wrap;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.toByteArray;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.commons.service.FlowEnrichService;
 import org.slf4j.Logger;
 
 public class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
 
+    private static final ReentrantLock handlingLock = new ReentrantLock();
+
     private final RunMiNiFi runner;
     private final Logger logger;
     private final BootstrapFileProvider bootstrapFileProvider;
+    private final FlowEnrichService flowEnrichService;
 
-    private static final ReentrantLock handlingLock = new ReentrantLock();
-
-    public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider) {
+    public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider, FlowEnrichService flowEnrichService) {
         this.runner = runner;
         this.logger = logger;
         this.bootstrapFileProvider = bootstrapFileProvider;
+        this.flowEnrichService = flowEnrichService;
     }
 
     @Override
-    public void handleChange(InputStream configInputStream) throws ConfigurationChangeException {
+    public void handleChange(InputStream flowConfigInputStream) throws ConfigurationChangeException {
         logger.info("Received notification of a change");
 
         if (!handlingLock.tryLock()) {
             throw new ConfigurationChangeException("Instance is already handling another change");
         }
-        // Store the incoming stream as a byte array to be shared among components that need it
+
+        Path currentFlowConfigFile = null;
+        Path backupFlowConfigFile = null;
+        Path currentRawFlowConfigFile = null;
+        Path backupRawFlowConfigFile = null;
         try {
             Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
-            File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
 
-            File swapConfigFile = bootstrapFileProvider.getConfigYmlSwapFile();
-            logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
+            currentFlowConfigFile = Path.of(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
+            backupFlowConfigFile = Path.of(currentFlowConfigFile + BACKUP_EXTENSION);
+            String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(currentFlowConfigFile.toString());
+            currentRawFlowConfigFile = currentFlowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION);
+            backupRawFlowConfigFile = currentFlowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION + BACKUP_EXTENSION);
 
-            try (FileInputStream configFileInputStream = new FileInputStream(configFile)) {
-                Files.copy(configFileInputStream, swapConfigFile.toPath(), REPLACE_EXISTING);
-            }
+            backup(currentFlowConfigFile, backupFlowConfigFile);
+            backup(currentRawFlowConfigFile, backupRawFlowConfigFile);
 
-            // write out new config to file
-            Files.copy(configInputStream, configFile.toPath(), REPLACE_EXISTING);
-
-            // Create an input stream to feed to the config transformer
-            try (FileInputStream newConfigIs = new FileInputStream(configFile)) {
-                try {
-                    String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
-                    transformConfigurationFiles(confDir, newConfigIs, configFile, swapConfigFile);
-                } catch (Exception e) {
-                    logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
-                    if (!swapConfigFile.delete()) {
-                        logger.warn("The swap file failed to delete after a failed handling of a change. It should be cleaned up manually.");
-                    }
-                    throw e;
-                }
-            }
+            byte[] rawFlow = toByteArray(flowConfigInputStream);
+            byte[] enrichedFlow = flowEnrichService.enrichFlow(rawFlow);
+            persist(enrichedFlow, currentFlowConfigFile, true);
+            restartInstance();
+            persist(rawFlow, currentRawFlowConfigFile, false);
+            setActiveFlowReference(wrap(rawFlow));
+            logger.info("MiNiFi has finished reloading successfully and applied the new flow configuration");
         } catch (Exception e) {
+            logger.error("Configuration update failed. Reverting to previous flow", e);
+            revert(backupFlowConfigFile, currentFlowConfigFile);
+            revert(backupRawFlowConfigFile, currentRawFlowConfigFile);
             throw new ConfigurationChangeException("Unable to perform reload of received configuration change", e);
         } finally {
-            IOUtils.closeQuietly(configInputStream);
+            removeIfExists(backupFlowConfigFile);
+            removeIfExists(backupRawFlowConfigFile);
+            closeQuietly(flowConfigInputStream);
             handlingLock.unlock();
         }
     }
@@ -97,33 +107,9 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
         return "MiNiFiConfigurationChangeListener";
     }
 
-    private void transformConfigurationFiles(String confDir, FileInputStream newConfigIs, File configFile, File swapConfigFile) throws Exception {
-        try {
-            logger.info("Performing transformation for input and saving outputs to {}", confDir);
-            ByteBuffer tempConfigFile = generateConfigFiles(newConfigIs, confDir, bootstrapFileProvider.getBootstrapProperties());
-            runner.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
-            reloadNewConfiguration(swapConfigFile, confDir);
-        } catch (Exception e) {
-            logger.debug("Transformation of new config file failed after replacing original with the swap file, reverting.");
-            try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
-                Files.copy(swapConfigFileStream, configFile.toPath(), REPLACE_EXISTING);
-            }
-            throw e;
-        }
-    }
-
-    private void reloadNewConfiguration(File swapConfigFile, String confDir) throws Exception {
-        try {
-            logger.info("Reloading instance with new configuration");
-            restartInstance();
-        } catch (Exception e) {
-            logger.debug("Transformation of new config file failed after transformation into Flow.xml and nifi.properties, reverting.");
-            try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
-                ByteBuffer resetConfigFile = generateConfigFiles(swapConfigFileStream, confDir, bootstrapFileProvider.getBootstrapProperties());
-                runner.getConfigFileReference().set(resetConfigFile.asReadOnlyBuffer());
-            }
-            throw e;
-        }
+    private void setActiveFlowReference(ByteBuffer flowConfig) {
+        logger.debug("Setting active flow reference {} with content:\n{}", flowConfig, new String(flowConfig.array(), UTF_8));
+        runner.getConfigFileReference().set(flowConfig);
     }
 
     private void restartInstance() throws IOException {

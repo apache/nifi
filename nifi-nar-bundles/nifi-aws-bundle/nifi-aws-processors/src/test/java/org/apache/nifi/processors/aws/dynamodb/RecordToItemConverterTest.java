@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -26,6 +25,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -34,6 +34,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecordToItemConverterTest {
 
@@ -77,41 +81,42 @@ class RecordToItemConverterTest {
         values.put("choice", Integer.MAX_VALUE);
         final Record record = new MapRecord(schema, values);
 
-        final Item item = new Item();
+        final Map<String, AttributeValue> item = new HashMap<>();
 
         for (final RecordField schemaField : schema.getFields()) {
             RecordToItemConverter.addField(record, item, schemaField.getDataType().getFieldType(), schemaField.getFieldName());
         }
 
-        Assertions.assertEquals(Boolean.TRUE, item.get("boolean"));
+        assertEquals(bool(Boolean.TRUE), item.get("boolean"));
 
         // Internally Item stores numbers as BigDecimal
-        Assertions.assertEquals(BigDecimal.valueOf(Short.MAX_VALUE), item.get("short"));
-        Assertions.assertEquals(BigDecimal.valueOf(Integer.MAX_VALUE), item.get("int"));
-        Assertions.assertEquals(BigDecimal.valueOf(Long.MAX_VALUE), item.get("long"));
-        Assertions.assertEquals(BigDecimal.valueOf(Byte.MAX_VALUE), item.get("byte"));
-        Assertions.assertEquals(new BigDecimal("12345678901234567890.123456789012345678901234567890"), item.get("decimal"));
-        Assertions.assertEquals(Float.valueOf(123.456F), ((BigDecimal) item.get("float")).floatValue(), 0.0001);
-        Assertions.assertEquals(Double.valueOf(1234.5678D), ((BigDecimal) item.get("double")).floatValue(), 0.0001);
+        assertEquals(number(Short.MAX_VALUE), item.get("short"));
+        assertEquals(number(Integer.MAX_VALUE), item.get("int"));
+        assertEquals(number(Long.MAX_VALUE), item.get("long"));
+        assertEquals(number(Byte.MAX_VALUE), item.get("byte"));
+        assertEquals(number(new BigDecimal("12345678901234567890.123456789012345678901234567890")), item.get("decimal"));
+        assertEquals(123.456F, Float.valueOf(item.get("float").n()).floatValue(), 0.0001);
+        assertEquals(1234.5678D, Float.valueOf(item.get("double").n()).doubleValue(), 0.0001);
 
-        Assertions.assertEquals(BigDecimal.valueOf(10), item.get("bigint"));
+        assertEquals(number(10), item.get("bigint"));
 
         // DynamoDB uses string to represent time and date
-        Assertions.assertTrue(item.get("timestamp") instanceof String);
-        Assertions.assertTrue(item.get("date") instanceof String);
-        Assertions.assertTrue(item.get("time") instanceof String);
+        assertNotNull(item.get("timestamp").s());
+        assertNotNull(item.get("date").s());
+        assertNotNull(item.get("time").s());
 
         // Character is unknown type for DynamoDB, as well as enum
-        Assertions.assertEquals("c", item.get("char"));
+        assertEquals(string("c"), item.get("char"));
 
         // Enum is not supported in DynamoDB
-        Assertions.assertEquals(Component.Controller.name(), item.get("enum"));
+        assertEquals(string(Component.Controller.name()), item.get("enum"));
 
         // DynamoDB uses lists and still keeps the payload datatype
-        Assertions.assertIterableEquals(Arrays.asList(new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.TEN}), (Iterable<?>) item.get("array"));
+        Assertions.assertIterableEquals(Arrays.asList(number(BigDecimal.ZERO), number(BigDecimal.ONE), number(BigDecimal.TEN)),
+                item.get("array").l());
 
         // DynamoDB cannot handle choice, all values enveloped into choice are handled as strings
-        Assertions.assertEquals("2147483647", item.get("choice"));
+        assertEquals(string("2147483647"), item.get("choice"));
     }
 
     @Test
@@ -132,16 +137,16 @@ class RecordToItemConverterTest {
         starSystemValues.put("star", star);
         final Record starSystem = new MapRecord(starSystemSchema, starSystemValues);
 
-        final Item item = new Item();
+        final Map<String, AttributeValue> item = new HashMap<>();
 
         RecordToItemConverter.addField(starSystem, item, RecordFieldType.MAP, "star");
 
-        final Object result = item.get("star");
-        Assertions.assertTrue(result instanceof Map);
-        final Map<String, Object> resultMap = (Map<String, Object>) result;
-        Assertions.assertEquals(2, resultMap.size());
-        Assertions.assertEquals(false, resultMap.get("isDwarf"));
-        Assertions.assertEquals("G", resultMap.get("type"));
+        final AttributeValue result = item.get("star");
+        assertTrue(result.hasM());
+        final Map<String, AttributeValue> resultMap = result.m();
+        assertEquals(2, resultMap.size());
+        assertEquals(bool(false), resultMap.get("isDwarf"));
+        assertEquals(string("G"), resultMap.get("type"));
     }
 
     @Test
@@ -165,19 +170,19 @@ class RecordToItemConverterTest {
         starSystemValues.put("star", star);
         final Record starSystem = new MapRecord(starSystemSchema, starSystemValues);
 
-        final Item item = new Item();
+        final Map<String, AttributeValue> item = new HashMap<>();
 
         RecordToItemConverter.addField(starSystem, item, RecordFieldType.MAP, "star");
 
-        final Object result = item.get("star");
-        Assertions.assertTrue(result instanceof Map);
-        final Map<String, Object> resultMap = (Map<String, Object>) result;
-        Assertions.assertEquals(1, resultMap.size());
-        final Object starTypeResult = resultMap.get("starType");
-        Assertions.assertTrue(starTypeResult instanceof Map);
-        final Map<String, Object> starTypeResultMap = (Map<String, Object>) starTypeResult;
-        Assertions.assertEquals(false, starTypeResultMap.get("isDwarf"));
-        Assertions.assertEquals("G", starTypeResultMap.get("type"));
+        final AttributeValue result = item.get("star");
+        assertTrue(result.hasM());
+        final Map<String, AttributeValue> resultMap = result.m();
+        assertEquals(1, resultMap.size());
+        final AttributeValue starTypeResult = resultMap.get("starType");
+        assertTrue(starTypeResult.hasM());
+        final Map<String, AttributeValue> starTypeResultMap = starTypeResult.m();
+        assertEquals(bool(false), starTypeResultMap.get("isDwarf"));
+        assertEquals(string("G"), starTypeResultMap.get("type"));
     }
 
     @Test
@@ -204,16 +209,16 @@ class RecordToItemConverterTest {
         starSystemValues.put("star", star);
         final Record starSystem = new MapRecord(starSystemSchema, starSystemValues);
 
-        final Item item = new Item();
+        final Map<String, AttributeValue> item = new HashMap<>();
 
         RecordToItemConverter.addField(starSystem, item, RecordFieldType.RECORD, "star");
 
-        final Object result = item.get("star");
-        Assertions.assertTrue(result instanceof Map);
-        final Map<String, Object> resultMap = (Map<String, Object>) result;
-        Assertions.assertEquals(2, resultMap.size());
-        Assertions.assertEquals(false, resultMap.get("isDwarf"));
-        Assertions.assertEquals("G", resultMap.get("type"));
+        final AttributeValue result = item.get("star");
+        assertNotNull(result.m());
+        final Map<String, AttributeValue> resultMap = result.m();
+        assertEquals(2, resultMap.size());
+        assertEquals(bool(false), resultMap.get("isDwarf"));
+        assertEquals(string("G"), resultMap.get("type"));
     }
 
     @Test
@@ -248,18 +253,30 @@ class RecordToItemConverterTest {
         starSystemValues.put("star", star);
         final Record starSystem = new MapRecord(starSystemSchema, starSystemValues);
 
-        final Item item = new Item();
+        final Map<String, AttributeValue> item = new HashMap<>();
 
         RecordToItemConverter.addField(starSystem, item, RecordFieldType.RECORD, "star");
 
-        final Object result = item.get("star");
-        Assertions.assertTrue(result instanceof Map);
-        final Map<String, Object> resultMap = (Map<String, Object>) result;
-        Assertions.assertEquals(1, resultMap.size());
-        final Object fieldResult = resultMap.get("starType");
-        Assertions.assertTrue(fieldResult instanceof Map);
-        final Map<String, Object> fieldResultMap = (Map<String, Object>) fieldResult;
-        Assertions.assertEquals(false, fieldResultMap.get("isDwarf"));
-        Assertions.assertEquals("G", fieldResultMap.get("type"));
+        final AttributeValue result = item.get("star");
+        assertNotNull(result.m());
+        final Map<String, AttributeValue> resultMap = result.m();
+        assertEquals(1, resultMap.size());
+        final AttributeValue fieldResult = resultMap.get("starType");
+        Assertions.assertNotNull(fieldResult.m());
+        final Map<String, AttributeValue> fieldResultMap = fieldResult.m();
+        assertEquals(bool(false), fieldResultMap.get("isDwarf"));
+        assertEquals(string("G"), fieldResultMap.get("type"));
+    }
+
+    private static AttributeValue bool(final Boolean value) {
+        return AttributeValue.builder().bool(value).build();
+    }
+
+    private static AttributeValue string(final String value) {
+        return AttributeValue.builder().s(value).build();
+    }
+
+    private static AttributeValue number(final Number value) {
+        return AttributeValue.builder().n(String.valueOf(value)).build();
     }
 }

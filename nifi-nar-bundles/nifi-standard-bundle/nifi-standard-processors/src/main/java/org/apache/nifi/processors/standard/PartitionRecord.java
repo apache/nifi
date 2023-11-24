@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -93,7 +94,37 @@ import java.util.stream.Stream;
 })
 @Tags({"record", "partition", "recordpath", "rpath", "segment", "split", "group", "bin", "organize"})
 @SeeAlso({ConvertRecord.class, SplitRecord.class, UpdateRecord.class, QueryRecord.class})
+@UseCase(
+    description = "Separate records into separate FlowFiles so that all of the records in a FlowFile have the same value for a given field or set of fields.",
+    keywords = {"separate", "split", "partition", "break apart", "colocate", "segregate", "record", "field", "recordpath"},
+    configuration = """
+        Choose a RecordReader that is appropriate based on the format of the incoming data.
+        Choose a RecordWriter that writes the data in the desired output format.
 
+        Add a single additional property. The name of the property should describe the type of data that is being used to partition the data. \
+        The property's value should be a RecordPath that specifies which output FlowFile the Record belongs to.
+
+        For example, if we want to separate records based on their `transactionType` field, we could add a new property named `transactionType`. \
+        The value of the property might be `/transaction/type`. An input FlowFile will then be separated into as few FlowFiles as possible such that each \
+        output FlowFile has the same value for the `transactionType` field.
+        """
+)
+@UseCase(
+    description = "Separate records based on whether or not they adhere to a specific criteria",
+    keywords = {"separate", "split", "partition", "break apart", "segregate", "record", "field", "recordpath", "criteria"},
+    configuration = """
+        Choose a RecordReader that is appropriate based on the format of the incoming data.
+        Choose a RecordWriter that writes the data in the desired output format.
+
+        Add a single additional property. The name of the property should describe the criteria. \
+        The property's value should be a RecordPath that returns `true` if the Record meets the criteria or `false otherwise.
+
+        For example, if we want to separate records based on whether or not they have a transaction total of more than $1,000 we could add a new property named \
+        `largeTransaction` with a value of `/transaction/total > 1000`. This will create two FlowFiles. In the first, all records will have a total over `1000`. \
+        In the second, all records will have a transaction less than or equal to 1000. Each FlowFile will have an attribute named `largeTransaction` with a value \
+        of `true` or `false`.
+        """
+)
 public class PartitionRecord extends AbstractProcessor {
     private final RecordPathCache recordPathCache = new RecordPathCache(25);
 

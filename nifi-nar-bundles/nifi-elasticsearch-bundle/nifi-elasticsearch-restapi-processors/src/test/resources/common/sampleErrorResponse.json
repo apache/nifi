@@ -1,0 +1,122 @@
+{
+  "took": 18,
+  "errors": true,
+  "items": [
+    {
+      "index": {
+        "_index": "test",
+        "_type": "_doc",
+        "_id": "1",
+        "_version": 4,
+        "result": "updated",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 4,
+        "_primary_term": 1,
+        "status": 200
+      }
+    },
+    {
+      "create": {
+        "_index": "test",
+        "_type": "_doc",
+        "_id": "2",
+        "_version": 1,
+        "result": "created",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 1,
+        "_primary_term": 1,
+        "status": 201
+      }
+    },
+    {
+      "create": {
+        "_index": "test",
+        "_type": "_doc",
+        "_id": "3",
+        "_version": 1,
+        "result": "created",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 3,
+        "_primary_term": 1,
+        "status": 201
+      }
+    },
+    {
+      "delete": {
+        "_index": "test",
+        "_type": "_doc",
+        "_id": "4",
+        "_version": 1,
+        "result": "not_found",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 1,
+        "_primary_term": 2,
+        "status": 404
+      }
+    },
+    {
+      "index": {
+        "_index": "test",
+        "_type": "_doc",
+        "_id": "5",
+        "status": 400,
+        "error": {
+          "type": "mapper_parsing_exception",
+          "reason": "failed to parse field [field2] of type [integer] in document with id '5'",
+          "caused_by": {
+            "type": "number_format_exception",
+            "reason": "For input string: 20abc"
+          }
+        }
+      }
+    },
+    {
+      "index" : {
+        "_index" : "test",
+        "_type" : "_doc",
+        "_id" : "6",
+        "status" : 400,
+        "error" : {
+          "type" : "mapper_parsing_exception",
+          "reason" : "failed to parse field [field3] of type [geopoint] in document with id '6'",
+          "caused_by" : {
+            "type" : "number_format_exception",
+            "reason" : "For input string: 213,456.9"
+          }
+        }
+      }
+    },
+    {
+      "index" : {
+        "_index" : "test",
+        "_type" : "_doc",
+        "_id" : "7",
+        "status" : 400,
+        "error" : {
+          "type" : "some_other_exception",
+          "reason" : "failed to index document with id '7' due to some other reason",
+          "caused_by" : {
+            "type" : "random_exception",
+            "reason" : "For input string: unit test"
+          }
+        }
+      }
+    }
+  ]
+}

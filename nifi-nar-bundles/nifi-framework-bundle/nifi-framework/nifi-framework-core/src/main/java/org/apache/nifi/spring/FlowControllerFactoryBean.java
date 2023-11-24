@@ -27,9 +27,9 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
@@ -50,10 +50,10 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private PropertyEncryptor encryptor;
     private BulletinRepository bulletinRepository;
     private ClusterCoordinator clusterCoordinator;
-    private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
     private ExtensionDiscoveringManager extensionManager;
     private RevisionManager revisionManager;
+    private RuleViolationsManager ruleViolationsManager;
     private StatusHistoryRepository statusHistoryRepository;
 
     @Override
@@ -75,10 +75,10 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     clusterCoordinator,
                     heartbeatMonitor,
                     leaderElectionManager,
-                    variableRegistry,
                     extensionManager,
                     revisionManager,
-                    statusHistoryRepository);
+                    statusHistoryRepository,
+                    ruleViolationsManager);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -87,11 +87,10 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     auditService,
                     encryptor,
                     bulletinRepository,
-                    variableRegistry,
                     extensionManager,
-                    statusHistoryRepository);
+                    statusHistoryRepository,
+                    ruleViolationsManager);
             }
-
         }
 
         return flowController;
@@ -134,10 +133,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.bulletinRepository = bulletinRepository;
     }
 
-    public void setVariableRegistry(VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
-    }
-
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
@@ -152,6 +147,10 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setRevisionManager(final RevisionManager revisionManager) {
         this.revisionManager = revisionManager;
+    }
+
+    public void setRuleViolationsManager(final RuleViolationsManager ruleViolationsManager) {
+        this.ruleViolationsManager = ruleViolationsManager;
     }
 
     public void setStatusHistoryRepository(final StatusHistoryRepository statusHistoryRepository) {

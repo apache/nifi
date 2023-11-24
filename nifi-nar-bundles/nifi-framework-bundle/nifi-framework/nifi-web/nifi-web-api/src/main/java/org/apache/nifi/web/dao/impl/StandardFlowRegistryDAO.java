@@ -20,8 +20,8 @@ package org.apache.nifi.web.dao.impl;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
-import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
@@ -43,7 +43,6 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
 
     @Override
     public FlowRegistryClientNode createFlowRegistryClient(final FlowRegistryClientDTO flowRegistryClientDto) {
-        // ensure the type is specified
         if (flowRegistryClientDto.getType() == null) {
             throw new IllegalArgumentException("The flow registry client type must be specified.");
         }
@@ -178,7 +177,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
             throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
         }
 
-        flowController.getFlowManager().removeFlowRegistryClientNode(flowRegistry);
+        flowController.getFlowManager().removeFlowRegistryClient(flowRegistry);
 
         return flowRegistry;
     }

@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.cert.CertificateException;
 import java.util.Objects;
 
@@ -29,7 +29,7 @@ import java.util.Objects;
  * Standard implementation of Key Store Builder
  */
 public class StandardKeyStoreBuilder implements KeyStoreBuilder {
-    private String provider;
+    private Provider provider;
 
     private String type = KeyStore.getDefaultType();
 
@@ -65,7 +65,7 @@ public class StandardKeyStoreBuilder implements KeyStoreBuilder {
      * @param provider Key Store Provider
      * @return Builder
      */
-    public StandardKeyStoreBuilder provider(final String provider) {
+    public StandardKeyStoreBuilder provider(final Provider provider) {
         this.provider = Objects.requireNonNull(provider, "Key Store Provider required");
         return this;
     }
@@ -108,9 +108,6 @@ public class StandardKeyStoreBuilder implements KeyStoreBuilder {
             return provider == null ? KeyStore.getInstance(type) : KeyStore.getInstance(type, provider);
         } catch (final KeyStoreException e) {
             final String message = String.format("Key Store Type [%s] creation failed", type);
-            throw new BuilderConfigurationException(message, e);
-        } catch (final NoSuchProviderException e) {
-            final String message = String.format("Key Store Type [%s] Provider [%s] creation failed", type, provider);
             throw new BuilderConfigurationException(message, e);
         }
     }

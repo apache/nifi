@@ -99,7 +99,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                     + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -128,7 +128,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .defaultValue("4 hours")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
@@ -376,20 +376,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         if (resources != null) {
             // Attempt to close the FileSystem
             final FileSystem fileSystem = resources.getFileSystem();
-            try {
-                interruptStatisticsThread(fileSystem);
-            } catch (Exception e) {
-                getLogger().warn("Error stopping FileSystem statistics thread: " + e.getMessage());
-                getLogger().debug("", e);
-            } finally {
-                if (fileSystem != null) {
-                    try {
-                        fileSystem.close();
-                    } catch (IOException e) {
-                        getLogger().warn("Error close FileSystem: " + e.getMessage(), e);
-                    }
-                }
-            }
+            HDFSResourceHelper.closeFileSystem(fileSystem);
         }
 
         // Clear out the reference to the resources

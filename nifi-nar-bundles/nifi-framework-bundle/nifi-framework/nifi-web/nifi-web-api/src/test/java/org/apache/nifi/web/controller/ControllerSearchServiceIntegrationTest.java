@@ -23,10 +23,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
@@ -34,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,7 +44,6 @@ import static org.apache.nifi.web.controller.ComponentMockUtil.getConnection;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getFunnel;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getProcessorNode;
-import static org.apache.nifi.web.controller.ComponentMockUtil.getPublicPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getRemoteProcessGroup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -388,69 +383,6 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
     }
 
     @Test
-    public void testSearchBasedOnVariableRegistry() {
-        // given
-        givenRootProcessGroup();
-
-        final Map<VariableDescriptor, String> variables = new HashMap<>();
-        variables.put(new VariableDescriptor.Builder("variableName").build(), "variableValue");
-
-        final ComponentVariableRegistry variableRegistry = Mockito.mock(ComponentVariableRegistry.class);
-        Mockito.when(variableRegistry.getVariableMap()).thenReturn(variables);
-
-        final ProcessGroup processGroup = getChildProcessGroup("childGroup", "childGroupName", "", getProcessGroup(ROOT_PROCESSOR_GROUP_ID), AUTHORIZED, NOT_UNDER_VERSION_CONTROL);
-        Mockito.when(processGroup.getVariableRegistry()).thenReturn(variableRegistry);
-
-        givenProcessGroup(processGroup);
-
-        // when
-        whenExecuteSearch("variable");
-
-        // then
-        thenResultConsists()
-                .ofProcessGroup(getSimpleResultFromRoot("childGroup", "childGroupName", "Variable Name: variableName", "Variable Value: variableValue"))
-                .validate(results);
-    }
-
-    @Test
-    public void testSearchBasedOnVariableRegistryInRoot() {
-        // given
-        givenRootProcessGroup();
-        final ProcessGroup childProcessGroup = getChildProcessGroup("childGroup", "childGroupName", "", getProcessGroup(ROOT_PROCESSOR_GROUP_ID), AUTHORIZED, NOT_UNDER_VERSION_CONTROL);
-        givenProcessGroup(childProcessGroup);
-
-        final Map<VariableDescriptor, String> variablesRoot = new HashMap<>();
-        variablesRoot.put(new VariableDescriptor.Builder("variableName1").build(), "variableValue1");
-
-        final ComponentVariableRegistry variableRegistryRoot = Mockito.mock(ComponentVariableRegistry.class);
-        Mockito.when(variableRegistryRoot.getVariableMap()).thenReturn(variablesRoot);
-
-        Mockito.when(getProcessGroup(ROOT_PROCESSOR_GROUP_ID).getVariableRegistry()).thenReturn(variableRegistryRoot);
-
-        final Map<VariableDescriptor, String> variablesChild = new HashMap<>();
-        variablesChild.put(new VariableDescriptor.Builder("variableName2").build(), "variableValue2");
-
-        final ComponentVariableRegistry variableRegistryChild = Mockito.mock(ComponentVariableRegistry.class);
-        Mockito.when(variableRegistryChild.getVariableMap()).thenReturn(variablesChild);
-
-        Mockito.when(childProcessGroup.getVariableRegistry()).thenReturn(variableRegistryChild);
-
-        // when
-        whenExecuteSearch("variableValue");
-
-        // then
-        thenResultConsists()
-                .ofProcessGroup(getSimpleResult(ROOT_PROCESSOR_GROUP_ID,
-                        ROOT_PROCESSOR_GROUP_NAME,
-                        ROOT_PROCESSOR_GROUP_ID,
-                        null,
-                        null,
-                        "Variable Value: " + "variableValue1"))
-                .ofProcessGroup(getSimpleResultFromRoot("childGroup", "childGroupName", "Variable Value: variableValue2"))
-                .validate(results);
-    }
-
-    @Test
     public void testSearchBasedOnConnectionAttributes() {
         // given
         final ProcessorNode processor1 = getProcessorNode("processor1", "processor1Name", AUTHORIZED);
@@ -667,22 +599,6 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         // then
         thenResultConsists()
                 .ofRemoteProcessGroup(getSimpleResultFromRoot("remote2", "remoteName2", "Transmission: Off"))
-                .validate(results);
-    }
-
-    @Test
-    public void testSearchBasedOnPortPublicity() {
-        // given
-        givenRootProcessGroup()
-                .withInputPort(getPublicPort("port", "portName", "", ScheduledState.RUNNING, true, AUTHORIZED,
-                        Arrays.asList("accessAllowed1"), Arrays.asList("accessAllowed2")));
-
-        // when
-        whenExecuteSearch("allowed");
-
-        // then
-        thenResultConsists()
-                .ofInputPort(getSimpleResultFromRoot("port", "portName", "User access control: accessAllowed1", "Group access control: accessAllowed2"))
                 .validate(results);
     }
 }

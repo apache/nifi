@@ -33,7 +33,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.reporting.InitializationException;
@@ -64,11 +63,14 @@ public class TestListSFTP {
         sshServer = new SSHTestServer();
         sshServer.startServer();
         writeTempFile();
+
         runner = TestRunners.newTestRunner(ListSFTP.class);
-        runner.setProperty(ListSFTP.HOSTNAME, sshServer.getHost());
-        runner.setProperty(ListSFTP.USERNAME, sshServer.getUsername());
+        runner.setProperty(SFTPTransfer.HOSTNAME, sshServer.getHost());
+        runner.setProperty(SFTPTransfer.USERNAME, sshServer.getUsername());
         runner.setProperty(SFTPTransfer.PASSWORD, sshServer.getPassword());
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(sshServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT, Boolean.FALSE.toString());
+
         runner.setProperty(ListSFTP.REMOTE_PATH, REMOTE_DIRECTORY);
         runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
         runner.assertValid();
@@ -141,7 +143,7 @@ public class TestListSFTP {
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
         runner.enableControllerService(recordWriter);
-        DistributedMapCacheClient dmc = new MockCacheService<>();
+        DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
         runner.enableControllerService(dmc);
@@ -158,7 +160,7 @@ public class TestListSFTP {
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
         runner.enableControllerService(recordWriter);
-        DistributedMapCacheClient dmc = new MockCacheService<>();
+        DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
         runner.enableControllerService(dmc);

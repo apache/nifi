@@ -1,0 +1,13 @@
+[
+    {
+        "msg": "Hello, world",
+        "from": "john.smith",
+        "routing": "1",
+        "version": " "
+    },
+    {
+        "msg": "Hi, back at ya!",
+        "from": "jane.doe",
+        "version": "external"
+    }
+]

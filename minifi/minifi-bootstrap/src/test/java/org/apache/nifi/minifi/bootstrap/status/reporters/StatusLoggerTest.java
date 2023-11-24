@@ -17,6 +17,18 @@
 
 package org.apache.nifi.minifi.bootstrap.status.reporters;
 
+import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.ENCOUNTERED_IO_EXCEPTION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+
+import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
@@ -25,22 +37,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.util.Properties;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.ENCOUNTERED_IO_EXCEPTION;
-import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.LOGGING_LEVEL_KEY;
-import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.QUERY_KEY;
-import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.REPORT_PERIOD_KEY;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
-
 public class StatusLoggerTest {
 
-    private static final String MOCK_STATUS = "FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, " +
+    private static final String MOCK_STATUS =
+        "FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, " +
             "validationErrorList=[]}, processorStats=null, bulletinList=null}], connectionStatusList=null, remoteProcessingGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null," +
             " reportingTaskStatusList=null, errorsGeneratingReport=[]}";
 
@@ -69,9 +69,9 @@ public class StatusLoggerTest {
     @Test
     public void testFailedInitDueToFatalLogLevel() {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "1");
-        properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.FATAL.name());
-        properties.setProperty(QUERY_KEY, MOCK_QUERY);
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey(), "1");
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey(), LogLevel.FATAL.name());
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey(), MOCK_QUERY);
 
         assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
@@ -79,8 +79,8 @@ public class StatusLoggerTest {
     @Test
     public void testFailedInitDueToNoPeriod() {
         Properties properties = new Properties();
-        properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
-        properties.setProperty(QUERY_KEY, MOCK_QUERY);
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey(), LogLevel.INFO.name());
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey(), MOCK_QUERY);
 
         assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
@@ -88,8 +88,8 @@ public class StatusLoggerTest {
     @Test
     public void testFailedInitDueToNoQuery() {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "1");
-        properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey(), "1");
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey(), LogLevel.INFO.name());
 
         assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
@@ -143,9 +143,9 @@ public class StatusLoggerTest {
     @Test
     public void testTraceException() throws IOException {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "1");
-        properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.TRACE.name());
-        properties.setProperty(QUERY_KEY, MOCK_QUERY);
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey(), "1");
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey(), LogLevel.TRACE.name());
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey(), MOCK_QUERY);
 
         IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
@@ -207,9 +207,9 @@ public class StatusLoggerTest {
 
     private static Properties getProperties(LogLevel logLevel) {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "1");
-        properties.setProperty(LOGGING_LEVEL_KEY, logLevel.name());
-        properties.setProperty(QUERY_KEY, MOCK_QUERY);
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey(), "1");
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey(), logLevel.name());
+        properties.setProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey(), MOCK_QUERY);
         return properties;
     }
 

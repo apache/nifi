@@ -17,14 +17,24 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+import static org.mockito.Mockito.when;
+
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.util.Collections;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
@@ -33,18 +43,6 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.KeyStore;
-import java.util.Collections;
-import java.util.Properties;
-
-import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
-import static org.mockito.Mockito.when;
 
 public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
 
@@ -82,27 +80,27 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
         final KeyStore keyStore;
         try (final FileInputStream keyStoreStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
             keyStore = new StandardKeyStoreBuilder()
-                    .type(tlsConfiguration.getKeystoreType().getType())
-                    .inputStream(keyStoreStream)
-                    .password(tlsConfiguration.getKeystorePassword().toCharArray())
-                    .build();
+                .type(tlsConfiguration.getKeystoreType().getType())
+                .inputStream(keyStoreStream)
+                .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                .build();
         }
 
         final KeyStore truststore;
         try (final FileInputStream trustStoreStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
             truststore = new StandardKeyStoreBuilder()
-                    .type(tlsConfiguration.getTruststoreType().getType())
-                    .inputStream(trustStoreStream)
-                    .password(tlsConfiguration.getTruststorePassword().toCharArray())
-                    .build();
+                .type(tlsConfiguration.getTruststoreType().getType())
+                .inputStream(trustStoreStream)
+                .password(tlsConfiguration.getTruststorePassword().toCharArray())
+                .build();
         }
 
         final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
         final SSLContext sslContext = new StandardSslContextBuilder()
-                .keyStore(keyStore)
-                .keyPassword(tlsConfiguration.getKeyPassword().toCharArray())
-                .trustStore(truststore)
-                .build();
+            .keyStore(keyStore)
+            .keyPassword(tlsConfiguration.getKeyPassword().toCharArray())
+            .trustStore(truststore)
+            .build();
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
         clientBuilder.sslSocketFactory(sslSocketFactory, trustManager);

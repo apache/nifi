@@ -18,6 +18,7 @@ package org.apache.nifi.reporting.prometheus;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
@@ -64,6 +65,13 @@ public class TestPrometheusMetricsUtil {
     private static final String CONNECTION_4 = "Connection4";
     private static final String TIME_TO_BYTES_BACKPRESSURE_MILLIS = "timeToBytesBackpressureMillis";
     private static final String TIME_TO_COUNT_BACKPRESSURE_MILLIS = "timeToCountBackpressureMillis";
+
+    private static final String METRIC_NAME_SEGMENT_FOR_REPOSITORIES = "repo";
+    private static final String LABEL_NAME_FOR_REPO_IDENTIFIER = "repo_identifier";
+    private static final String FLOW_FILE_REPO_IDENTIFIER = "flowFileRepo";
+    private static final String CONTENT_REPO_IDENTIFIER_ONE = "contentRepo1";
+    private static final String CONTENT_REPO_IDENTIFIER_TWO = "contentRepo2";
+    private static final String PROVENANCE_REPO_IDENTIFIER = "provenanceRepo";
 
     private static ProcessGroupStatus singleProcessGroupStatus;
     private static ProcessGroupStatus nestedProcessGroupStatus;
@@ -304,6 +312,21 @@ public class TestPrometheusMetricsUtil {
         assertThat(sampleValues, hasItems(EXPECTED_NESTED_BYTES_PERCENT_VALUE, EXPECTED_NESTED_COUNT_PERCENT_VALUE));
     }
 
+    @Test
+    public void testStorageUsageAddedToNifiMetrics() {
+        final NiFiMetricsRegistry niFiMetricsRegistry = new NiFiMetricsRegistry();
+        final StorageUsage floeFileRepositoryUsage = createFloFileRepositoryUsage();
+        final Map<String, StorageUsage> contentRepositoryUsage = createContentRepositoryUsage();
+        final Map<String, StorageUsage> provenanceRepositoryUsage = createProvenanceRepositoryUsage();
+
+        PrometheusMetricsUtil.createStorageUsageMetrics(niFiMetricsRegistry, floeFileRepositoryUsage, contentRepositoryUsage, provenanceRepositoryUsage,
+                EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        final Set<String> result = getRepoIdentifierSampleLabelNames(niFiMetricsRegistry);
+
+        assertEquals(4, result.size());
+        assertThat(result, hasItems(FLOW_FILE_REPO_IDENTIFIER, CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO, PROVENANCE_REPO_IDENTIFIER));
+    }
+
     private static ProcessGroupStatus createSingleProcessGroupStatus(final long queuedBytes, final long bytesThreshold, final int queuedCount, final long objectThreshold) {
         ProcessGroupStatus singleStatus = new ProcessGroupStatus();
         List<ConnectionStatus> connectionStatuses = new ArrayList<>();
@@ -402,5 +425,40 @@ public class TestPrometheusMetricsUtil {
         for (final String connection : connections) {
             PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, getPredictions(predictions, connection));
         }
+    }
+
+    private StorageUsage createFloFileRepositoryUsage() {
+        return createStorageUsage(FLOW_FILE_REPO_IDENTIFIER);
+    }
+
+    private Map<String, StorageUsage> createContentRepositoryUsage() {
+        return createStorageUsages(CONTENT_REPO_IDENTIFIER_ONE, CONTENT_REPO_IDENTIFIER_TWO);
+    }
+
+    private Map<String, StorageUsage> createProvenanceRepositoryUsage() {
+        return createStorageUsages(PROVENANCE_REPO_IDENTIFIER);
+    }
+
+    private StorageUsage createStorageUsage(final String repoIdentifier) {
+        final StorageUsage storageUsage = new StorageUsage();
+        storageUsage.setFreeSpace(1L);
+        storageUsage.setTotalSpace(2L);
+        storageUsage.setIdentifier(repoIdentifier);
+        return storageUsage;
+    }
+
+    private Map<String, StorageUsage> createStorageUsages(final String ... repoIdentifier) {
+        final Map<String, StorageUsage> storageUsageMap = new HashMap<>();
+        for (final String repoName : repoIdentifier) {
+            storageUsageMap.put(repoName, createStorageUsage(repoName));
+        }
+        return storageUsageMap;
+    }
+
+    private Set<String> getRepoIdentifierSampleLabelNames(final AbstractMetricsRegistry metricsRegistry) {
+        return Collections.list(metricsRegistry.getRegistry().filteredMetricFamilySamples(e -> e.contains(METRIC_NAME_SEGMENT_FOR_REPOSITORIES)))
+                .stream().flatMap(f -> f.samples.stream())
+                .map(s -> s.labelValues.get(s.labelNames.indexOf(LABEL_NAME_FOR_REPO_IDENTIFIER)))
+                .collect(Collectors.toSet());
     }
 }

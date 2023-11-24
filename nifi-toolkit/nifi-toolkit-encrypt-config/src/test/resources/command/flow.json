@@ -1,0 +1,21 @@
+{
+  "rootGroup": {
+    "processors": [
+      {
+        "identifier": "f1c86bb5-7895-3a60-beab-57a2f0766b33",
+        "instanceIdentifier": "018b1000-69eb-1fbe-df08-68f5b862eab2",
+        "name": "UpdateConfiguration",
+        "type": "org.apache.nifi.processors.standad.UpdateConfiguration",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Standard Property": "configured",
+          "Sensitive Property": "enc{24bc2edb43607b07a0e4bb4283ae7fd133d6b4f86eebb1b06b9a4d55773b44df311e091b25d0cb5c82}"
+        }
+      }
+    ]
+  }
+}

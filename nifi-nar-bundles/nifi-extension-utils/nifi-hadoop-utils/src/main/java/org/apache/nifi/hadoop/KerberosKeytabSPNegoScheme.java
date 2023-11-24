@@ -23,17 +23,15 @@ import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.net.UnknownHostException;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 /**
  * This class provides a very similar authentication scheme and token generation as {@link SPNegoScheme} does.
@@ -59,23 +57,20 @@ public class KerberosKeytabSPNegoScheme extends SPNegoScheme {
             loginContext.login();
             Subject loggedInSubject = loginContext.getSubject();
 
-            return Subject.doAs(loggedInSubject, new PrivilegedExceptionAction<byte[]>() {
+            return Subject.callAs(loggedInSubject, new Callable<byte[]>() {
 
-                public byte[] run() throws UnknownHostException, ClassNotFoundException, GSSException,
-                    IllegalAccessException, NoSuchFieldException {
-                    GSSManager gssManager = GSSManager.getInstance();
-                    String servicePrincipal = KerberosUtil.getServicePrincipal("HTTP", authServer);
-                    Oid serviceOid = KerberosUtil.getOidInstance("NT_GSS_KRB5_PRINCIPAL");
-                    GSSName serviceName = gssManager.createName(servicePrincipal, serviceOid);
-                    Oid mechOid = KerberosUtil.getOidInstance("GSS_KRB5_MECH_OID");
-                    GSSContext gssContext = gssManager.createContext(serviceName, mechOid, null, 0);
+                public byte[] call() throws UnknownHostException, GSSException {
+                    final GSSManager gssManager = GSSManager.getInstance();
+                    final String servicePrincipal = KerberosUtil.getServicePrincipal("HTTP", authServer);
+                    final GSSName serviceName = gssManager.createName(servicePrincipal, KerberosUtil.NT_GSS_KRB5_PRINCIPAL_OID);
+                    final GSSContext gssContext = gssManager.createContext(serviceName, KerberosUtil.GSS_KRB5_MECH_OID, null, 0);
                     gssContext.requestCredDeleg(true);
                     gssContext.requestMutualAuth(true);
                     return gssContext.initSecContext(input, 0, input.length);
                 }
 
             });
-        } catch (PrivilegedActionException | LoginException e) {
+        } catch (final LoginException e) {
             throw new RuntimeException(e);
         }
     }

@@ -20,7 +20,7 @@ package org.apache.nifi.kafka.connect.validators;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
-import java.net.URL;
+import java.net.URI;
 
 public class ConnectHttpUrlValidator implements ConfigDef.Validator {
     @Override
@@ -34,8 +34,7 @@ public class ConnectHttpUrlValidator implements ConfigDef.Validator {
         }
 
         try {
-            final URL url = new URL((String) value);
-            final String protocol = url.getProtocol();
+            final String protocol = URI.create((String) value).toURL().getProtocol();
             if (!protocol.equals("http") && !protocol.equals("https")) {
                 throw new ConfigException("Invalid value for property " + name + ": The value must be an http or https URL");
             }

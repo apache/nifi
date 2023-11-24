@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.lookup;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
@@ -33,22 +48,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value", "record"})
 @CapabilityDescription(
@@ -79,7 +78,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                 ConcurrentHashMap<String, Record> cache = new ConcurrentHashMap<>();
                 try (final InputStream is = new FileInputStream(csvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
-                        final CSVParser records = csvFormat.withFirstRecordAsHeader().parse(reader);
+                        final CSVParser records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).build().parse(reader);
                         RecordSchema lookupRecordSchema = null;
                         for (final CSVRecord record : records) {
                             final String key = record.get(lookupKeyColumn);

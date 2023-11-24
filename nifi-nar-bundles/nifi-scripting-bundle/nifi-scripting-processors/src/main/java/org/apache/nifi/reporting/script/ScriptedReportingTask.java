@@ -56,14 +56,14 @@ import java.util.Map;
  * A Reporting task whose body is provided by a script (via supported JSR-223 script engines)
  */
 @SupportsSensitiveDynamicProperties
-@Tags({"reporting", "script", "execute", "groovy", "python", "jython"})
+@Tags({"reporting", "script", "execute", "groovy"})
 @CapabilityDescription("Provides reporting and status information to a script. ReportingContext, ComponentLog, and VirtualMachineMetrics objects are made available "
         + "as variables (context, log, and vmMetrics, respectively) to the script for further processing. The context makes various information available such "
         + "as events, provenance, bulletins, controller services, process groups, Java Virtual Machine metrics, etc.")
 @DynamicProperty(
         name = "A script engine property to update",
         value = "The value to set it to",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
 @Restricted(
@@ -110,7 +110,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

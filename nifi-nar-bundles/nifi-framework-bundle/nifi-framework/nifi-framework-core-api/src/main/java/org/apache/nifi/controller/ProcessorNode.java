@@ -27,11 +27,11 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -53,10 +53,10 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public ProcessorNode(final String id,
                          final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                         final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
+                         final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,
+                         final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
                          final boolean isExtensionMissing) {
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
@@ -284,6 +284,11 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract ScheduledState getDesiredState();
 
+    @Override
+    protected void performFlowAnalysisOnThis() {
+        getValidationContextFactory().getFlowAnalyzer().ifPresent(flowAnalyzer -> flowAnalyzer.analyzeProcessor(this));
+    }
+
     /**
      * This method will be called once the processor's configuration has been restored (on startup, reload, e.g.)
      *
@@ -292,4 +297,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public abstract void onConfigurationRestored(ProcessContext context);
 
     public abstract void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
+
+    public abstract void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
+
 }

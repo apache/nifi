@@ -169,14 +169,14 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
         final String setPropertyValue = properties.get(descriptor);
         if (setPropertyValue != null) {
-            return new StandardPropertyValue(resourceContext, setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+            return new StandardPropertyValue(resourceContext, setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor));
         }
 
         // Get the "canonical" Property Descriptor from the Processor
         final PropertyDescriptor canonicalDescriptor = procNode.getPropertyDescriptor(descriptor.getName());
         final String defaultValue = canonicalDescriptor.getDefaultValue();
 
-        return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor));
     }
 
     /**
@@ -195,14 +195,14 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-        return new StandardPropertyValue(resourceContext, propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return new StandardPropertyValue(resourceContext, propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor));
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         verifyTaskActive();
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
-        return new StandardPropertyValue(resourceContext, rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue), procNode.getVariableRegistry());
+        return new StandardPropertyValue(resourceContext, rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue));
     }
 
     @Override

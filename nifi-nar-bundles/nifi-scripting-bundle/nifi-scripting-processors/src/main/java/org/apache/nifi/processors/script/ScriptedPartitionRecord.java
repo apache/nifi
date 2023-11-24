@@ -57,7 +57,7 @@ import java.util.Map;
 import java.util.Set;
 
 @SideEffectFree
-@Tags({"record", "partition", "script", "groovy", "jython", "python", "segment", "split", "group", "organize"})
+@Tags({"record", "partition", "script", "groovy", "segment", "split", "group", "organize"})
 @CapabilityDescription("Receives Record-oriented data (i.e., data that can be read by the configured Record Reader) and evaluates the user provided script against "
         + "each record in the incoming flow file. Each record is then grouped with other records sharing the same partition and a FlowFile is created for each groups of records. " +
         "Two records shares the same partition if the evaluation of the script results the same return value for both. Those will be considered as part of the same partition.")

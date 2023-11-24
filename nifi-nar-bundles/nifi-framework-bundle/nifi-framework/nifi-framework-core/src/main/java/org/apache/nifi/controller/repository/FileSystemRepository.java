@@ -16,27 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
-import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.EOFException;
@@ -55,7 +34,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -79,6 +57,26 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Is thread safe
@@ -786,35 +784,6 @@ public class FileSystemRepository implements ContentRepository {
         return newClaim;
     }
 
-    @Override
-    public long merge(final Collection<ContentClaim> claims, final ContentClaim destination, final byte[] header, final byte[] footer, final byte[] demarcator) throws IOException {
-        if (claims.contains(destination)) {
-            throw new IllegalArgumentException("destination cannot be within claims");
-        }
-
-        try (final ByteCountingOutputStream out = new ByteCountingOutputStream(write(destination))) {
-            if (header != null) {
-                out.write(header);
-            }
-
-            int i = 0;
-            for (final ContentClaim claim : claims) {
-                try (final InputStream in = read(claim)) {
-                    StreamUtils.copy(in, out);
-                }
-
-                if (++i < claims.size() && demarcator != null) {
-                    out.write(demarcator);
-                }
-            }
-
-            if (footer != null) {
-                out.write(footer);
-            }
-
-            return out.getBytesWritten();
-        }
-    }
 
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {
@@ -1977,7 +1946,7 @@ public class FileSystemRepository implements ContentRepository {
 
         @Override
         public synchronized ContentClaim newContentClaim() throws IOException {
-            scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + scc.getLength());
+            scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + Math.max(0, scc.getLength()));
             initialLength = 0;
             bytesWritten = 0L;
             incrementClaimaintCount(scc);

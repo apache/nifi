@@ -1,0 +1,165 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: docker-tests
+
+on:
+  # Run every day at 02:00
+  schedule:
+    - cron: "0 2 * * *"
+  push:
+    paths:
+      - '.github/workflows/docker-tests.yml'
+      - 'nifi-assembly/**'
+      - 'nifi-docker/**'
+      - 'nifi-registry/nifi-registry-assembly/**'
+      - 'nifi-registry/nifi-registry-docker-maven/**'
+      - 'nifi-toolkit/nifi-toolkit-assembly/**'
+      - 'nifi-toolkit/nifi-toolkit-cli/**'
+      - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
+      - 'minifi/minifi-assembly/**'
+      - 'minifi/minifi-docker/**'
+      - 'minifi/minifi-c2/minifi-c2-assembly/**'
+      - 'minifi/minifi-c2/minifi-c2-docker/**'
+  pull_request:
+    paths:
+      - '.github/workflows/docker-tests.yml'
+      - 'nifi-assembly/**'
+      - 'nifi-docker/**'
+      - 'nifi-registry/nifi-registry-assembly/**'
+      - 'nifi-registry/nifi-registry-docker-maven/**'
+      - 'nifi-toolkit/nifi-toolkit-assembly/**'
+      - 'nifi-toolkit/nifi-toolkit-cli/**'
+      - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
+      - 'minifi/minifi-assembly/**'
+      - 'minifi/minifi-docker/**'
+      - 'minifi/minifi-c2/minifi-c2-assembly/**'
+      - 'minifi/minifi-c2/minifi-c2-docker/**'
+
+env:
+  DEFAULT_MAVEN_OPTS: >-
+    -Xmx4g
+    -XX:ReservedCodeCacheSize=1g
+    -XX:+UseG1GC
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+    -Daether.connector.http.retryHandler.count=5
+    -Daether.connector.http.connectionMaxTtl=30
+  MAVEN_COMMAND: >-
+    ./mvnw
+    -V
+    -nsu
+    -ntp
+    -ff
+
+# build assemblies (including binaries) for use in Docker Image builds
+  MAVEN_BUILD_ARGUMENTS: >-
+    -am
+    -D skipTests
+    -T 2.0C
+    install
+  MAVEN_BUILD_PROJECTS: >-
+    -pl nifi-assembly
+    -pl nifi-registry/nifi-registry-assembly
+    -pl nifi-toolkit/nifi-toolkit-assembly
+    -pl minifi/minifi-assembly
+    -pl minifi/minifi-c2/minifi-c2-assembly
+
+  MAVEN_CLEAN_ARGUMENTS: >-
+    -T 2.0C
+    clean
+  MAVEN_CLEAN_PROJECTS: >-
+    -pl -nifi-assembly
+    -pl -nifi-registry/nifi-registry-assembly
+    -pl -nifi-toolkit/nifi-toolkit-assembly
+    -pl -nifi-toolkit/nifi-toolkit-cli
+    -pl -nifi-toolkit/nifi-toolkit-encrypt-config
+    -pl -minifi/minifi-assembly
+    -pl -minifi/minifi-c2/minifi-c2-assembly
+
+# build and test Docker Images
+  MAVEN_DOCKER_ARGUMENTS: >-
+    verify
+    -P docker
+  MAVEN_DOCKER_PROJECTS: >-
+    -pl minifi/minifi-docker
+    -pl minifi/minifi-c2/minifi-c2-docker
+    -pl nifi-docker/dockermaven
+    -pl nifi-registry/nifi-registry-docker-maven/dockermaven
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build_and_test:
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    name: Ubuntu Java 21
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Java Zulu 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: 21
+          cache: 'maven'
+      - name: System Information
+        run: |
+          hostname
+          cat /proc/cpuinfo
+          cat /proc/meminfo
+          df
+          docker info
+
+      - name: Build Assemblies
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_BUILD_ARGUMENTS }}
+          ${{ env.MAVEN_BUILD_PROJECTS }}
+      # run nifi-toolkit docker build and tests before cleaning modules
+      - name: Run NiFi Toolkit Docker Tests
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_DOCKER_ARGUMENTS }}
+          -pl nifi-toolkit/nifi-toolkit-assembly
+      - name: Clean Modules
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        # clean non-assembly modules before running Docker builds and delete unpacked binaries, otherwise we'll run out of disk space
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_CLEAN_ARGUMENTS }}
+          ${{ env.MAVEN_CLEAN_PROJECTS }}
+          && rm -rf nifi-assembly/target/nifi-*-bin/ nifi-registry/nifi-registry-assembly/target/nifi-registry-*-bin/
+          && rm -rf ~/.m2/repository/*
+      - name: Run Docker Tests
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_DOCKER_ARGUMENTS }}
+          ${{ env.MAVEN_DOCKER_PROJECTS }}

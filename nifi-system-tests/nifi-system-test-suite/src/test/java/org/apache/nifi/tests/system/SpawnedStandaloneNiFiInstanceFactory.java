@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -173,10 +174,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
             NiFiSystemKeyStoreProvider.configureKeyStores(destinationCertsDir);
 
-            final File flowXmlGz = instanceConfiguration.getFlowXmlGz();
-            if (flowXmlGz != null) {
-                final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
-                Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+            final File flowJsonGz = instanceConfiguration.getFlowJsonGz();
+            if (flowJsonGz != null) {
+                final File destinationFlowJsonGz = new File(destinationConf, "flow.json.gz");
+                Files.copy(flowJsonGz.toPath(), destinationFlowJsonGz.toPath());
             }
 
             // Write out any Property overrides
@@ -234,6 +235,8 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         }
 
         private void waitForStartup() throws IOException {
+            final long timeoutMillis = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5L);
+
             try (final NiFiClient client = createClient()) {
                 while (true) {
                     try {
@@ -241,6 +244,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                         logger.info("NiFi Startup Completed [{}]", instanceDirectory.getName());
                         return;
                     } catch (final Exception e) {
+                        if (System.currentTimeMillis() > timeoutMillis) {
+                            throw new IOException("After waiting 5 minutes, NiFi instance still has not started");
+                        }
+
                         try {
                             Thread.sleep(1000L);
                         } catch (InterruptedException ex) {

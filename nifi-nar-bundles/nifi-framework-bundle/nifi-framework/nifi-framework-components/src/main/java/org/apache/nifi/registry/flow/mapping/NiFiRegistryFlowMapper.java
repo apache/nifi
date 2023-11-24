@@ -18,7 +18,6 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -29,6 +28,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -52,6 +52,7 @@ import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
@@ -79,7 +80,6 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
@@ -104,7 +104,6 @@ import java.util.stream.Collectors;
 public class NiFiRegistryFlowMapper {
     private static final String ENCRYPTED_PREFIX = "enc{";
     private static final String ENCRYPTED_SUFFIX = "}";
-    private static final String REGISTRY_URL_DESCRIPTOR_NAME = "url";
 
     private final ExtensionManager extensionManager;
     private final FlowMappingOptions flowMappingOptions;
@@ -113,7 +112,7 @@ public class NiFiRegistryFlowMapper {
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
     // identifier based on the component's actual id. We do connections last, so that all components will already have been
     // created before attempting to create the connection, where the ConnectableDTO is converted.
-    private Map<String, String> versionedComponentIds = new HashMap<>();
+    private final Map<String, String> versionedComponentIds = new HashMap<>();
 
     public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
         this(extensionManager, FlowMappingOptions.DEFAULT_OPTIONS);
@@ -155,73 +154,50 @@ public class NiFiRegistryFlowMapper {
 
         // apply registry versioning according to the lambda below
         // NOTE: lambda refers to registry client and map descendant boolean which will not change during recursion
-        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> {
-            final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
-            if (versionControlInfo != null) {
-                final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
-                final String registryId = versionControlInfo.getRegistryIdentifier();
-                final FlowRegistryClientNode registry = flowManager.getFlowRegistryClient(registryId);
-                if (registry == null) {
-                    throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
-                }
+        final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo =
+            (processGroup, versionedGroup) -> applyVersionControlInformation(processGroup, versionedGroup, flowManager, mapDescendantVersionedFlows);
 
-                if (flowMappingOptions.isMapFlowRegistryClientId()) {
-                    coordinates.setRegistryId(registryId);
-                }
+        return mapGroup(group, serviceProvider, applyVersionControlInfo);
+    }
 
-                coordinates.setRegistryUrl(getRegistryUrl(registry));
-
-                final String storageLocation = determineStorageLocation(registry, versionControlInfo);
-                coordinates.setStorageLocation(storageLocation);
-                coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
-                coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
-                coordinates.setVersion(versionControlInfo.getVersion());
-                versionedGroup.setVersionedFlowCoordinates(coordinates);
-
-                // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
-                // Otherwise, we will not be able to lookup the port when connecting to it.
-                for (final Port port : processGroup.getInputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-                for (final Port port : processGroup.getOutputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-
-                // If the Process Group itself is remotely versioned, then we don't want to include its contents
-                // because the contents are remotely managed and not part of the versioning of this Process Group
-                return mapDescendantVersionedFlows;
-            }
+    private boolean applyVersionControlInformation(final ProcessGroup processGroup, final VersionedProcessGroup versionedGroup, final FlowManager flowManager,
+                                                   final boolean mapDescendantVersionedFlows) {
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
             return true;
-        });
-    }
-
-
-    private boolean isNiFiRegistryClient(final FlowRegistryClientNode clientNode) {
-        return clientNode.getComponentType().endsWith("NifiRegistryFlowRegistryClient");
-    }
-
-    // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
-    private String getRegistryUrl(final FlowRegistryClientNode registry) {
-        return isNiFiRegistryClient(registry) ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
-    }
-
-    private String determineStorageLocation(final FlowRegistryClientNode registryClient, final VersionControlInformation versionControlInformation) {
-        final String explicitStorageLocation = versionControlInformation.getStorageLocation();
-        if (!StringUtils.isEmpty(explicitStorageLocation)) {
-            return explicitStorageLocation;
         }
 
-        final String registryUrl = getRegistryUrl(registryClient);
-        if (StringUtils.isEmpty(registryUrl)) {
-            return "";
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        final String registryId = versionControlInfo.getRegistryIdentifier();
+        final FlowRegistryClientNode registry = flowManager.getFlowRegistryClient(registryId);
+        if (registry == null) {
+            throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
         }
 
-        final String bucketId = versionControlInformation.getBucketIdentifier();
-        final String flowId = versionControlInformation.getFlowIdentifier();
-        final int version = versionControlInformation.getVersion();
-        return String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, bucketId, flowId, version);
-    }
+        if (flowMappingOptions.isMapFlowRegistryClientId()) {
+            coordinates.setRegistryId(registryId);
+        }
 
+        final String storageLocation = versionControlInfo.getStorageLocation();
+        coordinates.setStorageLocation(storageLocation);
+        coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
+        coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
+        coordinates.setVersion(versionControlInfo.getVersion());
+        versionedGroup.setVersionedFlowCoordinates(coordinates);
+
+        // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
+        // Otherwise, we will not be able to lookup the port when connecting to it.
+        for (final Port port : processGroup.getInputPorts()) {
+            getId(port.getVersionedComponentId(), port.getIdentifier());
+        }
+        for (final Port port : processGroup.getOutputPorts()) {
+            getId(port.getVersionedComponentId(), port.getIdentifier());
+        }
+
+        // If the Process Group itself is remotely versioned, then we don't want to include its contents
+        // because the contents are remotely managed and not part of the versioning of this Process Group
+        return mapDescendantVersionedFlows;
+    }
 
     private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
                                                        final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo) {
@@ -233,8 +209,6 @@ public class NiFiRegistryFlowMapper {
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new HashMap<>();
         final InstantiatedVersionedProcessGroup versionedGroup =
                 mapGroup(group, serviceProvider, applyVersionControlInfo, true, allIncludedGroupsIds, externalControllerServiceReferences);
-
-        populateReferencedAncestorVariables(group, versionedGroup);
 
         return versionedGroup;
     }
@@ -316,50 +290,11 @@ public class NiFiRegistryFlowMapper {
                 .map(this::mapConnection)
                 .collect(Collectors.toCollection(LinkedHashSet::new)));
 
-        versionedGroup.setVariables(group.getVariableRegistry().getVariableMap().entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().getName(), Map.Entry::getValue)));
-
         if (topLevel) {
             versionedGroup.setExternalControllerServiceReferences(externalControllerServiceReferences);
         }
 
         return versionedGroup;
-    }
-
-    private void populateReferencedAncestorVariables(final ProcessGroup group, final VersionedProcessGroup versionedGroup) {
-        final Set<String> ancestorVariableNames = new HashSet<>();
-        populateVariableNames(group.getParent(), ancestorVariableNames);
-
-        final Map<String, String> implicitlyDefinedVariables = new HashMap<>();
-        for (final String variableName : ancestorVariableNames) {
-            final boolean isReferenced = !group.getComponentsAffectedByVariable(variableName).isEmpty();
-            if (isReferenced) {
-                final String value = group.getVariableRegistry().getVariableValue(variableName);
-                implicitlyDefinedVariables.put(variableName, value);
-            }
-        }
-
-        if (!implicitlyDefinedVariables.isEmpty()) {
-            // Merge the implicit variables with the explicitly defined variables for the Process Group
-            // and set those as the Versioned Group's variables.
-            if (versionedGroup.getVariables() != null) {
-                implicitlyDefinedVariables.putAll(versionedGroup.getVariables());
-            }
-
-            versionedGroup.setVariables(implicitlyDefinedVariables);
-        }
-    }
-
-    private void populateVariableNames(final ProcessGroup group, final Set<String> variableNames) {
-        if (group == null) {
-            return;
-        }
-
-        group.getVariableRegistry().getVariableMap().keySet().stream()
-                .map(VariableDescriptor::getName)
-                .forEach(variableNames::add);
-
-        populateVariableNames(group.getParent(), variableNames);
     }
 
     private String getId(final Optional<String> currentVersionedId, final String componentId) {
@@ -439,8 +374,7 @@ public class NiFiRegistryFlowMapper {
         component.setComments(connectable.getComments());
 
         final String groupId;
-        if (connectable instanceof RemoteGroupPort) {
-            final RemoteGroupPort port = (RemoteGroupPort) connectable;
+        if (connectable instanceof final RemoteGroupPort port) {
             final RemoteProcessGroup rpg = port.getRemoteProcessGroup();
             groupId = getIdOrThrow(rpg.getIdentifier(),
                 () -> new IllegalArgumentException("Unable to find the Versioned Component ID for Remote Process Group that " + connectable + " belongs to"));
@@ -477,6 +411,26 @@ public class NiFiRegistryFlowMapper {
         versionedTask.setScheduledState(flowMappingOptions.getStateLookup().getState(taskNode));
 
         return versionedTask;
+    }
+
+    public VersionedFlowAnalysisRule mapFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRuleNode, final ControllerServiceProvider serviceProvider) {
+        final VersionedFlowAnalysisRule versionedRule = new VersionedFlowAnalysisRule();
+        versionedRule.setIdentifier(flowAnalysisRuleNode.getIdentifier());
+        if (flowMappingOptions.isMapInstanceIdentifiers()) {
+            versionedRule.setInstanceIdentifier(flowAnalysisRuleNode.getIdentifier());
+        }
+        versionedRule.setBundle(mapBundle(flowAnalysisRuleNode.getBundleCoordinate()));
+        versionedRule.setComments(flowAnalysisRuleNode.getComments());
+        versionedRule.setComponentType(ComponentType.FLOW_ANALYSIS_RULE);
+        versionedRule.setName(flowAnalysisRuleNode.getName());
+
+        versionedRule.setProperties(mapProperties(flowAnalysisRuleNode, serviceProvider));
+        versionedRule.setPropertyDescriptors(mapPropertyDescriptors(flowAnalysisRuleNode, serviceProvider, Collections.emptySet(), Collections.emptyMap()));
+        versionedRule.setEnforcementPolicy(flowAnalysisRuleNode.getEnforcementPolicy());
+        versionedRule.setType(flowAnalysisRuleNode.getCanonicalClassName());
+        versionedRule.setScheduledState(flowMappingOptions.getStateLookup().getState(flowAnalysisRuleNode));
+
+        return versionedRule;
     }
 
     public VersionedParameterProvider mapParameterProvider(final ParameterProviderNode parameterProviderNode, final ControllerServiceProvider serviceProvider) {
@@ -572,7 +526,7 @@ public class NiFiRegistryFlowMapper {
         return mapped;
     }
 
-    private String encrypt(final String value) {
+    protected String encrypt(final String value) {
         if (value == null) {
             return null;
         }
@@ -619,6 +573,7 @@ public class NiFiRegistryFlowMapper {
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
             versionedDescriptor.setSensitive(descriptor.isSensitive());
+            versionedDescriptor.setDynamic(descriptor.isDynamic());
 
             final VersionedResourceDefinition versionedResourceDefinition = mapResourceDefinition(descriptor.getResourceDefinition());
             versionedDescriptor.setResourceDefinition(versionedResourceDefinition);
@@ -634,8 +589,9 @@ public class NiFiRegistryFlowMapper {
                         continue;
                     }
 
+                    // if mapping a reporting task, serviceGroupId will be null and we don't want to produce external service references
                     final String serviceGroupId = serviceNode.getProcessGroupIdentifier();
-                    if (!includedGroupIds.contains(serviceGroupId)) {
+                    if (serviceGroupId != null && !includedGroupIds.contains(serviceGroupId)) {
                         final String serviceId = getId(serviceNode.getVersionedComponentId(), serviceNode.getIdentifier());
 
                         final ExternalControllerServiceReference controllerServiceReference = new ExternalControllerServiceReference();

@@ -89,7 +89,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .description("Path to Maxmind IP Enrichment Database File")
         .required(true)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor LOOKUP_CITY = new PropertyDescriptor.Builder()
         .name("lookup-city")
@@ -251,7 +251,7 @@ public class IPLookupService extends AbstractControllerService implements Record
             inetAddress = InetAddress.getByName(ipAddress);
         } catch (final IOException ioe) {
             getLogger().warn("Could not resolve the IP for value '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
-                "providing the service with an invalid IP address", new Object[] {coordinates}, ioe);
+                "providing the service with an invalid IP address", coordinates, ioe);
 
             return Optional.empty();
         }

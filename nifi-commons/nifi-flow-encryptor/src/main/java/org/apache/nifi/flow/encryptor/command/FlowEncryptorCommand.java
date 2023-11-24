@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.flow.encryptor.command;
 
-import org.apache.nifi.encrypt.PropertyEncryptionMethod;
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
-import org.apache.nifi.flow.encryptor.FlowEncryptor;
-import org.apache.nifi.flow.encryptor.StandardFlowEncryptor;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -40,6 +34,11 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
+import org.apache.nifi.flow.encryptor.FlowEncryptor;
+import org.apache.nifi.flow.encryptor.JsonFlowEncryptor;
 
 /**
  * Flow Encryptor Command capable of updating Sensitive Properties Key or Algorithm as well as Flow Configuration
@@ -53,9 +52,7 @@ class FlowEncryptorCommand implements Runnable {
 
     protected static final String CONFIGURATION_FILE = "nifi.flow.configuration.file";
 
-    protected static final String CONFIGURATION_JSON_FILE = "nifi.flow.configuration.json.file";
-
-    private static final List<String> CONFIGURATION_FILES = Arrays.asList(CONFIGURATION_FILE, CONFIGURATION_JSON_FILE);
+    private static final List<String> CONFIGURATION_FILES = Arrays.asList(CONFIGURATION_FILE);
 
     private static final String FLOW_PREFIX = "nifi.flow.";
 
@@ -131,7 +128,7 @@ class FlowEncryptorCommand implements Runnable {
                 final String inputPropertiesKey = getKey(properties);
                 final PropertyEncryptor inputEncryptor = getPropertyEncryptor(inputPropertiesKey, inputAlgorithm);
 
-                final FlowEncryptor flowEncryptor = new StandardFlowEncryptor();
+                final FlowEncryptor flowEncryptor = new JsonFlowEncryptor();
                 flowEncryptor.processFlow(flowInputStream, flowOutputStream, inputEncryptor, outputEncryptor);
             }
 

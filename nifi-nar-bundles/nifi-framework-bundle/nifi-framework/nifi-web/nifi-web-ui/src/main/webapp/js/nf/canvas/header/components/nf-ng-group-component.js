@@ -569,7 +569,7 @@
                                 },
                                 handler: {
                                     click: function () {
-                                        nfFlowVersion.showImportFlowDialog();
+                                        nfFlowVersion.showImportFlowDialog(pt);
                                     }
                                 }
                             });

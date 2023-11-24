@@ -187,7 +187,12 @@ class KubernetesConfigMapStateProviderTest {
         final StateMap stateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
         final boolean replaced = provider.replace(stateMap, Collections.emptyMap(), COMPONENT_ID);
 
-        assertFalse(replaced);
+        assertTrue(replaced);
+
+        final StateMap replacedStateMap = provider.getState(COMPONENT_ID);
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals(FIRST_VERSION, replacedVersion.get());
     }
 
     @Test
@@ -240,6 +245,52 @@ class KubernetesConfigMapStateProviderTest {
 
         assertTrue(componentIds.hasNext());
         assertEquals(COMPONENT_ID, componentIds.next());
+    }
+
+    @Test
+    void testReplaceConcurrentCreate() throws IOException {
+        setContext();
+        provider.initialize(context);
+
+        final StateMap stateMap1 = provider.getState(COMPONENT_ID);
+        final StateMap stateMap2 = provider.getState(COMPONENT_ID);
+
+        final boolean replaced1 = provider.replace(stateMap1, Collections.emptyMap(), COMPONENT_ID);
+
+        assertTrue(replaced1);
+
+        final StateMap replacedStateMap = provider.getState(COMPONENT_ID);
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals(FIRST_VERSION, replacedVersion.get());
+
+        final boolean replaced2 = provider.replace(stateMap2, Collections.emptyMap(), COMPONENT_ID);
+
+        assertFalse(replaced2);
+    }
+
+    @Test
+    void testReplaceConcurrentUpdate() throws IOException {
+        setContext();
+        provider.initialize(context);
+
+        provider.setState(Collections.singletonMap("key", "0"), COMPONENT_ID);
+
+        final StateMap stateMap1 = provider.getState(COMPONENT_ID);
+        final StateMap stateMap2 = provider.getState(COMPONENT_ID);
+
+        final boolean replaced1 = provider.replace(stateMap1, Collections.singletonMap("key", "1"), COMPONENT_ID);
+
+        assertTrue(replaced1);
+
+        final StateMap replacedStateMap = provider.getState(COMPONENT_ID);
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals(SECOND_VERSION, replacedVersion.get());
+
+        final boolean replaced2 = provider.replace(stateMap2, Collections.singletonMap("key", "2"), COMPONENT_ID);
+
+        assertFalse(replaced2);
     }
 
     private void setContext() {

@@ -169,7 +169,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .description("Specifies the number of 'Insert statements' to be grouped together to execute as a batch (BatchStatement)")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

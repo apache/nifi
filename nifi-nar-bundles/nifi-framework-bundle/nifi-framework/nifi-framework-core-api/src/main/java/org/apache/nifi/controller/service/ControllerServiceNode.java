@@ -26,8 +26,9 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.GroupedComponent;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.util.List;
@@ -255,5 +256,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
                                       final ControllerServiceInvocationHandler invocationHandler);
 
     void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState);
+
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
 }

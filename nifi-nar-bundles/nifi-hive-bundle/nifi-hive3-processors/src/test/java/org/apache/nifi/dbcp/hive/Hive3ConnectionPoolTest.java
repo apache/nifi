@@ -17,6 +17,14 @@
 
 package org.apache.nifi.dbcp.hive;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -26,22 +34,11 @@ import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -82,13 +79,13 @@ public class Hive3ConnectionPoolTest {
         when(kerberosProperties.getKerberosKeytab()).thenReturn(new PropertyDescriptor.Builder()
                 .name("Kerberos Principal")
                 .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build());
 
         when(kerberosProperties.getKerberosPrincipal()).thenReturn(new PropertyDescriptor.Builder()
                 .name("Kerberos Keytab")
                 .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build());
 
         initPool();
@@ -153,19 +150,19 @@ public class Hive3ConnectionPoolTest {
             put(Hive3ConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
         }};
 
-        MockVariableRegistry registry = new MockVariableRegistry();
-        registry.setVariable(new VariableDescriptor("url"), URL);
-        registry.setVariable(new VariableDescriptor("username"), USER);
-        registry.setVariable(new VariableDescriptor("password"), PASS);
-        registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
-        registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
-        registry.setVariable(new VariableDescriptor("maxconnlifetime"), MAX_CONN_LIFETIME);
-        registry.setVariable(new VariableDescriptor("min.idle"), Integer.toString(MIN_IDLE));
-        registry.setVariable(new VariableDescriptor("max.idle"), Integer.toString(MAX_IDLE));
-        registry.setVariable(new VariableDescriptor("eviction.run"), EVICTION_RUN_PERIOD);
-        registry.setVariable(new VariableDescriptor("min.evictable.idle"), MIN_EVICTABLE_IDLE_TIME);
-        registry.setVariable(new VariableDescriptor("soft.min.evictable.idle"), SOFT_MIN_EVICTABLE_IDLE_TIME);
-        registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
+        Map<String,String> registry = new HashMap<String,String>();
+        registry.put("url", URL);
+        registry.put("username", USER);
+        registry.put("password", PASS);
+        registry.put("maxconn", Integer.toString(MAX_CONN));
+        registry.put("maxwait", MAX_WAIT);
+        registry.put("maxconnlifetime", MAX_CONN_LIFETIME);
+        registry.put("min.idle", Integer.toString(MIN_IDLE));
+        registry.put("max.idle", Integer.toString(MAX_IDLE));
+        registry.put("eviction.run", EVICTION_RUN_PERIOD);
+        registry.put("min.evictable.idle", MIN_EVICTABLE_IDLE_TIME);
+        registry.put("soft.min.evictable.idle", SOFT_MIN_EVICTABLE_IDLE_TIME);
+        registry.put("hiveconf", CONF);
 
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
@@ -178,7 +175,7 @@ public class Hive3ConnectionPoolTest {
         assertEquals(USER, basicDataSource.getUsername());
         assertEquals(PASS, basicDataSource.getPassword());
         assertEquals(MAX_CONN, basicDataSource.getMaxTotal());
-        assertEquals(10000L, basicDataSource.getMaxWaitMillis());
+        assertEquals(10000L, basicDataSource.getMaxWaitDuration().toMillis());
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 
@@ -202,11 +199,11 @@ public class Hive3ConnectionPoolTest {
             put(kerbProperties.getKerberosPrincipal(), "${kprinc}");
         }};
 
-        MockVariableRegistry registry = new MockVariableRegistry();
-        registry.setVariable(new VariableDescriptor("url"), URL);
-        registry.setVariable(new VariableDescriptor("conf"), conf);
-        registry.setVariable(new VariableDescriptor("ktab"), ktab);
-        registry.setVariable(new VariableDescriptor("kprinc"), kprinc);
+        Map<String,String> registry = new HashMap<String,String>();
+        registry.put("url", URL);
+        registry.put("conf", conf);
+        registry.put("ktab", ktab);
+        registry.put("kprinc", kprinc);
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
         assertThrows(InitializationException.class, () -> hive3ConnectionPool.onConfigured(context));

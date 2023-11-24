@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -149,7 +150,7 @@ public class TestPropertyDescriptor {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
             .name("dir")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 
@@ -167,7 +168,7 @@ public class TestPropertyDescriptor {
             return propertyValue;
         });
 
-        // Should not be valid because Expression Language scope is VARIABLE_REGISTRY, so the ${TestPropertyDescriptor.Var1} will be replaced with
+        // Should not be valid because Expression Language scope is ENVIRONMENT, so the ${TestPropertyDescriptor.Var1} will be replaced with
         // __my_var__, and __my_var__ does not exist.
         assertFalse(descriptor.validate("${TestPropertyDescriptor.Var1}", validationContext).isValid());
 
@@ -187,5 +188,37 @@ public class TestPropertyDescriptor {
 
         // Test the literal value 'target'
         assertTrue(withElNotAllowed.validate("target", validationContext).isValid());
+    }
+
+    @Test
+    void testClearingValues() {
+        final PropertyDescriptor dep1 = new PropertyDescriptor.Builder()
+                .name("dep1")
+                .allowableValues("delVal1")
+                .build();
+
+        final PropertyDescriptor pd1 = new PropertyDescriptor.Builder()
+                .name("test")
+                .addValidator(Validator.VALID)
+                .allowableValues("val1")
+                .dependsOn(dep1, "depVal1")
+                .build();
+
+        final PropertyDescriptor pd2 = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(pd1)
+                .clearValidators()
+                .clearAllowableValues()
+                .clearDependsOn()
+                .build();
+
+        assertEquals("test", pd1.getName());
+        assertFalse(pd1.getValidators().isEmpty());
+        assertFalse(pd1.getDependencies().isEmpty());
+        assertNotNull(pd1.getAllowableValues());
+
+        assertEquals("test", pd2.getName());
+        assertTrue(pd2.getValidators().isEmpty());
+        assertTrue(pd2.getDependencies().isEmpty());
+        assertNull(pd2.getAllowableValues());
     }
 }

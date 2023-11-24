@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.processors.aws.sns.PutSNS;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Provides integration level testing with actual AWS CloudWatch resources for
@@ -36,15 +34,16 @@ public class ITPutCloudWatchMetric {
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @Test
-    public void ifCredentialsThenTestPublish() throws IOException {
+    public void ifCredentialsThenTestPublish() {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
         File credsFile = new File(CREDENTIALS_FILE);
         assumeTrue(credsFile.exists());
 
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
+
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
-        runner.setProperty(PutCloudWatchMetric.CREDENTIALS_FILE, CREDENTIALS_FILE);
 
         runner.enqueue(new byte[] {});
         runner.run();
@@ -53,23 +52,16 @@ public class ITPutCloudWatchMetric {
     }
 
     @Test
-    public void ifCredentialsThenTestPublishWithCredentialsProviderService() throws Throwable {
+    public void ifCredentialsThenTestPublishWithCredentialsProviderService() {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
         File credsFile = new File(CREDENTIALS_FILE);
         assumeTrue(credsFile.exists());
 
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.enableControllerService(serviceImpl);
-
-        runner.assertValid(serviceImpl);
+        AuthUtils.enableCredentialsFile(runner, credsFile.getAbsolutePath());
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
-        runner.setProperty(PutSNS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
         runner.enqueue(new byte[] {});
         runner.run();

@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.pgp.service.standard.exception.PGPConfigurationException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -67,7 +68,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
             .displayName("Keyring File")
             .description("File path to PGP Keyring or Public Key encoded in binary or ASCII Armor")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
@@ -186,7 +187,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
 
     private boolean isPublicKeyMatched(final PGPPublicKey publicKey, final String search) {
         boolean matched = false;
-        final String keyId = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        final String keyId = KeyIdentifierConverter.format(publicKey.getKeyID());
         if (keyId.equals(search)) {
             matched = true;
         } else {

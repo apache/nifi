@@ -62,7 +62,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .Builder().name("Port")
             .description("The port to listen on for communication.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()

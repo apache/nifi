@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -32,19 +44,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.groovyx.util.Throwables;
 import org.apache.nifi.provenance.ProvenanceReporter;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 /**
  * wrapped session that collects all created/modified files if created with special flag
@@ -721,28 +720,6 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return session.read(flowFile);
     }
 
-    /**
-     * Executes the given callback against the contents corresponding to the
-     * given FlowFile.
-     * <p>
-     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
-     * will not be accessible once this method has completed its execution.
-     *
-     * @param flowFile                     flow file to retrieve content of
-     * @param allowSessionStreamManagement allow session to hold the stream open for performance reasons
-     * @param reader                       that will be called to read the flow file content
-     * @throws IllegalStateException     if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
-     * @throws MissingFlowFileException  if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically
-     *                                    rolled back and what is left of the FlowFile is destroyed.
-     * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content; if an attempt is made to access the InputStream provided to the given InputStreamCallback after this
-     *                                    method completed its execution
-     */
-    @Override
-    public void read(FlowFile flowFile, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException {
-        flowFile = unwrap(flowFile);
-        session.read(flowFile, allowSessionStreamManagement, reader);
-    }
 
     /**
      * Combines the content of all given source FlowFiles into a single given

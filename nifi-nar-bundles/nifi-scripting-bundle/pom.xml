@@ -17,22 +17,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-scripting-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <ant.version>1.10.14</ant.version>
+    </properties>
+
     <modules>
         <module>nifi-scripting-processors</module>
         <module>nifi-scripting-nar</module>
     </modules>
-
-    <properties>
-        <scripting.groovy.version>3.0.17</scripting.groovy.version>
-    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -44,26 +45,18 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -78,11 +71,23 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${scripting.groovy.version}</version>
+                <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <!-- Override ant from groovy-ant -->
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant</artifactId>
+                <version>${ant.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Override ant from groovy-ant -->
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant-antlr</artifactId>
+                <version>${ant.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

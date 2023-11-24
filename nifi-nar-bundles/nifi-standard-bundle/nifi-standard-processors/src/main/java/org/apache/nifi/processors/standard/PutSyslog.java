@@ -76,7 +76,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
@@ -87,7 +87,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor
             .Builder().name("Batch Size")
@@ -95,7 +95,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .required(true)
             .defaultValue("25")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
             .Builder().name("Idle Connection Expiration")
@@ -103,7 +103,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .required(true)
             .defaultValue("5 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor MSG_PRIORITY = new PropertyDescriptor
             .Builder().name("Message Priority")

@@ -101,6 +101,14 @@ public class Extension {
     private boolean primaryNodeOnly;
     private boolean sideEffectFree;
 
+    @XmlElementWrapper
+    @XmlElement(name = "useCase")
+    private List<UseCase> useCases;
+
+    @XmlElementWrapper
+    @XmlElement(name = "multiProcessorUseCase")
+    private List<MultiProcessorUseCase> multiProcessorUseCases;
+
     @ApiModelProperty(value = "The name of the extension")
     public String getName() {
         return name;
@@ -332,6 +340,24 @@ public class Extension {
 
     public void setSideEffectFree(boolean sideEffectFree) {
         this.sideEffectFree = sideEffectFree;
+    }
+
+    @ApiModelProperty(value = "Zero or more documented use cases for how the extension may be used")
+    public List<UseCase> getUseCases() {
+        return useCases;
+    }
+
+    public void setUseCases(final List<UseCase> useCases) {
+        this.useCases = useCases;
+    }
+
+    @ApiModelProperty(value = "Zero or more documented use cases for how the processor may be used in conjunction with other processors")
+    public List<MultiProcessorUseCase> getMultiProcessorUseCases() {
+        return multiProcessorUseCases;
+    }
+
+    public void setMultiProcessorUseCases(final List<MultiProcessorUseCase> multiProcessorUseCases) {
+        this.multiProcessorUseCases = multiProcessorUseCases;
     }
 
     @Override

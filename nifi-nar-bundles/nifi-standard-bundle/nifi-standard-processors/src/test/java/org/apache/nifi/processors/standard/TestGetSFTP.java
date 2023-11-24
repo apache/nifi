@@ -36,40 +36,42 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGetSFTP {
 
-    private TestRunner getSFTPRunner;
+    private TestRunner runner;
     private static SSHTestServer sshTestServer;
 
     @BeforeAll
-    public static void setupSSHD() throws IOException {
+    public static void startServer() throws IOException {
         sshTestServer = new SSHTestServer();
         sshTestServer.startServer();
     }
 
     @AfterAll
-    public static void cleanupSSHD() throws IOException {
+    public static void stopServer() throws IOException {
         sshTestServer.stopServer();
     }
 
     @BeforeEach
     public void setup(){
-        getSFTPRunner = TestRunners.newTestRunner(GetSFTP.class);
-        getSFTPRunner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
-        getSFTPRunner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
-        getSFTPRunner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
-        getSFTPRunner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
-        getSFTPRunner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, "false");
-        getSFTPRunner.setProperty(SFTPTransfer.DATA_TIMEOUT, "30 sec");
-        getSFTPRunner.setProperty(SFTPTransfer.REMOTE_PATH, "/");
-        getSFTPRunner.removeProperty(SFTPTransfer.FILE_FILTER_REGEX);
-        getSFTPRunner.setProperty(SFTPTransfer.PATH_FILTER_REGEX, "");
-        getSFTPRunner.setProperty(SFTPTransfer.POLLING_INTERVAL, "60 sec");
-        getSFTPRunner.setProperty(SFTPTransfer.RECURSIVE_SEARCH, "false");
-        getSFTPRunner.setProperty(SFTPTransfer.IGNORE_DOTTED_FILES, "true");
-        getSFTPRunner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
-        getSFTPRunner.setProperty(SFTPTransfer.MAX_SELECTS, "100");
-        getSFTPRunner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "5000");
+        runner = TestRunners.newTestRunner(GetSFTP.class);
+        runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
+        runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
 
-        getSFTPRunner.setValidateExpressionUsage(false);
+        runner.setProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT, Boolean.FALSE.toString());
+        runner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, Boolean.FALSE.toString());
+        runner.setProperty(SFTPTransfer.DATA_TIMEOUT, "30 sec");
+        runner.setProperty(SFTPTransfer.REMOTE_PATH, "/");
+        runner.removeProperty(SFTPTransfer.FILE_FILTER_REGEX);
+        runner.setProperty(SFTPTransfer.PATH_FILTER_REGEX, "");
+        runner.setProperty(SFTPTransfer.POLLING_INTERVAL, "60 sec");
+        runner.setProperty(SFTPTransfer.RECURSIVE_SEARCH, "false");
+        runner.setProperty(SFTPTransfer.IGNORE_DOTTED_FILES, "true");
+        runner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
+        runner.setProperty(SFTPTransfer.MAX_SELECTS, "100");
+        runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "5000");
+
+        runner.setValidateExpressionUsage(false);
     }
 
     @Test
@@ -81,17 +83,17 @@ public class TestGetSFTP {
         touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile3.txt");
         touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile4.txt");
 
-        getSFTPRunner.run();
+        runner.run();
 
-        getSFTPRunner.assertTransferCount(GetSFTP.REL_SUCCESS, 4);
+        runner.assertTransferCount(GetSFTP.REL_SUCCESS, 4);
 
         //Verify files deleted
-        for(int i=1;i<5;i++){
+        for (int i = 1; i < 5 ; i++) {
             Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
             assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
         }
 
-        getSFTPRunner.clearTransferState();
+        runner.clearTransferState();
     }
 
     @Test
@@ -105,9 +107,9 @@ public class TestGetSFTP {
             touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
             touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile2.txt");
 
-            getSFTPRunner.run();
+            runner.run();
 
-            getSFTPRunner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
+            runner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
 
             // Verify files deleted
             for (int i = 1; i < 3; i++) {
@@ -115,7 +117,7 @@ public class TestGetSFTP {
                 assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
             }
 
-            getSFTPRunner.clearTransferState();
+            runner.clearTransferState();
 
         } finally {
             // set back the original value for 'user.home' system property
@@ -132,9 +134,9 @@ public class TestGetSFTP {
         touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile3.txt");
         touchFile(sshTestServer.getVirtualFileSystemPath() + ".testFile4.txt");
 
-        getSFTPRunner.run();
+        runner.run();
 
-        getSFTPRunner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
+        runner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
 
         //Verify non-dotted files were deleted and dotted files were not deleted
         Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile1.txt");
@@ -149,7 +151,7 @@ public class TestGetSFTP {
         file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/.testFile4.txt");
         assertTrue(file1.toAbsolutePath().toFile().exists(), "File deleted.");
 
-        getSFTPRunner.clearTransferState();
+        runner.clearTransferState();
     }
 
     private void touchFile(String file) throws IOException {

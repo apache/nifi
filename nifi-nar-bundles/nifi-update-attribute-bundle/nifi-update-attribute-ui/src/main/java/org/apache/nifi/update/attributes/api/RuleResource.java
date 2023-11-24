@@ -514,6 +514,7 @@ public class RuleResource {
 
             // update the rule
             rule.setName(ruleDto.getName());
+            rule.setComments(ruleDto.getComments());
             rule.setConditions(conditions);
             rule.setActions(actions);
         } catch (final IllegalArgumentException iae) {

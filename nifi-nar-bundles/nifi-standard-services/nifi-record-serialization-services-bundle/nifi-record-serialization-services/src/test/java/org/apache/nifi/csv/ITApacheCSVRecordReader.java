@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.csv;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.logging.ComponentLog;
@@ -28,12 +33,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ITApacheCSVRecordReader {
 
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
+    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
 
     private List<RecordField> getDefaultFields() {
         return createStringFields(new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -81,7 +80,7 @@ public class ITApacheCSVRecordReader {
 
     @Test
     public void testExceptionThrownOnParseProblem() throws IOException, MalformedRecordException {
-        CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.ALL).withTrim().withDelimiter(',');
+        CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').build();
         final int NUM_LINES = 25;
         StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
         for (int i = 0; i < NUM_LINES; i++) {

@@ -55,8 +55,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestGeoEnrichIPRecord {
+
     private TestRunner runner;
     private DatabaseReader reader;
+
     @BeforeEach
     public void setup() throws Exception {
         reader = mock(DatabaseReader.class);
@@ -96,6 +98,7 @@ public class TestGeoEnrichIPRecord {
         runner.setProperty(GeoEnrichIPRecord.GEO_POSTAL_CODE, "/geo/country_postal");
         runner.setProperty(GeoEnrichIPRecord.GEO_LATITUDE, "/geo/lat");
         runner.setProperty(GeoEnrichIPRecord.GEO_LONGITUDE, "/geo/lon");
+        runner.setProperty(AbstractEnrichIP.LOG_LEVEL, "WARN");
         runner.assertValid();
     }
 
@@ -129,7 +132,7 @@ public class TestGeoEnrichIPRecord {
         byte[] raw = runner.getContentAsByteArray(ff);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> result = (List<Map<String, Object>>)mapper.readValue(content, List.class);
+        List<Map<String, Object>> result = mapper.readValue(content, List.class);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -152,9 +155,11 @@ public class TestGeoEnrichIPRecord {
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return Collections.unmodifiableList(Arrays.asList(
-                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
+                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE,
+                    GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE, LOG_LEVEL
             ));
         }
+        @Override
         @OnScheduled
         public void onScheduled(ProcessContext context) {
             databaseReaderRef.set(reader);
@@ -162,6 +167,7 @@ public class TestGeoEnrichIPRecord {
             writerFactory = context.getProperty(WRITER).asControllerService(RecordSetWriterFactory.class);
             splitOutput = context.getProperty(SPLIT_FOUND_NOT_FOUND).asBoolean();
         }
+        @Override
         protected void loadDatabaseFile() {
             //  Do nothing, the mock database reader is used
         }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.stateful.analysis;
 
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -49,7 +50,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_STDDEV_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VARIANCE_KEY;
 
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -59,7 +62,9 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
 @WritesAttributes({
         @WritesAttribute(attribute = ROLLING_WINDOW_VALUE_KEY, description = "The rolling window value (sum of all the values stored)."),
         @WritesAttribute(attribute = ROLLING_WINDOW_COUNT_KEY, description = "The count of the number of FlowFiles seen in the rolling window."),
-        @WritesAttribute(attribute = ROLLING_WINDOW_MEAN_KEY, description = "The mean of the FlowFiles seen in the rolling window.")
+        @WritesAttribute(attribute = ROLLING_WINDOW_MEAN_KEY, description = "The mean of the FlowFiles seen in the rolling window."),
+        @WritesAttribute(attribute = ROLLING_WINDOW_VARIANCE_KEY, description = "The variance of the FlowFiles seen in the rolling window."),
+        @WritesAttribute(attribute = ROLLING_WINDOW_STDDEV_KEY, description = "The standard deviation (positive square root of the variance) of the FlowFiles seen in the rolling window.")
 })
 @Stateful(scopes = {Scope.LOCAL}, description = "Store the values backing the rolling window. This includes storing the individual values and their time-stamps or the batches of values and their " +
         "counts.")
@@ -69,6 +74,8 @@ public class AttributeRollingWindow extends AbstractProcessor {
     public static final String ROLLING_WINDOW_VALUE_KEY = "rolling_window_value";
     public static final String ROLLING_WINDOW_COUNT_KEY = "rolling_window_count";
     public static final String ROLLING_WINDOW_MEAN_KEY = "rolling_window_mean";
+    public static final String ROLLING_WINDOW_VARIANCE_KEY = "rolling_window_variance";
+    public static final String ROLLING_WINDOW_STDDEV_KEY = "rolling_window_stddev";
 
     public static final String CURRENT_MICRO_BATCH_STATE_TS_KEY = "start_curr_batch_ts";
     public static final String BATCH_APPEND_KEY = "_batch";
@@ -179,7 +186,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             }
 
         } catch (Exception e) {
-            getLogger().error("Ran into an error while processing {}.", new Object[] { flowFile}, e);
+            getLogger().error("Ran into an error while processing {}.", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -189,7 +196,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
@@ -218,16 +225,18 @@ public class AttributeRollingWindow extends AbstractProcessor {
         }
 
         Double aggregateValue = 0.0D;
+        Variance variance = new Variance();
 
         for(Map.Entry<String,String> entry: state.entrySet()){
             if(!entry.getKey().equals(COUNT_KEY)){
-                aggregateValue += Double.valueOf(entry.getValue());
+                final Double value = Double.valueOf(entry.getValue());
+                variance.increment(value);
+                aggregateValue += value ;
             }
         }
 
-
         final Double currentFlowFileValue = context.getProperty(VALUE_TO_TRACK).evaluateAttributeExpressions(flowFile).asDouble();
-
+        variance.increment(currentFlowFileValue);
         aggregateValue += currentFlowFileValue;
 
         state.put(String.valueOf(currTime), String.valueOf(currentFlowFileValue));
@@ -237,7 +246,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             session.setState(state, SCOPE);
         } catch (IOException e) {
             getLogger().error("Failed to set the state after successfully processing {} due a failure when setting the state. Transferring to '{}'",
-                    new Object[]{flowFile, REL_FAILED_SET_STATE.getName()}, e);
+                    flowFile, REL_FAILED_SET_STATE.getName(), e);
 
             session.transfer(flowFile, REL_FAILED_SET_STATE);
             context.yield();
@@ -250,6 +259,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
         attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+        double varianceValue = variance.getResult();
+        attributesToAdd.put(ROLLING_WINDOW_VARIANCE_KEY, String.valueOf(varianceValue));
+        attributesToAdd.put(ROLLING_WINDOW_STDDEV_KEY, String.valueOf(Math.sqrt(varianceValue)));
 
         flowFile = session.putAllAttributes(flowFile, attributesToAdd);
 
@@ -261,7 +273,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
@@ -315,6 +327,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         Double aggregateValue = 0.0D;
         Double currentBatchValue =  0.0D;
         Long currentBatchCount = 0L;
+        Variance variance = new Variance();
 
         for(Map.Entry<String,String> entry: state.entrySet()){
             String key = entry.getKey();
@@ -322,7 +335,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
                 String timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
 
                 Double batchValue = Double.valueOf(entry.getValue());
-                Long batchCount = Long.valueOf(state.get(timeStampString+COUNT_APPEND_KEY));
+                Long batchCount = Long.valueOf(state.get(timeStampString + COUNT_APPEND_KEY));
                 if (!newBatch && timeStampString.equals(currBatchStart)) {
 
                     final Double currentFlowFileValue = context.getProperty(VALUE_TO_TRACK).evaluateAttributeExpressions(flowFile).asDouble();
@@ -334,17 +347,18 @@ public class AttributeRollingWindow extends AbstractProcessor {
                 }
 
                 aggregateValue += batchValue;
-
+                variance.increment(batchValue);
             }
         }
 
-        if(newBatch) {
+        if (newBatch) {
             final Double currentFlowFileValue = context.getProperty(VALUE_TO_TRACK).evaluateAttributeExpressions(flowFile).asDouble();
 
             currentBatchValue += currentFlowFileValue;
             currentBatchCount = 1L;
 
             aggregateValue += currentBatchValue;
+            variance.increment(currentBatchValue);
         }
 
         state.put(currBatchStart + BATCH_APPEND_KEY, String.valueOf(currentBatchValue));
@@ -353,7 +367,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         try {
             session.setState(state, SCOPE);
         } catch (IOException e) {
-            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
@@ -365,6 +379,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
         attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+        double varianceValue = variance.getResult();
+        attributesToAdd.put(ROLLING_WINDOW_VARIANCE_KEY, String.valueOf(varianceValue));
+        attributesToAdd.put(ROLLING_WINDOW_STDDEV_KEY, String.valueOf(Math.sqrt(varianceValue)));
 
         flowFile = session.putAllAttributes(flowFile, attributesToAdd);
 

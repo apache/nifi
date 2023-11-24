@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-@Tags({"record", "filter", "script", "groovy", "jython", "python"})
+@Tags({"record", "filter", "script", "groovy"})
 @CapabilityDescription(
     "This processor provides the ability to filter records out from FlowFiles using the user-provided script. " +
     "Every record will be evaluated by the script which must return with a boolean value. " +

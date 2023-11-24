@@ -35,14 +35,8 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object[] os) {
+    public void warn(String msg, Object... os) {
         logger.warn(msg, os);
-    }
-
-    @Override
-    public void warn(String msg, Object[] os, Throwable t) {
-        logger.warn(msg, os);
-        logger.warn("", t);
     }
 
     @Override
@@ -56,19 +50,13 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void trace(String msg, Object[] os) {
+    public void trace(String msg, Object... os) {
         logger.trace(msg, os);
     }
 
     @Override
     public void trace(String msg) {
         logger.trace(msg);
-    }
-
-    @Override
-    public void trace(String msg, Object[] os, Throwable t) {
-        logger.trace(msg, os);
-        logger.trace("", t);
     }
 
     @Override
@@ -102,7 +90,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Object[] os) {
+    public void info(String msg, Object... os) {
         logger.info(msg, os);
     }
 
@@ -110,12 +98,6 @@ public class MockComponentLogger implements ComponentLog {
     public void info(String msg) {
         logger.info(msg);
 
-    }
-
-    @Override
-    public void info(String msg, Object[] os, Throwable t) {
-        logger.info(msg, os);
-        logger.info("", t);
     }
 
     @Override
@@ -129,7 +111,7 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os) {
+    public void error(String msg, Object... os) {
         logger.error(msg, os);
     }
 
@@ -139,25 +121,13 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Object[] os, Throwable t) {
-        logger.error(msg, os);
-        logger.error("", t);
-    }
-
-    @Override
     public void debug(String msg, Throwable t) {
         logger.debug(msg, t);
     }
 
     @Override
-    public void debug(String msg, Object[] os) {
+    public void debug(String msg, Object... os) {
         logger.debug(msg, os);
-    }
-
-    @Override
-    public void debug(String msg, Object[] os, Throwable t) {
-        logger.debug(msg, os);
-        logger.debug("", t);
     }
 
     @Override

@@ -24,6 +24,8 @@ import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 
 import java.io.IOException;
 
@@ -55,6 +57,9 @@ public interface ControllerClient {
     ControllerServiceEntity createControllerService(ControllerServiceEntity controllerService) throws NiFiClientException, IOException;
 
     ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
+
+    VersionedReportingTaskImportResponseEntity importReportingTasks(VersionedReportingTaskImportRequestEntity importRequestEntity)
+            throws NiFiClientException, IOException;
 
     ParameterProviderEntity createParamProvider(ParameterProviderEntity paramProvider) throws NiFiClientException, IOException;
 

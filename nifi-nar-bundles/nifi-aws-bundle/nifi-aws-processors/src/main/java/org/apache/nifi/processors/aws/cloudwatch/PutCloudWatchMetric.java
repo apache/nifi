@@ -16,16 +16,7 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.amazonaws.AmazonClientException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -45,19 +36,25 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClientBuilder;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StatisticSet;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
-import com.amazonaws.services.cloudwatch.model.StatisticSet;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -67,7 +64,7 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
         description = "Allows dimension name/value pairs to be added to the metric. AWS supports a maximum of 10 dimensions.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @Tags({"amazon", "aws", "cloudwatch", "metrics", "put", "publish"})
-public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor<AmazonCloudWatchClient> {
+public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClient, CloudWatchClientBuilder> {
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -191,14 +188,29 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .addValidator(DOUBLE_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties =
-            Collections.unmodifiableList(
-                    Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, MAXIMUM, MINIMUM, SAMPLECOUNT, SUM, TIMESTAMP,
-                            UNIT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD)
-            );
+    public static final List<PropertyDescriptor> properties = List.of(
+        NAMESPACE,
+        METRIC_NAME,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        VALUE,
+        MAXIMUM,
+        MINIMUM,
+        SAMPLECOUNT,
+        SUM,
+        TIMESTAMP,
+        UNIT,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        ENDPOINT_OVERRIDE,
+        PROXY_CONFIGURATION_SERVICE);
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
+
+    @Override
+    protected CloudWatchClientBuilder createClientBuilder(final ProcessContext context) {
+        return CloudWatchClient.builder();
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -235,7 +247,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        Collection<ValidationResult> problems = super.customValidate(validationContext);
+        List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean valueSet = validationContext.getProperty(VALUE).isSet();
         final boolean maxSet = validationContext.getProperty(MAXIMUM).isSet();
@@ -247,105 +259,95 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
         final boolean anyStatisticSetValue = (maxSet || minSet || sampleCountSet || sumSet);
 
         if (valueSet && anyStatisticSetValue) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Cannot set both Value and StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Cannot set both Value and StatisticSet(Maximum, Minimum, SampleCount, Sum) properties")
+                .build());
         } else if (!valueSet && !completeStatisticSet) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties")
+                .build());
         }
 
         if (dynamicPropertyNames.size() > 10) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
-                    .explanation("Cannot set more than 10 dimensions").build());
+            problems.add(new ValidationResult.Builder()
+                .subject("Metric")
+                .valid(false)
+                .explanation("Cannot set more than 10 dimensions")
+                .build());
         }
 
         return problems;
     }
 
-    /**
-     * Create client using aws credentials provider. This is the preferred way for creating clients
-     */
     @Override
-    protected AmazonCloudWatchClient createClient(ProcessContext processContext, AWSCredentialsProvider awsCredentialsProvider, ClientConfiguration clientConfiguration) {
-        getLogger().info("Creating client using aws credentials provider");
-        return new AmazonCloudWatchClient(awsCredentialsProvider, clientConfiguration);
-    }
-
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Override
-    @Deprecated
-    protected AmazonCloudWatchClient createClient(ProcessContext processContext, AWSCredentials awsCredentials, ClientConfiguration clientConfiguration) {
-        getLogger().debug("Creating client with aws credentials");
-        return new AmazonCloudWatchClient(awsCredentials, clientConfiguration);
-    }
-
-    @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
-        MetricDatum datum = new MetricDatum();
+        final MetricDatum.Builder datumBuilder = MetricDatum.builder();
 
         try {
-            datum.setMetricName(context.getProperty(METRIC_NAME).evaluateAttributeExpressions(flowFile).getValue());
+            datumBuilder.metricName(context.getProperty(METRIC_NAME).evaluateAttributeExpressions(flowFile).getValue());
             final String valueString = context.getProperty(VALUE).evaluateAttributeExpressions(flowFile).getValue();
             if (valueString != null) {
-                datum.setValue(Double.parseDouble(valueString));
+                datumBuilder.value(Double.parseDouble(valueString));
             } else {
-                StatisticSet statisticSet = new StatisticSet();
-                statisticSet.setMaximum(Double.parseDouble(context.getProperty(MAXIMUM).evaluateAttributeExpressions(flowFile).getValue()));
-                statisticSet.setMinimum(Double.parseDouble(context.getProperty(MINIMUM).evaluateAttributeExpressions(flowFile).getValue()));
-                statisticSet.setSampleCount(Double.parseDouble(context.getProperty(SAMPLECOUNT).evaluateAttributeExpressions(flowFile).getValue()));
-                statisticSet.setSum(Double.parseDouble(context.getProperty(SUM).evaluateAttributeExpressions(flowFile).getValue()));
+                final StatisticSet statisticSet = StatisticSet.builder()
+                        .maximum(Double.parseDouble(context.getProperty(MAXIMUM).evaluateAttributeExpressions(flowFile).getValue()))
+                        .minimum(Double.parseDouble(context.getProperty(MINIMUM).evaluateAttributeExpressions(flowFile).getValue()))
+                        .sampleCount(Double.parseDouble(context.getProperty(SAMPLECOUNT).evaluateAttributeExpressions(flowFile).getValue()))
+                        .sum(Double.parseDouble(context.getProperty(SUM).evaluateAttributeExpressions(flowFile).getValue()))
+                        .build();
 
-                datum.setStatisticValues(statisticSet);
+                datumBuilder.statisticValues(statisticSet);
             }
 
             final String timestamp = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
             if (timestamp != null) {
-                datum.setTimestamp(new Date(Long.parseLong(timestamp)));
+                datumBuilder.timestamp(new Date(Long.parseLong(timestamp)).toInstant());
             }
 
             final String unit = context.getProperty(UNIT).evaluateAttributeExpressions(flowFile).getValue();
             if (unit != null) {
-                datum.setUnit(unit);
+                datumBuilder.unit(unit);
             }
 
             // add dynamic properties as dimensions
             if (!dynamicPropertyNames.isEmpty()) {
                 final List<Dimension> dimensions = new ArrayList<>(dynamicPropertyNames.size());
-                for (String propertyName : dynamicPropertyNames) {
+                for (final String propertyName : dynamicPropertyNames) {
                     final String propertyValue = context.getProperty(propertyName).evaluateAttributeExpressions(flowFile).getValue();
                     if (StringUtils.isNotBlank(propertyValue)) {
-                        dimensions.add(new Dimension().withName(propertyName).withValue(propertyValue));
+                        dimensions.add(Dimension.builder().name(propertyName).value(propertyValue).build());
                     }
                 }
-                datum.withDimensions(dimensions);
+                datumBuilder.dimensions(dimensions);
             }
 
-            final PutMetricDataRequest metricDataRequest = new PutMetricDataRequest()
-                    .withNamespace(context.getProperty(NAMESPACE).evaluateAttributeExpressions(flowFile).getValue())
-                    .withMetricData(datum);
+            final PutMetricDataRequest metricDataRequest = PutMetricDataRequest.builder()
+                    .namespace(context.getProperty(NAMESPACE).evaluateAttributeExpressions(flowFile).getValue())
+                    .metricData(datumBuilder.build())
+                    .build();
 
             putMetricData(context, metricDataRequest);
             session.transfer(flowFile, REL_SUCCESS);
-            getLogger().info("Successfully published cloudwatch metric for {}", new Object[]{flowFile});
+            getLogger().info("Successfully published cloudwatch metric for {}", flowFile);
         } catch (final Exception e) {
-            getLogger().error("Failed to publish cloudwatch metric for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to publish cloudwatch metric for {} due to {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
 
     }
 
-    protected PutMetricDataResult putMetricData(ProcessContext context, PutMetricDataRequest metricDataRequest) throws AmazonClientException {
-        final AmazonCloudWatchClient client = getClient(context);
-        final PutMetricDataResult result = client.putMetricData(metricDataRequest);
+    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) throws AmazonClientException {
+        final CloudWatchClient client = getClient(context);
+        final PutMetricDataResponse result = client.putMetricData(metricDataRequest);
         return result;
     }
 

@@ -111,7 +111,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     + "with different values for the parameters. If this property is set to zero, the cache is effectively disabled.")
             .defaultValue("0")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -257,8 +257,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
         } catch (final QueryValidationException qve) {
             logger.error("The CQL statement {} is invalid due to syntax error, authorization issue, or another "
-                            + "validation problem; routing {} to failure",
-                    new Object[]{cql, flowFile}, qve);
+                            + "validation problem; routing {} to failure", cql, flowFile, qve);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
 

@@ -17,42 +17,50 @@
 
 package org.apache.nifi.processors.standard.enrichment;
 
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.queryrecord.RecordDataSource;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
+import org.apache.nifi.sql.NiFiTable;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class SqlJoinStrategy implements RecordJoinStrategy {
+    public static final String ENRICHMENT_TABLE_NAME = "ENRICHMENT";
+    public static final String ORIGINAL_TABLE_NAME = "ORIGINAL";
 
     private final SqlJoinCache cache;
     private final ComponentLog logger;
-    private final String sql;
+    private final PropertyValue sqlPropertyValue;
     private final int defaultPrecision;
     private final int defaultScale;
 
-    public SqlJoinStrategy(final SqlJoinCache cache, final String sql, final ComponentLog logger, final int defaultPrecision, final int defaultScale) {
+    public SqlJoinStrategy(final SqlJoinCache cache, final PropertyValue sqlPropertyValue, final ComponentLog logger, final int defaultPrecision, final int defaultScale) {
         this.cache = cache;
-        this.sql = sql;
+        this.sqlPropertyValue = sqlPropertyValue;
         this.logger = logger;
         this.defaultPrecision = defaultPrecision;
         this.defaultScale = defaultScale;
     }
 
     @Override
-    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final ProcessSession session, final RecordSchema outputSchema) throws SQLException {
-        final SqlJoinCalciteParameters calciteParameters = cache.getCalciteParameters(sql, session, outputSchema, originalInput, enrichmentInput);
+    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final Map<String, String> combinedAttributes,
+                final ProcessSession session, final RecordSchema outputSchema) throws SQLException {
 
-        final FlowFileTable originalTable = calciteParameters.getOriginalTable();
-        final FlowFileTable enrichmentTable = calciteParameters.getEnrichmentTable();
+        final String sql = sqlPropertyValue.evaluateAttributeExpressions(combinedAttributes).getValue();
+        final SqlJoinCalciteParameters calciteParameters = cache.getCalciteParameters(sql, outputSchema, originalInput, enrichmentInput);
 
-        originalTable.setFlowFile(session, originalInput.getFlowFile());
-        enrichmentTable.setFlowFile(session, enrichmentInput.getFlowFile());
+        final NiFiTable originalTable = calciteParameters.getDatabase().getTable(ORIGINAL_TABLE_NAME);
+        originalTable.setDataSource(new RecordDataSource(originalInput.getRecordSchema(), session, originalInput.getFlowFile(), originalInput.getRecordReaderFactory(), logger));
+
+        final NiFiTable enrichmentTable = calciteParameters.getDatabase().getTable(ENRICHMENT_TABLE_NAME);
+        enrichmentTable.setDataSource(new RecordDataSource(enrichmentInput.getRecordSchema(), session, enrichmentInput.getFlowFile(), enrichmentInput.getRecordReaderFactory(), logger));
 
         final PreparedStatement stmt = calciteParameters.getPreparedStatement();
 

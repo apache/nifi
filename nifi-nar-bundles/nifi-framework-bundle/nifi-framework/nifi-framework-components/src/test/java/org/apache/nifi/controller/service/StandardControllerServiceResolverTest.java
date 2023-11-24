@@ -54,8 +54,6 @@ public class StandardControllerServiceResolverTest {
     private static final String CHILD_REFERENCES_SERVICES_FROM_PARENT_LOCATION = BASE_SNAPSHOT_LOCATION + "/versioned-child-services-from-parent";
     private static final String STANDARD_EXTERNAL_SERVICE_REFERENCE = BASE_SNAPSHOT_LOCATION + "/standard-external-service-reference";
 
-    private Authorizer authorizer;
-    private FlowManager flowManager;
     private NiFiRegistryFlowMapper flowMapper;
     private ControllerServiceProvider controllerServiceProvider;
     private ControllerServiceApiLookup controllerServiceApiLookup;
@@ -69,8 +67,8 @@ public class StandardControllerServiceResolverTest {
 
     @BeforeEach
     public void setup() {
-        authorizer = mock(Authorizer.class);
-        flowManager = mock(FlowManager.class);
+        Authorizer authorizer = mock(Authorizer.class);
+        FlowManager flowManager = mock(FlowManager.class);
         flowMapper = mock(NiFiRegistryFlowMapper.class);
         controllerServiceProvider = mock(ControllerServiceProvider.class);
         controllerServiceApiLookup = mock(ControllerServiceApiLookup.class);

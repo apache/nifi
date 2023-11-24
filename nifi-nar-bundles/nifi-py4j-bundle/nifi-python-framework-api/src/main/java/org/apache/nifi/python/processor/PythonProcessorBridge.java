@@ -17,7 +17,9 @@
 
 package org.apache.nifi.python.processor;
 
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
+
+import java.util.Optional;
 
 /**
  * A model object that is used to bridge the gap between what is necessary for the Framework to interact
@@ -25,14 +27,10 @@ import org.apache.nifi.processor.Processor;
  */
 public interface PythonProcessorBridge {
     /**
-     * @return a proxy for the PythonProcessorAdapter that is responsible for calling the associated method on the Python side
+     * @return a proxy for the PythonProcessorAdapter that is responsible for calling the associated method on the Python side,
+     * or an empty Optional if the adapter has not yet been initialized
      */
-    PythonProcessorAdapter getProcessorAdapter();
-
-    /**
-     * @return a proxy for the actual Processor implementation that will trigger the appropriate method on the Python side
-     */
-    Processor getProcessorProxy();
+    Optional<PythonProcessorAdapter> getProcessorAdapter();
 
     /**
      * @return the name of the Processor implementation. This will not contain a 'python.' prefix.
@@ -53,4 +51,8 @@ public interface PythonProcessorBridge {
      */
     void initialize(PythonProcessorInitializationContext context);
 
+    /**
+     * @return the current state of the Processor loading
+     */
+    LoadState getLoadState();
 }

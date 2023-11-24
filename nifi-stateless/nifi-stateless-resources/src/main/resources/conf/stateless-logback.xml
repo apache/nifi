@@ -29,9 +29,14 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-stateless_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+            <!-- Control the maximum size of each log file before rolling over -->
             <maxFileSize>100MB</maxFileSize>
-            <!-- keep 30 log files worth of history -->
+            <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
             <maxHistory>30</maxHistory>
+            <!-- Control the total size of all log archive files for this appender -->
+            <totalSizeCap>3GB</totalSizeCap>
+            <!-- Log files exceeding maximum settings will be rolled on startup -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -63,7 +68,7 @@
     <logger name="com.hierynomus.smbj" level="WARN" />
 
     <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
-    <logger name="com.amazonaws.services.kinesis" level="WARN" />
+    <logger name="software.amazon.awssdk.kinesis" level="WARN" />
 
     <root level="INFO">
         <appender-ref ref="CONSOLE" />

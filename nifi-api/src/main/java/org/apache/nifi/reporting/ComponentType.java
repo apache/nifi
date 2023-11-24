@@ -47,6 +47,11 @@ public enum ComponentType {
     REPORTING_TASK,
 
     /**
+     * Bulletin is associated with a Flow Analysis Rule
+     */
+    FLOW_ANALYSIS_RULE,
+
+    /**
      * Bulletin is associated with a Process Group
      */
     PROCESS_GROUP,

@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.web.server;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -28,17 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.http.conn.util.InetAddressUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.ScopedHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HostHeaderHandler extends ScopedHandler {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandler.class);
@@ -48,51 +49,12 @@ public class HostHeaderHandler extends ScopedHandler {
     private final List<String> validHosts;
 
     /**
-     * Instantiates a handler with a given server name and port 0.
-     *
-     * @param serverName the {@code serverName} to set on the request (the {@code serverPort} will not be set)
-     * @deprecated Use {@link #HostHeaderHandler(NiFiProperties)} which accepts a {@link NiFiProperties} object to allow for custom network interface binding.
-     */
-    public HostHeaderHandler(String serverName) {
-        this(serverName, 0);
-    }
-
-    /**
-     * Instantiates a handler with a given server name and port.
-     *
-     * @param serverName the {@code serverName} to set on the request
-     * @param serverPort the {@code serverPort} to set on the request
-     * @deprecated Use {@link #HostHeaderHandler(NiFiProperties)} which accepts a {@link NiFiProperties} object to allow for custom network interface binding.
-     */
-    public HostHeaderHandler(String serverName, int serverPort) {
-        this.serverName = Objects.requireNonNull(serverName);
-        this.serverPort = serverPort;
-
-        validHosts = generateDefaultHostnames(null);
-        validHosts.add(serverName.toLowerCase());
-        validHosts.add(serverName.toLowerCase() + ":" + serverPort);
-        // Sometimes the hostname is left empty but the port is always populated
-        validHosts.add("localhost");
-        validHosts.add("localhost:" + serverPort);
-        // Different from customizer -- empty is ok here
-        validHosts.add("");
-        try {
-            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase());
-            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase() + ":" + serverPort);
-        } catch (final Exception e) {
-            logger.warn("Failed to determine local hostname.", e);
-        }
-
-        logger.info("Created " + this.toString());
-    }
-
-    /**
      * Instantiates a handler which accepts incoming requests with a host header that is empty or contains one of the
      * valid hosts. See the Apache NiFi Admin Guide for instructions on how to set valid hostnames and IP addresses.
      *
      * @param niFiProperties the NiFiProperties
      */
-    public HostHeaderHandler(NiFiProperties niFiProperties) {
+    public HostHeaderHandler(final NiFiProperties niFiProperties) {
         this.serverName = Objects.requireNonNull(determineServerHostname(niFiProperties));
         this.serverPort = determineServerPort(niFiProperties);
 
@@ -110,9 +72,7 @@ public class HostHeaderHandler extends ScopedHandler {
         hosts.add("");
 
         this.validHosts = uniqueList(hosts);
-        logger.info("Determined {} valid hostnames and IP addresses for incoming headers: {}", new Object[]{validHosts.size(), StringUtils.join(validHosts, ", ")});
-
-        logger.debug("Created " + this.toString());
+        logger.info("{} valid values for HTTP Request Host Header: {}", validHosts.size(), StringUtils.join(validHosts, ", "));
     }
 
     /**
@@ -145,7 +105,7 @@ public class HostHeaderHandler extends ScopedHandler {
 
         customHostnames.addAll(portlessHostnames);
         if (logger.isDebugEnabled()) {
-            logger.debug("Parsed {} custom hostnames from nifi.web.proxy.host: {}", new Object[]{customHostnames.size(), StringUtils.join(customHostnames, ", ")});
+            logger.debug("Parsed {} custom hostnames from nifi.web.proxy.host: {}", customHostnames.size(), StringUtils.join(customHostnames, ", "));
         }
         return uniqueList(customHostnames);
     }
@@ -164,7 +124,6 @@ public class HostHeaderHandler extends ScopedHandler {
      * Returns true if the provided address is an IPv6 address (or could be interpreted as one). This method is more
      * lenient than {@link InetAddressUtils#isIPv6Address(String)} because of different interpretations of IPv4-mapped
      * IPv6 addresses.
-     *
      * See RFC 5952 Section 4 for more information on textual representation of the IPv6 addresses.
      *
      * @param address the address in text form
@@ -178,8 +137,6 @@ public class HostHeaderHandler extends ScopedHandler {
         // If the last two hextets are written in IPv4 form, treat it as an IPv6 address as well
         String everythingAfterLastColon = StringUtils.substringAfterLast(address, ":");
         boolean isIPv4 = InetAddressUtils.isIPv4Address(everythingAfterLastColon);
-        boolean isIPv4Mapped = InetAddressUtils.isIPv4MappedIPv64Address(everythingAfterLastColon);
-        boolean isCompressable = address.contains("0:0") && !address.contains("::");
 
         return isNormalIPv6 || isIPv4;
     }
@@ -197,14 +154,18 @@ public class HostHeaderHandler extends ScopedHandler {
     }
 
     @Override
-    public void doScope(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException {
-        logger.debug("HostHeaderHandler#doScope on " + request.getRequestURI());
+    public void doScope(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         nextScope(target, baseRequest, request, response);
     }
 
-    boolean hostHeaderIsValid(String hostHeader) {
-        return validHosts.contains(hostHeader.toLowerCase().trim());
+    /**
+     * Host Header Valid status checks against valid hosts
+     *
+     * @param hostHeader Host header value
+     * @return Valid status
+     */
+    boolean hostHeaderIsValid(final String hostHeader) {
+        return hostHeader != null && validHosts.contains(hostHeader.toLowerCase().trim());
     }
 
     @Override
@@ -222,21 +183,20 @@ public class HostHeaderHandler extends ScopedHandler {
      * @param response    the current response
      */
     @Override
-    public void doHandle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    public void doHandle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         final String hostHeader = request.getHeader("Host");
-        logger.debug("Received request [" + request.getRequestURI() + "] with host header: " + hostHeader);
+        final String requestUri = request.getRequestURI();
+        logger.debug("Request URI [{}] Host Header [{}]", requestUri, hostHeader);
+
         if (!hostHeaderIsValid(hostHeader)) {
-            logger.warn("Request host header [" + hostHeader + "] different from web hostname [" +
-                    serverName + "(:" + serverPort + ")]. Overriding to [" + serverName + ":" +
-                    serverPort + request.getRequestURI() + "]");
+            logger.warn("Request URI [{}] Host Header [{}] not valid", requestUri, hostHeader);
 
             response.setContentType("text/html; charset=utf-8");
             response.setStatus(HttpServletResponse.SC_OK);
 
-            PrintWriter out = response.getWriter();
+            final PrintWriter out = response.getWriter();
 
             out.println("<h1>System Error</h1>");
-            // TODO: Change to org.apache.commons.text.StringEscapeUtils
             out.println("<h2>The request contained an invalid host header [<code>" + StringEscapeUtils.escapeHtml4(hostHeader) +
                     "</code>] in the request [<code>" + StringEscapeUtils.escapeHtml4(request.getRequestURI()) +
                     "</code>]. Check for request manipulation or third-party intercept.</h2>");
@@ -274,7 +234,7 @@ public class HostHeaderHandler extends ScopedHandler {
             try {
                 final int lambdaPort = serverPort;
                 List<String> customIPs = extractIPsFromNetworkInterfaces(niFiProperties);
-                customIPs.stream().forEach(ip -> {
+                customIPs.forEach(ip -> {
                     validHosts.add(ip);
                     validHosts.add(ip + ":" + lambdaPort);
                 });
@@ -308,7 +268,7 @@ public class HostHeaderHandler extends ScopedHandler {
         // Dedupe but maintain order
         final List<String> uniqueHosts = uniqueList(validHosts);
         if (logger.isDebugEnabled()) {
-            logger.debug("Determined {} valid default hostnames and IP addresses for incoming headers: {}", new Object[]{uniqueHosts.size(), StringUtils.join(uniqueHosts, ", ")});
+            logger.debug("Determined {} valid default hostnames and IP addresses for incoming headers: {}", uniqueHosts.size(), StringUtils.join(uniqueHosts, ", "));
         }
         return uniqueHosts;
     }
@@ -325,16 +285,20 @@ public class HostHeaderHandler extends ScopedHandler {
         Map<String, String> networkInterfaces = niFiProperties.isHTTPSConfigured() ? niFiProperties.getHttpsNetworkInterfaces() : niFiProperties.getHttpNetworkInterfaces();
         if (isNotDefined(networkInterfaces)) {
             // No custom interfaces defined
-            return new ArrayList<>(0);
+            return List.of();
         } else {
-            List<String> allIPAddresses = new ArrayList<>();
+            final List<String> allIPAddresses = new ArrayList<>();
             for (Map.Entry<String, String> entry : networkInterfaces.entrySet()) {
                 final String networkInterfaceName = entry.getValue();
                 try {
-                    NetworkInterface ni = NetworkInterface.getByName(networkInterfaceName);
-                    List<String> ipAddresses = Collections.list(ni.getInetAddresses()).stream().map(inetAddress -> inetAddress.getHostAddress().toLowerCase()).collect(Collectors.toList());
-                    logger.debug("Resolved the following IP addresses for network interface {}: {}", new Object[]{networkInterfaceName, StringUtils.join(ipAddresses, ", ")});
-                    allIPAddresses.addAll(ipAddresses);
+                    final NetworkInterface ni = NetworkInterface.getByName(networkInterfaceName);
+                    if (ni == null) {
+                        logger.warn("Cannot resolve network interface named " + networkInterfaceName);
+                    } else {
+                        final List<String> ipAddresses = Collections.list(ni.getInetAddresses()).stream().map(inetAddress -> inetAddress.getHostAddress().toLowerCase()).collect(Collectors.toList());
+                        logger.debug("Resolved the following IP addresses for network interface {}: {}", networkInterfaceName, StringUtils.join(ipAddresses, ", "));
+                        allIPAddresses.addAll(ipAddresses);
+                    }
                 } catch (SocketException e) {
                     logger.warn("Cannot resolve network interface named " + networkInterfaceName);
                 }

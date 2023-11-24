@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.authorization.azure;
 
+import com.google.gson.JsonObject;
+import com.microsoft.graph.core.ClientException;
+import com.microsoft.graph.models.extensions.IGraphServiceClient;
+import com.microsoft.graph.options.Option;
+import com.microsoft.graph.options.QueryOption;
+import com.microsoft.graph.requests.extensions.GraphServiceClient;
+import com.microsoft.graph.requests.extensions.IGroupCollectionPage;
+import com.microsoft.graph.requests.extensions.IGroupCollectionRequest;
+import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,20 +41,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import com.google.gson.JsonObject;
-import com.microsoft.graph.core.ClientException;
-import com.microsoft.graph.models.extensions.IGraphServiceClient;
-import com.microsoft.graph.options.Option;
-import com.microsoft.graph.options.QueryOption;
-import com.microsoft.graph.requests.extensions.GraphServiceClient;
-import com.microsoft.graph.requests.extensions.IGroupCollectionPage;
-import com.microsoft.graph.requests.extensions.IGroupCollectionRequest;
-import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
-import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
-
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.User;
@@ -56,12 +54,13 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The AzureGraphUserGroupProvider provides support for retrieving users and
- * groups from Azure Activy Driectory (AAD) using graph rest-api & SDK.
+ * groups from Azure Active Directory (AAD) using graph rest-api & SDK.
  */
 public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
@@ -73,6 +72,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
     private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
     public static final String AUTHORITY_ENDPOINT_PROPERTY = "Authority Endpoint";
+    public static final String GRAPH_ENDPOINT_PROPERTY  = "Graph Endpoint";
+    public static final String GRAPH_SCOPE_PROPERTY = "Graph Scope";
     public static final String TENANT_ID_PROPERTY = "Directory ID";
     public static final String APP_REG_CLIENT_ID_PROPERTY = "Application ID";
     public static final String APP_REG_CLIENT_SECRET_PROPERTY = "Client Secret";
@@ -80,9 +81,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String GROUP_FILTER_LIST_PROPERTY = "Group Filter List Inclusion";
     // group filter with startswith
     public static final String GROUP_FILTER_PREFIX_PROPERTY = "Group Filter Prefix";
-    // client side group filter 'endswith' operator, due to support limiation of azure graph rest-api
+    // client side group filter 'endswith' operator, due to support limitation of azure graph rest-api
     public static final String GROUP_FILTER_SUFFIX_PROPERTY = "Group Filter Suffix";
-    // client side group filter 'contains' operator, due to support limiation of azure graph rest-api
+    // client side group filter 'contains' operator, due to support limitation of azure graph rest-api
     public static final String GROUP_FILTER_SUBSTRING_PROPERTY = "Group Filter Substring";
     public static final String PAGE_SIZE_PROPERTY = "Page Size";
     // default: upn (or userPrincipalName). possible choices ['upn', 'email']
@@ -93,12 +94,12 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String DEFAULT_CLAIM_FOR_USERNAME = "upn";
     public static final int MAX_PAGE_SIZE = 999;
     public static final String AZURE_PUBLIC_CLOUD = "https://login.microsoftonline.com/";
+    public static final String AZURE_PUBLIC_GRAPH_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
     static final List<String> REST_CALL_KEYWORDS = Arrays.asList("$select", "$top", "$expand", "$search", "$filter", "$format", "$count", "$skip", "$orderby");
 
 
-    private ClientCredentialAuthProvider authProvider;
     private IGraphServiceClient graphClient;
-    private final AtomicReference<ImmutableAzureGraphUserGroup> azureGraphUserGroupRef = new AtomicReference<ImmutableAzureGraphUserGroup>();
+    private final AtomicReference<ImmutableAzureGraphUserGroup> azureGraphUserGroupRef = new AtomicReference<>();
 
     @Override
     public Group getGroup(String identifier) throws AuthorizationAccessException {
@@ -135,7 +136,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             throws AuthorizerCreationException {
         this.scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
-            public Thread newThread(Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 final Thread thread = Executors.defaultThreadFactory().newThread(r);
                 thread.setName(String.format("%s (%s) - UserGroup Refresh", getClass().getSimpleName(), initializationContext.getIdentifier()));
                 return thread;
@@ -179,6 +180,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         final long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
         final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY, AZURE_PUBLIC_CLOUD);
+        final String graphEndpoint = getProperty(configurationContext, GRAPH_ENDPOINT_PROPERTY, null);
+        final String graphScope = getProperty(configurationContext, GRAPH_SCOPE_PROPERTY, AZURE_PUBLIC_GRAPH_DEFAULT_SCOPE);
         final String tenantId = getProperty(configurationContext, TENANT_ID_PROPERTY, null);
         final String clientId = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
         final String clientSecret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);
@@ -199,20 +202,24 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         }
 
         try {
-            authProvider = new ClientCredentialAuthProvider.Builder()
-                .authorityEndpoint(authorityEndpoint)
-                .tenantId(tenantId)
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .build();
+            ClientCredentialAuthProvider authProvider = new ClientCredentialAuthProvider.Builder()
+                    .authorityEndpoint(authorityEndpoint)
+                    .tenantId(tenantId)
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .graphScope(graphScope)
+                    .build();
             graphClient = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
+            if (!StringUtils.isBlank(graphEndpoint)) {
+                graphClient.setServiceRoot(graphEndpoint);
+            }
         } catch (final ClientException e) {
             throw new AuthorizerCreationException(String.format("Failed to create a GraphServiceClient due to %s", e.getMessage()), e);
         }
 
         // first, load list of group name if there is any prefix, suffix, substring
-        // filter defined, paging thru groups.
-        // then, add additonal group list if there is group list inclusion defined.
+        // filter defined, paging through groups.
+        // then, add additional group list if there is group list inclusion defined.
         final String prefix = getProperty(configurationContext, GROUP_FILTER_PREFIX_PROPERTY, null);
         final String suffix = getProperty(configurationContext, GROUP_FILTER_SUFFIX_PROPERTY, null);
         final String substring = getProperty(configurationContext, GROUP_FILTER_SUBSTRING_PROPERTY, null);
@@ -277,7 +284,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     /**
      * Get a set of group display names after filtering prefix, suffix, and substring
      * @param prefix prefix filter string matching against displayName of group directory objects
-     * @param suffix suffix fitler string matching against displayName of group directory objects
+     * @param suffix suffix filter string matching against displayName of group directory objects
      * @param substring string matching against displayName of group directory objects
      * @param pageSize page size to make graph rest calls in pagination
      * @return set of group display names
@@ -288,7 +295,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         IGroupCollectionPage filterResults;
         if (prefix != null && !prefix.isEmpty()) {
             // build a $filter query option and create a graph request if prefix is given
-            final List<Option> requestOptions = Arrays.asList(new QueryOption("$filter", String.format("startswith(displayName, '%s')", prefix)));
+            final List<Option> requestOptions = List.of(new QueryOption("$filter", String.format("startswith(displayName, '%s')", prefix)));
             gRequest = graphClient.groups().buildRequest(requestOptions).select("displayName");
         } else {
             // default group graph request
@@ -333,11 +340,11 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private UserGroupQueryResult getUsersFrom(String groupName, int pageSize) throws IOException, ClientException {
         final Set<User> users = new HashSet<>();
 
-        final List<Option> requestOptions = Arrays.asList(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
+        final List<Option> requestOptions = List.of(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
         final IGroupCollectionPage results = graphClient.groups().buildRequest(requestOptions).get();
         final List<com.microsoft.graph.models.extensions.Group> currentPage = results.getCurrentPage();
 
-        if (currentPage != null && currentPage.size() > 0) {
+        if (currentPage != null && !currentPage.isEmpty()) {
             final com.microsoft.graph.models.extensions.Group graphGroup = results.getCurrentPage().get(0);
             final Group.Builder groupBuilder =
                 new Group.Builder()
@@ -445,3 +452,4 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     }
 
 }
+

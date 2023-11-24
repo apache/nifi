@@ -38,11 +38,6 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-asana-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -71,6 +66,12 @@
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!-- Override grpc-context from Asana -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-context</artifactId>
+                <version>1.59.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

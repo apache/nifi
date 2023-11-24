@@ -17,12 +17,13 @@
 
 package org.apache.nifi.minifi.c2.security.authentication;
 
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
-
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
+
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 
 public class X509AuthenticationToken extends AbstractAuthenticationToken {
     private final X509Certificate[] x509Certificates;
@@ -37,7 +38,7 @@ public class X509AuthenticationToken extends AbstractAuthenticationToken {
         super(grantedAuthorities);
         this.x509Certificates = Arrays.copyOf(x509Certificates, x509Certificates.length, X509Certificate[].class);
         X509Certificate x509Certificate = x509Certificates[0];
-        this.subjectDn = x509Certificate.getSubjectDN().getName().trim();
+        this.subjectDn = StandardPrincipalFormatter.getInstance().getSubject(x509Certificate);
     }
 
     @Override

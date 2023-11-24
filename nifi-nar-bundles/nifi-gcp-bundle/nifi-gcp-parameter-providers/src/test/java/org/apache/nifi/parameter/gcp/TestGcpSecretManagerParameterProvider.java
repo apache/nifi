@@ -178,7 +178,7 @@ public class TestGcpSecretManagerParameterProvider {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(GcpSecretManagerParameterProvider.GROUP_NAME_PATTERN, ".*Secret");
         properties.put(GcpSecretManagerParameterProvider.PROJECT_ID, "my-project");
-        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null, null);
 
         List<ParameterGroup> parameterGroups = new ArrayList<>();
         // Verify parameter fetching

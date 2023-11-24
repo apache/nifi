@@ -17,43 +17,45 @@
 
 package org.apache.nifi.processors.aws.ml.polly;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.polly.AmazonPollyClient;
-import com.amazonaws.services.polly.AmazonPollyClientBuilder;
-import com.amazonaws.services.polly.model.StartSpeechSynthesisTaskRequest;
-import com.amazonaws.services.polly.model.StartSpeechSynthesisTaskResult;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
+import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
+import software.amazon.awssdk.services.polly.PollyClient;
+import software.amazon.awssdk.services.polly.PollyClientBuilder;
+import software.amazon.awssdk.services.polly.model.StartSpeechSynthesisTaskRequest;
+import software.amazon.awssdk.services.polly.model.StartSpeechSynthesisTaskResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
 @CapabilityDescription("Trigger a AWS Polly job. It should be followed by GetAwsPollyJobStatus processor in order to monitor job status.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsPollyJobStatus")
+})
 @SeeAlso({GetAwsPollyJobStatus.class})
-public class StartAwsPollyJob extends AwsMachineLearningJobStarter<AmazonPollyClient, StartSpeechSynthesisTaskRequest, StartSpeechSynthesisTaskResult> {
+public class StartAwsPollyJob extends AbstractAwsMachineLearningJobStarter<
+        StartSpeechSynthesisTaskRequest, StartSpeechSynthesisTaskRequest.Builder, StartSpeechSynthesisTaskResponse, PollyClient, PollyClientBuilder> {
+
     @Override
-    protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonPollyClient) AmazonPollyClientBuilder.standard()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withCredentials(credentialsProvider)
-                .build();
+    protected PollyClientBuilder createClientBuilder(final ProcessContext context) {
+        return PollyClient.builder();
     }
 
     @Override
-    protected StartSpeechSynthesisTaskResult sendRequest(StartSpeechSynthesisTaskRequest request, ProcessContext context, FlowFile flowFile) {
+    protected StartSpeechSynthesisTaskResponse sendRequest(final StartSpeechSynthesisTaskRequest request, final ProcessContext context, final FlowFile flowFile) {
         return getClient(context).startSpeechSynthesisTask(request);
     }
 
     @Override
-    protected Class<? extends StartSpeechSynthesisTaskRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
-        return StartSpeechSynthesisTaskRequest.class;
+    protected Class<? extends StartSpeechSynthesisTaskRequest.Builder> getAwsRequestBuilderClass(final ProcessContext context, final FlowFile flowFile) {
+        return StartSpeechSynthesisTaskRequest.serializableBuilderClass();
     }
 
     @Override
-    protected String getAwsTaskId(ProcessContext context, StartSpeechSynthesisTaskResult startSpeechSynthesisTaskResult, FlowFile flowFile) {
-        return startSpeechSynthesisTaskResult.getSynthesisTask().getTaskId();
+    protected String getAwsTaskId(final ProcessContext context, final StartSpeechSynthesisTaskResponse startSpeechSynthesisTaskResponse, final FlowFile flowFile) {
+        return startSpeechSynthesisTaskResponse.synthesisTask().taskId();
     }
 }

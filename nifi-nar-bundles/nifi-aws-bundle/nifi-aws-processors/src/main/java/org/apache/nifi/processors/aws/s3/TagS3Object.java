@@ -40,8 +40,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +60,7 @@ import java.util.stream.Collectors;
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sets tags on a FlowFile within an Amazon S3 Bucket. " +
-        "If attempting to tag a file that does not exist, FlowFile is routed to success.")
+@CapabilityDescription("Adds or updates a tag on an Amazon S3 Object.")
 public class TagS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor TAG_KEY = new PropertyDescriptor.Builder()
@@ -106,29 +103,22 @@ public class TagS3Object extends AbstractS3Processor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> properties = List.of(
+            BUCKET_WITH_DEFAULT_VALUE,
             KEY,
-            BUCKET,
-            VERSION_ID,
+            S3_REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
             TAG_KEY,
             TAG_VALUE,
             APPEND_TAG,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
-            AWS_CREDENTIALS_PROVIDER_SERVICE,
-            S3_REGION,
+            VERSION_ID,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
             SIGNER_OVERRIDE,
             S3_CUSTOM_SIGNER_CLASS_NAME,
             S3_CUSTOM_SIGNER_MODULE_LOCATION,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD));
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -155,13 +145,13 @@ public class TagS3Object extends AbstractS3Processor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagKey = context.getProperty(TAG_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
         if(StringUtils.isBlank(bucket)){
-            failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET);
+            failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET_WITH_DEFAULT_VALUE);
             return;
         }
 
@@ -216,12 +206,12 @@ public class TagS3Object extends AbstractS3Processor {
         session.transfer(flowFile, REL_SUCCESS);
         final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
+        getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
     }
 
     private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {
-        getLogger().error("{} value is blank after attribute expression language evaluation", new Object[]{pd.getName()});
+        getLogger().error("{} value is blank after attribute expression language evaluation", pd.getName());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
@@ -230,7 +220,7 @@ public class TagS3Object extends AbstractS3Processor {
         flowFile = session.removeAllAttributes(flowFile, Pattern.compile("^s3\\.tag\\..*"));
 
         final Map<String, String> tagAttrs = new HashMap<>();
-        tags.stream().forEach(t -> tagAttrs.put("s3.tag." + t.getKey(), t.getValue()));
+        tags.forEach(t -> tagAttrs.put("s3.tag." + t.getKey(), t.getValue()));
         flowFile = session.putAllAttributes(flowFile, tagAttrs);
         return flowFile;
     }

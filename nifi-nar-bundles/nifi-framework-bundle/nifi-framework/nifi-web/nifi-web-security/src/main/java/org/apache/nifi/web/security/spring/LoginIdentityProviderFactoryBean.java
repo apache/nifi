@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.web.security.spring;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -46,24 +63,6 @@ import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Spring Factory Bean implementation requires a generic Object return type to handle a null Provider configuration
@@ -274,24 +273,18 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
         for (final Method method : loginIdentityProviderClass.getMethods()) {
             if (method.isAnnotationPresent(LoginIdentityProviderContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
+                final Class<?>[] argumentTypes = method.getParameterTypes();
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
+                // look for setters (single argument)
+                if (argumentTypes.length == 1) {
+                    final Class<?> argumentType = argumentTypes[0];
 
-                    // look for setters (single argument)
-                    if (argumentTypes.length == 1) {
-                        final Class<?> argumentType = argumentTypes[0];
-
-                        // look for well known types
-                        if (NiFiProperties.class.isAssignableFrom(argumentType)) {
-                            // nifi properties injection
-                            method.invoke(instance, properties);
-                        }
+                    // look for well known types
+                    if (NiFiProperties.class.isAssignableFrom(argumentType)) {
+                        // nifi properties injection
+                        method.invoke(instance, properties);
                     }
-                } finally {
-                    method.setAccessible(isAccessible);
                 }
             }
         }
@@ -306,24 +299,17 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
         for (final Field field : loginIdentityProviderClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(LoginIdentityProviderContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = field.isAccessible();
                 field.setAccessible(true);
+                // get the type
+                final Class<?> fieldType = field.getType();
 
-                try {
-                    // get the type
-                    final Class<?> fieldType = field.getType();
-
-                    // only consider this field if it isn't set yet
-                    if (field.get(instance) == null) {
-                        // look for well known types
-                        if (NiFiProperties.class.isAssignableFrom(fieldType)) {
-                            // nifi properties injection
-                            field.set(instance, properties);
-                        }
+                // only consider this field if it isn't set yet
+                if (field.get(instance) == null) {
+                    // look for well known types
+                    if (NiFiProperties.class.isAssignableFrom(fieldType)) {
+                        // nifi properties injection
+                        field.set(instance, properties);
                     }
-
-                } finally {
-                    field.setAccessible(isAccessible);
                 }
             }
         }

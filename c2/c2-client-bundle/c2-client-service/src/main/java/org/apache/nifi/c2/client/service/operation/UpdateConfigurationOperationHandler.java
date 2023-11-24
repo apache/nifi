@@ -29,7 +29,6 @@ import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.nifi.c2.client.api.C2Client;
@@ -43,22 +42,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UpdateConfigurationOperationHandler implements C2OperationHandler {
-    private static final Logger logger = LoggerFactory.getLogger(UpdateConfigurationOperationHandler.class);
-    private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/[^/]+?/[^/]+?/[^/]+?/([^/]+)?/?.*");
-    static final String FLOW_ID = "flowId";
-    static final String LOCATION = "location";
+
     public static final String FLOW_URL_KEY = "flowUrl";
     public static final String FLOW_RELATIVE_URL_KEY = "relativeFlowUrl";
 
+    static final String FLOW_ID = "flowId";
+    static final String LOCATION = "location";
+
+    private static final Logger logger = LoggerFactory.getLogger(UpdateConfigurationOperationHandler.class);
+
+    private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/[^/]+?/[^/]+?/[^/]+?/([^/]+)?/?.*");
+
     private final C2Client client;
-    private final Function<byte[], Boolean> updateFlow;
+    private final UpdateConfigurationStrategy updateConfigurationStrategy;
     private final FlowIdHolder flowIdHolder;
     private final OperandPropertiesProvider operandPropertiesProvider;
 
-    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow,
+    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, UpdateConfigurationStrategy updateConfigurationStrategy,
                                                OperandPropertiesProvider operandPropertiesProvider) {
         this.client = client;
-        this.updateFlow = updateFlow;
+        this.updateConfigurationStrategy = updateConfigurationStrategy;
         this.flowIdHolder = flowIdHolder;
         this.operandPropertiesProvider = operandPropertiesProvider;
     }
@@ -80,7 +83,7 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
     @Override
     public boolean requiresRestart() {
-        return true;
+        return false;
     }
 
     @Override
@@ -108,19 +111,22 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
         logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}",
             callbackUrl, operationId, ofNullable(flowIdHolder.getFlowId()).orElse("not set"), flowId);
-        flowIdHolder.setFlowId(flowId);
-        return operationAck(operationId, updateFlow(operationId, callbackUrl.get()));
+        C2OperationState state = updateFlow(operationId, callbackUrl.get());
+        if (state.getState() == FULLY_APPLIED) {
+            flowIdHolder.setFlowId(flowId);
+        }
+        return operationAck(operationId, state);
     }
 
     private C2OperationState updateFlow(String opIdentifier, String callbackUrl) {
-        Optional<byte[]> updateContent = client.retrieveUpdateContent(callbackUrl);
+        Optional<byte[]> updateContent = client.retrieveUpdateConfigurationContent(callbackUrl);
 
         if (!updateContent.isPresent()) {
             logger.error("Update content retrieval resulted in empty content so flow update was omitted for operation #{}.", opIdentifier);
             return operationState(NOT_APPLIED, "Update content retrieval resulted in empty content");
         }
 
-        if (!updateFlow.apply(updateContent.get())) {
+        if (!updateConfigurationStrategy.update(updateContent.get())) {
             logger.error("Update resulted in error for operation #{}.", opIdentifier);
             return operationState(NOT_APPLIED, "Update resulted in error");
         }

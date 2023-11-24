@@ -20,6 +20,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -85,7 +86,7 @@ import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFK
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success. If the <Message Demarcator> Property is not set, this will always be 1, but if the Property is set, it may "
     + "be greater than 1.")
@@ -144,7 +145,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
             + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("5 sec")
         .build();
 
@@ -256,7 +257,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .name("transactional-id-prefix")
         .displayName("Transactional Id Prefix")
         .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
         .dependsOn(USE_TRANSACTIONS, "true")
         .required(false)
@@ -340,7 +341,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
             .name(propertyDescriptorName)
             .addValidator(new DynamicPropertyValidator(ProducerConfig.class))
             .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     }
 
@@ -439,7 +440,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
         final long startTime = System.nanoTime();
-        try (final PublisherLease lease = pool.obtainPublisher()) {
+        try (final PublisherLease lease = obtainPublisher(context, pool)) {
             try {
                 if (useTransactions) {
                     lease.beginTransaction();
@@ -509,6 +510,16 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
+        }
+    }
+
+    private PublisherLease obtainPublisher(final ProcessContext context, final PublisherPool pool) {
+        try {
+            return pool.obtainPublisher();
+        } catch (final KafkaException e) {
+            getLogger().error("Failed to obtain Kafka Producer", e);
+            context.yield();
+            throw e;
         }
     }
 

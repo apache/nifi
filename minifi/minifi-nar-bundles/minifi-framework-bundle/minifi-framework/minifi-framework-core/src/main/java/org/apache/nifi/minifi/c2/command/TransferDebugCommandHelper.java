@@ -29,15 +29,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.util.NiFiProperties;
 
 public class TransferDebugCommandHelper {
-
-    private static final String MINIFI_CONFIG_FILE_PATH = "nifi.minifi.config.file";
-    private static final String MINIFI_BOOTSTRAP_FILE_PATH = "nifi.minifi.bootstrap.file";
-    private static final String MINIFI_LOG_DIRECTORY = "nifi.minifi.log.directory";
-    private static final String MINIFI_APP_LOG_FILE = "nifi.minifi.app.log.file";
-    private static final String MINIFI_BOOTSTRAP_LOG_FILE = "nifi.minifi.bootstrap.log.file";
 
     private static final Set<String> SENSITIVE_PROPERTY_KEYWORDS =
         Stream.of("key:", "algorithm:", "secret.key", "sensitive.props.key", "sensitive.props.algorithm", "secret", "password", "passwd")
@@ -52,10 +47,10 @@ public class TransferDebugCommandHelper {
 
     public List<Path> debugBundleFiles() {
         return Stream.of(
-                Paths.get(niFiProperties.getProperty(MINIFI_CONFIG_FILE_PATH)),
-                Paths.get(niFiProperties.getProperty(MINIFI_BOOTSTRAP_FILE_PATH)),
-                Paths.get(niFiProperties.getProperty(MINIFI_LOG_DIRECTORY), niFiProperties.getProperty(MINIFI_APP_LOG_FILE)),
-                Paths.get(niFiProperties.getProperty(MINIFI_LOG_DIRECTORY), niFiProperties.getProperty(MINIFI_BOOTSTRAP_LOG_FILE)))
+                Paths.get(niFiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())),
+                Paths.get(niFiProperties.getProperty(MiNiFiProperties.MINIFI_BOOTSTRAP_FILE_PATH)),
+                Paths.get(niFiProperties.getProperty(MiNiFiProperties.MINIFI_LOG_DIRECTORY), niFiProperties.getProperty(MiNiFiProperties.MINIFI_APP_LOG_FILE)),
+                Paths.get(niFiProperties.getProperty(MiNiFiProperties.MINIFI_LOG_DIRECTORY), niFiProperties.getProperty(MiNiFiProperties.MINIFI_BOOTSTRAP_LOG_FILE)))
             .filter(Files::exists)
             .filter(Files::isRegularFile)
             .collect(toList());

@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard.http;
 
+import org.apache.nifi.security.cert.CertificateAttributeReader;
+import org.apache.nifi.security.cert.PrincipalFormatter;
+import org.apache.nifi.security.cert.StandardCertificateAttributeReader;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.apache.nifi.security.cert.SubjectAlternativeName;
+
 import javax.servlet.http.HttpServletRequest;
-import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,20 +40,7 @@ public class HandleHttpRequestCertificateAttributesProvider implements Certifica
 
     private static final String SAN_NAME_FORMAT = "%s.%d.name";
 
-    private static final Map<String, String> GENERAL_NAME_TYPES = new LinkedHashMap<>();
-
-    static {
-        // General Name types defined in RFC 3280 Section 4.2.1.7 */
-        GENERAL_NAME_TYPES.put("0", "otherName");
-        GENERAL_NAME_TYPES.put("1", "rfc822Name");
-        GENERAL_NAME_TYPES.put("2", "dNSName");
-        GENERAL_NAME_TYPES.put("3", "x400Address");
-        GENERAL_NAME_TYPES.put("4", "directoryName");
-        GENERAL_NAME_TYPES.put("5", "ediPartyName");
-        GENERAL_NAME_TYPES.put("6", "uniformResourceIdentifier");
-        GENERAL_NAME_TYPES.put("7", "iPAddress");
-        GENERAL_NAME_TYPES.put("8", "registeredID");
-    }
+    private final CertificateAttributeReader certificateAttributeReader = new StandardCertificateAttributeReader();
 
     @Override
     public Map<String, String> getCertificateAttributes(final HttpServletRequest request) {
@@ -77,55 +67,37 @@ public class HandleHttpRequestCertificateAttributesProvider implements Certifica
     private Map<String, String> getCertificateAttributes(final X509Certificate certificate) {
         final Map<String, String> attributes = new LinkedHashMap<>();
 
-        final String subjectPrincipal = certificate.getSubjectX500Principal().getName();
-        final String issuerPrincipal = certificate.getIssuerX500Principal().getName();
+        final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
+        final String subjectPrincipal = principalFormatter.getSubject(certificate);
+        final String issuerPrincipal = principalFormatter.getIssuer(certificate);
 
         attributes.put(CertificateAttribute.HTTP_SUBJECT_DN.getName(), subjectPrincipal);
         attributes.put(CertificateAttribute.HTTP_ISSUER_DN.getName(), issuerPrincipal);
 
-        try {
-            final Collection<List<?>> subjectAlternativeNames = certificate.getSubjectAlternativeNames();
-
-            if (subjectAlternativeNames != null) {
-                final Map<String, String> subjectAlternativeNameAttributes = getSubjectAlternativeNameAttributes(subjectAlternativeNames);
-                attributes.putAll(subjectAlternativeNameAttributes);
-            }
-        } catch (final CertificateParsingException e) {
-            attributes.put(CertificateAttribute.HTTP_CERTIFICATE_PARSING_EXCEPTION.getName(), e.getMessage());
-        }
+        final Map<String, String> subjectAlternativeNameAttributes = getSubjectAlternativeNameAttributes(certificate);
+        attributes.putAll(subjectAlternativeNameAttributes);
 
         return attributes;
     }
 
-    private Map<String, String> getSubjectAlternativeNameAttributes(final Collection<List<?>> subjectAlternativeNames) {
+    private Map<String, String> getSubjectAlternativeNameAttributes(final X509Certificate certificate) {
         final Map<String, String> attributes = new LinkedHashMap<>();
 
         int subjectAlternativeNameIndex = 0;
-        for (final List<?> subjectAlternativeTypeName : subjectAlternativeNames) {
+
+        final List<SubjectAlternativeName> subjectAlternativeNames = certificateAttributeReader.getSubjectAlternativeNames(certificate);
+        for (final SubjectAlternativeName subjectAlternativeName : subjectAlternativeNames) {
             final String nameTypeAttributeKey = String.format(SAN_NAME_TYPE_FORMAT, CertificateAttribute.HTTP_CERTIFICATE_SANS.getName(), subjectAlternativeNameIndex);
-            final String nameType = subjectAlternativeTypeName.get(0).toString();
-            final String generalNameType = GENERAL_NAME_TYPES.getOrDefault(nameType, nameType);
+            final String generalNameType = subjectAlternativeName.getGeneralNameType().getGeneralName();
             attributes.put(nameTypeAttributeKey, generalNameType);
 
             final String nameAttributeKey = String.format(SAN_NAME_FORMAT, CertificateAttribute.HTTP_CERTIFICATE_SANS.getName(), subjectAlternativeNameIndex);
-            final Object name = subjectAlternativeTypeName.get(1);
-            final String serializedName = getSerializedName(name);
+            final String serializedName = subjectAlternativeName.getName();
             attributes.put(nameAttributeKey, serializedName);
 
             subjectAlternativeNameIndex++;
         }
 
         return attributes;
-    }
-
-    private String getSerializedName(final Object name) {
-        final String serializedName;
-        if (name instanceof byte[]) {
-            final byte[] encodedName = (byte[]) name;
-            serializedName = Base64.getEncoder().encodeToString(encodedName);
-        } else {
-            serializedName = name.toString();
-        }
-        return serializedName;
     }
 }

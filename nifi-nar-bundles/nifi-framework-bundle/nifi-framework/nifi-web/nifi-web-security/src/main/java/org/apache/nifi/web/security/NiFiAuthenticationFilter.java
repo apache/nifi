@@ -138,14 +138,14 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         // use the type of authentication exception to determine the response code
         if (ae instanceof InvalidAuthenticationException) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            out.println(ae.getMessage());
+            out.println("Authentication credentials invalid");
         } else if (ae instanceof UntrustedProxyException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            out.println(ae.getMessage());
+            out.println("Authentication Proxy Server not trusted");
         } else if (ae instanceof AuthenticationServiceException) {
             log.error("Authentication Service Failed: {}", ae.getMessage(), ae);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.println(String.format("Unable to authenticate: %s", ae.getMessage()));
+            out.println("Authentication service processing failed");
         } else {
             log.error("Authentication Exception: {}", ae.getMessage(), ae);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);

@@ -1,0 +1,29 @@
+[ {
+  "id" : "1",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "2",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "2",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "4",
+  "field1" : "value1",
+  "field2" : "not_found"
+}, {
+  "id" : "5",
+  "field1" : "value1",
+  "field2" : "20abcd"
+}, {
+  "id" : "6",
+  "field1" : "value1",
+  "field2" : "213,456.9"
+}, {
+  "id" : "7",
+  "field1" : "value1",
+  "field2" : "unit test"
+}]

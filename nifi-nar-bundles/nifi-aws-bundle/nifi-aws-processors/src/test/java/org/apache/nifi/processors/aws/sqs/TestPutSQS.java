@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ public class TestPutSQS {
             }
         };
         runner = TestRunners.newTestRunner(mockPutSQS);
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     @Test

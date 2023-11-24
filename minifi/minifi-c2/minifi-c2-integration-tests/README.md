@@ -17,11 +17,11 @@
 ## How to execute minifi-c2-integration-tests
 
 ### Build required modules
-mvn -pl minifi/minifi-assembly -am install -T1C -DskipTests
-mvn -pl minifi/minifi-docker -am install -T1C -DskipTests -P docker
-mvn -pl minifi/minifi-c2/minifi-c2-assembly -am install -T1C -DskipTests
-mvn -pl minifi/minifi-c2/minifi-c2-docker -am install -T1C -DskipTests -P docker
-mvn -pl nifi-toolkit/nifi-toolkit-assembly -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-assembly -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-docker -am install -T1C -DskipTests -P docker
+- mvn -pl minifi/minifi-c2/minifi-c2-assembly -am install -T1C -DskipTests
+- mvn -pl minifi/minifi-c2/minifi-c2-docker -am install -T1C -DskipTests -P docker
+- mvn -pl nifi-toolkit/nifi-toolkit-assembly -am install -T1C -DskipTests
 
 ### Execute integration tests
-mvn verify -Pdocker -f minifi/minifi-c2/minifi-c2-integration-tests/pom.xml
+- mvn verify -Pdocker -f minifi/minifi-c2/minifi-c2-integration-tests/pom.xml

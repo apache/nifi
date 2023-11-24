@@ -24,11 +24,6 @@
 
     <artifactId>nifi-scripting-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-        <ant.version>1.10.13</ant.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -37,7 +32,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -60,40 +55,24 @@
 
         <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-all</artifactId>
             <type>pom</type>
             <scope>runtime</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-test</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-test-junit5</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
-                    <artifactId>groovy-testng</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.ant</groupId>
                     <artifactId>ant-junit</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <!-- Override ant from groovy-ant -->
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant</artifactId>
-            <version>${ant.version}</version>
-        </dependency>
-        <dependency>
-            <!-- Override ant from groovy-ant -->
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant-antlr</artifactId>
-            <version>${ant.version}</version>
         </dependency>
     </dependencies>
 </project>

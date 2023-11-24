@@ -468,7 +468,7 @@
             var PARAMETER_REFERENCE_OPTION = {
                 text: 'Reference parameter...',
                 value: undefined,
-                optionClass: 'unset'
+                optionClass: 'combo-option-special'
             };
             var LOADING_PARAMETERS_OPTION = {
                 text: 'Loading parameters...',
@@ -479,7 +479,7 @@
             var CREATE_CONTROLLER_SERVICE_OPTION = {
                 text: 'Create new service...',
                 value: 'createControllerService',
-                optionClass: 'unset'
+                optionClass: 'combo-option-special'
             };
 
             var scope = this;
@@ -768,8 +768,8 @@
                 if (parametersSupported && _.isUndefined(selectedValue)) {
                     selectedOption = parameterCombo.combo('getSelectedOption');
 
-                    // if the parameters are still loading, revert to the initial value, otherwise use the selected parameter
-                    if (selectedOption === LOADING_PARAMETERS_OPTION) {
+                    // if there are no parameters, or they are still loading, revert to the initial value otherwise use the selected parameter
+                    if (_.isUndefined(selectedOption) || selectedOption === LOADING_PARAMETERS_OPTION) {
                         selectedValue = initialValue;
                     } else {
                         selectedValue = selectedOption.value;
@@ -1036,6 +1036,7 @@
 
             var controllerServiceLookup = new Map();
             var options = [];
+        
             $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
                 controllerServiceLookup.set(i, controllerServiceType);
                 options.push({
@@ -1237,6 +1238,8 @@
                         if (typeof configurationOptions.controllerServiceCreatedDeferred === 'function') {
                             configurationOptions.controllerServiceCreatedDeferred(response);
                         }
+                        
+                        toggleHiddenDependentProperties(gridContainer);
                     }).fail(nfErrorHandler.handleAjaxError);
                 };
 
@@ -1686,93 +1689,7 @@
                 nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
             });
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
-                setTimeout(function() {
-                    var propertyData = propertyGrid.getData();
-
-                    // Get the default properties object
-                    var descriptors = table.data('descriptors');
-
-                    // Get the rows from the table
-                    var items = propertyData.getItems();
-
-                    // Loop over each row
-                    $.each(items, function (id, item) {
-                        // Get the property descriptor object
-                        var descriptor = descriptors[item.property];
-                        var dependent = false;
-
-                        // Check if descriptor is a dynamic property
-                        if (!descriptor.dynamic) {
-                            var hidden = false;
-
-                            // Check for dependencies
-                            if (descriptor.dependencies.length > 0) {
-                                // Loop over each dependency
-                                $.each(descriptor.dependencies, function (i, dependency) {
-                                    // It is sufficient to have found a single instance of not meeting the
-                                    // requirement for a dependent value in order to hide a property
-                                    if (hidden) {
-                                        return false;
-                                    }
-                                    // Check the row's dependent values against all other row's current values to determine hidden state
-                                    $.each(items, function (k, property) {
-                                        if (property.property === dependency.propertyName) {
-                                            dependent = true;
-                                            if (property.hidden === false) {
-                                                // Get the current property value to compare with the dependent value
-                                                var propertyValue = property.value;
-
-                                                // check if the property references a parameter
-                                                if (!_.isEmpty(currentParameters)) {
-                                                    const paramReference = getExistingParametersReferenced(propertyValue);
-                                                    // if parameter references exist, loop through all and interpolate the value in the propertyValue string
-                                                    if (paramReference.length > 0) {
-                                                        paramReference.forEach(function (param) {
-                                                            // handle null values by replacing with an empty string instead
-                                                            propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
-                                                        });
-                                                    }
-                                                }
-
-                                                // Test the dependentValues array against the current value of the property
-                                                if (propertyValue) {
-                                                    if (dependency.dependentValues) {
-                                                        hidden = !dependency.dependentValues.includes(propertyValue);
-                                                    } else {
-                                                        hidden = false;
-                                                    }
-                                                } else {
-                                                    hidden = true;
-                                                }
-                                            } else {
-                                                hidden = true;
-                                            }
-                                            if (hidden) {
-                                                // It is sufficient to have found a single instance of not meeting the
-                                                // requirement for a dependent value in order to hide a property
-                                                return false;
-                                            }
-                                        }
-                                    });
-                                });
-                            }
-                        } else {
-                            hidden = item.hidden;
-                        }
-
-                        propertyData.beginUpdate();
-                        propertyData.updateItem(id, $.extend(item, {
-                            hidden: hidden,
-                            dependent: dependent
-                        }));
-                        propertyData.endUpdate();
-
-                        // Reset hidden property
-                        hidden = false;
-                    });
-
-                    propertyGrid.resizeCanvas();
-                }, 50);
+                toggleHiddenDependentProperties(table);
             });
         }
 
@@ -1827,6 +1744,97 @@
             }
         });
     };
+
+    var toggleHiddenDependentProperties = function (gridContainer) {
+        setTimeout(function() {
+            var propertyGrid = gridContainer.data('gridInstance');
+            var propertyData = propertyGrid.getData();
+
+            // Get the default properties object
+            var descriptors = gridContainer.data('descriptors');
+
+            // Get the rows from the table
+            var items = propertyData.getItems();
+
+            // Loop over each row
+            $.each(items, function (id, item) {
+                // Get the property descriptor object
+                var descriptor = descriptors[item.property];
+                var dependent = false;
+
+                // Check if descriptor is a dynamic property
+                if (!descriptor.dynamic) {
+                    var hidden = false;
+
+                    // Check for dependencies
+                    if (descriptor.dependencies.length > 0) {
+                        // Loop over each dependency
+                        $.each(descriptor.dependencies, function (i, dependency) {
+                            // It is sufficient to have found a single instance of not meeting the
+                            // requirement for a dependent value in order to hide a property
+                            if (hidden) {
+                                return false;
+                            }
+                            // Check the row's dependent values against all other row's current values to determine hidden state
+                            $.each(items, function (k, property) {
+                                if (property.property === dependency.propertyName) {
+                                    dependent = true;
+                                    if (property.hidden === false) {
+                                        // Get the current property value to compare with the dependent value
+                                        var propertyValue = property.value;
+
+                                        // check if the property references a parameter
+                                        if (!_.isEmpty(currentParameters)) {
+                                            const paramReference = getExistingParametersReferenced(propertyValue);
+                                            // if parameter references exist, loop through all and interpolate the value in the propertyValue string
+                                            if (paramReference.length > 0) {
+                                                paramReference.forEach(function (param) {
+                                                    // handle null values by replacing with an empty string instead
+                                                    propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
+                                                });
+                                            }
+                                        }
+
+                                        // Test the dependentValues array against the current value of the property
+                                        if (propertyValue) {
+                                            if (dependency.dependentValues) {
+                                                hidden = !dependency.dependentValues.includes(propertyValue);
+                                            } else {
+                                                hidden = false;
+                                            }
+                                        } else {
+                                            hidden = true;
+                                        }
+                                    } else {
+                                        hidden = true;
+                                    }
+                                    if (hidden) {
+                                        // It is sufficient to have found a single instance of not meeting the
+                                        // requirement for a dependent value in order to hide a property
+                                        return false;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    hidden = item.hidden;
+                }
+
+                propertyData.beginUpdate();
+                propertyData.updateItem(id, $.extend(item, {
+                    hidden: hidden,
+                    dependent: dependent
+                }));
+                propertyData.endUpdate();
+
+                // Reset hidden property
+                hidden = false;
+            });
+
+            propertyGrid.resizeCanvas();
+        }, 50);
+    }
 
     var saveRow = function (table) {
         // get the property grid to commit the current edit

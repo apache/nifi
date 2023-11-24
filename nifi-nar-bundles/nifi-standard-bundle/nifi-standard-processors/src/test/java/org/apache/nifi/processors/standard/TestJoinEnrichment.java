@@ -154,6 +154,43 @@ public class TestJoinEnrichment {
         assertEquals(RecordFieldType.STRING, schema.getField("name").get().getDataType().getFieldType());
     }
 
+    @Test
+    public void testELReferencingAttribute() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoinEnrichment());
+
+        final ArrayListRecordWriter writer = setupCsvServices(runner);
+        runner.setProperty(JoinEnrichment.JOIN_STRATEGY, JoinEnrichment.JOIN_SQL);
+        runner.setProperty(JoinEnrichment.SQL, "SELECT original.id, enrichment.${desired_enrichment_column} FROM original JOIN enrichment ON original.id = enrichment.id");
+
+        final Map<String, String> originalAttributes = new HashMap<>();
+        originalAttributes.put("enrichment.group.id", "abc");
+        originalAttributes.put("enrichment.role", "ORIGINAL");
+        runner.enqueue("id\n5", originalAttributes);
+
+        final Map<String, String> enrichmentAttributes = new HashMap<>();
+        enrichmentAttributes.put("enrichment.group.id", "abc");
+        enrichmentAttributes.put("enrichment.role", "ENRICHMENT");
+        enrichmentAttributes.put("desired_enrichment_column", "name");
+        runner.enqueue("id,name\n5,John Doe", enrichmentAttributes);
+
+        runner.run();
+
+        runner.assertTransferCount(JoinEnrichment.REL_JOINED, 1);
+        runner.assertTransferCount(JoinEnrichment.REL_ORIGINAL, 2);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record outRecord = written.get(0);
+        assertEquals(5, outRecord.getAsInt("id"));
+        assertEquals("John Doe", outRecord.getValue("name"));
+
+        final RecordSchema schema = outRecord.getSchema();
+        assertEquals(RecordFieldType.STRING, schema.getField("id").get().getDataType().getFieldType());
+        assertEquals(RecordFieldType.STRING, schema.getField("name").get().getDataType().getFieldType());
+    }
+
+
     // Tests that the LEFT OUTER JOIN example in the Additional Details works as expected
     @Test
     public void testLeftOuterJoin() throws InitializationException, IOException, SchemaNotFoundException, MalformedRecordException {

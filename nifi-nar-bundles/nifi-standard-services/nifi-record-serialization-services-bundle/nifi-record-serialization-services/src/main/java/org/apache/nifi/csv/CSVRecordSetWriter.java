@@ -21,8 +21,10 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
@@ -43,9 +45,31 @@ import java.util.Map;
     + "corresponding to the record fields.")
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
+    // CSV writer implementations
+    public static final AllowableValue APACHE_COMMONS_CSV = new AllowableValue("commons-csv", "Apache Commons CSV",
+            "The CSV writer implementation from the Apache Commons CSV library.");
+
+    public static final AllowableValue FAST_CSV = new AllowableValue("fast-csv", "FastCSV",
+            "The CSV writer implementation from the FastCSV library. NOTE: This writer only officially supports RFC-4180, so it recommended to "
+                    + "set the 'CSV Format' property to 'RFC 4180'. It does handle some non-compliant CSV data, for that case set the 'CSV Format' property to "
+                    + "'CUSTOM' and the other custom format properties (such as 'Trim Fields', 'Trim double quote', etc.) as appropriate. Be aware that this "
+                    + "may cause errors if FastCSV doesn't handle the property settings correctly (such as 'Quote Mode'), but otherwise may process the output as expected even "
+                    + "if the data is not fully RFC-4180 compliant.");
+    public static final PropertyDescriptor CSV_WRITER = new PropertyDescriptor.Builder()
+            .name("csv-writer")
+            .displayName("CSV Writer")
+            .description("Specifies which writer implementation to use to write CSV records. NOTE: Different writers may support different subsets of functionality "
+                    + "and may also exhibit different levels of performance.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(APACHE_COMMONS_CSV, FAST_CSV)
+            .defaultValue(APACHE_COMMONS_CSV.getValue())
+            .required(true)
+            .build();
+
     private volatile ConfigurationContext context;
 
     private volatile boolean includeHeader;
+    private volatile String csvWriter;
     private volatile String charSet;
 
     // it will be initialized only if there are no dynamic csv formatting properties
@@ -55,6 +79,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(CSVUtils.CSV_FORMAT);
+        properties.add(CSV_WRITER);
         properties.add(CSVUtils.VALUE_SEPARATOR);
         properties.add(CSVUtils.INCLUDE_HEADER_LINE);
         properties.add(CSVUtils.QUOTE_CHAR);
@@ -81,6 +106,8 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         } else {
             this.csvFormat = null;
         }
+
+        this.csvWriter = context.getProperty(CSV_WRITER).getValue();
     }
 
     @Override
@@ -92,7 +119,14 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             csvFormat = CSVUtils.createCSVFormat(context, variables);
         }
 
-        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema, variables), out,
-            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
+        if (APACHE_COMMONS_CSV.getValue().equals(csvWriter)) {
+            return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema, variables), out,
+                    getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
+        } else if (FAST_CSV.getValue().equals(csvWriter)) {
+            return new WriteFastCSVResult(csvFormat, schema, getSchemaAccessWriter(schema, variables), out,
+                    getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
+        } else {
+            throw new IOException("Parser not supported");
+        }
     }
 }

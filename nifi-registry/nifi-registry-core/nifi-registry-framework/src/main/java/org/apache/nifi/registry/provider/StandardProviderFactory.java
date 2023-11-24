@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.registry.provider;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import jakarta.annotation.PostConstruct;
+import javax.sql.DataSource;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.extension.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
@@ -30,26 +49,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.xml.sax.SAXException;
-
-import javax.annotation.PostConstruct;
-import javax.sql.DataSource;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Standard implementation of ProviderFactory.
@@ -151,12 +150,12 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 final Class<?> rawFlowProviderClass = Class.forName(flowProviderClassName, true, classLoader);
                 final Class<? extends FlowPersistenceProvider> flowProviderClass = rawFlowProviderClass.asSubclass(FlowPersistenceProvider.class);
 
-                final Constructor constructor = flowProviderClass.getConstructor();
+                final Constructor<?> constructor = flowProviderClass.getConstructor();
                 flowPersistenceProvider = (FlowPersistenceProvider) constructor.newInstance();
 
                 performMethodInjection(flowPersistenceProvider, flowProviderClass);
 
-                LOGGER.info("Instantiated FlowPersistenceProvider with class name {}", new Object[]{flowProviderClassName});
+                LOGGER.info("Instantiated FlowPersistenceProvider with class name {}", flowProviderClassName);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating FlowPersistenceProvider with class name: " + flowProviderClassName, e);
@@ -164,7 +163,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
             final ProviderConfigurationContext configurationContext = createConfigurationContext(jaxbFlowProvider.getProperty());
             flowPersistenceProvider.onConfigured(configurationContext);
-            LOGGER.info("Configured FlowPersistenceProvider with class name {}", new Object[]{flowProviderClassName});
+            LOGGER.info("Configured FlowPersistenceProvider with class name {}", flowProviderClassName);
         }
 
         return flowPersistenceProvider;
@@ -202,12 +201,12 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                     final Class<?> rawHookProviderClass = Class.forName(hookProviderClassName, true, classLoader);
                     final Class<? extends EventHookProvider> hookProviderClass = rawHookProviderClass.asSubclass(EventHookProvider.class);
 
-                    final Constructor constructor = hookProviderClass.getConstructor();
+                    final Constructor<?> constructor = hookProviderClass.getConstructor();
                     hook = (EventHookProvider) constructor.newInstance();
 
                     performMethodInjection(hook, hookProviderClass);
 
-                    LOGGER.info("Instantiated EventHookProvider with class name {}", new Object[] {hookProviderClassName});
+                    LOGGER.info("Instantiated EventHookProvider with class name {}", hookProviderClassName);
                 } catch (Exception e) {
                     LOGGER.error(e.getMessage(), e);
                     throw new ProviderFactoryException("Error creating EventHookProvider with class name: " + hookProviderClassName, e);
@@ -216,7 +215,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 final ProviderConfigurationContext configurationContext = createConfigurationContext(hookProvider.getProperty());
                 hook.onConfigured(configurationContext);
                 eventHookProviders.add(hook);
-                LOGGER.info("Configured EventHookProvider with class name {}", new Object[] {hookProviderClassName});
+                LOGGER.info("Configured EventHookProvider with class name {}", hookProviderClassName);
             }
         }
 
@@ -246,12 +245,12 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 final Class<? extends BundlePersistenceProvider> extensionBundleProviderClass =
                         rawProviderClass.asSubclass(BundlePersistenceProvider.class);
 
-                final Constructor constructor = extensionBundleProviderClass.getConstructor();
+                final Constructor<?> constructor = extensionBundleProviderClass.getConstructor();
                 bundlePersistenceProvider = (BundlePersistenceProvider) constructor.newInstance();
 
                 performMethodInjection(bundlePersistenceProvider, extensionBundleProviderClass);
 
-                LOGGER.info("Instantiated BundlePersistenceProvider with class name {}", new Object[] {extensionBundleProviderClassName});
+                LOGGER.info("Instantiated BundlePersistenceProvider with class name {}", extensionBundleProviderClassName);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating BundlePersistenceProvider with class name: " + extensionBundleProviderClassName, e);
@@ -259,14 +258,14 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
 
             final ProviderConfigurationContext configurationContext = createConfigurationContext(jaxbExtensionBundleProvider.getProperty());
             bundlePersistenceProvider.onConfigured(configurationContext);
-            LOGGER.info("Configured BundlePersistenceProvider with class name {}", new Object[] {extensionBundleProviderClassName});
+            LOGGER.info("Configured BundlePersistenceProvider with class name {}", extensionBundleProviderClassName);
         }
 
         return bundlePersistenceProvider;
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         final List<Provider> providers = new ArrayList<>(eventHookProviders);
         providers.add(flowPersistenceProvider);
         providers.add(bundlePersistenceProvider);
@@ -286,38 +285,32 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
         final Map<String,String> properties = new HashMap<>();
 
         if (configProperties != null) {
-            configProperties.stream().forEach(p -> properties.put(p.getName(), p.getValue()));
+            configProperties.forEach(p -> properties.put(p.getName(), p.getValue()));
         }
 
         return new StandardProviderConfigurationContext(properties);
     }
 
-    private void performMethodInjection(final Object instance, final Class providerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private void performMethodInjection(final Object instance, final Class<?> providerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : providerClass.getMethods()) {
             if (method.isAnnotationPresent(ProviderContext.class)) {
                 // make the method accessible
-                final boolean isAccessible = method.isAccessible();
                 method.setAccessible(true);
+                final Class<?>[] argumentTypes = method.getParameterTypes();
 
-                try {
-                    final Class<?>[] argumentTypes = method.getParameterTypes();
+                // look for setters (single argument)
+                if (argumentTypes.length == 1) {
+                    final Class<?> argumentType = argumentTypes[0];
 
-                    // look for setters (single argument)
-                    if (argumentTypes.length == 1) {
-                        final Class<?> argumentType = argumentTypes[0];
-
-                        // look for well known types, currently we only support injecting the DataSource
-                        if (DataSource.class.isAssignableFrom(argumentType)) {
-                            method.invoke(instance, dataSource);
-                        }
+                    // look for well known types, currently we only support injecting the DataSource
+                    if (DataSource.class.isAssignableFrom(argumentType)) {
+                        method.invoke(instance, dataSource);
                     }
-                } finally {
-                    method.setAccessible(isAccessible);
                 }
             }
         }
 
-        final Class parentClass = providerClass.getSuperclass();
+        final Class<?> parentClass = providerClass.getSuperclass();
         if (parentClass != null && Provider.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }

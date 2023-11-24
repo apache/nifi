@@ -24,13 +24,10 @@ import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -353,84 +350,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-    @Test
-    public void testCannotJoinClusterIfMissingNar() throws NiFiClientException, IOException, InterruptedException {
-        getClientUtil().createProcessor("GenerateFlowFile");
-
-        // Shut down node 2
-        disconnectNode(2);
-        final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
-        node2.stop();
-
-        // Remove node from the cluster. This way we know when it's attempted to connect
-        final Integer node2ApiPort = getNodeApiPort(2);
-        removeNode(2);
-        removeExtensionsNar(node2);
-
-        node2.start(false);
-
-        // Wait until node is no longer removed from cluster, which will happen when it starts up and requests to connect
-        waitFor(() -> !isNodeRemoved(node2ApiPort));
-
-        // Wait for node to show as disconnected because it doesn't have the necessary nar
-        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
-
-        // We need to restore the extensions nar and restart the node so that subsequent tests can succeed
-        restoreExtensionsNar(node2);
-        node2.stop();
-        node2.start();
-
-        waitForAllNodesConnected();
-    }
-
-    private void removeNode(final int index) throws NiFiClientException, IOException, InterruptedException {
-        final NodeDTO nodeDto = getNodeEntity(index).getNode();
-        final String nodeId = nodeDto.getNodeId();
-        final Integer apiPort = nodeDto.getApiPort();
-        getNifiClient().getControllerClient().deleteNode(nodeId);
-        waitFor(() -> isNodeRemoved(apiPort));
-    }
-
-    private Integer getNodeApiPort(final int index) throws NiFiClientException, IOException {
-        final NodeDTO nodeDto = getNodeEntity(index).getNode();
-        final Integer apiPort = nodeDto.getApiPort();
-        return apiPort;
-    }
-
-    @Test
-    public void testCanJoinClusterIfAllNodesMissingNar() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-
-        // Shut down node 2
-        disconnectNode(2);
-        final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
-        node2.stop();
-
-        final NiFiInstance node1 = getNiFiInstance().getNodeInstance(1);
-        node1.stop();
-
-        removeExtensionsNar(node1);
-        removeExtensionsNar(node2);
-
-        node1.start(false);
-        node2.start(true);
-
-        waitForAllNodesConnected();
-
-        assertTrue(getNifiClient().getProcessorClient().getProcessor(generate.getId()).getComponent().getExtensionMissing());
-
-        // In order to ensure that subsequent tests are able to operate properly, we need to restore the nar and restart
-        node1.stop();
-        node2.stop();
-
-        restoreExtensionsNar(node1);
-        restoreExtensionsNar(node2);
-
-        node1.start(false);
-        node2.start(true);
-        waitForAllNodesConnected();
-    }
-
 
     @Test
     public void testCannotRemoveComponentsWhileNodeDisconnected() throws NiFiClientException, IOException, InterruptedException {
@@ -496,78 +415,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-
-    private void removeExtensionsNar(final NiFiInstance nifiInstance) {
-        final File extensionsNar = getExtensionsNar(nifiInstance);
-        final File backupFile = new File(extensionsNar.getParentFile(), extensionsNar.getName() + ".backup");
-        assertTrue(extensionsNar.renameTo(backupFile));
-    }
-
-    private void restoreExtensionsNar(final NiFiInstance nifiInstance) {
-        final File backupFile = getExtensionsNar(nifiInstance);
-        final File extensionsNar = new File(backupFile.getParentFile(), backupFile.getName().replace(".backup", ""));
-        assertTrue(backupFile.renameTo(extensionsNar));
-    }
-
-    private File getExtensionsNar(final NiFiInstance nifiInstance) {
-        final File libDir = new File(nifiInstance.getInstanceDirectory(), "lib");
-        final File[] testExtensionsNar = libDir.listFiles(file -> file.getName().startsWith("nifi-system-test-extensions-nar-"));
-        assertEquals(1, testExtensionsNar.length);
-
-        return testExtensionsNar[0];
-    }
-
-
-    private boolean isNodeRemoved(final int apiPort) {
-        try {
-            return getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
-                .noneMatch(dto -> dto.getApiPort() == apiPort);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    @Test
-    public void testRestartWithFlowXmlGzNoJson() throws NiFiClientException, IOException {
-        restartWithOnlySingleFlowPersistenceFile("flow.json.gz");
-    }
-
-    @Test
-    public void testRestartWithFlowJsonGzNoXml() throws NiFiClientException, IOException {
-        restartWithOnlySingleFlowPersistenceFile("flow.xml.gz");
-    }
-
-    private void restartWithOnlySingleFlowPersistenceFile(final String filenameToDelete) throws NiFiClientException, IOException {
-        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
-
-        final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
-        node2.stop();
-
-        final File confDir = new File(node2.getInstanceDirectory(), "conf");
-        assertEquals(1, confDir.listFiles(file -> file.getName().equals("flow.xml.gz")).length);
-        assertEquals(1, confDir.listFiles(file -> file.getName().equals("flow.json.gz")).length);
-
-        final File jsonFile = new File(confDir, filenameToDelete);
-        assertTrue(jsonFile.delete());
-
-        node2.start(true);
-        waitForAllNodesConnected();
-
-        switchClientToNode(2);
-
-        // Ensure it still has the components
-        final ProcessorClient processorClient = getNifiClient().getProcessorClient(DO_NOT_REPLICATE);
-        final ProcessorEntity restartGenerate = processorClient.getProcessor(generate.getId());
-        assertNotNull(restartGenerate);
-
-        final ProcessorEntity restartTerminate = processorClient.getProcessor(terminate.getId());
-        assertNotNull(restartTerminate);
-
-        final ConnectionEntity restartConnection = getNifiClient().getConnectionClient(DO_NOT_REPLICATE).getConnection(connection.getId());
-        assertNotNull(restartConnection);
-    }
 
     @Test
     public void testComponentsRecreatedOnRestart() throws NiFiClientException, IOException, InterruptedException {

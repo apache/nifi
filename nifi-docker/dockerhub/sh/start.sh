@@ -32,6 +32,11 @@ if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
     uncomment "java.arg.debug" ${nifi_bootstrap_file}
 fi
 
+# Setup NiFi to use Python
+uncomment "nifi.python.command" ${nifi_props_file}
+prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+# Setup NiFi to scan for new NARs in nar_extensions
+prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
@@ -50,35 +55,10 @@ prop_replace 'keystoreType'       "PKCS12"                              ${nifi_t
 prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
 prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
 
-if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
-    prop_replace 'nifi.web.https.port'                        ''
-    prop_replace 'nifi.web.https.host'                        ''
-    prop_replace 'nifi.web.http.port'                         "${NIFI_WEB_HTTP_PORT}"
-    prop_replace 'nifi.web.http.host'                         "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
-    prop_replace 'nifi.remote.input.secure'                   'false'
-    prop_replace 'nifi.cluster.protocol.is.secure'            'false'
-    prop_replace 'nifi.security.keystore'                     ''
-    prop_replace 'nifi.security.keystoreType'                 ''
-    prop_replace 'nifi.security.truststore'                   ''
-    prop_replace 'nifi.security.truststoreType'               ''
-    prop_replace 'nifi.security.user.login.identity.provider' ''
-    prop_replace 'keystore'                                   '' ${nifi_toolkit_props_file}
-    prop_replace 'keystoreType'                               '' ${nifi_toolkit_props_file}
-    prop_replace 'truststore'                                 '' ${nifi_toolkit_props_file}
-    prop_replace 'truststoreType'                             '' ${nifi_toolkit_props_file}
-    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" ${nifi_toolkit_props_file}
-
-    if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
-        prop_replace 'nifi.web.proxy.host' ''
-    fi
-else
-    if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
-    fi
+if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
 fi
 
-prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
 prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
 prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
 prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"

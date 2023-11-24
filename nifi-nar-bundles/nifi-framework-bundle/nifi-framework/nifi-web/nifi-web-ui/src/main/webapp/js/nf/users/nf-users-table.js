@@ -639,8 +639,6 @@
             policyLabel += 'remote process group ';
         } else if (resource.startsWith('/reporting-tasks')) {
             policyLabel += 'reporting task ';
-        } else if (resource.startsWith('/templates')) {
-            policyLabel += 'template ';
         } else if (resource.startsWith('/parameter-contexts')) {
             policyLabel += 'parameter context '
         }
@@ -693,8 +691,6 @@
                         markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
                     } else if (dataContext.component.resource.indexOf('/reporting-tasks') >= 0) {
                         //TODO: implement go to for RT
-                    } else if (dataContext.component.resource.indexOf('/templates') >= 0) {
-                        //TODO: implement go to for Templates
                     } else if (dataContext.component.resource.indexOf('/parameter-contexts') >= 0) {
                         markup += '<div title="Go To" class="pointer go-to-parameter-context fa fa-long-arrow-right" style="float: left;"></div>';
                     }
@@ -883,7 +879,7 @@
             return markup;
         };
 
-        // initialize the templates table
+        // initialize the users table
         var usersColumns = [
             {
                 id: 'identity',

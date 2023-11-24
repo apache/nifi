@@ -20,15 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -48,9 +44,11 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketListener;
+import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.PeerIdentityProvider;
+import org.apache.nifi.security.cert.StandardPeerIdentityProvider;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
@@ -62,11 +60,14 @@ import org.slf4j.LoggerFactory;
 public class SocketProtocolListener extends SocketListener implements ProtocolListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketProtocolListener.class);
+
+    private final PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
+
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final Collection<ProtocolHandler> handlers = new CopyOnWriteArrayList<>();
     private volatile BulletinRepository bulletinRepository;
 
-    private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+    private static final int EXCEPTION_THRESHOLD_MILLIS = 10_000;
     private volatile long tlsErrorLastSeen = -1;
 
     public SocketProtocolListener(
@@ -195,7 +196,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         } catch (final IOException | ProtocolException e) {
             String msg = "Failed processing protocol message from " + hostname + " due to ";
             // Suppress repeated TLS errors
-            if (CertificateUtils.isTlsError(e)) {
+            if (SocketUtils.isTlsError(e)) {
                 boolean printedAsWarning = handleTlsError(msg, e);
 
                 // TODO: Move into handleTlsError and refactor shared behavior
@@ -230,7 +231,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
     }
 
     /**
-     * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+     * Returns {@code true} if any related exception (determined by TLS error status) has occurred within the last
      * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
      * simply checks the last time the timestamp was updated.
      *
@@ -266,30 +267,11 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
     private Set<String> getCertificateIdentities(final Socket socket) throws IOException {
         if (socket instanceof SSLSocket) {
-            try {
-                final SSLSession sslSession = ((SSLSocket) socket).getSession();
-                return getCertificateIdentities(sslSession);
-            } catch (CertificateException e) {
-                throw new IOException("Could not extract Subject Alternative Names from client's certificate", e);
-            }
+            final SSLSession sslSession = ((SSLSocket) socket).getSession();
+            final Certificate[] peerCertificates = sslSession.getPeerCertificates();
+            return peerIdentityProvider.getIdentities(peerCertificates);
         } else {
             return Collections.emptySet();
         }
-    }
-
-    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
-        final Certificate[] certs = sslSession.getPeerCertificates();
-        if (certs == null || certs.length == 0) {
-            throw new SSLPeerUnverifiedException("No certificates found");
-        }
-
-        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
-        cert.checkValidity();
-
-        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
-                .map(CertificateUtils::extractUsername)
-                .collect(Collectors.toSet());
-
-        return identities;
     }
 }

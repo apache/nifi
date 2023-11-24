@@ -36,6 +36,7 @@ public class AccessPolicyEndpointMergerTest {
         assertFalse(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/Read/flow"), "GET"));
         assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/read/flow"), "GET"));
         assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/read/processors/" + UUID.randomUUID()), "GET"));
+        assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/write/processors/" + UUID.randomUUID()), "GET"));
     }
 
 }

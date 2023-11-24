@@ -1,0 +1,4 @@
+fields:
+  - type: string
+  - type:
+      - type: string

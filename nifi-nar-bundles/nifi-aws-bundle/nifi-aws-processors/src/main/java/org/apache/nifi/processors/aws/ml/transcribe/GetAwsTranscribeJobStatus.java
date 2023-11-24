@@ -17,13 +17,6 @@
 
 package org.apache.nifi.processors.aws.ml.transcribe;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.textract.model.ThrottlingException;
-import com.amazonaws.services.transcribe.AmazonTranscribeClient;
-import com.amazonaws.services.transcribe.model.GetTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.GetTranscriptionJobResult;
-import com.amazonaws.services.transcribe.model.TranscriptionJobStatus;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -33,7 +26,13 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
+import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
+import software.amazon.awssdk.services.transcribe.TranscribeClientBuilder;
+import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobResponse;
+import software.amazon.awssdk.services.transcribe.model.LimitExceededException;
+import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Transcribe"})
 @CapabilityDescription("Retrieves the current status of an AWS Transcribe job.")
@@ -41,51 +40,50 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
 @WritesAttributes({
         @WritesAttribute(attribute = "outputLocation", description = "S3 path-style output location of the result.")
 })
-public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonTranscribeClient> {
+public class GetAwsTranscribeJobStatus extends AbstractAwsMachineLearningJobStatusProcessor<TranscribeClient, TranscribeClientBuilder> {
+
     @Override
-    protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withCredentials(credentialsProvider)
-                .build();
+    protected TranscribeClientBuilder createClientBuilder(final ProcessContext context) {
+        return TranscribeClient.builder();
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
         try {
-            GetTranscriptionJobResult job = getJob(context, flowFile);
-            TranscriptionJobStatus jobStatus = TranscriptionJobStatus.fromValue(job.getTranscriptionJob().getTranscriptionJobStatus());
+            final GetTranscriptionJobResponse job = getJob(context, flowFile);
+            final TranscriptionJobStatus status = job.transcriptionJob().transcriptionJobStatus();
 
-            if (TranscriptionJobStatus.COMPLETED == jobStatus) {
-                writeToFlowFile(session, flowFile, job);
-                session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.getTranscriptionJob().getTranscript().getTranscriptFileUri());
+            if (TranscriptionJobStatus.COMPLETED == status) {
+                flowFile = writeToFlowFile(session, flowFile, job);
+                flowFile = session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.transcriptionJob().transcript().transcriptFileUri());
                 session.transfer(flowFile, REL_SUCCESS);
-            } else if (TranscriptionJobStatus.IN_PROGRESS == jobStatus) {
+            } else if (TranscriptionJobStatus.IN_PROGRESS == status || TranscriptionJobStatus.QUEUED == status) {
                 session.transfer(flowFile, REL_RUNNING);
-            } else if (TranscriptionJobStatus.FAILED == jobStatus) {
-                final String failureReason = job.getTranscriptionJob().getFailureReason();
-                session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
+            } else if (TranscriptionJobStatus.FAILED == status) {
+                final String failureReason = job.transcriptionJob().failureReason();
+                flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
                 session.transfer(flowFile, REL_FAILURE);
                 getLogger().error("Transcribe Task Failed {} Reason [{}]", flowFile, failureReason);
+            } else {
+                flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, "Unrecognized job status");
+                throw new IllegalStateException("Unrecognized job status");
             }
-        } catch (ThrottlingException e) {
+        } catch (final LimitExceededException e) {
             getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
-            return;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Failed to get Transcribe Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
-    private GetTranscriptionJobResult getJob(ProcessContext context, FlowFile flowFile) {
-        String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
-        GetTranscriptionJobRequest request = new GetTranscriptionJobRequest().withTranscriptionJobName(taskId);
+    private GetTranscriptionJobResponse getJob(final ProcessContext context, final FlowFile flowFile) {
+        final String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final GetTranscriptionJobRequest request = GetTranscriptionJobRequest.builder().transcriptionJobName(taskId).build();
         return getClient(context).getTranscriptionJob(request);
     }
 }

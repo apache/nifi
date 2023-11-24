@@ -43,20 +43,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestFileSystemBundlePersistenceProvider {
 
     static final String EXTENSION_STORAGE_DIR = "target/extension_storage";
 
-    static final ProviderConfigurationContext CONFIGURATION_CONTEXT = new ProviderConfigurationContext() {
-        @Override
-        public Map<String, String> getProperties() {
-            final Map<String,String> props = new HashMap<>();
-            props.put(FileSystemBundlePersistenceProvider.BUNDLE_STORAGE_DIR_PROP, EXTENSION_STORAGE_DIR);
-            return props;
-        }
+    private static final String BUCKET_ID = "b0000000-0000-0000-0000-000000000000";
+
+    private static final String SECOND_BUCKET_ID = "b2000000-0000-0000-0000-000000000000";
+
+    private static final String GROUP_ID = "c0000000-0000-0000-0000-000000000000";
+
+    private static final String ARTIFACT_ID = "a0000000-0000-0000-0000-000000000000";
+
+    private static final String FIRST_VERSION = "1.0.0";
+
+    private static final String SECOND_VERSION = "1.1.0";
+
+    static final ProviderConfigurationContext CONFIGURATION_CONTEXT = () -> {
+        final Map<String,String> props = new HashMap<>();
+        props.put(FileSystemBundlePersistenceProvider.BUNDLE_STORAGE_DIR_PROP, EXTENSION_STORAGE_DIR);
+        return props;
     };
 
     private File bundleStorageDir;
@@ -82,20 +90,20 @@ public class TestFileSystemBundlePersistenceProvider {
         final BundleVersionType type = BundleVersionType.NIFI_NAR;
 
         // first version in b1
-        final String content1 = "g1-a1-1.0.0";
-        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate("b1", "g1", "a1", "1.0.0", type);
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
+        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate1 , content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate1, content1);
 
         // second version in b1
-        final String content2 = "g1-a1-1.1.0";
-        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate("b1", "g1", "a1", "1.1.0", type);
+        final String content2 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, SECOND_VERSION);
+        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate2, content2);
         verifyBundleVersion(bundleStorageDir, versionCoordinate2, content2);
 
         // same bundle but in b2
-        final String content3 = "g1-a1-1.1.0";
-        final BundleVersionCoordinate versionCoordinate3 = getVersionCoordinate("b2", "g1", "a1", "1.1.0", type);
+        final String content3 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, SECOND_VERSION);
+        final BundleVersionCoordinate versionCoordinate3 = getVersionCoordinate(SECOND_BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate3, content3);
         verifyBundleVersion(bundleStorageDir, versionCoordinate3, content2);
     }
@@ -104,19 +112,14 @@ public class TestFileSystemBundlePersistenceProvider {
     public void testCreateWhenBundleVersionAlreadyExists() throws IOException {
         final BundleVersionType type = BundleVersionType.NIFI_NAR;
 
-        final String content1 = "g1-a1-1.0.0";
-        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate("b1", "g1", "a1", "1.0.0", type);
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
+        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate, content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
 
         // try to save same bundle version that already exists
-        try {
-            final String newContent = "new content";
-            createBundleVersion(fileSystemBundleProvider, versionCoordinate, newContent);
-            fail("Should have thrown exception");
-        } catch (BundlePersistenceException e) {
-            // expected
-        }
+        final String newContent = "new content";
+        assertThrows(BundlePersistenceException.class, () -> createBundleVersion(fileSystemBundleProvider, versionCoordinate, newContent));
 
         // verify existing content wasn't modified
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
@@ -126,8 +129,8 @@ public class TestFileSystemBundlePersistenceProvider {
     public void testUpdateWhenBundleVersionAlreadyExists() throws IOException {
         final BundleVersionType type = BundleVersionType.NIFI_NAR;
 
-        final String content1 = "g1-a1-1.0.0";
-        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate("b1", "g1", "a1", "1.0.0", type);
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
+        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate, content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
 
@@ -146,17 +149,14 @@ public class TestFileSystemBundlePersistenceProvider {
 
     @Test
     public void testCreateAndGet() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
         final BundleVersionType type = BundleVersionType.NIFI_NAR;
 
-        final String content1 = groupId + "-" + artifactId + "-" + "1.0.0";
-        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(bucketId, groupId, artifactId, "1.0.0", type);
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
+        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
         createBundleVersion(fileSystemBundleProvider,versionCoordinate1, content1);
 
-        final String content2 = groupId + "-" + artifactId + "-" + "1.1.0";
-        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(bucketId, groupId, artifactId, "1.1.0", type);
+        final String content2 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, SECOND_VERSION);
+        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate2, content2);
 
         try (final OutputStream out = new ByteArrayOutputStream()) {
@@ -176,30 +176,22 @@ public class TestFileSystemBundlePersistenceProvider {
 
     @Test
     public void testGetWhenDoesNotExist() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
-        final String version = "1.0.0";
         final BundleVersionType type = BundleVersionType.NIFI_NAR;
 
         try (final OutputStream out = new ByteArrayOutputStream()) {
-            final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bucketId, groupId, artifactId, version, type);
+            final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, type);
             assertThrows(BundlePersistenceException.class, () -> fileSystemBundleProvider.getBundleVersionContent(versionCoordinate, out));
         }
     }
 
     @Test
     public void testDeleteExtensionBundleVersion() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
-        final String version = "1.0.0";
         final BundleVersionType bundleType = BundleVersionType.NIFI_NAR;
 
-        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bucketId, groupId, artifactId, version, bundleType);
+        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, bundleType);
 
         // create and verify the bundle version
-        final String content1 = groupId + "-" + artifactId + "-" + version;
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate, content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
 
@@ -213,14 +205,10 @@ public class TestFileSystemBundlePersistenceProvider {
     }
 
     @Test
-    public void testDeleteExtensionBundleVersionWhenDoesNotExist() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
-        final String version = "1.0.0";
+    public void testDeleteExtensionBundleVersionWhenDoesNotExist() {
         final BundleVersionType bundleType = BundleVersionType.NIFI_NAR;
 
-        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bucketId, groupId, artifactId, version, bundleType);
+        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, bundleType);
 
         // verify the bundle version does not already exist
         final File bundleVersionDir = FileSystemBundlePersistenceProvider.getBundleVersionDirectory(bundleStorageDir, versionCoordinate);
@@ -233,39 +221,30 @@ public class TestFileSystemBundlePersistenceProvider {
 
     @Test
     public void testDeleteAllBundleVersions() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
-        final String version1 = "1.0.0";
-        final String version2 = "2.0.0";
         final BundleVersionType bundleType = BundleVersionType.NIFI_NAR;
 
         // create and verify the bundle version 1
-        final String content1 = groupId + "-" + artifactId + "-" + version1;
-        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(bucketId, groupId, artifactId, version1, bundleType);
+        final String content1 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, FIRST_VERSION);
+        final BundleVersionCoordinate versionCoordinate1 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, FIRST_VERSION, bundleType);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate1, content1);
         verifyBundleVersion(bundleStorageDir, versionCoordinate1, content1);
 
         // create and verify the bundle version 2
-        final String content2 = groupId + "-" + artifactId + "-" + version2;
-        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(bucketId, groupId, artifactId, version2, bundleType);
+        final String content2 = String.format("%s-%s-%s", GROUP_ID, ARTIFACT_ID, SECOND_VERSION);
+        final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, bundleType);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate2, content2);
         verifyBundleVersion(bundleStorageDir, versionCoordinate2, content2);
 
         assertEquals(1, bundleStorageDir.listFiles().length);
-        final BundleCoordinate bundleCoordinate = getBundleCoordinate(bucketId, groupId, artifactId);
+        final BundleCoordinate bundleCoordinate = getBundleCoordinate();
         fileSystemBundleProvider.deleteAllBundleVersions(bundleCoordinate);
         assertEquals(0, bundleStorageDir.listFiles().length);
     }
 
     @Test
-    public void testDeleteAllBundleVersionsWhenDoesNotExist() throws IOException {
-        final String bucketId = "b1";
-        final String groupId = "g1";
-        final String artifactId = "a1";
-
+    public void testDeleteAllBundleVersionsWhenDoesNotExist() {
         assertEquals(0, bundleStorageDir.listFiles().length);
-        final BundleCoordinate bundleCoordinate = getBundleCoordinate(bucketId, groupId, artifactId);
+        final BundleCoordinate bundleCoordinate = getBundleCoordinate();
         fileSystemBundleProvider.deleteAllBundleVersions(bundleCoordinate);
         assertEquals(0, bundleStorageDir.listFiles().length);
     }
@@ -306,11 +285,11 @@ public class TestFileSystemBundlePersistenceProvider {
         return coordinate;
     }
 
-    private static BundleCoordinate getBundleCoordinate(final String bucketId, final String groupId, final String artifactId) {
+    private static BundleCoordinate getBundleCoordinate() {
         final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
-        when(coordinate.getBucketId()).thenReturn(bucketId);
-        when(coordinate.getGroupId()).thenReturn(groupId);
-        when(coordinate.getArtifactId()).thenReturn(artifactId);
+        when(coordinate.getBucketId()).thenReturn(BUCKET_ID);
+        when(coordinate.getGroupId()).thenReturn(GROUP_ID);
+        when(coordinate.getArtifactId()).thenReturn(ARTIFACT_ID);
         return coordinate;
     }
 

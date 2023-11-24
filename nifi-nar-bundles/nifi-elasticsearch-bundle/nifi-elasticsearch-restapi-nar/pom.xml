@@ -20,8 +20,6 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-elasticsearch-restapi-nar</artifactId>
     <packaging>nar</packaging>
     <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
         <lucene.version>6.2.1</lucene.version>
     </properties>
 

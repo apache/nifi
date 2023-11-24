@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.tests.system;
 
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,6 +33,9 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * System Key Store Provider generates a Key Pair and Certificate for KeyStore and TrustStore files
@@ -39,9 +43,9 @@ import java.security.cert.X509Certificate;
 public class NiFiSystemKeyStoreProvider {
     private static final String HOSTNAME = "localhost";
 
-    private static final String[] DNS_NAMES = new String[]{HOSTNAME};
+    private static final List<String> DNS_NAMES = Collections.singletonList(HOSTNAME);
 
-    private static final String DISTINGUISHED_NAME = String.format("CN=%s", HOSTNAME);
+    private static final X500Principal DISTINGUISHED_NAME = new X500Principal(String.format("CN=%s", HOSTNAME));
 
     private static final String PASSWORD = NiFiSystemKeyStoreProvider.class.getSimpleName();
 
@@ -50,8 +54,6 @@ public class NiFiSystemKeyStoreProvider {
     private static final String KEY_ALGORITHM = "RSA";
 
     private static final int KEY_SIZE = 4096;
-
-    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
 
     private static final String KEYSTORE_FILE = "keystore.p12";
 
@@ -91,13 +93,9 @@ public class NiFiSystemKeyStoreProvider {
     private static void createKeyStores() {
         try {
             final KeyPair keyPair = getKeyPair();
-            final X509Certificate certificate = CertificateUtils.generateSelfSignedX509Certificate(
-                    keyPair,
-                    DISTINGUISHED_NAME,
-                    SIGNING_ALGORITHM,
-                    VALID_DURATION_DAYS,
-                    DNS_NAMES
-            );
+            final X509Certificate certificate = new StandardCertificateBuilder(keyPair, DISTINGUISHED_NAME, Duration.ofDays(VALID_DURATION_DAYS))
+                    .setDnsSubjectAlternativeNames(DNS_NAMES)
+                    .build();
 
             persistentTrustStorePath = writeTrustStore(certificate);
             persistentTrustStorePath.toFile().deleteOnExit();

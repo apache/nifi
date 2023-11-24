@@ -50,11 +50,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"record", "record sink", "script", "invoke", "groovy", "python", "jython"})
+@Tags({"record", "record sink", "script", "invoke", "groovy"})
 @CapabilityDescription("Allows the user to provide a scripted RecordSinkService instance in order to transmit records to the desired target. The script must set a variable 'recordSink' to an "
         + "implementation of RecordSinkService.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {
@@ -98,7 +98,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
     }

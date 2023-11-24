@@ -17,8 +17,8 @@
 
 package org.apache.nifi.python.processor;
 
-import org.apache.nifi.annotation.behavior.DefaultRunDuration;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,32 +28,28 @@ import org.apache.nifi.processor.exception.ProcessException;
 import py4j.Py4JNetworkException;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 
-@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class FlowFileTransformProxy extends PythonProcessorProxy {
 
-    private final PythonProcessorBridge bridge;
     private volatile FlowFileTransform transform;
 
-
-    public FlowFileTransformProxy(final PythonProcessorBridge bridge) {
-        super(bridge);
-        this.bridge = bridge;
-        this.transform = (FlowFileTransform) bridge.getProcessorAdapter().getProcessor();
-    }
-
-
-    protected void reloadProcessor() {
-        final boolean reloaded = bridge.reload();
-        if (reloaded) {
-            transform = (FlowFileTransform) bridge.getProcessorAdapter().getProcessor();
-            getLogger().info("Successfully reloaded Processor");
-        }
+    public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+        super(processorType, bridgeFactory);
     }
 
     @OnScheduled
     public void setContext(final ProcessContext context) {
-        transform.setContext(context);
+        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
+        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+        if (optionalAdapter.isEmpty()) {
+            throw new IllegalStateException(this + " is not finished initializing");
+        }
+
+        this.transform = (FlowFileTransform) optionalAdapter.get().getProcessor();
+        this.transform.setContext(context);
     }
 
     @Override
@@ -63,7 +59,7 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             return;
         }
 
-        FlowFile transformed = session.create(original);
+        FlowFile transformed = session.clone(original);
 
         final FlowFileTransformResult result;
         try (final StandardInputFlowFile inputFlowFile = new StandardInputFlowFile(session, original)) {
@@ -72,6 +68,13 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             throw new ProcessException("Failed to communicate with Python Process", e);
         } catch (final Exception e) {
             getLogger().error("Failed to transform {}", original, e);
+            session.remove(transformed);
+            session.transfer(original, REL_FAILURE);
+            return;
+        }
+        final String relationshipName = result.getRelationship();
+        final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
+        if (REL_FAILURE.getName().equals(relationshipName)) {
             session.remove(transformed);
             session.transfer(original, REL_FAILURE);
             return;
@@ -87,8 +90,6 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             transformed = session.write(transformed, out -> out.write(contents));
         }
 
-        final String relationshipName = result.getRelationship();
-        final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
         session.transfer(transformed, relationship);
         session.transfer(original, REL_ORIGINAL);
     }

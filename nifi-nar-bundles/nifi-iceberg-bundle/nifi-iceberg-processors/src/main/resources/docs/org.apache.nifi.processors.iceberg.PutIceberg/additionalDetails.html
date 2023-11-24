@@ -54,5 +54,12 @@
             The NiFi side retry logic is built on top of the Iceberg commit retry logic which can be configured through table properties. See more: <a href="https://iceberg.apache.org/docs/latest/configuration/#table-behavior-properties">Table behavior properties</a>
         </p>
 
+        <h3>Snapshot summary properties</h3>
+        <p>
+            The processor provides an option to add additional properties to the snapshot summary using dynamic properties.
+            The additional property must have the 'snapshot-property.' prefix in the dynamic property key but the actual entry will be inserted without it.
+            Each snapshot automatically gets the FlowFile's uuid in the 'nifi-flowfile-uuid' summary property.
+        </p>
+
     </body>
 </html>

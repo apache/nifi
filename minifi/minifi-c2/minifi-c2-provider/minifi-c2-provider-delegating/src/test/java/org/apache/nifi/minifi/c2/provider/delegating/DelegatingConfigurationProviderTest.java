@@ -57,7 +57,7 @@ public class DelegatingConfigurationProviderTest {
 
     @BeforeEach
     public void setup() throws ConfigurationProviderException {
-        contentType = "text/yml";
+        contentType = "test/json";
         version = 2;
         parameters = new HashMap<>();
         parameters.put("net", Collections.singletonList("edge"));

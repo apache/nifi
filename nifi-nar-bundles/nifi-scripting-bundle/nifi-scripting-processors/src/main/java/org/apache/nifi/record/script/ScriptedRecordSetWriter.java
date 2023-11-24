@@ -47,10 +47,10 @@ import java.util.Map;
 /**
  * A RecordSetWriter implementation that allows the user to script the RecordWriter instance
  */
-@Tags({"record", "writer", "script", "invoke", "groovy", "python", "jython"})
+@Tags({"record", "writer", "script", "invoke", "groovy"})
 @CapabilityDescription("Allows the user to provide a scripted RecordSetWriterFactory instance in order to write records to an outgoing flow file.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {

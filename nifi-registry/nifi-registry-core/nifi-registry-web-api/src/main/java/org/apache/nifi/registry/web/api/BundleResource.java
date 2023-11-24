@@ -24,6 +24,21 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.Extension;
 import io.swagger.annotations.ExtensionProperty;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
+import java.util.List;
+import java.util.SortedSet;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
+import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.event.EventFactory;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.extension.bundle.Bundle;
@@ -31,32 +46,21 @@ import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.apache.nifi.registry.web.service.StreamingContent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import java.util.List;
-import java.util.SortedSet;
-
 @Component
 @Path("/bundles")
 @Api(
-        value = "bundles",
-        description = "Gets metadata about extension bundles and their versions. ",
-        authorizations = { @Authorization("Authorization") }
+    value = "bundles",
+    authorizations = {@Authorization("Authorization")},
+    tags = {"Swagger Resource"}
 )
+@SwaggerDefinition(tags = {
+    @Tag(name = "Swagger Resource", description = "Gets metadata about extension bundles and their versions.")
+})
 public class BundleResource extends ApplicationResource {
 
     public static final String CONTENT_DISPOSITION_HEADER = "content-disposition";

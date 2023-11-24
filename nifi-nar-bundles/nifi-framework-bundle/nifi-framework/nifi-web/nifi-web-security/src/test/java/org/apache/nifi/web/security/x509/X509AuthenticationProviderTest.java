@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.web.security.x509;
 
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.security.auth.x500.X500Principal;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -30,15 +38,6 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.security.Principal;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,10 +59,6 @@ public class X509AuthenticationProviderTest {
     private static final String PROXY_1 = "proxy-1";
     private static final String PROXY_2 = "proxy-2";
 
-    private static final String GT = ">";
-    private static final String ESCAPED_GT = "\\\\>";
-    private static final String LT = "<";
-    private static final String ESCAPED_LT = "\\\\<";
 
     private X509AuthenticationProvider x509AuthenticationProvider;
     private X509IdentityProvider certificateIdentityProvider;
@@ -188,9 +183,9 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testAnonymousProxyInChain() {
         // override the setting to enable anonymous authentication
-        final Map<String, String> additionalProperties = new HashMap<String, String>() {{
-            put(NiFiProperties.SECURITY_ANONYMOUS_AUTHENTICATION, Boolean.TRUE.toString());
-        }};
+        final Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.SECURITY_ANONYMOUS_AUTHENTICATION, Boolean.TRUE.toString());
+
         final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, additionalProperties);
         x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, properties);
 
@@ -266,25 +261,7 @@ public class X509AuthenticationProviderTest {
         if (StringUtils.isEmpty(rawDn)) {
             return rawDn;
         } else {
-            return rawDn.replaceAll(GT, ESCAPED_GT).replaceAll(LT, ESCAPED_LT);
-        }
-    }
-
-    /**
-     * Reconstitutes the original DN from the sanitized version passed in the proxy chain.
-     * <p>
-     * Example:
-     * <p>
-     * {@code alopresto\>\<proxy1} -> {@code alopresto><proxy1}
-     *
-     * @param sanitizedDn the sanitized DN
-     * @return the original DN
-     */
-    private static String unsanitizeDn(String sanitizedDn) {
-        if (StringUtils.isEmpty(sanitizedDn)) {
-            return sanitizedDn;
-        } else {
-            return sanitizedDn.replaceAll(ESCAPED_GT, GT).replaceAll(ESCAPED_LT, LT);
+            return rawDn.replaceAll(">", "\\\\>").replaceAll("<", "\\\\<");
         }
     }
 
@@ -298,9 +275,9 @@ public class X509AuthenticationProviderTest {
 
     private X509Certificate getX509Certificate(final String identity) {
         final X509Certificate certificate = mock(X509Certificate.class);
-        when(certificate.getSubjectDN()).then(invocation -> {
-            final Principal principal = mock(Principal.class);
-            when(principal.getName()).thenReturn(identity);
+        when(certificate.getSubjectX500Principal()).then(invocation -> {
+            final X500Principal principal = mock(X500Principal.class);
+            when(principal.getName(any())).thenReturn(identity);
             return principal;
         });
         return certificate;

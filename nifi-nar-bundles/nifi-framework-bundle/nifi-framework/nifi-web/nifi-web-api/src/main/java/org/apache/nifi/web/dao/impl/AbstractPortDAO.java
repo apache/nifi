@@ -79,8 +79,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         }
 
         // see what's be modified
-        if (isAnyNotNull(portDTO.getUserAccessControl(),
-            portDTO.getGroupAccessControl(),
+        if (isAnyNotNull(
             portDTO.getConcurrentlySchedulableTaskCount(),
             portDTO.getName(),
             portDTO.getComments(),
@@ -158,16 +157,6 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
                 } catch (IllegalStateException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
                 }
-            }
-        }
-
-        if (port instanceof PublicPort) {
-            final PublicPort publicPort = (PublicPort) port;
-            if (isNotNull(portDTO.getGroupAccessControl())) {
-                publicPort.setGroupAccessControl(portDTO.getGroupAccessControl());
-            }
-            if (isNotNull(portDTO.getUserAccessControl())) {
-                publicPort.setUserAccessControl(portDTO.getUserAccessControl());
             }
         }
 

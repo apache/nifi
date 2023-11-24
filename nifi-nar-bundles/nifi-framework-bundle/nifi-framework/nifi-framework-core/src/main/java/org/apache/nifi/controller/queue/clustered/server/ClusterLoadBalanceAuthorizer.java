@@ -22,23 +22,23 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.cert.PeerIdentityProvider;
+import org.apache.nifi.security.cert.StandardPeerIdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(ClusterLoadBalanceAuthorizer.class);
+
+    private final PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
 
     private final ClusterCoordinator clusterCoordinator;
     private final EventReporter eventReporter;
@@ -51,15 +51,11 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     }
 
     @Override
-    public String authorize(SSLSocket sslSocket) throws NotAuthorizedException, IOException {
+    public String authorize(SSLSocket sslSocket) throws IOException {
         final SSLSession sslSession = sslSocket.getSession();
 
-        final Set<String> clientIdentities;
-        try {
-            clientIdentities = getCertificateIdentities(sslSession);
-        } catch (final CertificateException e) {
-            throw new IOException("Failed to extract Client Certificate", e);
-        }
+        final Certificate[] peerCertificates = sslSession.getPeerCertificates();
+        final Set<String> clientIdentities = peerIdentityProvider.getIdentities(peerCertificates);
 
         logger.debug("Will perform authorization against Client Identities '{}'", clientIdentities);
 
@@ -88,21 +84,5 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
         logger.warn(message);
         eventReporter.reportEvent(Severity.WARNING, "Load Balanced Connections", message);
         throw new NotAuthorizedException("Client ID's " + clientIdentities + " are not authorized to Load Balance data");
-    }
-
-    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
-        final Certificate[] certs = sslSession.getPeerCertificates();
-        if (certs == null || certs.length == 0) {
-            throw new SSLPeerUnverifiedException("No certificates found");
-        }
-
-        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
-        cert.checkValidity();
-
-        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
-                .map(CertificateUtils::extractUsername)
-                .collect(Collectors.toSet());
-
-        return identities;
     }
 }

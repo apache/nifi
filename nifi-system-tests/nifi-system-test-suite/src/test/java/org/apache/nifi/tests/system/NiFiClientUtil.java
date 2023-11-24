@@ -56,8 +56,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.dto.VariableDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
@@ -107,9 +105,6 @@ import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
-import org.apache.nifi.web.api.entity.VariableEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -131,9 +126,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class NiFiClientUtil {
     private static final Logger logger = LoggerFactory.getLogger(NiFiClientUtil.class);
@@ -623,6 +617,16 @@ public class NiFiClientUtil {
         return getProcessorClient().updateProcessor(updatedEntity);
     }
 
+    public ProcessorEntity setRetriedRelationships(final ProcessorEntity currentEntity, final String retriedRelationship) throws NiFiClientException, IOException {
+        return setRetriedRelationships(currentEntity, Collections.singleton(retriedRelationship));
+    }
+
+    public ProcessorEntity setRetriedRelationships(final ProcessorEntity currentEntity, final Set<String> retriedRelationships) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setRetriedRelationships(retriedRelationships);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
     public ProcessorEntity setAutoTerminatedRelationships(final ProcessorEntity currentEntity, final String autoTerminatedRelationship) throws NiFiClientException, IOException {
         return setAutoTerminatedRelationships(currentEntity, Collections.singleton(autoTerminatedRelationship));
     }
@@ -703,7 +707,10 @@ public class NiFiClientUtil {
     }
 
     public void waitForProcessorState(final String processorId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
+        logger.info("Waiting for Processor {} to reach state {}", processorId, expectedState);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String state = entity.getComponent().getState();
 
@@ -721,6 +728,7 @@ public class NiFiClientUtil {
 
             final ProcessorStatusSnapshotDTO snapshotDto = entity.getStatus().getAggregateSnapshot();
             if (snapshotDto.getActiveThreadCount() == 0 && snapshotDto.getTerminatedThreadCount() == 0) {
+                logger.info("Processor {} has reached desired state of {}", processorId, expectedState);
                 return;
             }
 
@@ -729,7 +737,10 @@ public class NiFiClientUtil {
     }
 
     public ReportingTaskEntity waitForReportingTaskState(final String reportingTaskId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+        logger.info("Waiting for Reporting Task {} to reach desired state of {}", reportingTaskId, expectedState);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ReportingTaskEntity entity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
             final String state = entity.getComponent().getState();
 
@@ -742,15 +753,19 @@ public class NiFiClientUtil {
             }
 
             if ("RUNNING".equals(expectedState)) {
+                logger.info("Reporting task {} is now running", reportingTaskId);
                 return entity;
             }
 
             if (entity.getStatus().getActiveThreadCount() == 0) {
+                logger.info("Reporting task {} is now stopped", reportingTaskId);
                 return entity;
             }
 
             Thread.sleep(10L);
         }
+
+        throw new IOException("Timed out waiting for Reporting Task " + reportingTaskId + " to reach state of " + expectedState);
     }
 
     public void waitForReportingTaskValid(final String reportingTaskId) throws NiFiClientException, IOException {
@@ -875,9 +890,13 @@ public class NiFiClientUtil {
     }
 
     private void waitForNoRunningComponents(final String groupId) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
+        logger.info("Waiting for no more running components for group {}", groupId);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final boolean anyRunning = isAnyComponentRunning(groupId);
             if (!anyRunning) {
+                logger.info("All Process Groups have finished");
                 return;
             }
 
@@ -913,6 +932,8 @@ public class NiFiClientUtil {
     }
 
     private void waitForProcessorsStopped(final String groupId) throws IOException, NiFiClientException {
+        logger.info("Waiting for processors in group {} to stop", groupId);
+
         final ProcessGroupFlowEntity rootGroup = nifiClient.getFlowClient().getProcessGroup(groupId);
         final FlowDTO rootFlowDTO = rootGroup.getProcessGroupFlow().getFlow();
         for (final ProcessorEntity processor : rootFlowDTO.getProcessors()) {
@@ -927,6 +948,8 @@ public class NiFiClientUtil {
         for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
             waitForProcessorsStopped(group.getComponent());
         }
+
+        logger.info("All processors in group {} have stopped", groupId);
     }
 
     private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
@@ -963,6 +986,8 @@ public class NiFiClientUtil {
     }
 
     public ActivateControllerServicesEntity disableControllerServices(final String groupId, final boolean recurse) throws NiFiClientException, IOException {
+        logger.info("Starting disableControllerServices for group {}, recurse={}", groupId, recurse);
+
         final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
         activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
@@ -980,6 +1005,7 @@ public class NiFiClientUtil {
             }
         }
 
+        logger.info("Finished disableControllerServices for group {}", groupId);
         return activateControllerServices;
     }
 
@@ -1005,7 +1031,10 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceRunStatus(final String id, final String requestedRunStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+        logger.info("Waiting for Controller Service {} to have a Run Status of {}", id, requestedRunStatus);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ControllerServiceEntity serviceEntity = nifiClient.getControllerServicesClient().getControllerService(id);
             final String serviceState = serviceEntity.getComponent().getState();
             if (requestedRunStatus.equals(serviceState)) {
@@ -1036,7 +1065,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceState(final String groupId, final String desiredState, final Collection<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final List<ControllerServiceEntity> nonDisabledServices = getControllerServicesNotInState(groupId, desiredState, serviceIdsOfInterest);
             if (nonDisabledServices.isEmpty()) {
                 logger.info("Process Group [{}] Controller Services have desired state [{}]", groupId, desiredState);
@@ -1056,7 +1087,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForControllerServiceValidationStatus(final String controllerServiceId, final String validationStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ControllerServiceEntity controllerServiceEntity = nifiClient.getControllerServicesClient().getControllerService(controllerServiceId);
             final String currentValidationStatus = controllerServiceEntity.getComponent().getValidationStatus();
             if (validationStatus.equals(currentValidationStatus)) {
@@ -1077,7 +1110,9 @@ public class NiFiClientUtil {
     }
 
     public void waitForReportingTaskValidationStatus(final String reportingTaskId, final String validationStatus) throws NiFiClientException, IOException {
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        while (System.currentTimeMillis() < maxTimestamp) {
             final ReportingTaskEntity reportingTaskEntity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
             final String currentValidationStatus = reportingTaskEntity.getStatus().getValidationStatus();
             if (validationStatus.equalsIgnoreCase(currentValidationStatus)) {
@@ -1313,11 +1348,17 @@ public class NiFiClientUtil {
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
         final ConnectionClient connectionClient = getConnectionClient();
 
-        DropRequestEntity requestEntity;
-        while (true) {
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
+
+        DropRequestEntity requestEntity = null;
+        while (System.currentTimeMillis() < maxTimestamp) {
             requestEntity = connectionClient.emptyQueue(connectionId);
             try {
                 while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
+                    if (System.currentTimeMillis() > maxTimestamp) {
+                        throw new IOException("Timed out waiting for queue " + connectionId + " to empty");
+                    }
+
                     try {
                         Thread.sleep(10L);
                     } catch (final InterruptedException ie) {
@@ -1455,44 +1496,6 @@ public class NiFiClientUtil {
         flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
 
         return getConnectionClient().getFlowFileContent(connectionId, uuid, nodeId);
-    }
-
-    public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {
-        final Set<VariableEntity> variableEntities = new HashSet<>();
-        for (final Map.Entry<String, String> entry : variables.entrySet()) {
-            final VariableEntity entity = new VariableEntity();
-            variableEntities.add(entity);
-
-            final VariableDTO dto = new VariableDTO();
-            dto.setName(entry.getKey());
-            dto.setValue(entry.getValue());
-            dto.setProcessGroupId(processGroup.getId());
-            entity.setVariable(dto);
-        }
-
-        final VariableRegistryDTO variableRegistryDto = new VariableRegistryDTO();
-        variableRegistryDto.setProcessGroupId(processGroup.getId());
-        variableRegistryDto.setVariables(variableEntities);
-
-        final VariableRegistryEntity registryEntity = new VariableRegistryEntity();
-        registryEntity.setProcessGroupRevision(processGroup.getRevision());
-        registryEntity.setVariableRegistry(variableRegistryDto);
-
-        VariableRegistryUpdateRequestEntity updateRequestEntity = nifiClient.getProcessGroupClient().updateVariableRegistry(processGroup.getId(), registryEntity);
-        while (!updateRequestEntity.getRequest().isComplete()) {
-            try {
-                Thread.sleep(100L);
-            } catch (final InterruptedException ie) {
-                throw new RuntimeException("Interrupted while waiting for variable registry to update");
-            }
-
-            updateRequestEntity = nifiClient.getProcessGroupClient().getVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
-        }
-
-        assertNull(updateRequestEntity.getRequest().getFailureReason());
-
-        nifiClient.getProcessGroupClient().deleteVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
-        return updateRequestEntity;
     }
 
     public List<ConfigVerificationResultDTO> verifyParameterProviderConfig(final String taskId, final Map<String, String> properties)

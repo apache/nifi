@@ -27,7 +27,7 @@
     If the Query Attribute property is configured, the executed query JSON will be placed in the attribute provided by this property.</p>
     <p>The query is paginated in Elasticsearch using one of the available methods - "Scroll" or "Search After" (optionally
     with a "Point in Time" for Elasticsearch 7.10+ with XPack enabled). The number of results per page can be controlled using
-        the <em>size</em> parameter in the Query JSON. For Search After functionality, a <em>sort</em> parameter <strong>must</strong>
+    the <em>size</em> parameter in the Query JSON. For Search After functionality, a <em>sort</em> parameter <strong>must</strong>
     be present within the Query JSON.</p>
     <p>Search results and aggregation results can be split up into multiple flowfiles. Aggregation results
     will only be split at the top level because nested aggregations lose their context (and thus lose their value) if

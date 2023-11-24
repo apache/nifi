@@ -55,7 +55,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
                     + " the " + BATCH_SIZE_THRESHOLD.getDisplayName() + " property, whichever condition is met first.")
             .required(true)
             .defaultValue("3 MB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
@@ -76,7 +76,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .displayName("API Endpoint")
             .description("Override the gRPC endpoint in the form of [host:port]")
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .defaultValue(PublisherStubSettings.getDefaultEndpoint())  // identical to SubscriberStubSettings.getDefaultEndpoint()
             .build();

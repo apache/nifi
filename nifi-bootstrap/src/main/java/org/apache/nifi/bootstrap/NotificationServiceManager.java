@@ -16,29 +16,6 @@
  */
 package org.apache.nifi.bootstrap;
 
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bootstrap.notification.NotificationContext;
-import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
-import org.apache.nifi.bootstrap.notification.NotificationService;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.resource.ResourceContext;
-import org.apache.nifi.components.resource.StandardResourceContext;
-import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
-import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,6 +32,27 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bootstrap.notification.NotificationContext;
+import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
+import org.apache.nifi.bootstrap.notification.NotificationService;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class NotificationServiceManager {
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceManager.class);
@@ -63,15 +61,8 @@ public class NotificationServiceManager {
 
     private final ScheduledExecutorService notificationExecutor;
     private int maxAttempts = 5;
-    private final VariableRegistry variableRegistry;
 
-
-    public NotificationServiceManager() {
-        this(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
-    }
-
-    NotificationServiceManager(final VariableRegistry variableRegistry){
-        this.variableRegistry = variableRegistry;
+    public NotificationServiceManager(){
         notificationExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(final Runnable r) {
@@ -144,7 +135,7 @@ public class NotificationServiceManager {
                 }
 
                 // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
+                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
                 final Collection<ValidationResult> validationResults = service.validate(validationContext);
                 final List<String> invalidReasons = new ArrayList<>();
 
@@ -182,7 +173,7 @@ public class NotificationServiceManager {
                 @Override
                 public void run() {
                     // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
+                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
                     final Collection<ValidationResult> validationResults = service.validate(validationContext);
                     final List<String> invalidReasons = new ArrayList<>();
 
@@ -251,7 +242,7 @@ public class NotificationServiceManager {
                 }
 
                 final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-                return new StandardPropertyValue(resourceContext, configuredValue, null, ParameterLookup.EMPTY, variableRegistry);
+                return new StandardPropertyValue(resourceContext, configuredValue, null, ParameterLookup.EMPTY);
             }
 
             @Override
@@ -339,7 +330,7 @@ public class NotificationServiceManager {
 
         final Object serviceObject;
         try {
-            serviceObject = clazz.newInstance();
+            serviceObject = clazz.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             logger.error("Found configuration for Notification Service with ID '{}' and Class '{}' but could not instantiate Notification Service.", serviceId, className);
             logger.error("", e);
@@ -372,7 +363,7 @@ public class NotificationServiceManager {
                     }
 
                     final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-                    return new StandardPropertyValue(resourceContext, value, null, ParameterLookup.EMPTY, variableRegistry);
+                    return new StandardPropertyValue(resourceContext, value, null, ParameterLookup.EMPTY);
                 }
 
                 @Override

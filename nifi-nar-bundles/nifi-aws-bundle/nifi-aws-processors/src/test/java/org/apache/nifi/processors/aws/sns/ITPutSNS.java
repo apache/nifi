@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -34,13 +36,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ITPutSNS {
 
-    private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
+    private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     private final String TOPIC_ARN = "Add SNS ARN here";
+
+    @BeforeAll
+    public static void assumeCredentialsFileExists() {
+        Assumptions.assumeTrue(new File(CREDENTIALS_FILE).exists());
+    }
 
     @Test
     public void testPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
-        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
         runner.setProperty(PutSNS.ARN, TOPIC_ARN);
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
 
@@ -57,17 +64,8 @@ public class ITPutSNS {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
         runner.setProperty(PutSNS.ARN, TOPIC_ARN);
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
 
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.enableControllerService(serviceImpl);
-
-        runner.assertValid(serviceImpl);
-
-        runner.setProperty(PutSNS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-
+        AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
         runner.run(1);
 
         final Map<String, String> attrs = new HashMap<>();

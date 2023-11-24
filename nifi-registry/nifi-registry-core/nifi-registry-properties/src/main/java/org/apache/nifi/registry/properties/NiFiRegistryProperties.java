@@ -123,7 +123,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     // Defaults
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
-    public static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "http/1.1";
+    public static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "h2 http/1.1";
     public static final String DEFAULT_WAR_DIR = "./lib";
     public static final String DEFAULT_PROVIDERS_CONFIGURATION_FILE = "./conf/providers.xml";
     public static final String DEFAULT_REGISTRY_ALIAS_CONFIGURATION_FILE = "./conf/registry-aliases.xml";
@@ -235,7 +235,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     }
 
     /**
-     * Get Web HTTPS Application Protocols defaults to HTTP/1.1
+     * Get Web HTTPS Application Protocols defaults to HTTP/2 and HTTP/1.1
      *
      * @return Set of configured HTTPS Application Protocols
      */

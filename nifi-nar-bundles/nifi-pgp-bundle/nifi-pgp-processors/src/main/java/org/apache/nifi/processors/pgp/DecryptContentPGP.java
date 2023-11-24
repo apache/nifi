@@ -38,7 +38,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPDecryptionException;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
-import org.apache.nifi.processors.pgp.io.KeyIdentifierConverter;
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import org.apache.nifi.util.StringUtils;

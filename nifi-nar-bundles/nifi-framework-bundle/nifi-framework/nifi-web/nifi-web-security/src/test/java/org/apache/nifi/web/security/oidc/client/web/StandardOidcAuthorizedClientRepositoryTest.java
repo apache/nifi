@@ -149,7 +149,7 @@ class StandardOidcAuthorizedClientRepositoryTest {
         repository.saveAuthorizedClient(authorizedClient, principal, request, response);
 
         verify(authorizedClientConverter).getEncoded(isA(OidcAuthorizedClient.class));
-        verify(stateManager).setState(stateMapCaptor.capture(), eq(SCOPE));
+        verify(stateManager).replace(eq(stateMap), stateMapCaptor.capture(), eq(SCOPE));
 
         final Map<String, String> updatedStateMap = stateMapCaptor.getValue();
         final String encodedClient = updatedStateMap.get(IDENTITY);
@@ -165,7 +165,7 @@ class StandardOidcAuthorizedClientRepositoryTest {
 
         repository.removeAuthorizedClient(REGISTRATION_ID, principal, request, response);
 
-        verify(stateManager).setState(stateMapCaptor.capture(), eq(SCOPE));
+        verify(stateManager).replace(eq(stateMap), stateMapCaptor.capture(), eq(SCOPE));
         final Map<String, String> updatedStateMap = stateMapCaptor.getValue();
         assertTrue(updatedStateMap.isEmpty());
     }

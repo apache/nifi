@@ -36,19 +36,16 @@ import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.flow.resource.ExternalResourceProvider;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
 import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
-import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
@@ -114,6 +111,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
+        definitionMap.put(FlowAnalysisRule.class, new HashSet<>());
         definitionMap.put(ParameterProvider.class, new HashSet<>());
         definitionMap.put(ControllerService.class, new HashSet<>());
         definitionMap.put(Authorizer.class, new HashSet<>());
@@ -439,7 +437,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
-                || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
+                || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
     }
 
     protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {
@@ -710,26 +708,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 final String type = classType.startsWith(PYTHON_TYPE_PREFIX) ? classType.substring(PYTHON_TYPE_PREFIX.length()) : classType;
 
                 final String procId = "temp-component-" + type;
-                final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false);
-                tempComponent = processorBridge.getProcessorProxy();
-
-                final ComponentLog componentLog = new MockComponentLogger();
-                final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
-                    @Override
-                    public String getIdentifier() {
-                        return procId;
-                    }
-
-                    @Override
-                    public ComponentLog getLogger() {
-                        return componentLog;
-                    }
-                };
-
-                processorBridge.initialize(initContext);
+                tempComponent = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
-                tempComponent = (ConfigurableComponent) componentClass.newInstance();
+                tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
             }
 
             initializeTempComponent(tempComponent);

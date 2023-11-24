@@ -37,6 +37,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -786,7 +787,7 @@ public class TestExecuteSQL {
             try {
                 Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
                 final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-                return con;
+                return Mockito.spy(con);
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.python;
 
+import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -32,7 +33,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PythonProcessorIT extends NiFiSystemIT {
 
     @Override
-    protected boolean isUnpackPythonExtensions() {
-        return true;
+    public NiFiInstanceFactory getInstanceFactory() {
+        return createPythonicInstanceFactory();
     }
 
     @Test
@@ -138,7 +138,7 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final String headerLine = lines[0];
         final List<String> headers = Stream.of(headerLine.split(","))
             .map(String::trim)
-            .collect(Collectors.toList());
+            .toList();
         assertTrue(headers.contains("name"));
         assertTrue(headers.contains("age"));
         assertTrue(headers.contains("color"));
@@ -154,7 +154,7 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final String firstRecordLine = lines[1];
         final List<String> firstRecordValues = Stream.of(firstRecordLine.split(","))
             .map(String::trim)
-            .collect(Collectors.toList());
+            .toList();
         assertEquals("Jane Doe", firstRecordValues.get( headerIndices.get("name") ));
         assertEquals("yellow", firstRecordValues.get( headerIndices.get("color") ));
         assertEquals("3", firstRecordValues.get( headerIndices.get("age") ));
@@ -164,7 +164,7 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final String secondRecordLine = lines[2];
         final List<String> secondRecordValues = Stream.of(secondRecordLine.split(","))
             .map(String::trim)
-            .collect(Collectors.toList());
+            .toList();
         assertEquals("Jake Doe", secondRecordValues.get( headerIndices.get("name") ));
         assertEquals("yellow", secondRecordValues.get( headerIndices.get("color") ));
         assertEquals("3", secondRecordValues.get( headerIndices.get("age") ));

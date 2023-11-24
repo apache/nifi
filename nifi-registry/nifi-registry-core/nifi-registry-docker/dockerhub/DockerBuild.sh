@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,24 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+set -e
+set -o pipefail
 
-DOCKER_UID=1000
-if [ -n "$1" ]; then
-  DOCKER_UID="$1"
-fi
+DOCKER_UID="${1:-1000}"
+DOCKER_GID="${2:-1000}"
+MIRROR="${3:-https://archive.apache.org/dist}"
 
-DOCKER_GID=1000
-if [ -n "$2" ]; then
-  DOCKER_GID="$2"
-fi
+DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
+NIFI_REGISTRY_IMAGE_VERSION="$(echo "${DOCKER_IMAGE}" | cut -d : -f 2)"
 
-MIRROR=https://archive.apache.org/dist
-if [ -n "$3" ]; then
-  MIRROR="$3"
-fi
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+root_dir="$(dirname "$(dirname "$(dirname "$(dirname "${script_dir}")")")")"
+mvn_cmd=("${root_dir}/mvnw" -f "${root_dir}/pom.xml" help:evaluate -q -D forceStdout)
+IMAGE_NAME="$("${mvn_cmd[@]}" -D expression=docker.jdk.image.name)"
+IMAGE_TAG="$("${mvn_cmd[@]}" -D expression=docker.image.tag)"
 
-DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
-NIFI_REGISTRY_IMAGE_VERSION="$(echo $DOCKER_IMAGE | cut -d : -f 2)"
-echo "Building NiFi-Registry Image: '$DOCKER_IMAGE' Version: NIFI_REGISTRY_IMAGE_VERSION Mirror: $MIRROR"
-docker build --build-arg UID="$DOCKER_UID" --build-arg GID="$DOCKER_GID" --build-arg NIFI_REGISTRY_VERSION="$NIFI_REGISTRY_IMAGE_VERSION" --build-arg MIRROR="$MIRROR" -t $DOCKER_IMAGE .
+echo "Building NiFi-Registry Image: '${DOCKER_IMAGE}' Version: '${NIFI_REGISTRY_IMAGE_VERSION}' Using: '${IMAGE_NAME}:${IMAGE_TAG}' Mirror: ${MIRROR} User/Group: '${DOCKER_UID}/${DOCKER_GID}'"
+docker build --build-arg IMAGE_NAME="${IMAGE_NAME}" --build-arg IMAGE_TAG="${IMAGE_TAG}" --build-arg UID="${DOCKER_UID}" --build-arg GID="${DOCKER_GID}" --build-arg NIFI_REGISTRY_VERSION="${NIFI_REGISTRY_IMAGE_VERSION}" --build-arg MIRROR="${MIRROR}" -t "${DOCKER_IMAGE}" .

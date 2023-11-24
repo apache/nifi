@@ -17,6 +17,19 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.io.InputStream;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.security.auth.login.LoginException;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
@@ -61,23 +74,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSet;
 
-import javax.security.auth.login.LoginException;
-import java.io.InputStream;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @SupportsBatching
@@ -166,8 +165,8 @@ public class PutKudu extends AbstractKuduProcessor {
         .name("Operation RecordPath")
         .displayName("Operation RecordPath")
         .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record in order to determine the Kudu Operation Type. When evaluated, the " +
-            "RecordPath must evaluate to one of hte valid Kudu Operation Types, or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property" +
-            " will be ignored.")
+            "RecordPath must evaluate to one of the valid Kudu Operation Types (Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for "
+            + "DELETE), or the incoming FlowFile will be routed to failure. If this property is specified, the <Kudu Operation Type> property will be ignored.")
         .required(false)
         .addValidator(new RecordPathValidator())
         .expressionLanguageSupported(NONE)
@@ -211,27 +210,28 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor FLUSH_MODE = new Builder()
         .name("Flush Mode")
-        .description("Set the new flush mode for a kudu session.\n" +
-            "AUTO_FLUSH_SYNC: the call returns when the operation is persisted, else it throws an exception.\n" +
-            "AUTO_FLUSH_BACKGROUND: the call returns when the operation has been added to the buffer. This call should normally perform only fast in-memory" +
-            " operations but it may have to wait when the buffer is full and there's another buffer being flushed.\n" +
-            "MANUAL_FLUSH: the call returns when the operation has been added to the buffer, else it throws a KuduException if the buffer is full.")
+        .description("""
+               Set the new flush mode for a kudu session.
+               AUTO_FLUSH_SYNC: the call returns when the operation is persisted, else it throws an exception.
+               AUTO_FLUSH_BACKGROUND: the call returns when the operation has been added to the buffer. This call should normally perform only fast in-memory
+               operations but it may have to wait when the buffer is full and there's another buffer being flushed.
+               "MANUAL_FLUSH: the call returns when the operation has been added to the buffer, else it throws a KuduException if the buffer is full.
+            """)
         .allowableValues(SessionConfiguration.FlushMode.values())
         .defaultValue(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND.toString())
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
         .build();
 
     protected static final PropertyDescriptor FLOWFILE_BATCH_SIZE = new Builder()
         .name("FlowFiles per Batch")
-        .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
+        .description("The maximum number of FlowFiles to process in a single execution, between 1 and 100,000. " +
             "Depending on your memory size, and data size per row set an appropriate batch size " +
             "for the number of FlowFiles to process per client connection setup." +
             "Gradually increase this number, only if your FlowFiles typically contain a few records.")
         .defaultValue("1")
         .required(true)
-        .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.createLongValidator(1, 100_000, true))
+        .expressionLanguageSupported(ENVIRONMENT)
         .build();
 
     protected static final PropertyDescriptor BATCH_SIZE = new Builder()
@@ -243,7 +243,7 @@ public class PutKudu extends AbstractKuduProcessor {
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ENVIRONMENT)
         .build();
 
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()
@@ -282,9 +282,6 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(TABLE_NAME);
         properties.add(FAILURE_STRATEGY);
         properties.add(KERBEROS_USER_SERVICE);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(KERBEROS_PRINCIPAL);
-        properties.add(KERBEROS_PASSWORD);
         properties.add(SKIP_HEAD_LINE);
         properties.add(LOWERCASE_FIELD_NAMES);
         properties.add(HANDLE_SCHEMA_DRIFT);
@@ -447,7 +444,7 @@ public class PutKudu extends AbstractKuduProcessor {
                         dataRecords = Collections.singletonList(record);
                     } else {
                         final RecordPathResult result = dataRecordPath.evaluate(record);
-                        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
+                        final List<FieldValue> fieldValues = result.getSelectedFields().toList();
                         if (fieldValues.isEmpty()) {
                             throw new ProcessException("RecordPath " + dataRecordPath.getPath() + " evaluated against Record yielded no results.");
                         }
@@ -510,7 +507,7 @@ public class PutKudu extends AbstractKuduProcessor {
                     record = recordSet.next();
                 }
             } catch (Exception ex) {
-                getLogger().error("Failed to push {} to Kudu", new Object[] {flowFile}, ex);
+                getLogger().error("Failed to push {} to Kudu", flowFile, ex);
                 flowFileFailures.put(flowFile, ex);
             }
         }
@@ -530,7 +527,7 @@ public class PutKudu extends AbstractKuduProcessor {
             recordFields = record.getSchema().getFields();
         } else {
             final RecordPathResult recordPathResult = dataRecordPath.evaluate(record);
-            final List<FieldValue> fieldValues =  recordPathResult.getSelectedFields().collect(Collectors.toList());
+            final List<FieldValue> fieldValues = recordPathResult.getSelectedFields().toList();
 
             recordFields = new ArrayList<>();
             for (final FieldValue fieldValue : fieldValues) {
@@ -548,7 +545,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
         final List<RecordField> missing = recordFields.stream()
             .filter(field -> !schema.hasColumn(lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName()))
-            .collect(Collectors.toList());
+            .toList();
 
         if (missing.isEmpty()) {
             getLogger().debug("No schema drift detected for {}", flowFile);
@@ -649,10 +646,8 @@ public class PutKudu extends AbstractKuduProcessor {
                                           boolean lowercaseFields, KuduTable kuduTable) {
         Operation operation;
         switch (operationType) {
-            case INSERT:
-                operation = kuduTable.newInsert();
-                break;
-            case INSERT_IGNORE:
+            case INSERT -> operation = kuduTable.newInsert();
+            case INSERT_IGNORE -> {
                 // If the target Kudu cluster does not support ignore operations use an insert.
                 // The legacy session based insert ignore will be used instead.
                 if (!supportsInsertIgnoreOp) {
@@ -660,24 +655,13 @@ public class PutKudu extends AbstractKuduProcessor {
                 } else {
                     operation = kuduTable.newInsertIgnore();
                 }
-                break;
-            case UPSERT:
-                operation = kuduTable.newUpsert();
-                break;
-            case UPDATE:
-                operation = kuduTable.newUpdate();
-                break;
-            case UPDATE_IGNORE:
-                operation = kuduTable.newUpdateIgnore();
-                break;
-            case DELETE:
-                operation = kuduTable.newDelete();
-                break;
-            case DELETE_IGNORE:
-                operation = kuduTable.newDeleteIgnore();
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
+            }
+            case UPSERT -> operation = kuduTable.newUpsert();
+            case UPDATE -> operation = kuduTable.newUpdate();
+            case UPDATE_IGNORE -> operation = kuduTable.newUpdateIgnore();
+            case DELETE -> operation = kuduTable.newDelete();
+            case DELETE_IGNORE -> operation = kuduTable.newDeleteIgnore();
+            default -> throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
         }
         buildPartialRow(kuduTable.getSchema(), operation.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
         return operation;
@@ -693,7 +677,7 @@ public class PutKudu extends AbstractKuduProcessor {
         @Override
         public OperationType apply(final Record record) {
             final RecordPathResult recordPathResult = recordPath.evaluate(record);
-            final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().collect(Collectors.toList());
+            final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().toList();
             if (resultList.isEmpty()) {
                 throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record but got no results");
             }
@@ -704,7 +688,18 @@ public class PutKudu extends AbstractKuduProcessor {
 
             final String resultValue = String.valueOf(resultList.get(0).getValue());
             try {
-                return OperationType.valueOf(resultValue.toUpperCase());
+                // Support Operation Type character values from Debezium
+                switch (resultValue) {
+                case "c":
+                case "r":
+                    return OperationType.INSERT;
+                case "u":
+                    return OperationType.UPDATE;
+                case "d":
+                    return OperationType.DELETE;
+                default:
+                    return OperationType.valueOf(resultValue.toUpperCase());
+                }
             } catch (final IllegalArgumentException iae) {
                 throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Kudu Operation Type but found invalid value: " + resultValue);
             }

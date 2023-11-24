@@ -20,24 +20,25 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
-                'Slick',
-                'd3',
-                'nf.Client',
-                'nf.Dialog',
-                'nf.Storage',
-                'nf.Common',
-                'nf.CanvasUtils',
-                'nf.ControllerServices',
-                'nf.ErrorHandler',
-                'nf.FilteredDialogCommon',
-                'nf.ReportingTask',
-                'nf.Shell',
-                'nf.ComponentState',
-                'nf.ComponentVersion',
-                'nf.PolicyManagement',
-                'nf.ParameterProvider'],
-            function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
-                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider));
+            'Slick',
+            'd3',
+            'nf.Client',
+            'nf.Dialog',
+            'nf.Storage',
+            'nf.Common',
+            'nf.CanvasUtils',
+            'nf.ControllerServices',
+            'nf.ErrorHandler',
+            'nf.FilteredDialogCommon',
+            'nf.ReportingTask',
+            'nf.FlowAnalysisRule',
+            'nf.Shell',
+            'nf.ComponentState',
+            'nf.ComponentVersion',
+            'nf.PolicyManagement',
+            'nf.ParameterProvider'],
+            function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfFlowAnalysisRule, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfFlowAnalysisRule, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -53,6 +54,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.FilteredDialogCommon'),
                 require('nf.ReportingTask'),
+                require('nf.FlowAnalysisRule'),
                 require('nf.Shell'),
                 require('nf.ComponentState'),
                 require('nf.ComponentVersion'),
@@ -71,13 +73,14 @@
             root.nf.ErrorHandler,
             root.nf.FilteredDialogCommon,
             root.nf.ReportingTask,
+            root.nf.FlowAnalysisRule,
             root.nf.Shell,
             root.nf.ComponentState,
             root.nf.ComponentVersion,
             root.nf.PolicyManagement,
             root.nf.ParameterProvider);
     }
-}(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfFlowAnalysisRule, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
     'use strict';
 
 
@@ -88,11 +91,15 @@
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
             reportingTasks: '../nifi-api/flow/reporting-tasks',
+            flowAnalysisRuleTypes: '../nifi-api/flow/flow-analysis-rule-types',
+            createFlowAnalysisRule: '../nifi-api/controller/flow-analysis-rules',
+            flowAnalysisRules: '../nifi-api/controller/flow-analysis-rules',
             registries: '../nifi-api/controller/registry-clients',
             createParameterProvider: '../nifi-api/controller/parameter-providers',
             parameterProviderTypes: '../nifi-api/flow/parameter-provider-types',
             parameterProviders: '../nifi-api/flow/parameter-providers',
-            registryTypes: '../nifi-api/controller/registry-types'
+            registryTypes: '../nifi-api/controller/registry-types',
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -631,6 +638,19 @@
     };
 
     /**
+     * Loads the current users.
+     */
+    var loadCurrentUser = function () {
+        $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nfCommon.setCurrentUser(currentUser);
+        });
+    };
+
+    /**
      * Adds the specified registry entity.
      */
     var addRegistry = function () {
@@ -672,6 +692,10 @@
             var row = registriesData.getRowById(registryEntity.id);
             nfFilteredDialogCommon.choseRow(registriesGrid, row);
             registriesGrid.scrollRowIntoView(row);
+
+            // refresh the current-user after configuring or deleting a registry client
+            // 'canVersionFlows' property determines if we show the No Registry Client available dialog or the Import Version dialog
+            loadCurrentUser();
 
             // hide the dialog
             $('#registry-configuration-dialog').modal('hide');
@@ -1015,7 +1039,7 @@
                     type: documentedType.type,
                     bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
-                    restricted:  documentedType.restricted,
+                    restricted: documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
@@ -1123,19 +1147,19 @@
                     }
                 }
             },
-                {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -1165,19 +1189,6 @@
                         .width($('#reporting-task-description-container').innerWidth() - 1)
                         .text($('#reporting-task-type-description').attr('title'))
                         .ellipsis();
-                }
-            }
-        });
-
-        // initialize the registry configuration dialog
-        $('#registry-configuration-dialog').modal({
-            scrollableContentStyle: 'scrollable',
-            handler: {
-                close: function () {
-                    $('#registry-id-config').text('');
-                    $('#registry-name-config').val('');
-                    $('#registry-type-config').val('');
-                    $('#registry-description-config').val('');
                 }
             }
         });
@@ -1417,7 +1428,7 @@
                     type: documentedType.type,
                     bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
-                    restricted:  documentedType.restricted,
+                    restricted: documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
@@ -1525,19 +1536,19 @@
                     }
                 }
             },
-                {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
                     }
                 }
+            }
             ],
             handler: {
                 close: function () {
@@ -1588,14 +1599,14 @@
             var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book"></div>';
+            markup += '<div title="View Documentation" class="pointer reporting-task-usage fa fa-book"></div>';
 
             var hasComments = !nfCommon.isBlank(dataContext.component.comments);
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
 
             if (hasComments) {
-            	markup += '<div class="pointer has-comments fa fa-comment"></div>';
+                markup += '<div class="pointer has-comments fa fa-comment"></div>';
             }
 
             if (hasErrors) {
@@ -1832,7 +1843,7 @@
         $('#reporting-tasks-table').data('gridInstance', reportingTasksGrid).on('mouseenter', 'div.slick-cell', function (e) {
             var commentsIcon = $(this).find('div.has-comments');
             if (commentsIcon.length && !commentsIcon.data('qtip')) {
-                 var taskId = $(this).find('span.row-id').text();
+                var taskId = $(this).find('span.row-id').text();
 
                 // get the task item
                 var reportingTaskEntity = reportingTasksData.getItemById(taskId);
@@ -1903,6 +1914,829 @@
                 // show the tooltip
                 if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     bulletinIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $('#shell-container'),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
+                            }
+                        }));
+                }
+            }
+        });
+    };
+
+    /**
+     * Get the text out of the filter field. If the filter field doesn't
+     * have any text it will contain the text 'filter list' so this method
+     * accounts for that.
+     */
+    var getFlowAnalysisRuleTypeFilterText = function () {
+        return $('#flow-analysis-rule-type-filter').val();
+    };
+
+    /**
+     * Filters the flow analysis rule type table.
+     */
+    var applyFlowAnalysisRuleTypeFilter = function () {
+        // get the dataview
+        var flowAnalysisRuleTypesGrid = $('#flow-analysis-rule-types-table').data('gridInstance');
+
+        // ensure the grid has been initialized
+        if (nfCommon.isDefinedAndNotNull(flowAnalysisRuleTypesGrid)) {
+            var flowAnalysisRuleTypesData = flowAnalysisRuleTypesGrid.getData();
+
+            // update the search criteria
+            flowAnalysisRuleTypesData.setFilterArgs({
+                searchString: getFlowAnalysisRuleTypeFilterText()
+            });
+            flowAnalysisRuleTypesData.refresh();
+
+            // update the buttons to possibly trigger the disabled state
+            $('#new-flow-analysis-rule-dialog').modal('refreshButtons');
+
+            // update the selection if possible
+            if (flowAnalysisRuleTypesData.getLength() > 0) {
+                nfFilteredDialogCommon.choseFirstRow(flowAnalysisRuleTypesGrid);
+            }
+        }
+    };
+
+    /**
+     * Hides the selected flow analysis rule.
+     */
+    var clearSelectedFlowAnalysisRule = function () {
+        $('#flow-analysis-rule-type-description').attr('title', '').text('');
+        $('#flow-analysis-rule-type-name').attr('title', '').text('');
+        $('#flow-analysis-rule-type-bundle').attr('title', '').text('');
+        $('#selected-flow-analysis-rule-name').text('');
+        $('#selected-flow-analysis-rule-type').text('').removeData('bundle');
+        $('#flow-analysis-rule-description-container').hide();
+    };
+
+    /**
+     * Clears the selected flow analysis rule type.
+     */
+    var clearFlowAnalysisRuleSelection = function () {
+        // clear the selected row
+        clearSelectedFlowAnalysisRule();
+
+        // clear the active cell the it can be reselected when its included
+        var flowAnalysisRuleTypesGrid = $('#flow-analysis-rule-types-table').data('gridInstance');
+        flowAnalysisRuleTypesGrid.resetActiveCell();
+    };
+
+    /**
+     * Performs the filtering.
+     *
+     * @param {object} item     The item subject to filtering
+     * @param {object} args     Filter arguments
+     * @returns {Boolean}       Whether or not to include the item
+     */
+    var filterFlowAnalysisRuleTypes = function (item, args) {
+        // determine if the item matches the filter
+        var matchesFilter = matchesRegex(item, args);
+
+        // determine if the row matches the selected tags
+        var matchesTags = true;
+        if (matchesFilter) {
+            var tagFilters = $('#flow-analysis-rule-tag-cloud').tagcloud('getSelectedTags');
+            var hasSelectedTags = tagFilters.length > 0;
+            if (hasSelectedTags) {
+                matchesTags = matchesSelectedTags(tagFilters, item['tags']);
+            }
+        }
+
+        // determine if the row matches the selected source group
+        var matchesGroup = true;
+        if (matchesFilter && matchesTags) {
+            var bundleGroup = $('#flow-analysis-rule-bundle-group-combo').combo('getSelectedOption');
+            if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+                matchesGroup = (item.bundle.group === bundleGroup.value);
+            }
+        }
+
+        // determine if this row should be visible
+        var matches = matchesFilter && matchesTags && matchesGroup;
+
+        // if this row is currently selected and its being filtered
+        if (matches === false && $('#selected-flow-analysis-rule-type').text() === item['type']) {
+            clearFlowAnalysisRuleSelection();
+        }
+
+        return matches;
+    };
+
+    /**
+     * Adds the currently selected flow analysis rule.
+     */
+    var addSelectedFlowAnalysisRule = function () {
+        var selectedTaskType = $('#selected-flow-analysis-rule-type').text();
+        var selectedTaskBundle = $('#selected-flow-analysis-rule-type').data('bundle');
+
+        // ensure something was selected
+        if (selectedTaskType === '') {
+            nfDialog.showOkDialog({
+                headerText: 'Settings',
+                dialogContent: 'The type of flow analysis rule to create must be selected.'
+            });
+        } else {
+            addFlowAnalysisRule(selectedTaskType, selectedTaskBundle);
+        }
+    };
+
+    /**
+     * Adds a new flow analysis rule of the specified type.
+     *
+     * @param {string} flowAnalysisRuleType
+     * @param {object} flowAnalysisRuleBundle
+     */
+    var addFlowAnalysisRule = function (flowAnalysisRuleType, flowAnalysisRuleBundle) {
+        // build the flow analysis rule entity
+        var flowAnalysisRuleEntity = {
+            'revision': nfClient.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'component': {
+                'type': flowAnalysisRuleType,
+                'bundle': flowAnalysisRuleBundle
+            }
+        };
+
+        // add the new flow analysis rule
+        var addRule = $.ajax({
+            type: 'POST',
+            url: config.urls.createFlowAnalysisRule,
+            data: JSON.stringify(flowAnalysisRuleEntity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (flowAnalysisRuleEntity) {
+            // add the item
+            var flowAnalysisRuleGrid = $('#flow-analysis-rules-table').data('gridInstance');
+            var flowAnalysisRuleData = flowAnalysisRuleGrid.getData();
+            flowAnalysisRuleData.addItem($.extend({
+                type: 'FlowAnalysisRule',
+                bulletins: []
+            }, flowAnalysisRuleEntity));
+
+            // resort
+            flowAnalysisRuleData.reSort();
+            flowAnalysisRuleGrid.invalidate();
+
+            // select the new flow analysis rule
+            var row = flowAnalysisRuleData.getRowById(flowAnalysisRuleEntity.id);
+            nfFilteredDialogCommon.choseRow(flowAnalysisRuleGrid, row);
+            flowAnalysisRuleGrid.scrollRowIntoView(row);
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        // hide the dialog
+        $('#new-flow-analysis-rule-dialog').modal('hide');
+
+        return addRule;
+    };
+
+    /**
+     * Initializes the new flow analysis rule dialog.
+     */
+    var initNewFlowAnalysisRuleDialog = function () {
+        // initialize the flow analysis rule type table
+        var flowAnalysisRuleTypesColumns = [
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nfCommon.typeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'version',
+                name: 'Version',
+                field: 'version',
+                formatter: nfCommon.typeVersionFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            }
+        ];
+
+        // initialize the dataview
+        var flowAnalysisRuleTypesData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        flowAnalysisRuleTypesData.setItems([]);
+        flowAnalysisRuleTypesData.setFilterArgs({
+            searchString: getFlowAnalysisRuleTypeFilterText()
+        });
+        flowAnalysisRuleTypesData.setFilter(filterFlowAnalysisRuleTypes);
+
+        // initialize the sort
+        nfCommon.sortType({
+            columnId: 'type',
+            sortAsc: true
+        }, flowAnalysisRuleTypesData);
+
+        // initialize the grid
+        var flowAnalysisRuleTypesGrid = new Slick.Grid('#flow-analysis-rule-types-table', flowAnalysisRuleTypesData, flowAnalysisRuleTypesColumns, gridOptions);
+        flowAnalysisRuleTypesGrid.setSelectionModel(new Slick.RowSelectionModel());
+        flowAnalysisRuleTypesGrid.registerPlugin(new Slick.AutoTooltips());
+        flowAnalysisRuleTypesGrid.setSortColumn('type', true);
+        flowAnalysisRuleTypesGrid.onSort.subscribe(function (e, args) {
+            nfCommon.sortType({
+                columnId: args.sortCol.field,
+                sortAsc: args.sortAsc
+            }, flowAnalysisRuleTypesData);
+        });
+        flowAnalysisRuleTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
+            if ($.isArray(args.rows) && args.rows.length === 1) {
+                var flowAnalysisRuleTypeIndex = args.rows[0];
+                var flowAnalysisRuleType = flowAnalysisRuleTypesGrid.getDataItem(flowAnalysisRuleTypeIndex);
+
+                // set the flow analysis rule type description
+                if (nfCommon.isDefinedAndNotNull(flowAnalysisRuleType)) {
+                    // show the selected flow analysis rule
+                    $('#flow-analysis-rule-description-container').show();
+
+                    if (nfCommon.isBlank(flowAnalysisRuleType.description)) {
+                        $('#flow-analysis-rule-type-description')
+                            .attr('title', '')
+                            .html('<span class="unset">No description specified</span>');
+                    } else {
+                        $('#flow-analysis-rule-type-description')
+                            .width($('#flow-analysis-rule-description-container').innerWidth() - 1)
+                            .html(flowAnalysisRuleType.description)
+                            .ellipsis();
+                    }
+
+                    var bundle = nfCommon.formatBundle(flowAnalysisRuleType.bundle);
+                    var type = nfCommon.formatType(flowAnalysisRuleType);
+
+                    // populate the dom
+                    $('#flow-analysis-rule-type-name').text(type).attr('title', type);
+                    $('#flow-analysis-rule-type-bundle').text(bundle).attr('title', bundle);
+                    $('#selected-flow-analysis-rule-name').text(flowAnalysisRuleType.label);
+                    $('#selected-flow-analysis-rule-type').text(flowAnalysisRuleType.type).data('bundle', flowAnalysisRuleType.bundle);
+
+                    // refresh the buttons based on the current selection
+                    $('#new-flow-analysis-rule-dialog').modal('refreshButtons');
+                }
+            }
+        });
+        flowAnalysisRuleTypesGrid.onDblClick.subscribe(function (e, args) {
+            var flowAnalysisRuleType = flowAnalysisRuleTypesGrid.getDataItem(args.row);
+
+            if (isSelectable(flowAnalysisRuleType)) {
+                addFlowAnalysisRule(flowAnalysisRuleType.type, flowAnalysisRuleType.bundle);
+            }
+        });
+        flowAnalysisRuleTypesGrid.onViewportChanged.subscribe(function (e, args) {
+            nfCommon.cleanUpTooltips($('#flow-analysis-rule-types-table'), 'div.view-usage-restriction');
+        });
+
+        // wire up the dataview to the grid
+        flowAnalysisRuleTypesData.onRowCountChanged.subscribe(function (e, args) {
+            flowAnalysisRuleTypesGrid.updateRowCount();
+            flowAnalysisRuleTypesGrid.render();
+
+            // update the total number of displayed processors
+            $('#displayed-flow-analysis-rule-types').text(args.current);
+        });
+        flowAnalysisRuleTypesData.onRowsChanged.subscribe(function (e, args) {
+            flowAnalysisRuleTypesGrid.invalidateRows(args.rows);
+            flowAnalysisRuleTypesGrid.render();
+        });
+        flowAnalysisRuleTypesData.syncGridSelection(flowAnalysisRuleTypesGrid, true);
+
+        // hold onto an instance of the grid
+        $('#flow-analysis-rule-types-table').data('gridInstance', flowAnalysisRuleTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var usageRestriction = $(this).find('div.view-usage-restriction');
+            if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                var rowId = $(this).find('span.row-id').text();
+
+                // get the status item
+                var item = flowAnalysisRuleTypesData.getItemById(rowId);
+
+                // show the tooltip
+                if (item.restricted === true) {
+                    var restrictionTip = $('<div></div>');
+
+                    if (nfCommon.isBlank(item.usageRestriction)) {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text('Requires the following permissions:'));
+                    } else {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text(item.usageRestriction + ' Requires the following permissions:'));
+                    }
+
+                    var restrictions = [];
+                    if (nfCommon.isDefinedAndNotNull(item.explicitRestrictions)) {
+                        $.each(item.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+                            restrictions.push("'" + requiredPermission.label + "' - " + nfCommon.escapeHtml(explicitRestriction.explanation));
+                        });
+                    } else {
+                        restrictions.push('Access to restricted components regardless of restrictions.');
+                    }
+                    restrictionTip.append(nfCommon.formatUnorderedList(restrictions));
+
+                    usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
+                        content: restrictionTip,
+                        position: {
+                            container: $('#summary'),
+                            at: 'bottom right',
+                            my: 'top left',
+                            adjust: {
+                                x: 4,
+                                y: 4
+                            }
+                        }
+                    }));
+                }
+            }
+        });
+
+        var generalRestriction = nfCommon.getPolicyTypeListing('restricted-components');
+
+        // load the available flow analysis rules
+        $.ajax({
+            type: 'GET',
+            url: config.urls.flowAnalysisRuleTypes,
+            dataType: 'json'
+        }).done(function (response) {
+            var id = 0;
+            var tags = [];
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
+
+            // begin the update
+            flowAnalysisRuleTypesData.beginUpdate();
+
+            // go through each flow analysis rule type
+            $.each(response.flowAnalysisRuleTypes, function (i, documentedType) {
+                if (documentedType.restricted === true) {
+                    if (nfCommon.isDefinedAndNotNull(documentedType.explicitRestrictions)) {
+                        $.each(documentedType.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+
+                            // update required permissions
+                            if (!requiredPermissions.has(requiredPermission.id)) {
+                                requiredPermissions.set(requiredPermission.id, requiredPermission.label);
+                            }
+
+                            // update component restrictions
+                            if (!restrictedUsage.has(requiredPermission.id)) {
+                                restrictedUsage.set(requiredPermission.id, []);
+                            }
+
+                            restrictedUsage.get(requiredPermission.id).push({
+                                type: nfCommon.formatType(documentedType),
+                                bundle: nfCommon.formatBundle(documentedType.bundle),
+                                explanation: nfCommon.escapeHtml(explicitRestriction.explanation)
+                            })
+                        });
+                    } else {
+                        // update required permissions
+                        if (!requiredPermissions.has(generalRestriction.value)) {
+                            requiredPermissions.set(generalRestriction.value, generalRestriction.text);
+                        }
+
+                        // update component restrictions
+                        if (!restrictedUsage.has(generalRestriction.value)) {
+                            restrictedUsage.set(generalRestriction.value, []);
+                        }
+
+                        restrictedUsage.get(generalRestriction.value).push({
+                            type: nfCommon.formatType(documentedType),
+                            bundle: nfCommon.formatBundle(documentedType.bundle),
+                            explanation: nfCommon.escapeHtml(documentedType.usageRestriction)
+                        });
+                    }
+                }
+
+                // record the group
+                groups.add(documentedType.bundle.group);
+
+                // add the documented type
+                flowAnalysisRuleTypesData.addItem({
+                    id: id++,
+                    label: nfCommon.substringAfterLast(documentedType.type, '.'),
+                    type: documentedType.type,
+                    bundle: documentedType.bundle,
+                    description: nfCommon.escapeHtml(documentedType.description),
+                    restricted: documentedType.restricted,
+                    usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
+                    explicitRestrictions: documentedType.explicitRestrictions,
+                    tags: documentedType.tags.join(', ')
+                });
+
+                // count the frequency of each tag for this type
+                $.each(documentedType.tags, function (i, tag) {
+                    tags.push(tag.toLowerCase());
+                });
+            });
+
+            // end the update
+            flowAnalysisRuleTypesData.endUpdate();
+
+            // resort
+            flowAnalysisRuleTypesData.reSort();
+            flowAnalysisRuleTypesGrid.invalidate();
+
+            // set the component restrictions and the corresponding required permissions
+            nfCanvasUtils.addComponentRestrictions(restrictedUsage, requiredPermissions);
+
+            // set the total number of processors
+            $('#total-flow-analysis-rule-types, #displayed-flow-analysis-rule-types').text(response.flowAnalysisRuleTypes.length);
+
+            // create the tag cloud
+            $('#flow-analysis-rule-tag-cloud').tagcloud({
+                tags: tags,
+                select: applyFlowAnalysisRuleTypeFilter,
+                remove: applyFlowAnalysisRuleTypeFilter
+            });
+
+            // build the combo options
+            var options = [{
+                text: 'all groups',
+                value: ''
+            }];
+            groups.forEach(function (group) {
+                options.push({
+                    text: group,
+                    value: group
+                });
+            });
+
+            // initialize the bundle group combo
+            $('#flow-analysis-rule-bundle-group-combo').combo({
+                options: options,
+                select: applyFlowAnalysisRuleTypeFilter
+            });
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
+        // define the function for filtering the list
+        $('#flow-analysis-rule-type-filter').off('keyup').on('keyup', function (e) {
+            var code = e.keyCode ? e.keyCode : e.which;
+
+            // ignore navigation keys
+            if ($.inArray(code, navigationKeys) !== -1) {
+                return;
+            }
+
+            if (code === $.ui.keyCode.ENTER) {
+                var selected = flowAnalysisRuleTypesGrid.getSelectedRows();
+
+                if (selected.length > 0) {
+                    // grid configured with multi-select = false
+                    var item = flowAnalysisRuleTypesGrid.getDataItem(selected[0]);
+                    if (isSelectable(item)) {
+                        addSelectedFlowAnalysisRule();
+                    }
+                }
+            } else {
+                applyFlowAnalysisRuleTypeFilter();
+            }
+        });
+
+        // setup row navigation
+        nfFilteredDialogCommon.addKeydownListener('#flow-analysis-rule-type-filter', flowAnalysisRuleTypesGrid, flowAnalysisRuleTypesGrid.getData());
+
+        // initialize the flow analysis rule dialog
+        $('#new-flow-analysis-rule-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Add Flow Analysis Rule',
+            buttons: [{
+                buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                disabled: function () {
+                    var selected = flowAnalysisRuleTypesGrid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = flowAnalysisRuleTypesGrid.getDataItem(selected[0]);
+                        return isSelectable(item) === false;
+                    } else {
+                        return flowAnalysisRuleTypesGrid.getData().getLength() === 0;
+                    }
+                },
+                handler: {
+                    click: function () {
+                        addSelectedFlowAnalysisRule();
+                    }
+                }
+            },
+            {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
+                }
+            }],
+            handler: {
+                close: function () {
+                    // clear the selected row
+                    clearSelectedFlowAnalysisRule();
+
+                    // clear any filter strings
+                    $('#flow-analysis-rule-type-filter').val('');
+
+                    // clear the tagcloud
+                    $('#flow-analysis-rule-tag-cloud').tagcloud('clearSelectedTags');
+
+                    // reset the group combo
+                    $('#flow-analysis-rule-bundle-group-combo').combo('setSelectedOption', {
+                        value: ''
+                    });
+
+                    // reset the filter
+                    applyFlowAnalysisRuleTypeFilter();
+
+                    // unselect any current selection
+                    var flowAnalysisRuleTypesGrid = $('#flow-analysis-rule-types-table').data('gridInstance');
+                    flowAnalysisRuleTypesGrid.setSelectedRows([]);
+                    flowAnalysisRuleTypesGrid.resetActiveCell();
+                },
+                resize: function () {
+                    $('#flow-analysis-rule-type-description')
+                        .width($('#flow-analysis-rule-description-container').innerWidth() - 1)
+                        .text($('#flow-analysis-rule-type-description').attr('title'))
+                        .ellipsis();
+                }
+            }
+        });
+    };
+
+    /**
+     * Initializes the flow analysis rules tab.
+     */
+    var initFlowAnalysisRules = function () {
+        // initialize the new flow analysis rule dialog
+        initNewFlowAnalysisRuleDialog();
+
+        var moreFlowAnalysisRuleDetails = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            var markup = '<div title="View Details" class="pointer view-flow-analysis-rule fa fa-info-circle"></div>';
+
+            // always include a button to view the usage
+            markup += '<div title="View Documentation" class="pointer flow-analysis-rule-usage fa fa-book"></div>';
+
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+
+            if (hasErrors) {
+                markup += '<div class="pointer has-errors fa fa-warning" ></div>';
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.component.id) + '</span>';
+            }
+
+            return markup;
+        };
+
+        var flowAnalysisRuleRunStatusFormatter = function (row, cell, value, columnDef, dataContext) {
+            var icon = '', label = '';
+            if (dataContext.status.validationStatus === 'VALIDATING') {
+                icon = 'validating fa fa-spin fa-circle-notch';
+                label = 'Validating';
+            } else if (dataContext.status.validationStatus === 'INVALID') {
+                icon = 'invalid fa fa-warning';
+                label = 'Invalid';
+            } else {
+                if (dataContext.status.runStatus === 'DISABLED') {
+                    icon = 'disabled icon icon-enable-false"';
+                    label = 'Disabled';
+                } else if (dataContext.status.runStatus === 'ENABLED') {
+                    icon = 'enabled fa fa-flash';
+                    label = 'Enabled';
+                }
+            }
+
+            // format the markup
+            var formattedValue = '<div layout="row"><div class="' + icon + '"></div>';
+            return formattedValue + '<div class="status-text">' + label + '</div></div>';
+        };
+
+        var flowAnalysisRuleActionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            var canWrite = dataContext.permissions.canWrite;
+            var canRead = dataContext.permissions.canRead;
+            var canOperate = canWrite || (dataContext.operatePermissions && dataContext.operatePermissions.canWrite);
+
+            var isDisabled = dataContext.status.runStatus === 'DISABLED';
+
+            if (canRead) {
+                if (canWrite && isDisabled) {
+                    markup += '<div class="pointer edit-flow-analysis-rule fa fa-gear" title="Configure"></div>';
+                } else {
+                    markup += '<div class="pointer view-flow-analysis-rule fa fa-gear" title="View Configuration"></div>';
+                }
+            }
+
+            if (canOperate) {
+                if (dataContext.status.runStatus === 'ENABLED') {
+                    markup += '<div class="pointer disable-flow-analysis-rule icon icon-enable-false" title="Disable"></div>';
+                } else if (isDisabled && dataContext.status.validationStatus === 'VALID') {
+                    markup += '<div class="pointer enable-flow-analysis-rule fa fa-flash" title="Enable"></div>';
+                }
+            }
+
+            if (isDisabled && canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
+                markup += '<div title="Change Version" class="pointer change-version-flow-analysis-rule fa fa-exchange"></div>';
+            }
+
+            if (isDisabled && canRead && canWrite && nfCommon.canModifyController()) {
+                markup += '<div title="Remove" class="pointer delete-flow-analysis-rule fa fa-trash"></div>';
+            }
+
+            if (canRead && canWrite && dataContext.component.persistsState === true) {
+                markup += '<div title="View State" class="pointer view-state-flow-analysis-rule fa fa-tasks"></div>';
+            }
+
+            return markup;
+        };
+
+        // define the column model for the flow analysis rules table
+        var flowAnalysisRulesColumnModel = [
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreFlowAnalysisRuleDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: nameFormatter
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                formatter: nfCommon.instanceTypeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'bundle',
+                name: 'Bundle',
+                formatter: nfCommon.instanceBundleFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'state',
+                name: 'Status',
+                sortable: true,
+                resizeable: true,
+                formatter: flowAnalysisRuleRunStatusFormatter
+            }
+        ];
+
+        // action column should always be last
+        flowAnalysisRulesColumnModel.push({
+            id: 'actions',
+            name: '&nbsp;',
+            resizable: false,
+            formatter: flowAnalysisRuleActionFormatter,
+            sortable: false,
+            width: 115,
+            maxWidth: 115
+        });
+
+        // initialize the dataview
+        var flowAnalysisRulesData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        flowAnalysisRulesData.setItems([]);
+
+        // initialize the sort
+        sort({
+            columnId: 'name',
+            sortAsc: true
+        }, flowAnalysisRulesData);
+
+        // initialize the grid
+        var flowAnalysisRulesGrid = new Slick.Grid('#flow-analysis-rules-table', flowAnalysisRulesData, flowAnalysisRulesColumnModel, gridOptions);
+        flowAnalysisRulesGrid.setSelectionModel(new Slick.RowSelectionModel());
+        flowAnalysisRulesGrid.registerPlugin(new Slick.AutoTooltips());
+        flowAnalysisRulesGrid.setSortColumn('name', true);
+        flowAnalysisRulesGrid.onSort.subscribe(function (e, args) {
+            sort({
+                columnId: args.sortCol.id,
+                sortAsc: args.sortAsc
+            }, flowAnalysisRulesData);
+        });
+
+        // configure a click listener
+        flowAnalysisRulesGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the service at this row
+            var flowAnalysisRuleEntity = flowAnalysisRulesData.getItem(args.row);
+
+            // determine the desired action
+            if (flowAnalysisRulesGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('edit-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.showConfiguration(flowAnalysisRuleEntity);
+                } else if (target.hasClass('view-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.showDetails(flowAnalysisRuleEntity);
+                } else if (target.hasClass('enable-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.enable(flowAnalysisRuleEntity);
+                } else if (target.hasClass('disable-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.disable(flowAnalysisRuleEntity);
+                } else if (target.hasClass('delete-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.promptToDeleteFlowAnalysisRule(flowAnalysisRuleEntity);
+                } else if (target.hasClass('view-state-flow-analysis-rule')) {
+                    var canClear = flowAnalysisRuleEntity.status.runStatus === 'DISABLED';
+                    nfComponentState.showState(flowAnalysisRuleEntity, canClear);
+                } else if (target.hasClass('change-version-flow-analysis-rule')) {
+                    nfComponentVersion.promptForVersionChange(flowAnalysisRuleEntity);
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nfPolicyManagement.showFlowAnalysisRulePolicy(flowAnalysisRuleEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+                }
+            } else if (flowAnalysisRulesGrid.getColumns()[args.cell].id === 'moreDetails') {
+                if (target.hasClass('view-flow-analysis-rule')) {
+                    nfFlowAnalysisRule.showDetails(flowAnalysisRuleEntity);
+                } else if (target.hasClass('flow-analysis-rule-usage')) {
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+
+                    // open the documentation for this flow analysis rule
+                    nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                        select: flowAnalysisRuleEntity.component.type,
+                        group: flowAnalysisRuleEntity.component.bundle.group,
+                        artifact: flowAnalysisRuleEntity.component.bundle.artifact,
+                        version: flowAnalysisRuleEntity.component.bundle.version
+                    })).done(function () {
+                        nfSettings.showSettings();
+                    });
+                }
+            }
+        });
+
+        // wire up the dataview to the grid
+        flowAnalysisRulesData.onRowCountChanged.subscribe(function (e, args) {
+            flowAnalysisRulesGrid.updateRowCount();
+            flowAnalysisRulesGrid.render();
+        });
+        flowAnalysisRulesData.onRowsChanged.subscribe(function (e, args) {
+            flowAnalysisRulesGrid.invalidateRows(args.rows);
+            flowAnalysisRulesGrid.render();
+        });
+        flowAnalysisRulesData.syncGridSelection(flowAnalysisRulesGrid, true);
+
+        // hold onto an instance of the grid
+        $('#flow-analysis-rules-table').data('gridInstance', flowAnalysisRulesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var errorIcon = $(this).find('div.has-errors');
+            if (errorIcon.length && !errorIcon.data('qtip')) {
+                var taskId = $(this).find('span.row-id').text();
+
+                // get the task item
+                var flowAnalysisRuleEntity = flowAnalysisRulesData.getItemById(taskId);
+
+                // format the errors
+                var tooltip = nfCommon.formatUnorderedList(flowAnalysisRuleEntity.component.validationErrors);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    errorIcon.qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
                             content: tooltip,
@@ -2159,7 +2993,7 @@
             var markup = '<div title="View Details" class="pointer view-parameter-provider fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer parameter-provider-usage fa fa-book"></div>';
+            markup += '<div title="View Documentation" class="pointer parameter-provider-usage fa fa-book"></div>';
 
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
@@ -2486,6 +3320,10 @@
             var registryGrid = $('#registries-table').data('gridInstance');
             var registryData = registryGrid.getData();
             registryData.deleteItem(registryEntity.id);
+
+            // refresh the current-user after configuring or deleting a registry client
+            // 'canVersionFlows' property determines if we show the No Registry Client available dialog or the Import Version dialog
+            loadCurrentUser();
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -2554,6 +3392,9 @@
         // load the reporting tasks
         var reportingTasks = loadReportingTasks();
 
+        // load the flow analysis rules
+        var flowAnalysisRules = loadFlowAnalysisRules();
+
         // load the registries
         var registries = loadRegistries();
 
@@ -2561,7 +3402,7 @@
         var parameterProviders = loadParameterProviders();
 
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServicesXhr, reportingTasks, registries, parameterProviders).done(function (settingsResult, controllerServicesResult) {
+        return $.when(settings, controllerServicesXhr, reportingTasks, reportingTasks, registries, parameterProviders).done(function (settingsResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
 
             // update the current time
@@ -2598,6 +3439,37 @@
             reportingTasksData.setItems(tasks);
             reportingTasksData.reSort();
             reportingTasksGrid.invalidate();
+        });
+    };
+
+    /**
+     * Loads the flow analysis rules.
+     */
+    var loadFlowAnalysisRules = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.flowAnalysisRules,
+            dataType: 'json'
+        }).done(function (response) {
+            var tasks = [];
+            $.each(response.flowAnalysisRules, function (_, task) {
+                tasks.push($.extend({
+                    type: 'FlowAnalysisRule',
+                    bulletins: []
+                }, task));
+            });
+
+            var flowAnalysisRulesElement = $('#flow-analysis-rules-table');
+            nfCommon.cleanUpTooltips(flowAnalysisRulesElement, 'div.has-errors');
+            nfCommon.cleanUpTooltips(flowAnalysisRulesElement, 'div.has-bulletins');
+
+            var flowAnalysisRulesGrid = flowAnalysisRulesElement.data('gridInstance');
+            var flowAnalysisRulesData = flowAnalysisRulesGrid.getData();
+
+            // update the flow analysis rules
+            flowAnalysisRulesData.setItems(tasks);
+            flowAnalysisRulesData.reSort();
+            flowAnalysisRulesGrid.invalidate();
         });
     };
 
@@ -2686,7 +3558,7 @@
      * Determines whether the user has made any changes to the registry configuration
      * that needs to be saved.
      */
-     var isSaveRequired = function () {
+    var isSaveRequired = function () {
         var entity = $('#registry-configuration-dialog').data('registryDetails');
         // determine if any registry settings have changed
 
@@ -2703,7 +3575,7 @@
     /**
      * Goes to a service configuration from the property table.
      */
-     var goToServiceFromProperty = function () {
+    var goToServiceFromProperty = function () {
         return $.Deferred(function (deferred) {
             // close all fields currently being edited
             $('#registry-properties').propertytable('saveRow');
@@ -2738,7 +3610,7 @@
      * @param {type} propertyName
      * @param {type} sensitive Requested sensitive status
      */
-     var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
+    var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
         var details = $('#registry-configuration-dialog').data('registryDetails');
         return $.ajax({
             type: 'GET',
@@ -2753,15 +3625,17 @@
 
     /**
      * Shows the process group configuration.
+     *
+     * @param {string} tabName
      */
-    var showSettings = function () {
+    var showSettings = function (tabName) {
         // show the settings dialog
         nfShell.showContent('#settings').done(function () {
             reset();
         });
 
         //reset content to account for possible policy changes
-        $('#settings-tabs').find('.selected-tab').click();
+        $('#settings-tabs').find(tabName ? '[name="' + tabName + '"]' : '.selected-tab').click();
 
         // adjust the table size
         nfSettings.resetTableSize();
@@ -2780,7 +3654,7 @@
      *
      * @param {object} reportingTask
      */
-     var renderRegistry = function (registryEntity) {
+    var renderRegistry = function (registryEntity) {
         // get the table and update the row accordingly
         var registryGrid = $('#registries-table').data('gridInstance');
         var registryData = registryGrid.getData();
@@ -2794,7 +3668,7 @@
          *
          * @param {string} id
          */
-     var reloadRegistryInfo = function (id) {
+    var reloadRegistryInfo = function (id) {
         var registryGrid = $('#registries-table').data('gridInstance');
         var registryData = registryGrid.getData();
         var registryEntity = registryData.getItemById(id);
@@ -2828,6 +3702,9 @@
                     name: 'Reporting Tasks',
                     tabContentId: 'reporting-tasks-tab-content'
                 }, {
+                    name: 'Flow Analysis Rules',
+                    tabContentId: 'flow-analysis-rules-tab-content'
+                }, {
                     name: 'Registry Clients',
                     tabContentId: 'registries-tab-content'
                 }, {
@@ -2859,6 +3736,9 @@
                                 } else if (tab === 'Reporting Tasks') {
                                     $('#settings-save').hide();
                                     return 'Create a new reporting task';
+                                } else if (tab === 'Flow Analysis Rules') {
+                                    $('#settings-save').hide();
+                                    return 'Create a Flow Analysis Rule';
                                 } else if (tab === 'Registry Clients') {
                                     $('#settings-save').hide();
                                     return 'Register a new registry client';
@@ -2874,7 +3754,7 @@
 
                         if (tab === 'Management Controller Services') {
                             $('#controller-cs-availability').show();
-                        } else if (tab === 'Reporting Tasks' || tab === 'Registry Clients' || tab === 'Parameter Providers') {
+                        } else if (tab === 'Reporting Tasks' || tab === 'Flow Analysis Rules' || tab === 'Registry Clients' || tab === 'Parameter Providers') {
                             $('#controller-cs-availability').hide();
                         }
 
@@ -2889,7 +3769,7 @@
                 loadSettings();
             });
 
-            // create a new controller service or reporting task
+            // create a new controller service or reporting task or flow analysis rule
             $('#new-service-or-task').on('click', function () {
                 var selectedTab = $('#settings-tabs li.selected-tab').text();
                 if (selectedTab === 'Management Controller Services') {
@@ -2913,6 +3793,24 @@
 
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
+                } else if (selectedTab === 'Flow Analysis Rules') {
+                    $('#new-flow-analysis-rule-dialog').modal('show');
+
+                    var flowAnalysisRuleTypesGrid = $('#flow-analysis-rule-types-table').data('gridInstance');
+                    if (nfCommon.isDefinedAndNotNull(flowAnalysisRuleTypesGrid)) {
+                        var flowAnalysisRuleTypesData = flowAnalysisRuleTypesGrid.getData();
+
+                        // reset the canvas size after the dialog is shown
+                        flowAnalysisRuleTypesGrid.resizeCanvas();
+
+                        // select the first row if possible
+                        if (flowAnalysisRuleTypesData.getLength() > 0) {
+                            nfFilteredDialogCommon.choseFirstRow(flowAnalysisRuleTypesGrid);
+                        }
+                    }
+
+                    // set the initial focus
+                    $('#flow-analysis-rule-type-filter').focus();
                 } else if (selectedTab === 'Registry Clients') {
                     // clear previous values
                     $('#new-registry-name').val('');
@@ -2978,10 +3876,24 @@
                 }
             });
 
+            // initialize the registry configuration dialog
+            $('#registry-configuration-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                handler: {
+                    close: function () {
+                        $('#registry-id-config').text('');
+                        $('#registry-name-config').val('');
+                        $('#registry-type-config').val('');
+                        $('#registry-description-config').val('');
+                    }
+                }
+            });
+
             // initialize each tab
             initGeneral();
             nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
+            initFlowAnalysisRules();
             initRegistriesTable();
             initNewRegistryDialog();
             initParameterProvidersTable();
@@ -3004,6 +3916,10 @@
             if (nfCommon.isDefinedAndNotNull(reportingTasksGrid)) {
                 reportingTasksGrid.resizeCanvas();
             }
+            var flowAnalysisRulesGrid = $('#flow-analysis-rules-table').data('gridInstance');
+            if (nfCommon.isDefinedAndNotNull(flowAnalysisRulesGrid)) {
+                flowAnalysisRulesGrid.resizeCanvas();
+            }
             var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
             if (nfCommon.isDefinedAndNotNull(parameterProvidersGrid)) {
                 parameterProvidersGrid.resizeCanvas();
@@ -3016,9 +3932,13 @@
 
         /**
          * Shows the settings dialog.
+         *
+         * @param {string} tabName
          */
-        showSettings: function () {
-            return loadSettings().done(showSettings);
+        showSettings: function (tabName) {
+            return loadSettings().done(function () {
+                showSettings(tabName)
+            });
         },
 
         /**
@@ -3065,6 +3985,24 @@
         },
 
         /**
+         * Selects the specified flow analysis rule.
+         *
+         * @param {string} flowAnalysisRuleId
+         */
+        selectFlowAnalysisRule: function (flowAnalysisRuleId) {
+            var flowAnalysisRuleGrid = $('#flow-analysis-rules-table').data('gridInstance');
+            var flowAnalysisRuleData = flowAnalysisRuleGrid.getData();
+
+            // select the desired service
+            var row = flowAnalysisRuleData.getRowById(flowAnalysisRuleId);
+            nfFilteredDialogCommon.choseRow(flowAnalysisRuleGrid, row);
+            flowAnalysisRuleGrid.scrollRowIntoView(row);
+
+            // select the controller services tab
+            $('#settings-tabs').find('li:eq(3)').click();
+        },
+
+        /**
          * Sets the controller service and reporting task bulletins in their respective tables.
          *
          * @param {object} controllerServiceBulletins
@@ -3082,7 +4020,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
-                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
+                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function (d) { return [d.sourceId, d]; }));
 
                 reportingTaskBulletinsBySource.forEach(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);

@@ -21,7 +21,6 @@ org.apache.nifi.processors.standard.ConvertCharacterSet
 org.apache.nifi.processors.standard.ConvertJSONToSQL
 org.apache.nifi.processors.standard.ConvertRecord
 org.apache.nifi.processors.standard.CountText
-org.apache.nifi.processors.standard.CryptographicHashAttribute
 org.apache.nifi.processors.standard.CryptographicHashContent
 org.apache.nifi.processors.standard.DebugFlow
 org.apache.nifi.processors.standard.DetectDuplicate
@@ -29,7 +28,6 @@ org.apache.nifi.processors.standard.DeduplicateRecord
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
 org.apache.nifi.processors.standard.EncodeContent
-org.apache.nifi.processors.standard.EncryptContent
 org.apache.nifi.processors.standard.EnforceOrder
 org.apache.nifi.processors.standard.EvaluateJsonPath
 org.apache.nifi.processors.standard.EvaluateXPath
@@ -81,6 +79,7 @@ org.apache.nifi.processors.standard.MergeRecord
 org.apache.nifi.processors.standard.ModifyBytes
 org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify
+org.apache.nifi.processors.standard.PackageFlowFile
 org.apache.nifi.processors.standard.ParseCEF
 org.apache.nifi.processors.standard.ParseSyslog
 org.apache.nifi.processors.standard.ParseSyslog5424
@@ -100,6 +99,7 @@ org.apache.nifi.processors.standard.QueryDatabaseTable
 org.apache.nifi.processors.standard.QueryDatabaseTableRecord
 org.apache.nifi.processors.standard.QueryRecord
 org.apache.nifi.processors.standard.RemoveRecordField
+org.apache.nifi.processors.standard.RenameRecordField
 org.apache.nifi.processors.standard.ReplaceText
 org.apache.nifi.processors.standard.ReplaceTextWithMapping
 org.apache.nifi.processors.standard.RetryFlowFile

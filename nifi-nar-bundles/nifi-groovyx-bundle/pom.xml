@@ -16,24 +16,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-groovyx-bundle</artifactId>
     <packaging>pom</packaging>
     <description>NiFi Groovy Extended Processor</description>
 
+    <properties>
+        <ant.version>1.10.14</ant.version>
+    </properties>
+
     <modules>
         <module>nifi-groovyx-processors</module>
         <module>nifi-groovyx-nar</module>
     </modules>
-
-    <properties>
-        <groovyx.groovy.version>${nifi.groovy.version}</groovyx.groovy.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -42,11 +42,23 @@
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${groovyx.groovy.version}</version>
+                <version>${nifi.groovy.version}</version>
                 <type>pom</type>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <!-- Override ant from groovy-ant -->
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant</artifactId>
+                <version>${ant.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Override ant from groovy-ant -->
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant-antlr</artifactId>
+                <version>${ant.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -98,6 +98,16 @@ public interface RecordSchema {
     void removePath(RecordFieldRemovalPath path);
 
     /**
+     * Renames the field that corresponds to the given RecordField so that its new name is equal to the given name
+     *
+     * @param currentName the current name of the field
+     * @param newName     the new name for the field
+     * @return <code>true</code> if the field is renamed, <code>false</code> if the field with the given current name cannot be found
+     * @throws IllegalArgumentException if unable to rename the field due to a naming conflict
+     */
+    boolean renameField(String currentName, String newName);
+
+    /**
      * @return true if the schema contains itself as a nested field type, false if it does not
      */
     boolean isRecursive();

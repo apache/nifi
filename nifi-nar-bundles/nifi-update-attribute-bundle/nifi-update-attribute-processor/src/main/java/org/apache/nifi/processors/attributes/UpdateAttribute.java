@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -85,6 +86,43 @@ import java.util.regex.Pattern;
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
 @Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
+@UseCase(
+    description = "Add a new FlowFile attribute",
+    configuration = """
+        Leave "Delete Attributes Expression" and "Stateful Variables Initial Value" unset.
+        Set "Store State" to "Do not store state".
+
+        Add a new property. The name of the property will become the name of the newly added attribute.
+        The value of the property will become the value of the newly added attribute. The value may use the NiFi Expression Language in order to reference other
+        attributes or call Expression Language functions.
+        """
+)
+@UseCase(
+    description = "Overwrite a FlowFile attribute with a new value",
+    configuration = """
+        Leave "Delete Attributes Expression" and "Stateful Variables Initial Value" unset.
+        Set "Store State" to "Do not store state".
+
+        Add a new property. The name of the property will become the name of the attribute whose value will be overwritten.
+        The value of the property will become the new value of the attribute. The value may use the NiFi Expression Language in order to reference other
+        attributes or call Expression Language functions.
+
+        For example, to change the `txId` attribute to the uppercase version of its current value, add a property named `txId` with a value of `${txId:toUpper()}`
+        """
+)
+@UseCase(
+    description = "Rename a file",
+    configuration = """
+        Leave "Delete Attributes Expression" and "Stateful Variables Initial Value" unset.
+        Set "Store State" to "Do not store state".
+
+        Add a new property whose name is `filename` and whose value is the desired filename.
+
+        For example, to set the filename to `abc.txt`, add a property named `filename` with a value of `abc.txt`.
+        To add the `txId` attribute as a prefix to the filename, add a property named `filename` with a value of `${txId}${filename}`.
+        Or, to make the filename more readable, separate the txId from the rest of the filename with a hyphen by using a value of `${txId}-${filename}`.
+        """
+)
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
 
@@ -461,7 +499,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 stateWorkingAttributes = null;
             }
         } catch (IOException e) {
-            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{incomingFlowFile}, e);
+            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", incomingFlowFile, e);
             session.transfer(incomingFlowFile);
             context.yield();
             return;
@@ -525,7 +563,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
             } catch (IOException e) {
                 logger.error("Failed to set the state after successfully processing {} due a failure when setting the state. This is normally due to multiple threads running at " +
-                        "once; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILED_SET_STATE.getName()}, e);
+                        "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
 
                 flowFilesToTransfer.remove(incomingFlowFile);
                 if (flowFilesToTransfer.size() > 0){

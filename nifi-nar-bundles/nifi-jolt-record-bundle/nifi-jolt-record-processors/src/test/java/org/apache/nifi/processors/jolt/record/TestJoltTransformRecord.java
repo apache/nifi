@@ -18,9 +18,11 @@ package org.apache.nifi.processors.jolt.record;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -36,10 +38,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -287,15 +294,16 @@ public class TestJoltTransformRecord {
         runner.assertNotValid();
     }
 
-    @Test
-    public void testTransformInputWithChainr() throws IOException {
+    @ParameterizedTest(name = "{index} {1}")
+    @MethodSource("getChainrArguments")
+    public void testTransformInputWithChainr(Path specPath, String description) throws IOException {
         generateTestData(1, null);
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, "Pretty Print JSON", "true");
         runner.enableControllerService(writer);
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
+        final String spec = new String(Files.readAllBytes(specPath));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.enqueue(new byte[0]);
         runner.run();
@@ -505,7 +513,7 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setVariable("quota", "5");
+        runner.setEnvironmentVariableValue("quota", "5");
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
@@ -640,7 +648,7 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
-        runner.setVariable("CUSTOM_JAR", customJarPath);
+        runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
         Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", spec);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
@@ -684,8 +692,41 @@ public class TestJoltTransformRecord {
         runner.assertNotValid();
     }
 
-    private void generateTestData(int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
+    @Test
+    public void testJoltComplexChoiceField() throws Exception {
+        final JsonTreeReader reader = new JsonTreeReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        runner.enableControllerService(reader);
+        runner.setProperty(JoltTransformRecord.RECORD_READER, "reader");
 
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+
+        final String flattenSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/flattenSpec.json")));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CHAINR);
+
+        final String inputJson = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/input.json")));
+        runner.enqueue(inputJson);
+
+        runner.run();
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
+        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"))),
+                new String(transformed.toByteArray()));
+    }
+
+    private static Stream<Arguments> getChainrArguments() {
+        return Stream.of(
+                Arguments.of(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json"), "has no single line comments"),
+                Arguments.of(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
+    }
+
+    private void generateTestData(int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
         if (recordGenerator == null) {
             final RecordSchema primarySchema = new SimpleRecordSchema(Arrays.asList(
                     new RecordField("value", RecordFieldType.INT.getDataType())));
@@ -722,8 +763,6 @@ public class TestJoltTransformRecord {
 
                 parser.addRecord(ratingRecord);
             }
-
-
         } else {
             recordGenerator.apply(numRecords, parser);
         }

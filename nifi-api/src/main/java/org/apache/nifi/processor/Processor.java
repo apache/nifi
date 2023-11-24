@@ -18,6 +18,8 @@ package org.apache.nifi.processor;
 
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.RelationshipConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.Set;
@@ -98,5 +100,31 @@ public interface Processor extends ConfigurableComponent {
      */
     default boolean isStateful(ProcessContext context) {
         return this.getClass().isAnnotationPresent(Stateful.class);
+    }
+
+    /**
+     * <p>
+     *     Allows for the migration of an old property configuration to a new configuration. This allows the Processor to evolve over time,
+     *     as it allows properties to be renamed, removed, or reconfigured.
+     * </p>
+     *
+     * <p>
+     *     This method is called only when a Processor is restored from a previous configuration. For example, when NiFi is restarted and the
+     *     flow is restored from disk, when a previously configured flow is imported (e.g., from a JSON file that was exported or a NiFi Registry),
+     *     or when a node joins a cluster and inherits a flow that has a new Processor. Once called, the method will not be invoked again for this
+     *     Processor until NiFi is restarted.
+     * </p>
+     *
+     * @param config the current property configuration
+     */
+    default void migrateProperties(PropertyConfiguration config) {
+    }
+
+    /**
+     * Allows for the migration of an old relationship configuration to a new configuration
+     *
+     * @param config the current relationship configuration
+     */
+    default void migrateRelationships(RelationshipConfiguration config) {
     }
 }

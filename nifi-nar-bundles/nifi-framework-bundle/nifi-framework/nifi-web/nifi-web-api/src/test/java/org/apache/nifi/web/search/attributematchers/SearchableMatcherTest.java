@@ -21,7 +21,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
@@ -42,9 +41,6 @@ public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
     private SearchableProcessor searchableProcessor;
-
-    @Mock
-    private VariableRegistry variableRegistry;
 
     @Mock
     private FlowController flowController;
@@ -95,7 +91,6 @@ public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
     private SearchableMatcher givenTestSubject() {
         final SearchableMatcher result = new SearchableMatcher();
         result.setFlowController(flowController);
-        result.setVariableRegistry(variableRegistry);
         return result;
     }
 

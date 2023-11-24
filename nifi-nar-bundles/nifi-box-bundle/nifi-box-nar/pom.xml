@@ -24,10 +24,6 @@
 
     <artifactId>nifi-box-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -48,7 +44,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>2.0.0</version>
+                <version>2.2.0</version>
                 <configuration>
                     <!--
                         mvn clean license:add-third-party license:download-licenses

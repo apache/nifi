@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.services.smb;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NiFiSmbjClientTest {
 
@@ -39,9 +40,18 @@ class NiFiSmbjClientTest {
     @InjectMocks
     SmbjClientService underTest;
 
+    private AutoCloseable mockCloseable;
+
     @BeforeEach
     public void beforeEach() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @AfterEach
+    public void closeMock() throws Exception {
+        if (mockCloseable != null) {
+            mockCloseable.close();
+        }
     }
 
     @Test

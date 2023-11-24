@@ -15,9 +15,10 @@
     -->
     <modelVersion>4.0.0</modelVersion>
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-services</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
     <artifactId>nifi-lookup-services-bundle</artifactId>
     <packaging>pom</packaging>
@@ -25,14 +26,4 @@
         <module>nifi-lookup-services</module>
         <module>nifi-lookup-services-nar</module>
     </modules>
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

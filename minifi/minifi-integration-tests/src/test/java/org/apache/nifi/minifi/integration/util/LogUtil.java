@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class LogUtil {
         }
         DockerPort dockerPort = container.port(8000);
         logger.info("Connecting to external port {} for docker internal port of {}", new Object[]{dockerPort.getExternalPort(), dockerPort.getInternalPort()});
-        URL url = new URL("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort());
+        URL url = URI.create("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()).toURL();
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try (InputStream inputStream = urlConnection.getInputStream();
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream);

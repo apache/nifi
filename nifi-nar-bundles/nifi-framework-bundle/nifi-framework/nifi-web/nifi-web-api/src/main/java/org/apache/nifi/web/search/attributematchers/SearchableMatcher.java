@@ -20,7 +20,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.Searchable;
 import org.apache.nifi.web.controller.StandardSearchContext;
@@ -34,7 +33,6 @@ public class SearchableMatcher implements AttributeMatcher<ProcessorNode> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchableMatcher.class);
 
     private FlowController flowController;
-    private VariableRegistry variableRegistry;
 
     @Override
     public void match(final ProcessorNode component, final SearchQuery query, final List<String> matches) {
@@ -43,7 +41,7 @@ public class SearchableMatcher implements AttributeMatcher<ProcessorNode> {
         if (processor instanceof Searchable) {
             final Searchable searchable = (Searchable) processor;
             final String searchTerm = query.getTerm();
-            final SearchContext context = new StandardSearchContext(searchTerm, component, flowController.getControllerServiceProvider(), variableRegistry);
+            final SearchContext context = new StandardSearchContext(searchTerm, component, flowController.getControllerServiceProvider());
 
             // search the processor using the appropriate thread context classloader
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), component.getClass(), component.getIdentifier())) {
@@ -57,9 +55,5 @@ public class SearchableMatcher implements AttributeMatcher<ProcessorNode> {
 
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
-    }
-
-    public void setVariableRegistry(final VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
     }
 }

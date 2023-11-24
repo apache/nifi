@@ -27,17 +27,17 @@ public interface HttpMethodAuthorizationRules {
 
     default RequestAction mapHttpMethodToAction(HttpMethod httpMethod) {
 
-        switch (httpMethod) {
-            case TRACE:
-            case OPTIONS:
-            case HEAD:
-            case GET:
+        switch (httpMethod.name()) {
+            case "TRACE":
+            case "OPTIONS":
+            case "HEAD":
+            case "GET":
                 return RequestAction.READ;
-            case POST:
-            case PUT:
-            case PATCH:
+            case "POST":
+            case "PUT":
+            case "PATCH":
                 return RequestAction.WRITE;
-            case DELETE:
+            case "DELETE":
                 return RequestAction.DELETE;
             default:
                 throw new IllegalArgumentException("Unknown http method: " + httpMethod);

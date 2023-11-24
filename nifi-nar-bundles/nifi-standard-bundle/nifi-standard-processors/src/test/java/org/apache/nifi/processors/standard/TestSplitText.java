@@ -890,4 +890,25 @@ public class TestSplitText {
         splits.get(1).assertContentEquals("\n");
     }
 
+    @Test
+    public void testMaxFragmentSizeWithTrimmedEndlines() {
+        final TestRunner splitRunner = TestRunners.newTestRunner(new SplitText());
+        splitRunner.setProperty(SplitText.HEADER_LINE_COUNT, "2");
+        splitRunner.setProperty(SplitText.LINE_SPLIT_COUNT, "0");
+        splitRunner.setProperty(SplitText.FRAGMENT_MAX_SIZE, "30 B");
+        splitRunner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "true");
+
+        splitRunner.enqueue("header1\nheader2\nline1 longer than limit\nline2\nline3\n\n\n\n\n");
+
+        splitRunner.run();
+        splitRunner.assertTransferCount(SplitText.REL_SPLITS, 3);
+        splitRunner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
+
+        final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).assertContentEquals("header1\nheader2\nline1 longer than limit");
+        splits.get(1).assertContentEquals("header1\nheader2\nline2\nline3");
+        splits.get(2).assertContentEquals("header1\nheader2");
+    }
+
 }

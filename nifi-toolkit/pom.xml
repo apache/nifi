@@ -23,54 +23,11 @@
     <artifactId>nifi-toolkit</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>nifi-toolkit-tls</module>
         <module>nifi-toolkit-encrypt-config</module>
-        <module>nifi-toolkit-flowfile-repo</module>
         <module>nifi-toolkit-assembly</module>
         <module>nifi-toolkit-cli</module>
         <module>nifi-toolkit-api</module>
     </modules>
-    <properties>
-        <toolkit.groovy.version>3.0.17</toolkit.groovy.version>
-    </properties>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-all</artifactId>
-                <version>${toolkit.groovy.version}</version>
-                <type>pom</type>
-                <scope>compile</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-test</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-test-junit5</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-testng</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.ant</groupId>
-                        <artifactId>ant-junit</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>${netty.3.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>

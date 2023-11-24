@@ -16,9 +16,9 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
-FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS builder
 LABEL stage=builder
 
 # Values are set by Maven
@@ -64,7 +64,7 @@ ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
 RUN groupadd -g ${GID} ${MINIFI_USER} \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_USER}
 
-COPY --from=builder ${MINIFI_BASE_DIR} ${MINIFI_BASE_DIR}
+COPY --chown=minifi:minifi --from=builder ${MINIFI_BASE_DIR} ${MINIFI_BASE_DIR}
 
 USER ${MINIFI_USER}
 

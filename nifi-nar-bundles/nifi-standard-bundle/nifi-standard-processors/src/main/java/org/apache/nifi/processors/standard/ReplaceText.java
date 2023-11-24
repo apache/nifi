@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
@@ -79,6 +80,68 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Updates the content of a FlowFile by searching for some textual value in the FlowFile content (via Regular Expression/regex, or literal value) and replacing the " +
     "section of the content that matches with some alternate value. It can also be used to append or prepend text to the contents of a FlowFile.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@UseCase(
+    description = "Append text to the end of every line in a FlowFile",
+    keywords = {"raw text", "append", "line"},
+    configuration = """
+        "Evaluation Mode" = "Line-by-Line"
+        "Replacement Strategy" = "Append"
+
+        "Replacement Value" is set to whatever text should be appended to the line.
+        For example, to insert the text `<fin>` at the end of every line, we would set "Replacement Value" to `<fin>`.
+        We can also use Expression Language. So to insert the filename at the end of every line, we set "Replacement Value" to `${filename}`
+        """
+)
+@UseCase(
+    description = "Prepend text to the beginning of every line in a FlowFile",
+    keywords = {"raw text", "prepend", "line"},
+    configuration = """
+        "Evaluation Mode" = "Line-by-Line"
+        "Replacement Strategy" = "Prepend"
+
+        "Replacement Value" is set to whatever text should be prepended to the line.
+        For example, to insert the text `<start>` at the beginning of every line, we would set "Replacement Value" to `<start>`.
+        We can also use Expression Language. So to insert the filename at the beginning of every line, we set "Replacement Value" to `${filename}`
+        """
+)
+@UseCase(
+    description = "Replace every occurrence of a literal string in the FlowFile with a different value",
+    keywords = {"replace", "string", "text", "literal"},
+    configuration = """
+        "Evaluation Mode" = "Line-by-Line"
+        "Replacement Strategy" = "Literal Replace"
+        "Search Value" is set to whatever text is in the FlowFile that needs to be replaced.
+        "Replacement Value" is set to the text that should replace the current text.
+
+        For example, to replace the word "spider" with "arachnid" we set "Search Value" to `spider` and set "Replacement Value" to `arachnid`.
+        """
+)
+@UseCase(
+    description = "Transform every occurrence of a literal string in a FlowFile",
+    keywords = {"replace", "transform", "raw text"},
+    configuration = """
+        "Evaluation Mode" = "Line-by-Line"
+        "Replacement Strategy" = "Regex Replace"
+        "Search Value" is set to a regular expression that matches the text that should be transformed in a capturing group.
+        "Replacement Value" is set to a NiFi Expression Language expression that references `$1` (in quotes to escape the reference name).
+
+        For example, if we wanted to lowercase any occurrence of WOLF, TIGER, or LION, we would use a "Search Value" of `(WOLF|TIGER|LION)` \
+        and a "Replacement Value" of `${'$1':toLower()}`.
+        If we want to replace any identifier with a hash of that identifier, we might use a "Search Value" of `identifier: (.*)` and a \
+        "Replacement Value" of `identifier: ${'$1':hash('sha256')}`
+        """
+)
+@UseCase(
+    description = "Completely replace the contents of a FlowFile to a specific text",
+    keywords = {"replace", "raw text"},
+    configuration = """
+        "Evaluation Mode" = "Entire text"
+        "Replacement Strategy" = "Always Replace"
+
+        "Replacement Value" is set to the new text that should be written to the FlowFile. \
+        This text might include NiFi Expression Language to reference one or more attributes.
+        """
+)
 public class ReplaceText extends AbstractProcessor {
 
     private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");
@@ -368,7 +431,7 @@ public class ReplaceText extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
-            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() }, e);
+            logger.warn("Transferred {} to 'failure' due to {}", flowFile, e.toString(), e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

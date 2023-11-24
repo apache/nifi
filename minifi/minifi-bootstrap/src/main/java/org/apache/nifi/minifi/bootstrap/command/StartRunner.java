@@ -18,27 +18,21 @@
 package org.apache.nifi.minifi.bootstrap.command;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.apache.nifi.minifi.commons.api.MiNiFiCommandState.FULLY_APPLIED;
-import static org.apache.nifi.minifi.commons.api.MiNiFiCommandState.NOT_APPLIED_WITH_RESTART;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.MINIFI_CONFIG_FILE_KEY;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.STATUS_FILE_PID_KEY;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.asByteArrayInputStream;
-import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.generateConfigFiles;
+import static org.apache.nifi.minifi.commons.api.MiNiFiCommandState.FULLY_APPLIED;
+import static org.apache.nifi.minifi.commons.api.MiNiFiCommandState.NOT_APPLIED_WITH_RESTART;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -46,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.ShutdownHook;
@@ -56,10 +51,13 @@ import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiExecCommandProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiListener;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiPropertiesGenerator;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 
 public class StartRunner implements CommandRunner {
+
     private static final int STARTUP_WAIT_SECONDS = 60;
 
     private final CurrentPortProvider currentPortProvider;
@@ -71,15 +69,18 @@ public class StartRunner implements CommandRunner {
     private final Lock lock = new ReentrantLock();
     private final Condition startupCondition = lock.newCondition();
     private final RunMiNiFi runMiNiFi;
-    private volatile ShutdownHook shutdownHook;
     private final MiNiFiExecCommandProvider miNiFiExecCommandProvider;
     private final ConfigurationChangeListener configurationChangeListener;
+    private final MiNiFiPropertiesGenerator miNiFiPropertiesGenerator;
+
+    private volatile ShutdownHook shutdownHook;
 
     private int listenPort;
 
     public StartRunner(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
-        PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler, MiNiFiParameters miNiFiParameters, File bootstrapConfigFile,
-        RunMiNiFi runMiNiFi, MiNiFiExecCommandProvider miNiFiExecCommandProvider, ConfigurationChangeListener configurationChangeListener) {
+                       PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler,
+                       MiNiFiParameters miNiFiParameters, File bootstrapConfigFile, RunMiNiFi runMiNiFi,
+                       MiNiFiExecCommandProvider miNiFiExecCommandProvider, ConfigurationChangeListener configurationChangeListener) {
         this.currentPortProvider = currentPortProvider;
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.periodicStatusReporterManager = periodicStatusReporterManager;
@@ -89,10 +90,12 @@ public class StartRunner implements CommandRunner {
         this.runMiNiFi = runMiNiFi;
         this.miNiFiExecCommandProvider = miNiFiExecCommandProvider;
         this.configurationChangeListener = configurationChangeListener;
+        this.miNiFiPropertiesGenerator = new MiNiFiPropertiesGenerator();
     }
 
     /**
      * Starts (and restarts) MiNiFi process during the whole lifecycle of the bootstrap process.
+     *
      * @param args the input arguments
      * @return status code
      */
@@ -107,7 +110,7 @@ public class StartRunner implements CommandRunner {
         return OK.getStatusCode();
     }
 
-    private void start() throws IOException, InterruptedException {
+    private void start() throws IOException, InterruptedException, ConfigurationChangeException {
         Integer port = currentPortProvider.getCurrentPort();
         if (port != null) {
             CMD_LOGGER.info("Apache MiNiFi is already running, listening to Bootstrap on port {}", port);
@@ -121,10 +124,11 @@ public class StartRunner implements CommandRunner {
 
         Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
         String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
-        initConfigFiles(bootstrapProperties, confDir);
+
+        generateMiNiFiProperties(bootstrapProperties, confDir);
+        regenerateFlowConfiguration(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey()));
 
         Process process = startMiNiFi();
-
         try {
             while (true) {
                 if (process.isAlive()) {
@@ -144,7 +148,7 @@ public class StartRunner implements CommandRunner {
                             Thread.sleep(5000L);
                             continue;
                         }
-                        process = restartMiNifi(bootstrapProperties, confDir);
+                        process = restartMiNifi(confDir);
                         // failed to start process
                         if (process == null) {
                             return;
@@ -161,18 +165,13 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private Process restartMiNifi(Properties bootstrapProperties, String confDir) throws IOException {
+    private Process restartMiNifi(String confDir) throws IOException {
         Process process;
         boolean previouslyStarted = runMiNiFi.isNiFiStarted();
         boolean configChangeSuccessful = true;
         if (!previouslyStarted) {
-            File swapConfigFile = bootstrapFileProvider.getConfigYmlSwapFile();
             File bootstrapSwapConfigFile = bootstrapFileProvider.getBootstrapConfSwapFile();
-            if (swapConfigFile.exists()) {
-                if (!revertFlowConfig(bootstrapProperties, confDir, swapConfigFile)) {
-                    return null;
-                }
-            } else if(bootstrapSwapConfigFile.exists()) {
+            if (bootstrapSwapConfigFile.exists()) {
                 if (!revertBootstrapConfig(confDir, bootstrapSwapConfigFile)) {
                     return null;
                 }
@@ -202,36 +201,14 @@ public class StartRunner implements CommandRunner {
         return process;
     }
 
-    private boolean revertFlowConfig(Properties bootstrapProperties, String confDir, File swapConfigFile) throws IOException {
-        DEFAULT_LOGGER.info("Flow Swap file exists, MiNiFi failed trying to change configuration. Reverting to old configuration.");
-
-        try {
-            ByteBuffer tempConfigFile = generateConfigFiles(Files.newInputStream(swapConfigFile.toPath()), confDir, bootstrapProperties);
-            runMiNiFi.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
-        } catch (ConfigurationChangeException e) {
-            DEFAULT_LOGGER.error("The flow swap file is malformed, unable to restart from prior state. Will not attempt to restart MiNiFi. Swap File should be cleaned up manually.");
-            return false;
-        }
-
-        Files.copy(swapConfigFile.toPath(), Paths.get(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY)), REPLACE_EXISTING);
-
-        DEFAULT_LOGGER.info("Replacing flow config file with swap file and deleting swap file");
-        if (!swapConfigFile.delete()) {
-            DEFAULT_LOGGER.warn("The flow swap file failed to delete after replacing using it to revert to the old configuration. It should be cleaned up manually.");
-        }
-        runMiNiFi.setReloading(false);
-        return true;
-    }
-
     private boolean revertBootstrapConfig(String confDir, File bootstrapSwapConfigFile) throws IOException {
         DEFAULT_LOGGER.info("Bootstrap Swap file exists, MiNiFi failed trying to change configuration. Reverting to old configuration.");
 
         Files.copy(bootstrapSwapConfigFile.toPath(), bootstrapConfigFile.toPath(), REPLACE_EXISTING);
         try {
-            ByteBuffer tempConfigFile = generateConfigFiles(asByteArrayInputStream(runMiNiFi.getConfigFileReference().get().duplicate()), confDir, bootstrapFileProvider.getBootstrapProperties());
-            runMiNiFi.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
+            miNiFiPropertiesGenerator.generateMinifiProperties(confDir, bootstrapFileProvider.getBootstrapProperties());
         } catch (ConfigurationChangeException e) {
-            DEFAULT_LOGGER.error("The bootstrap swap file is malformed, unable to restart from prior state. Will not attempt to restart MiNiFi. Swap File should be cleaned up manually.");
+            DEFAULT_LOGGER.error("Unable to create MiNiFi properties file. Will not attempt to restart MiNiFi. Swap File should be cleaned up manually.");
             return false;
         }
 
@@ -262,7 +239,6 @@ public class StartRunner implements CommandRunner {
         try {
             Thread.sleep(1000L);
             if (runMiNiFi.getReloading() && runMiNiFi.isNiFiStarted()) {
-                deleteSwapFile(bootstrapFileProvider.getConfigYmlSwapFile());
                 deleteSwapFile(bootstrapFileProvider.getBootstrapConfSwapFile());
                 runMiNiFi.setReloading(false);
             }
@@ -283,24 +259,26 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private void initConfigFiles(Properties bootstrapProperties, String confDir) throws IOException {
-        File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
-        try (InputStream inputStream = new FileInputStream(configFile)) {
-            ByteBuffer tempConfigFile = generateConfigFiles(inputStream, confDir, bootstrapProperties);
-            runMiNiFi.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
-        } catch (FileNotFoundException e) {
-            String fileNotFoundMessage = "The config file defined in " + MINIFI_CONFIG_FILE_KEY + " does not exists.";
-            DEFAULT_LOGGER.error(fileNotFoundMessage, e);
-            throw new StartupFailureException(fileNotFoundMessage);
+    private void generateMiNiFiProperties(Properties bootstrapProperties, String confDir) {
+        DEFAULT_LOGGER.debug("Generating minifi.properties from bootstrap.conf");
+        try {
+            miNiFiPropertiesGenerator.generateMinifiProperties(confDir, bootstrapProperties);
         } catch (ConfigurationChangeException e) {
-            String malformedConfigFileMessage = "The config file is malformed, unable to start.";
-            DEFAULT_LOGGER.error(malformedConfigFileMessage, e);
-            throw new StartupFailureException(malformedConfigFileMessage);
+            throw new StartupFailureException("Unable to create MiNiFi properties file", e);
+        }
+    }
+
+    private void regenerateFlowConfiguration(String flowConfigFileLocation) throws ConfigurationChangeException, IOException {
+        Path flowConfigFile = Path.of(flowConfigFileLocation).toAbsolutePath();
+        String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(flowConfigFile.toString());
+        Path rawConfigFile = flowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION);
+        if (Files.exists(rawConfigFile)) {
+            DEFAULT_LOGGER.debug("Regenerating flow configuration {} from raw flow configuration {}", flowConfigFile, rawConfigFile);
+            configurationChangeListener.handleChange(Files.newInputStream(rawConfigFile));
         }
     }
 
     private Process startMiNiFi() throws IOException {
-
         MiNiFiListener listener = new MiNiFiListener();
         listenPort = listener.start(runMiNiFi, bootstrapFileProvider, configurationChangeListener);
 
@@ -309,7 +287,7 @@ public class StartRunner implements CommandRunner {
         return startMiNiFiProcess(getProcessBuilder());
     }
 
-    private ProcessBuilder getProcessBuilder() throws IOException{
+    private ProcessBuilder getProcessBuilder() throws IOException {
         ProcessBuilder builder = new ProcessBuilder();
         File workingDir = getWorkingDir();
 

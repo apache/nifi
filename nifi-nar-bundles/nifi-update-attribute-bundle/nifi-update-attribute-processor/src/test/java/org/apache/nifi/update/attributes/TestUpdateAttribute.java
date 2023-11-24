@@ -62,10 +62,15 @@ public class TestUpdateAttribute {
         return new Criteria();
     }
 
+    // overloaded for convenience method for rules without optional comments
     private void addRule(final Criteria criteria, final String name, final Collection<String> conditions, final Map<String, String> actions) {
+        addRule(criteria, name, null, conditions, actions);
+    }
+    private void addRule(final Criteria criteria, final String name, final String comments, final Collection<String> conditions, final Map<String, String> actions) {
         final Rule rule = new Rule();
         rule.setId(UUID.randomUUID().toString());
         rule.setName(name);
+        rule.setComments(comments);
         rule.setConditions(new HashSet<Condition>());
         rule.setActions(new HashSet<Action>());
 

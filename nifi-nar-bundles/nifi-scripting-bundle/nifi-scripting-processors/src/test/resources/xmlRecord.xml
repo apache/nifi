@@ -1,0 +1,17 @@
+<root>
+    <myRecord>
+        <id>1</id>
+        <name>John</name>
+        <code>100</code>
+    </myRecord>
+    <myRecord>
+        <id>2</id>
+        <name>Mary</name>
+        <code>200</code>
+    </myRecord>
+    <myRecord>
+        <id>3</id>
+        <name>Ramon</name>
+        <code>300</code>
+    </myRecord>
+</root>

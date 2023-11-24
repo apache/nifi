@@ -27,10 +27,10 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -71,8 +71,6 @@ import org.apache.nifi.util.db.JdbcProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -244,16 +242,6 @@ public class JoinEnrichment extends BinFiles {
         return relationships;
     }
 
-    @OnScheduled
-    public void registerCalciteDriver() {
-        // This is necessary in order to create a Calcite Connection for the SQL based Join strategy. We could put this in the SqlJoinStrategy but do it here to avoid doing this multiple times.
-        try {
-            DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
-        } catch (final SQLException e) {
-            throw new ProcessException("Failed to load Calcite JDBC Driver", e);
-        }
-    }
-
     @OnStopped
     public synchronized void cleanup() throws Exception {
         sqlJoinCache.close();
@@ -385,7 +373,7 @@ public class JoinEnrichment extends BinFiles {
         final WriteResult writeResult;
         final String mimeType;
         FlowFile output;
-        try (final RecordJoinResult result = joinStrategy.join(originalInput, enrichmentInput, session, writerSchema)) {
+        try (final RecordJoinResult result = joinStrategy.join(originalInput, enrichmentInput, combinedAttributes, session, writerSchema)) {
             // Create output FlowFile
             output = session.create(flowFiles);
 
@@ -439,10 +427,10 @@ public class JoinEnrichment extends BinFiles {
     private RecordJoinStrategy getJoinStrategy(final ProcessContext context, final Map<String, String> attributes) {
         final String strategyName = context.getProperty(JOIN_STRATEGY).getValue();
         if (strategyName.equalsIgnoreCase(JOIN_SQL.getValue())) {
-            final String sql = context.getProperty(SQL).getValue();
+            final PropertyValue sqlPropertyValue = context.getProperty(SQL);
             final int defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(attributes).asInteger();
             final int defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(attributes).asInteger();
-            return new SqlJoinStrategy(sqlJoinCache, sql, getLogger(), defaultPrecision, defaultScale);
+            return new SqlJoinStrategy(sqlJoinCache, sqlPropertyValue, getLogger(), defaultPrecision, defaultScale);
         } else if (strategyName.equalsIgnoreCase(JOIN_WRAPPER.getValue())) {
             return new WrapperJoinStrategy(getLogger());
         } else if (strategyName.equalsIgnoreCase(JOIN_INSERT_ENRICHMENT_FIELDS.getValue())) {

@@ -26,8 +26,9 @@ limitations under the License.
     <packaging>pom</packaging>
 
     <modules>
-        <module>minifi-commons-schema</module>
-        <module>minifi-utils</module>
+        <module>minifi-flow-status-report</module>
         <module>minifi-commons-api</module>
+        <module>minifi-commons-framework</module>
+        <module>minifi-commons-utils</module>
     </modules>
 </project>

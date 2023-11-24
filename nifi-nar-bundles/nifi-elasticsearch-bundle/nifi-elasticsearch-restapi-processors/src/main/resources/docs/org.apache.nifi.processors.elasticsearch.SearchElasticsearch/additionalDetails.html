@@ -60,17 +60,27 @@
             }
         }
     </pre>
+
+    <h2>Query Pagination Across Processor Executions</h2>
     <p>This processor runs on a schedule in order to execute the same query repeatedly. Once a paginated query has been
     initiated within Elasticsearch, this processor will continue to retrieve results for that same query until no
-    further results are available. After that point, a new paginated query will be initiated using the same Query JSON.
-    This processor does not attempt to de-duplicate results between queries, for example if the same query runs twice
-    and (some or all of) the results are identical, the output will contain these same results for both invocations.</p>
+    further results are available. After that point, a new paginated query will be initiated using the same Query JSON.</p>
     <p>If the results are "Combined" from this processor, then the paginated query will run continually within a
     single invocation until no more results are available (then the processor will start a new paginated query upon its
     next invocation). If the results are "Split" or "Per Page", then each invocation of this processor will retrieve the
     next page of results until either there are no more results or the paginated query expires within Elasticsearch.</p>
+
+    <h2>Resetting Queries / Clearing Processor State</h2>
     <p>Local State is used to track the progress of a paginated query within this processor. If there is need to restart
     the query completely or change the processor configuration after a paginated query has already been started,
     be sure to "Clear State" of the processor once it has been stopped and before restarting.</p>
+
+    <h2>Duplicate Results</h2>
+    <p>This processor does not attempt to de-duplicate results between queries, for example if the same query runs twice
+    and (some or all of) the results are identical, the output will contain these same results for both invocations.
+    This might happen if the NiFi Primary Node changes while a page of data is being retrieved, or if the processor
+    state is cleared, then the processor is restarted.</p>
+    <p>This processor will continually run the same query unless the processor properties are updated, so unless
+    the data in Elasticsearch has changed, the same data will be retrieved multiple times.s</p>
 </body>
 </html>

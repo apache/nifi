@@ -45,6 +45,16 @@ public interface PythonController {
      */
     void discoverExtensions(List<String> directories, String workDirectory);
 
+
+    /**
+     * Downloads any third-party dependencies that are necessary in order to use the processor of the given type and version
+     *
+     * @param type          the type of the processor
+     * @param version       the version of the processor
+     * @param workDirectory the work directory where the processor's virtual environment should live
+     */
+    void downloadDependencies(String type, String version, String workDirectory);
+
     /**
      * Creates a Processor of the given type and version, returning a PythonProcessorAdapter that can be used for interacting with it.
      *
@@ -79,4 +89,12 @@ public interface PythonController {
      */
     String getModuleFile(String processorType, String version);
 
+    /**
+     * Returns details about the Processor with the given type and version
+     *
+     * @param type    the type of the Processor
+     * @param version the version of the Processor
+     * @return the details that have been discovered
+     */
+    PythonProcessorDetails getProcessorDetails(String type, String version);
 }

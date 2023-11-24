@@ -165,7 +165,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("Name of the Google Cloud PubSub Topic")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder()
@@ -369,20 +369,21 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             final List<Throwable> failures = new ArrayList<>();
 
             final Map<String, String> attributes = flowFile.getAttributes();
-            final RecordReader reader = readerFactory.createRecordReader(
-                    attributes, session.read(flowFile), flowFile.getSize(), getLogger());
-            final RecordSet recordSet = reader.createRecordSet();
-            final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
+            try (final RecordReader reader = readerFactory.createRecordReader(
+                    attributes, session.read(flowFile), flowFile.getSize(), getLogger())) {
+                final RecordSet recordSet = reader.createRecordSet();
+                final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
 
-            final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos, attributes);
-            final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
+                final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos, attributes);
+                final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
 
-            while (pushBackRecordSet.isAnotherRecord()) {
-                final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
-                futures.add(apiFuture);
-                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
+                while (pushBackRecordSet.isAnotherRecord()) {
+                    final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
+                    futures.add(apiFuture);
+                    addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
+                }
+                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
             }
-            flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
         }
         finishBatch(session, stopWatch, flowFileResults);
     }

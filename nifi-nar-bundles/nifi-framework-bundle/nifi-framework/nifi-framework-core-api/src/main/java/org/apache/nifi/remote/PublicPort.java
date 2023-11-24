@@ -23,22 +23,12 @@ import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.protocol.ServerProtocol;
 
-import java.util.Set;
-
 /**
  * Represents an input or output port that can receive or transfer data via Site-to-Site protocol.
  */
 public interface PublicPort extends Port {
 
     boolean isTransmitting();
-
-    void setGroupAccessControl(Set<String> groups);
-
-    Set<String> getGroupAccessControl();
-
-    void setUserAccessControl(Set<String> users);
-
-    Set<String> getUserAccessControl();
 
     /**
      * Verifies that the specified user is authorized to interact with this port

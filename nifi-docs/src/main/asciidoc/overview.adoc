@@ -166,10 +166,6 @@ within a typical server.  NiFi for a large class of dataflows then should be abl
 efficiently reach 100 MB per second or more of throughput.  That is because linear growth
 is expected for each physical partition and content repository added to NiFi.  This will
 bottleneck at some point on the FlowFile repository and provenance repository.
-We plan to provide a benchmarking and performance test template to
-include in the build, which allows users to easily test their system and
-to identify where bottlenecks are, and at which point they might become a factor.  This template
-should also make it easy for system administrators to make changes and to verify the impact.
 
 For CPU::
 The Flow Controller acts as the engine dictating when a particular processor is
@@ -221,11 +217,6 @@ Ease of Use::
         molding clay.  If you make a change to the dataflow that change immediately takes effect.  Changes
         are fine-grained and isolated to the affected components.  You don't need to stop an entire
         flow or set of flows just to make some specific modification.
-    Flow Templates;;
-        Dataflows tend to be highly pattern oriented and while there are often many different
-        ways to solve a problem, it helps greatly to be able to share those best practices.  Templates
-        allow subject matter experts to build and publish their flow designs and for others to benefit
-        and collaborate on them.
     Data Provenance;;
         NiFi automatically records, indexes, and makes available provenance data as
         objects flow through the system even across fan-in, fan-out, transformations, and

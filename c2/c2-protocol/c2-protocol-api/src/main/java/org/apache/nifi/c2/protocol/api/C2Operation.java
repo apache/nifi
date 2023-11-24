@@ -17,14 +17,14 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import static java.lang.String.format;
-
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.lang.String.format;
 
 @ApiModel
 public class C2Operation implements Serializable {
@@ -36,7 +36,7 @@ public class C2Operation implements Serializable {
     private Map<String, String> args;
     private Set<String> dependencies;
 
-    @ApiModelProperty(value = "A unique identifier for the operation", readOnly = true)
+    @ApiModelProperty(value = "A unique identifier for the operation", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }

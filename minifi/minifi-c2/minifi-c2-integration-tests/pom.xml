@@ -32,31 +32,29 @@ limitations under the License.
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-commons-schema</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-c2-api</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-toolkit-tls</artifactId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.palantir.docker.compose</groupId>
             <artifactId>docker-compose-junit-jupiter</artifactId>
             <version>2.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-core-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jaxb-annotations</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -91,7 +89,7 @@ limitations under the License.
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/mocknifi/www/nifi-api/flow/templates</exclude>
+                        <exclude>**/config.application.json.*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

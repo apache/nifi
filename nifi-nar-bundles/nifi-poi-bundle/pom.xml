@@ -17,28 +17,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-poi-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <poi.version>5.2.3</poi.version>
+        <poi.version>5.2.4</poi.version>
     </properties>
     <modules>
-        <module>nifi-poi-processors</module>
         <module>nifi-poi-nar</module>
         <module>nifi-poi-services</module>
     </modules>
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.23.0</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi</artifactId>
@@ -52,7 +47,7 @@
             <dependency>
                 <groupId>com.github.pjfanning</groupId>
                 <artifactId>excel-streaming-reader</artifactId>
-                <version>4.1.0</version>
+                <version>4.2.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>

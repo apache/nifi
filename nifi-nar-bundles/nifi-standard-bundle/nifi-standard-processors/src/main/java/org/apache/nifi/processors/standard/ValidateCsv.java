@@ -516,7 +516,7 @@ public class ValidateCsv extends AbstractProcessor {
                             valid.set(false);
                             if(isWholeFFValidation) {
                                 validationError.set(e.getLocalizedMessage());
-                                logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", new Object[]{flowFile}, e);
+                                logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
                                 break;
                             } else {
                                 // we append the invalid line to the flow file that will be routed to invalid relationship
@@ -544,7 +544,7 @@ public class ValidateCsv extends AbstractProcessor {
 
                 } catch (final IOException e) {
                     valid.set(false);
-                    logger.error("Failed to validate {} against schema due to {}", new Object[]{flowFile}, e);
+                    logger.error("Failed to validate {} against schema due to {}", flowFile, e);
                 }
             }
         });

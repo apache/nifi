@@ -161,7 +161,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Key Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_KEY_ALGORITHM_NAMES))
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -170,7 +170,7 @@ public class SFTPTransfer implements FileTransfer {
             .displayName("Ciphers Allowed")
             .description("A comma-separated list of Ciphers allowed for SFTP connections. Leave unset to allow all. Available options are: " + convertFactorySetToString(DEFAULT_CIPHER_NAMES))
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -180,7 +180,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Message Authentication Codes allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES))
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -190,7 +190,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Key Exchange Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES))
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -658,7 +658,7 @@ public class SFTPTransfer implements FileTransfer {
                 sftpClient.close();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SFTPClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SFTPClient due to {}", ex.toString(), ex);
         }
         sftpClient = null;
 
@@ -667,7 +667,7 @@ public class SFTPTransfer implements FileTransfer {
                 sshClient.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SSHClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SSHClient due to {}", ex.toString(), ex);
         }
         sshClient = null;
     }

@@ -1,0 +1,15 @@
+{
+  "name": "schema1",
+  "createdBy": "",
+  "createdOn": "2023-10-16T14:19:21+0000",
+  "modifiedBy": "",
+  "modifiedOn": "2023-10-16T14:53:12+0000",
+  "id": "artifactId1",
+  "version": "3",
+  "type": "AVRO",
+  "globalId": 3,
+  "state": "ENABLED",
+  "groupId": "groupId1",
+  "contentId": 2,
+  "references": []
+}

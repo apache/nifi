@@ -35,8 +35,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -62,12 +60,9 @@ public class DeleteS3Object extends AbstractS3Processor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    public static final List<PropertyDescriptor> properties = List.of(
+            BUCKET_WITH_DEFAULT_VALUE,
             KEY,
-            BUCKET,
-            ACCESS_KEY,
-            SECRET_KEY,
-            CREDENTIALS_FILE,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
             TIMEOUT,
@@ -83,11 +78,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             SIGNER_OVERRIDE,
             S3_CUSTOM_SIGNER_CLASS_NAME,
             S3_CUSTOM_SIGNER_MODULE_LOCATION,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD));
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -114,7 +105,7 @@ public class DeleteS3Object extends AbstractS3Processor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 

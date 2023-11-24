@@ -211,7 +211,7 @@ public class TestAzureKeyVaultSecretsParameterProvider {
                 new MockComponentLog("providerId", parameterProvider));
         parameterProvider.initialize(initContext);
 
-        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+        final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null, null);
 
         List<ParameterGroup> parameterGroups = new ArrayList<>();
         // Verify parameter fetching

@@ -19,9 +19,7 @@ package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class VersionedProcessGroup extends VersionedComponent {
@@ -36,8 +34,6 @@ public class VersionedProcessGroup extends VersionedComponent {
     private Set<VersionedFunnel> funnels = new HashSet<>();
     private Set<VersionedControllerService> controllerServices = new HashSet<>();
     private VersionedFlowCoordinates versionedFlowCoordinates = null;
-
-    private Map<String, String> variables = new HashMap<>();
 
     private String parameterContextName;
     private String flowfileConcurrency;
@@ -138,15 +134,6 @@ public class VersionedProcessGroup extends VersionedComponent {
     @Override
     public ComponentType getComponentType() {
         return ComponentType.PROCESS_GROUP;
-    }
-
-    public void setVariables(Map<String, String> variables) {
-        this.variables = variables;
-    }
-
-    @ApiModelProperty("The Variables in the Variable Registry for this Process Group (not including any ancestor or descendant Process Groups)")
-    public Map<String, String> getVariables() {
-        return variables;
     }
 
     public void setVersionedFlowCoordinates(VersionedFlowCoordinates flowCoordinates) {

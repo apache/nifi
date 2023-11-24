@@ -18,14 +18,15 @@ package org.apache.nifi.web.server.util;
 
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.Scanner;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -38,7 +39,7 @@ import static org.apache.nifi.security.util.SslContextFactory.createSslContext;
  * File Scanner for Keystore or Truststore reloading using provided TLS Configuration
  */
 public class StoreScanner extends ContainerLifeCycle implements Scanner.DiscreteListener {
-    private static final Logger LOG = Log.getLogger(StoreScanner.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StoreScanner.class);
 
     private final SslContextFactory sslContextFactory;
     private final TlsConfiguration tlsConfiguration;
@@ -61,11 +62,6 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
                 throw new IllegalArgumentException(String.format("expected %s file not directory", resourceName));
             }
 
-            if (resource.getAlias() != null) {
-                // this resource has an alias, use the alias, as that's what's returned in the Scanner
-                monitoredFile = new File(resource.getAlias());
-            }
-
             file = monitoredFile;
             if (LOG.isDebugEnabled()) {
                 LOG.debug("File monitoring started {} [{}]", resourceName, monitoredFile);
@@ -79,7 +75,7 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
             throw new IllegalArgumentException(String.format("error obtaining %s dir", resourceName));
         }
 
-        scanner = new Scanner();
+        scanner = new Scanner(null, false);
         scanner.setScanDirs(Collections.singletonList(parentFile));
         scanner.setScanInterval(1);
         scanner.setReportDirs(false);
@@ -114,8 +110,8 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
     public void scan() {
         LOG.debug("Resource [{}] scanning started", resourceName);
 
-        this.scanner.scan();
-        this.scanner.scan();
+        this.scanner.scan(new Callback.Completable());
+        this.scanner.scan(new Callback.Completable());
     }
 
     @ManagedOperation(

@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
@@ -25,7 +26,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
@@ -35,12 +36,11 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -224,16 +224,16 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public ClusteSummaryEntity getClusterSummary() throws NiFiClientException, IOException {
+    public ClusterSummaryEntity getClusterSummary() throws NiFiClientException, IOException {
         return executeAction("Error retrieving cluster summary", () -> {
             final WebTarget target = flowTarget.path("cluster/summary");
-            return getRequestBuilder(target).get(ClusteSummaryEntity.class);
+            return getRequestBuilder(target).get(ClusterSummaryEntity.class);
         });
     }
 
     @Override
     public ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving reporting task controller services", () -> {
+        return executeAction("Error retrieving reporting task/flow analysis rule controller services", () -> {
             final WebTarget target = flowTarget.path("controller/controller-services");
             return getRequestBuilder(target).get(ControllerServicesEntity.class);
         });
@@ -248,18 +248,27 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving parameter providers", () -> {
-            final WebTarget target = flowTarget.path("parameter-providers");
-            return getRequestBuilder(target).get(ParameterProvidersEntity.class);
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting tasks", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot");
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
         });
     }
 
     @Override
-    public TemplatesEntity getTemplates() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving templates", () -> {
-            final WebTarget target = flowTarget.path("templates");
-            return getRequestBuilder(target).get(TemplatesEntity.class);
+    public VersionedReportingTaskSnapshot getReportingTaskSnapshot(final String reportingTaskId) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks/snapshot")
+                    .queryParam("reportingTaskId", reportingTaskId);
+            return getRequestBuilder(target).get(VersionedReportingTaskSnapshot.class);
+        });
+    }
+
+    @Override
+    public ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving parameter providers", () -> {
+            final WebTarget target = flowTarget.path("parameter-providers");
+            return getRequestBuilder(target).get(ParameterProvidersEntity.class);
         });
     }
 

@@ -18,7 +18,6 @@ package org.apache.nifi.registry.authorization;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,8 +34,8 @@ public class User extends Tenant {
     }
 
     @ApiModelProperty(
-            value = "The groups to which the user belongs.",
-            readOnly = true
+        value = "The groups to which the user belongs.",
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<Tenant> getUserGroups() {
         return userGroups;

@@ -18,19 +18,45 @@ package org.apache.nifi.processors.aws;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.SSLContext;
+import java.net.Proxy;
+import java.net.Proxy.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for AWS processors that uses AWSCredentialsProvider interface for creating AWS clients.
@@ -39,42 +65,256 @@ import java.util.Map;
  *
  * @see <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
  */
-public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends AmazonWebServiceClient>
-    extends AbstractAWSProcessor<ClientType> implements VerifiableProcessor {
+public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor implements VerifiableProcessor {
 
-    /**
-     * AWS credentials provider service
-     *
-     * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
-     */
-    public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("AWS Credentials Provider service")
-            .displayName("AWS Credentials Provider Service")
-            .description("The Controller Service that is used to obtain AWS credentials provider")
-            .required(false)
-            .identifiesControllerService(AWSCredentialsProviderService.class)
+    private static final String CREDENTIALS_SERVICE_CLASSNAME = "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService";
+    private static final String PROXY_SERVICE_CLASSNAME = "org.apache.nifi.proxy.StandardProxyConfigurationService";
+
+    // Obsolete property names
+    private static final String OBSOLETE_ACCESS_KEY = "Access Key";
+    private static final String OBSOLETE_SECRET_KEY = "Secret Key";
+    private static final String OBSOLETE_CREDENTIALS_FILE = "Credentials File";
+    private static final String OBSOLETE_PROXY_HOST = "Proxy Host";
+    private static final String OBSOLETE_PROXY_PORT = "Proxy Host Port";
+    private static final String OBSOLETE_PROXY_USERNAME = "proxy-user-name";
+    private static final String OBSOLETE_PROXY_PASSWORD = "proxy-user-password";
+
+    // Controller Service property names
+    private static final String AUTH_SERVICE_ACCESS_KEY = "Access Key";
+    private static final String AUTH_SERVICE_SECRET_KEY = "Secret Key";
+    private static final String AUTH_SERVICE_CREDENTIALS_FILE = "Credentials File";
+    private static final String AUTH_SERVICE_DEFAULT_CREDENTIALS = "default-credentials";
+    private static final String PROXY_SERVICE_HOST = "proxy-server-host";
+    private static final String PROXY_SERVICE_PORT = "proxy-server-port";
+    private static final String PROXY_SERVICE_USERNAME = "proxy-user-name";
+    private static final String PROXY_SERVICE_PASSWORD = "proxy-user-password";
+    private static final String PROXY_SERVICE_TYPE = "proxy-type";
+
+
+    // Property Descriptors
+    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
+            .name("Region")
+            .description("The AWS Region to connect to.")
+            .required(true)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
+
+    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Communications Timeout")
+            .description("The amount of time to wait in order to establish a connection to AWS or receive data from AWS before timing out.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 secs")
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("Endpoint Override URL")
+            .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
+                    "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
+                    "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .required(false)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+        .name("AWS Credentials Provider service")
+        .displayName("AWS Credentials Provider Service")
+        .description("The Controller Service that is used to obtain AWS credentials provider")
+        .required(true)
+        .identifiesControllerService(AWSCredentialsProviderService.class)
+        .build();
+
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+        .name("proxy-configuration-service")
+        .displayName("Proxy Configuration Service")
+        .description("Specifies the Proxy Configuration Controller Service to proxy network requests.")
+        .identifiesControllerService(ProxyConfigurationService.class)
+        .required(false)
+        .build();
+
+
+    // Relationships
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles are routed to this Relationship after they have been successfully processed.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If the Processor is unable to process a given FlowFile, it will be routed to this Relationship.")
+            .build();
+
+    public static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+
+
+    // Member variables
+    private final Cache<String, ClientType> clientCache = Caffeine.newBuilder()
+            .maximumSize(10)
+            .build();
+
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        getClient(context);
+    }
+
+    @OnStopped
+    public void onStopped() {
+        this.clientCache.invalidateAll();
+        this.clientCache.cleanUp();
+    }
+
+    public static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    }
+
+    public static AllowableValue[] getAvailableRegions() {
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final Regions region : Regions.values()) {
+            values.add(createAllowableValue(region));
+        }
+        return values.toArray(new AllowableValue[0]);
+    }
+
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        migrateAuthenticationProperties(config);
+        migrateProxyProperties(config);
+    }
+
+    private void migrateAuthenticationProperties(final PropertyConfiguration config) {
+        if (config.isPropertySet(OBSOLETE_ACCESS_KEY) && config.isPropertySet(OBSOLETE_SECRET_KEY)) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                AUTH_SERVICE_ACCESS_KEY, config.getRawPropertyValue(OBSOLETE_ACCESS_KEY).get(),
+                AUTH_SERVICE_SECRET_KEY, config.getRawPropertyValue(OBSOLETE_SECRET_KEY).get()));
+
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE.getName(), serviceId);
+        } else if (config.isPropertySet(OBSOLETE_CREDENTIALS_FILE)) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                AUTH_SERVICE_CREDENTIALS_FILE, config.getRawPropertyValue(OBSOLETE_CREDENTIALS_FILE).get()));
+
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+        } else if (!config.isPropertySet(AWS_CREDENTIALS_PROVIDER_SERVICE)) {
+            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                AUTH_SERVICE_DEFAULT_CREDENTIALS, "true"));
+            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+        }
+
+        config.removeProperty(OBSOLETE_ACCESS_KEY);
+        config.removeProperty(OBSOLETE_SECRET_KEY);
+        config.removeProperty(OBSOLETE_CREDENTIALS_FILE);
+    }
+
+    private void migrateProxyProperties(final PropertyConfiguration config) {
+        if (config.isPropertySet(OBSOLETE_PROXY_HOST)) {
+            final Map<String, String> proxyProperties = new HashMap<>();
+            proxyProperties.put(PROXY_SERVICE_TYPE, Type.HTTP.name());
+            proxyProperties.put(PROXY_SERVICE_HOST, config.getRawPropertyValue(OBSOLETE_PROXY_HOST).get());
+
+            // Map any optional proxy configs
+            config.getRawPropertyValue(OBSOLETE_PROXY_PORT).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_PORT, value));
+            config.getRawPropertyValue(OBSOLETE_PROXY_USERNAME).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_USERNAME, value));
+            config.getRawPropertyValue(OBSOLETE_PROXY_PASSWORD).ifPresent(value -> proxyProperties.put(PROXY_SERVICE_PASSWORD, value));
+
+            final String serviceId = config.createControllerService(PROXY_SERVICE_CLASSNAME, proxyProperties);
+            config.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
+        }
+
+        config.removeProperty(OBSOLETE_PROXY_HOST);
+        config.removeProperty(OBSOLETE_PROXY_PORT);
+        config.removeProperty(OBSOLETE_PROXY_USERNAME);
+        config.removeProperty(OBSOLETE_PROXY_PASSWORD);
+    }
+
+    protected ClientConfiguration createConfiguration(final ProcessContext context) {
+        return createConfiguration(context, context.getMaxConcurrentTasks());
+    }
+
+    protected ClientConfiguration createConfiguration(final PropertyContext context, final int maxConcurrentTasks) {
+        final ClientConfiguration config = new ClientConfiguration();
+        config.setMaxConnections(maxConcurrentTasks);
+        config.setMaxErrorRetry(0);
+        config.setUserAgentPrefix("NiFi");
+        config.setProtocol(Protocol.HTTPS);
+
+        final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        config.setConnectionTimeout(commsTimeout);
+        config.setSocketTimeout(commsTimeout);
+
+        if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService != null) {
+                final SSLContext sslContext = sslContextService.createContext();
+                // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
+                SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
+                config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            }
+        }
+
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            if (context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
+                final ProxyConfigurationService configurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+                return configurationService.getConfiguration();
+            }
+
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
+
+        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+            config.setProxyHost(proxyConfig.getProxyServerHost());
+            config.setProxyPort(proxyConfig.getProxyServerPort());
+
+            if (proxyConfig.hasCredential()) {
+                config.setProxyUsername(proxyConfig.getProxyUserName());
+                config.setProxyPassword(proxyConfig.getProxyUserPassword());
+            }
+        }
+
+        return config;
+    }
+
+
+    protected ClientType createClient(final ProcessContext context) {
+        return createClient(context, getRegion(context));
+    }
 
     /**
      * Attempts to create the client using the controller service first before falling back to the standard configuration.
      * @param context The process context
      * @return The created client
      */
-    @Override
-    public ClientType createClient(final ProcessContext context, AwsClientDetails awsClientDetails) {
-        final ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
-        if (service != null) {
-            getLogger().debug("Using AWS credentials provider service for creating client");
-            final AWSCredentialsProvider credentialsProvider = getCredentialsProvider(context);
-            final ClientConfiguration configuration = createConfiguration(context);
-            final ClientType createdClient = createClient(context, credentialsProvider, configuration);
-            setRegionAndInitializeEndpoint(awsClientDetails.getRegion(), context, createdClient);
-            return createdClient;
-        } else {
-            getLogger().debug("Using AWS credentials for creating client");
-            return super.createClient(context, awsClientDetails);
-        }
+    public ClientType createClient(final ProcessContext context, final Region region) {
+        getLogger().debug("Using AWS credentials provider service for creating client");
+        final AWSCredentialsProvider credentialsProvider = getCredentialsProvider(context);
+        final ClientConfiguration configuration = createConfiguration(context);
+        final ClientType createdClient = createClient(context, credentialsProvider, region, configuration, getEndpointConfiguration(context, region));
+        return createdClient;
     }
+
+    protected AwsClientBuilder.EndpointConfiguration getEndpointConfiguration(final ProcessContext context, final Region region) {
+        final PropertyValue overrideValue = context.getProperty(ENDPOINT_OVERRIDE);
+        if (overrideValue == null || !overrideValue.isSet()) {
+            return null;
+        }
+
+        final String endpointOverride = overrideValue.getValue();
+        return new AwsClientBuilder.EndpointConfiguration(endpointOverride, region.getName());
+    }
+
 
 
     @Override
@@ -83,6 +323,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
 
         try {
             createClient(context);
+
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client and Configure Region")
@@ -100,18 +341,34 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         return results;
     }
 
-    /**
-     * Get credentials provider using the {@link AWSCredentialsProviderService}
-     * @param context the process context
-     * @return AWSCredentialsProvider the credential provider
-     * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
-     */
     protected AWSCredentialsProvider getCredentialsProvider(final ProcessContext context) {
-
-        final AWSCredentialsProviderService awsCredentialsProviderService =
-              context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
-
+        final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
         return awsCredentialsProviderService.getCredentialsProvider();
+    }
+
+
+    protected Region getRegion(final ProcessContext context) {
+        // if the processor supports REGION, get the configured region.
+        if (getSupportedPropertyDescriptors().contains(REGION)) {
+            final String regionValue = context.getProperty(REGION).getValue();
+            if (regionValue != null) {
+                return Region.getRegion(Regions.fromName(regionValue));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates an AWS service client from the context or returns an existing client from the cache
+     */
+    protected ClientType getClient(final ProcessContext context, final Region region) {
+        final String regionName = region == null ? "" : region.getName();
+        return clientCache.get(regionName, ignored -> createClient(context, region));
+    }
+
+    protected ClientType getClient(final ProcessContext context) {
+        return getClient(context, getRegion(context));
     }
 
     /**
@@ -122,5 +379,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      * @param config AWS client configuration
      * @return ClientType the client
      */
-    protected abstract ClientType createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config);
+    protected abstract ClientType createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, Region region, ClientConfiguration config,
+                                               AwsClientBuilder.EndpointConfiguration endpointConfiguration);
+
 }

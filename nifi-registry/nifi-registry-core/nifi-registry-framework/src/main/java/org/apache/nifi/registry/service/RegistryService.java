@@ -18,7 +18,8 @@ package org.apache.nifi.registry.service;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.db.entity.BucketEntity;
@@ -33,11 +34,9 @@ import org.apache.nifi.registry.extension.BundleCoordinate;
 import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
-import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -50,7 +49,6 @@ import org.apache.nifi.registry.provider.extension.StandardBundleCoordinate;
 import org.apache.nifi.registry.provider.flow.StandardFlowSnapshotContext;
 import org.apache.nifi.registry.serialization.FlowContent;
 import org.apache.nifi.registry.serialization.FlowContentSerializer;
-import org.apache.nifi.registry.service.alias.RegistryUrlAliasService;
 import org.apache.nifi.registry.service.mapper.BucketMappings;
 import org.apache.nifi.registry.service.mapper.ExtensionMappings;
 import org.apache.nifi.registry.service.mapper.FlowMappings;
@@ -59,9 +57,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -70,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -89,24 +88,21 @@ public class RegistryService {
     private final BundlePersistenceProvider bundlePersistenceProvider;
     private final FlowContentSerializer flowContentSerializer;
     private final Validator validator;
-    private final RegistryUrlAliasService registryUrlAliasService;
 
     @Autowired
     public RegistryService(final MetadataService metadataService,
                            final FlowPersistenceProvider flowPersistenceProvider,
                            final BundlePersistenceProvider bundlePersistenceProvider,
                            final FlowContentSerializer flowContentSerializer,
-                           final Validator validator,
-                           final RegistryUrlAliasService registryUrlAliasService) {
-        this.metadataService = Validate.notNull(metadataService);
-        this.flowPersistenceProvider = Validate.notNull(flowPersistenceProvider);
-        this.bundlePersistenceProvider = Validate.notNull(bundlePersistenceProvider);
-        this.flowContentSerializer = Validate.notNull(flowContentSerializer);
-        this.validator = Validate.notNull(validator);
-        this.registryUrlAliasService = Validate.notNull(registryUrlAliasService);
+                           final Validator validator) {
+        this.metadataService = Objects.requireNonNull(metadataService);
+        this.flowPersistenceProvider = Objects.requireNonNull(flowPersistenceProvider);
+        this.bundlePersistenceProvider = Objects.requireNonNull(bundlePersistenceProvider);
+        this.flowContentSerializer = Objects.requireNonNull(flowContentSerializer);
+        this.validator = Objects.requireNonNull(validator);
     }
 
-    private <T>  void validate(T t, String invalidMessage) {
+    private <T> void validate(T t, String invalidMessage) {
         final Set<ConstraintViolation<T>> violations = validator.validate(t);
         if (violations.size() > 0) {
             throw new ConstraintViolationException(invalidMessage, violations);
@@ -218,7 +214,7 @@ public class RegistryService {
             final List<BucketEntity> bucketsWithSameName = metadataService.getBucketsByName(bucket.getName());
             if (bucketsWithSameName != null) {
                 for (final BucketEntity bucketWithSameName : bucketsWithSameName) {
-                    if (!bucketWithSameName.getId().equals(existingBucketById.getId())){
+                    if (!bucketWithSameName.getId().equals(existingBucketById.getId())) {
                         throw new IllegalStateException("A bucket with the same name already exists - " + bucket.getName());
                     }
                 }
@@ -339,11 +335,11 @@ public class RegistryService {
         if (versionedFlow.getBucketIdentifier() == null) {
             versionedFlow.setBucketIdentifier(bucketIdentifier);
         }
-
         final long timestamp = System.currentTimeMillis();
-        versionedFlow.setCreatedTimestamp(timestamp);
+        if (versionedFlow.getCreatedTimestamp() <= 0) {
+            versionedFlow.setCreatedTimestamp(timestamp);
+        }
         versionedFlow.setModifiedTimestamp(timestamp);
-
         validate(versionedFlow, "Cannot create versioned flow");
 
         // ensure the bucket exists
@@ -480,7 +476,7 @@ public class RegistryService {
             final List<FlowEntity> flowsWithSameName = metadataService.getFlowsByName(existingBucket.getId(), versionedFlow.getName());
             if (flowsWithSameName != null) {
                 for (final FlowEntity flowWithSameName : flowsWithSameName) {
-                     if(!flowWithSameName.getId().equals(existingFlow.getId())) {
+                    if (!flowWithSameName.getId().equals(existingFlow.getId())) {
                         throw new IllegalStateException("A versioned flow with the same name already exists in the selected bucket");
                     }
                 }
@@ -544,7 +540,7 @@ public class RegistryService {
         }
 
         // validation will ensure that the metadata and contents are not null
-        if (flowSnapshot.getSnapshotMetadata() != null) {
+        if (flowSnapshot.getSnapshotMetadata() != null && flowSnapshot.getSnapshotMetadata().getTimestamp() <= 0) {
             flowSnapshot.getSnapshotMetadata().setTimestamp(System.currentTimeMillis());
         }
 
@@ -608,7 +604,6 @@ public class RegistryService {
 
         // serialize the snapshot
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        registryUrlAliasService.setInternal(flowSnapshot.getFlowContents());
 
         final FlowContent flowContent = new FlowContent();
         flowContent.setFlowSnapshot(flowSnapshot);
@@ -639,7 +634,6 @@ public class RegistryService {
 
         flowSnapshot.setBucket(bucket);
         flowSnapshot.setFlow(updatedVersionedFlow);
-        registryUrlAliasService.setExternal(flowSnapshot.getFlowContents());
         return flowSnapshot;
     }
 
@@ -702,7 +696,6 @@ public class RegistryService {
         final VersionedFlowSnapshotMetadata snapshotMetadata = FlowMappings.map(bucketEntity, snapshotEntity);
 
         // create the snapshot to return
-        registryUrlAliasService.setExternal(snapshot.getFlowContents());
         snapshot.setSnapshotMetadata(snapshotMetadata);
         snapshot.setFlow(versionedFlow);
         snapshot.setBucket(bucket);
@@ -729,7 +722,7 @@ public class RegistryService {
      * Returns all versions of a flow, sorted newest to oldest.
      *
      * @param bucketIdentifier the id of the bucket to search for the flowIdentifier
-     * @param flowIdentifier the id of the flow to retrieve from the specified bucket
+     * @param flowIdentifier   the id of the flow to retrieve from the specified bucket
      * @return all versions of the specified flow, sorted newest to oldest
      */
     public SortedSet<VersionedFlowSnapshotMetadata> getFlowSnapshots(final String bucketIdentifier, final String flowIdentifier) {
@@ -883,9 +876,9 @@ public class RegistryService {
      * Returns the differences between two specified versions of a flow.
      *
      * @param bucketIdentifier the id of the bucket the flow exists in
-     * @param flowIdentifier the flow to be examined
-     * @param versionA the first version of the comparison
-     * @param versionB the second version of the comparison
+     * @param flowIdentifier   the flow to be examined
+     * @param versionA         the first version of the comparison
+     * @param versionB         the second version of the comparison
      * @return The differences between two specified versions, grouped by component.
      */
     public VersionedFlowDifference getFlowDiff(final String bucketIdentifier, final String flowIdentifier,
@@ -949,6 +942,7 @@ public class RegistryService {
 
     /**
      * Group the differences in the comparison by component
+     *
      * @param flowDifferences The differences to group together by component
      * @return A set of componentDifferenceGroups where each entry contains a set of differences specific to that group
      */
@@ -958,9 +952,9 @@ public class RegistryService {
             ComponentDifferenceGroup group;
             // A component may only exist on only one version for new/removed components
             VersionedComponent component = ObjectUtils.firstNonNull(diff.getComponentA(), diff.getComponentB());
-            if(differenceGroups.containsKey(component.getIdentifier())){
+            if (differenceGroups.containsKey(component.getIdentifier())) {
                 group = differenceGroups.get(component.getIdentifier());
-            }else{
+            } else {
                 group = FlowMappings.map(component);
                 differenceGroups.put(component.getIdentifier(), group);
             }

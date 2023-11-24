@@ -16,7 +16,9 @@
 # under the License.
 #
 
-FROM eclipse-temurin:11-jre
+ARG IMAGE_NAME
+ARG IMAGE_TAG
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -57,7 +59,8 @@ RUN curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOO
     && unzip ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY} -d ${NIFI_REGISTRY_BASE_DIR} \
     && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
     && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} ${NIFI_TOOLKIT_HOME} \
-    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}
+    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} \
+    && chown -h nifi:nifi ${NIFI_TOOLKIT_HOME}
 
 # Download, validate, and expand Apache NiFi-Registry binary.
 RUN curl -fSL ${NIFI_REGISTRY_BINARY_URL} -o ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY} \
@@ -66,6 +69,7 @@ RUN curl -fSL ${NIFI_REGISTRY_BINARY_URL} -o ${NIFI_REGISTRY_BASE_DIR}/${NIFI_RE
     && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY} \
     && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION} ${NIFI_REGISTRY_HOME} \
     && ln -s ${NIFI_REGISTRY_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION} \
+    && chown -h nifi:nifi ${NIFI_REGISTRY_HOME} \
     && chown -R nifi:nifi ${NIFI_REGISTRY_HOME}
 
 # Web HTTP(s) ports

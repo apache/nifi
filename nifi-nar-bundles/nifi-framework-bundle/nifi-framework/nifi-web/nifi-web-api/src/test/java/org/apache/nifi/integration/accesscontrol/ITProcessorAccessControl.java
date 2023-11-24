@@ -27,13 +27,10 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
-import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
-import org.apache.nifi.web.api.entity.InstantiateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -588,129 +585,6 @@ public class ITProcessorAccessControl {
         deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), user);
     }
 
-    /**
-     * Tests attempting to use a template with a restricted processor.
-     *
-     * @throws Exception ex
-     */
-    @Test
-    public void testTemplateWithRestrictedProcessor() throws Exception {
-        final String createTemplateUrl = helper.getBaseUrl() + "/process-groups/root/templates";
-        final String instantiateTemplateUrl = helper.getBaseUrl() + "/process-groups/root/template-instance";
-        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(RestrictedProcessor.class.getName(), helper.getPrivilegedUser());
-        final SnippetEntity snippetEntity = tuple.getValue();
-
-        // create the template
-        final CreateTemplateRequestEntity createTemplateRequest = new CreateTemplateRequestEntity();
-        createTemplateRequest.setSnippetId(snippetEntity.getSnippet().getId());
-        createTemplateRequest.setName("test");
-
-        // create the snippet
-        Response response = helper.getWriteUser().testPost(createTemplateUrl, createTemplateRequest);
-
-        // ensure the request failed... need read perms to the components in the snippet
-        assertEquals(403, response.getStatus());
-
-        response = helper.getReadWriteUser().testPost(createTemplateUrl, createTemplateRequest);
-
-        // ensure the request is successful
-        assertEquals(201, response.getStatus());
-
-        final TemplateEntity templateEntity = response.readEntity(TemplateEntity.class);
-
-        // build the template request
-        final InstantiateTemplateRequestEntity instantiateTemplateRequest = new InstantiateTemplateRequestEntity();
-        instantiateTemplateRequest.setTemplateId(templateEntity.getTemplate().getId());
-        instantiateTemplateRequest.setOriginX(0.0);
-        instantiateTemplateRequest.setOriginY(0.0);
-
-        // create the snippet
-        response = helper.getReadWriteUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
-
-        // ensure the request failed... need privileged user since the template is comprised of restricted components
-        assertEquals(403, response.getStatus());
-
-        // create the snippet
-        response = helper.getExecuteCodeUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
-
-        // ensure the request failed... need privileged user since the template is comprised of restricted components
-        assertEquals(403, response.getStatus());
-
-        // create the snippet
-        response = helper.getPrivilegedUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
-
-        // ensure the request is successful
-        assertEquals(201, response.getStatus());
-
-        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
-
-        // clean up the resources created during this test
-        deleteTemplate(templateEntity);
-        deleteRestrictedComponent(tuple.getKey(), helper.getPrivilegedUser());
-        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), helper.getPrivilegedUser());
-    }
-
-    /**
-     * Tests attempting to use a template with a restricted processor requiring execute code permissions.
-     *
-     * @throws Exception ex
-     */
-    @Test
-    public void testTemplateWithExecuteCodeRestrictedProcessor() throws Exception {
-        templateWithExecuteCodeRestrictedProcessor(helper.getPrivilegedUser());
-        templateWithExecuteCodeRestrictedProcessor(helper.getExecuteCodeUser());
-    }
-
-    private void templateWithExecuteCodeRestrictedProcessor(final NiFiTestUser user) throws Exception {
-        final String createTemplateUrl = helper.getBaseUrl() + "/process-groups/root/templates";
-        final String instantiateTemplateUrl = helper.getBaseUrl() + "/process-groups/root/template-instance";
-        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(ExecuteCodeRestrictedProcessor.class.getName(), helper.getPrivilegedUser());
-        final SnippetEntity snippetEntity = tuple.getValue();
-
-        // create the template
-        final CreateTemplateRequestEntity createTemplateRequest = new CreateTemplateRequestEntity();
-        createTemplateRequest.setSnippetId(snippetEntity.getSnippet().getId());
-        createTemplateRequest.setName("test");
-
-        // create the snippet
-        Response response = helper.getWriteUser().testPost(createTemplateUrl, createTemplateRequest);
-
-        // ensure the request failed... need read perms to the components in the snippet
-        assertEquals(403, response.getStatus());
-
-        response = helper.getReadWriteUser().testPost(createTemplateUrl, createTemplateRequest);
-
-        // ensure the request is successful
-        assertEquals(201, response.getStatus());
-
-        final TemplateEntity templateEntity = response.readEntity(TemplateEntity.class);
-
-        // build the template request
-        final InstantiateTemplateRequestEntity instantiateTemplateRequest = new InstantiateTemplateRequestEntity();
-        instantiateTemplateRequest.setTemplateId(templateEntity.getTemplate().getId());
-        instantiateTemplateRequest.setOriginX(0.0);
-        instantiateTemplateRequest.setOriginY(0.0);
-
-        // create the snippet
-        response = helper.getReadWriteUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
-
-        // ensure the request failed... need privileged user since the template is comprised of restricted components
-        assertEquals(403, response.getStatus());
-
-        // create the snippet
-        response = user.testPost(instantiateTemplateUrl, instantiateTemplateRequest);
-
-        // ensure the request is successful
-        assertEquals(201, response.getStatus());
-
-        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
-
-        // clean up the resources created during this test
-        deleteTemplate(templateEntity);
-        deleteRestrictedComponent(tuple.getKey(), user);
-        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), user);
-    }
-
     private Tuple<ProcessorEntity, SnippetEntity> createSnippetWithRestrictedComponent(final String restrictedClassName, final NiFiTestUser user) throws Exception {
         final String processorUrl = helper.getBaseUrl() + "/process-groups/root/processors";
         final String snippetUrl = helper.getBaseUrl() + "/snippets";
@@ -764,17 +638,9 @@ public class ITProcessorAccessControl {
         return new Tuple<>(responseProcessorEntity, response.readEntity(SnippetEntity.class));
     }
 
-    private void deleteTemplate(final TemplateEntity entity) throws Exception {
-        // perform the request
-        Response response = helper.getReadWriteUser().testDelete(entity.getTemplate().getUri());
-
-        // ensure the request is successful
-        assertEquals(200, response.getStatus());
-    }
-
     private void deleteRestrictedComponent(final ProcessorEntity entity, final NiFiTestUser user) throws Exception {
         if (entity == null) {
-            fail("Failed to get Processor from template or snippet request.");
+            fail("Failed to get Processor from snippet request.");
             return;
         }
 

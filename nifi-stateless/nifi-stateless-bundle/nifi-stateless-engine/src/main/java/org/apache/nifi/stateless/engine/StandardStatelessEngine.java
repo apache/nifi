@@ -17,6 +17,23 @@
 
 package org.apache.nifi.stateless.engine;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
@@ -58,7 +75,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -78,37 +95,19 @@ import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import static java.util.Objects.requireNonNull;
 
 public class StandardStatelessEngine implements StatelessEngine {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
     private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
     public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
+    private final EnvironmentVariables environmentSystemRegistry = EnvironmentVariables.ENVIRONMENT_VARIABLES;
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
     private final PropertyEncryptor propertyEncryptor;
-    private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
     private final KerberosConfig kerberosConfig;
     private final FlowFileEventRepository flowFileEventRepository;
@@ -134,7 +133,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
         this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
-        this.rootVariableRegistry = requireNonNull(builder.variableRegistry, "Variable Registry must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
         this.kerberosConfig = requireNonNull(builder.kerberosConfig, "Kerberos Configuration must be provided");
         this.flowFileEventRepository = requireNonNull(builder.flowFileEventRepository, "FlowFile Event Repository must be provided");
@@ -239,7 +237,7 @@ public class StandardStatelessEngine implements StatelessEngine {
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
 
-            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.newInstance();
+            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.getDeclaredConstructor().newInstance();
 
             // Initialize the provider
             final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterValueProvider, parameterValueProvider.getPropertyDescriptors());
@@ -275,8 +273,7 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         final Map<PropertyDescriptor, PropertyConfiguration> fullPropertyMap = buildConfiguredAndDefaultPropertyMap(component, explicitlyConfiguredPropertyMap);
 
-        final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap,
-            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null, true);
+        final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap, null, null, componentId, null, true);
 
         final Collection<ValidationResult> validationResults = component.validate(validationContext);
         return validationResults.stream()
@@ -610,11 +607,6 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     @Override
-    public VariableRegistry getRootVariableRegistry() {
-        return rootVariableRegistry;
-    }
-
-    @Override
     public ProcessScheduler getProcessScheduler() {
         return processScheduler;
     }
@@ -622,6 +614,11 @@ public class StandardStatelessEngine implements StatelessEngine {
     @Override
     public ReloadComponent getReloadComponent() {
         return reloadComponent;
+    }
+
+    @Override
+    public EnvironmentVariables getEnvironmentSystemRegistry() {
+        return environmentSystemRegistry;
     }
 
     @Override
@@ -669,7 +666,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
         private PropertyEncryptor propertyEncryptor = null;
-        private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
         private KerberosConfig kerberosConfig = null;
         private FlowFileEventRepository flowFileEventRepository = null;
@@ -696,11 +692,6 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
             this.propertyEncryptor = propertyEncryptor;
-            return this;
-        }
-
-        public Builder variableRegistry(final VariableRegistry variableRegistry) {
-            this.variableRegistry = variableRegistry;
             return this;
         }
 

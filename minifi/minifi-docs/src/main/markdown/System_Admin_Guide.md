@@ -80,7 +80,7 @@ This documentation is for MiNiFi ${project.version}.
 
 # <a id="automatic-warm-redeploy" href="#automatic-warm-redeploy">Automatic Warm-Redeploy</a>
 
-When many MiNiFi agents running on the edge, it may not be possible to manually stop, edit the *config.yml* and then restart every one every time their configuration needs to change. The Config Change Coordinator and its Ingestors were designed to automatically redeploy in response to a configuration update.
+When many MiNiFi agents running on the edge, it may not be possible to manually stop, edit the *flow.json.raw* and then restart every one every time their configuration needs to change. The Config Change Coordinator and its Ingestors were designed to automatically redeploy in response to a configuration update.
 
 The Config Change Ingestors are the means by which the agent is notified of a potential new configuration. Currently there are three:
 
@@ -128,10 +128,10 @@ This Config Change Ingestor sets up a light-weight Jetty HTTP(S) REST service in
 
 **Note:** The encoding is expected to be Unicode and the exact version specified by the BOM mark ('UTF-8','UTF-16BE' or 'UTF-16LE'). If there is no BOM mark, then UTF-8 is used.
 
-Here is an example post request using `curl` hitting the local machine on port `8338` and it is executed with the config file *config.yml* in the directory the command is run from:
+Here is an example post request using `curl` hitting the local machine on port `8338` and it is executed with the config file *flow.json.raw* in the directory the command is run from:
 
 ```
-curl --request POST --data-binary "@config.yml" http://localhost:8338/
+curl --request POST --data-binary "@flow.json.raw" http://localhost:8338/
 ```
 
 Below are the configuration options. There are no required options. If no properties are set then the server will bind to hostname `localhost` on a random open port, will only connect via HTTP and will use the `WholeConfigDifferentiator`.
@@ -392,9 +392,7 @@ Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/m
 
 # <a id="config-file" href="#config-file">Config File</a>
 
-The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML file and follows the YAML format laid out [here](https://www.yaml.org/).
-
-Alternatively, the MiNiFi Toolkit Converter can aid in creating a *config.yml* from a generated template exported from a NiFi instance.  This tool can be downloaded from https://nifi.apache.org/minifi/download.html under the "MiNiFi Toolkit Binaries" section.  Information on the toolkit's usage is available at https://nifi.apache.org/minifi/minifi-toolkit.html.
+The *flow.json.raw* in the `conf` directory is the main configuration file for controlling how MiNiFi runs.
 
 **Note:** Values for periods of time and data sizes must include the unit of measure, for example "10 sec" or "10 MB", not simply "10".
 
@@ -436,7 +434,7 @@ The "Core Properties" section applies to the core framework as a whole.
 *Property*                                 | *Description*
 ------------------------------------------ | -----------
 `flow controller graceful shutdown period` | Indicates the shutdown period. The default value is `10 sec`.
-`flow service write delay interval`        | When many changes are made to the *flow.xml*, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
+`flow service write delay interval`        | When many changes are made to the *flow.json*, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 `administrative yield duration`            | If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 sec`.
 `bored yield duration`                     | When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 millis`.
 `max concurrent threads`                   | The maximum number of threads any processor can have running at one time.

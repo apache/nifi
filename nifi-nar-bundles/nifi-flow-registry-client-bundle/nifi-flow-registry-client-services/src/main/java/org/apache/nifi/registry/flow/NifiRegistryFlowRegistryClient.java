@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -198,8 +199,11 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         try {
             final FlowClient flowClient = getFlowClient(context);
 
-            if (flowClient.getByBucket(flow.getBucketIdentifier()).stream().map(f -> f.getName()).collect(Collectors.toSet()).contains(flow.getName())) {
-                throw new FlowAlreadyExistsException(String.format("Flow %s within bucket %s already exists", flow.getName(), flow.getBucketIdentifier()));
+            final List<VersionedFlow> versionedFlows = flowClient.getByBucket(flow.getBucketIdentifier());
+            final boolean matched = versionedFlows.stream()
+                .anyMatch(versionedFlow -> Objects.equals(versionedFlow.getName(), flow.getName()));
+            if (matched) {
+                throw new FlowAlreadyExistsException("Flow %s within bucket %s already exists".formatted(flow.getName(), flow.getBucketIdentifier()));
             }
 
             return NifiRegistryUtil.convert(flowClient.create(NifiRegistryUtil.convert(flow)));

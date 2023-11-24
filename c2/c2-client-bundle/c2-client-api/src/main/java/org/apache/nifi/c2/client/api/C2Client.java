@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.api;
 
 import java.util.Optional;
@@ -47,7 +48,15 @@ public interface C2Client {
      * @param callbackUrl url where the content should be downloaded from
      * @return the actual downloaded content. Will be empty if no content can be downloaded
      */
-    Optional<byte[]> retrieveUpdateContent(String callbackUrl);
+    Optional<byte[]> retrieveUpdateConfigurationContent(String callbackUrl);
+
+    /**
+     * Retrieve the asset from the C2 Server
+     *
+     * @param callbackUrl url where the asset should be downloaded from
+     * @return the actual downloaded asset. Will be empty if no content can be downloaded
+     */
+    Optional<byte[]> retrieveUpdateAssetContent(String callbackUrl);
 
     /**
      * Uploads a binary bundle to C2 server

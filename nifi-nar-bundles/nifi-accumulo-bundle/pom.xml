@@ -19,8 +19,8 @@
     </parent>
 
     <properties>
-        <accumulo.version>2.1.1</accumulo.version>
-        <guava.version>32.0.1-jre</guava.version>
+        <accumulo.version>2.1.2</accumulo.version>
+        <guava.version>32.1.2-jre</guava.version>
     </properties>
 
     <artifactId>nifi-accumulo-bundle</artifactId>
@@ -46,7 +46,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.31</version>
+                <version>9.33</version>
             </dependency>
             <!-- Override Hadoop from accumulo-core -->
             <dependency>
@@ -58,18 +58,6 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client-runtime</artifactId>
                 <version>${hadoop.version}</version>
-            </dependency>
-            <!-- Override ZooKeeper from accumulo-core -->
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>${zookeeper.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>

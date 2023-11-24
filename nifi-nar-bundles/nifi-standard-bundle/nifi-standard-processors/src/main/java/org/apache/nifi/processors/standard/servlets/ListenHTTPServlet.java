@@ -16,44 +16,6 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.standard.ListenHTTP;
-import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
-import org.apache.nifi.processors.standard.exception.ListenHttpException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.stream.io.StreamThrottler;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.FlowFileUnpackager;
-import org.apache.nifi.util.FlowFileUnpackagerV1;
-import org.apache.nifi.util.FlowFileUnpackagerV2;
-import org.apache.nifi.util.FlowFileUnpackagerV3;
-import org.eclipse.jetty.server.Request;
-
-import javax.servlet.AsyncContext;
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Part;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -75,6 +37,45 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import javax.servlet.AsyncContext;
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.standard.ListenHTTP;
+import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.processors.standard.exception.ListenHttpException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.cert.PrincipalFormatter;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.stream.io.StreamThrottler;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.FlowFileUnpackager;
+import org.apache.nifi.util.FlowFileUnpackagerV1;
+import org.apache.nifi.util.FlowFileUnpackagerV2;
+import org.apache.nifi.util.FlowFileUnpackagerV3;
+import org.eclipse.jetty.server.Request;
 
 @Path("")
 public class ListenHTTPServlet extends HttpServlet {
@@ -204,10 +205,11 @@ public class ListenHTTPServlet extends HttpServlet {
             final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
             foundSubject = DEFAULT_FOUND_SUBJECT;
             foundIssuer = DEFAULT_FOUND_ISSUER;
-            if (certs != null && certs.length > 0) {
+            if (certs != null) {
+                final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
                 for (final X509Certificate cert : certs) {
-                    foundSubject = cert.getSubjectDN().getName();
-                    foundIssuer = cert.getIssuerDN().getName();
+                    foundSubject = principalFormatter.getSubject(cert);
+                    foundIssuer = principalFormatter.getIssuer(cert);
                     if (authorizedPattern.matcher(foundSubject).matches()) {
                         if (authorizedIssuerPattern.matcher(foundIssuer).matches()) {
                             break;
@@ -288,7 +290,7 @@ public class ListenHTTPServlet extends HttpServlet {
             throws IOException, IllegalStateException, ServletException {
         Set<FlowFile> flowFileSet = new HashSet<>();
         String tempDir = System.getProperty("java.io.tmpdir");
-        request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
+        request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
         int i = 0;
         final Collection<Part> requestParts = request.getParts();
         for (final Part part : requestParts) {

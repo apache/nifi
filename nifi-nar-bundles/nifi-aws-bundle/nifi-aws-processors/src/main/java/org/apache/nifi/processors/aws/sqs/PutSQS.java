@@ -32,7 +32,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
@@ -40,7 +42,6 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,8 +56,24 @@ import java.util.concurrent.TimeUnit;
 @DynamicProperty(name = "The name of a Message Attribute to add to the message", value = "The value of the Message Attribute",
         description = "Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
         + "the Message Attribute and value will become the value of the Message Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-public class PutSQS extends AbstractSQSProcessor {
+public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder> {
     private static final String STRING_DATA_TYPE = "String";
+
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("The maximum number of messages to send in a single network request")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("25")
+            .build();
+
+    public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
+            .name("Queue URL")
+            .description("The URL of the queue to act upon")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
             .name("Delay")
@@ -85,10 +102,16 @@ public class PutSQS extends AbstractSQSProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                    REGION, DELAY, TIMEOUT, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME,
-                    PROXY_PASSWORD, MESSAGEGROUPID, MESSAGEDEDUPLICATIONID));
+    public static final List<PropertyDescriptor> properties = List.of(
+        QUEUE_URL,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        DELAY,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        PROXY_CONFIGURATION_SERVICE,
+        MESSAGEGROUPID,
+        MESSAGEDEDUPLICATIONID);
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -158,23 +181,27 @@ public class PutSQS extends AbstractSQSProcessor {
                 .build();
 
         try {
-            SendMessageBatchResponse response = client.sendMessageBatch(request);
+            final SendMessageBatchResponse response = client.sendMessageBatch(request);
 
             // check for errors
             if (!response.failed().isEmpty()) {
                 throw new ProcessException(response.failed().get(0).toString());
             }
         } catch (final Exception e) {
-            getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
+            getLogger().error("Failed to send messages to Amazon SQS; routing to failure", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        getLogger().info("Successfully published message to Amazon SQS for {}", new Object[]{flowFile});
+        getLogger().info("Successfully published message to Amazon SQS for {}", flowFile);
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         session.getProvenanceReporter().send(flowFile, queueUrl, transmissionMillis);
     }
 
+    @Override
+    protected SqsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SqsClient.builder();
+    }
 }

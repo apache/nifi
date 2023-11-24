@@ -20,10 +20,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.cert.CertificateException;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public final class SocketUtils {
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketUtils.class));
+    private static final Logger logger = LoggerFactory.getLogger(SocketUtils.class);
 
     /**
      * Returns a {@link Socket} (effectively used as a client socket) for the given address and configuration.
@@ -169,7 +170,7 @@ public final class SocketUtils {
                 }
             }
         } catch (final Exception ex) {
-            logger.debug("Failed to close socket due to: " + ex, ex);
+            logger.debug("Failed to close socket", ex);
         }
     }
 
@@ -181,8 +182,27 @@ public final class SocketUtils {
         try {
             serverSocket.close();
         } catch (final Exception ex) {
-            logger.debug("Failed to close server socket due to: " + ex, ex);
+            logger.debug("Failed to close server socket", ex);
         }
     }
 
+    /**
+     * Returns {@code true} if this exception is due to a TLS problem (either directly or because of its cause, if present). Traverses the cause chain recursively.
+     *
+     * @param e the exception to evaluate
+     * @return true if the direct or indirect cause of this exception was TLS-related
+     */
+    public static boolean isTlsError(Throwable e) {
+        if (e == null) {
+            return false;
+        } else {
+            if (e instanceof CertificateException || e instanceof TlsException || e instanceof SSLException) {
+                return true;
+            } else if (e.getCause() != null) {
+                return isTlsError(e.getCause());
+            } else {
+                return false;
+            }
+        }
+    }
 }

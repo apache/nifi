@@ -30,6 +30,7 @@
         <asciidoc.source.dir>${project.basedir}/src/main/asciidoc</asciidoc.source.dir>
         <asciidoc.generated.dir>${project.build.directory}/asciidoc</asciidoc.generated.dir>
         <docs.dir>${project.build.directory}/${project.artifactId}-${project.version}/docs/</docs.dir>
+        <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
     </properties>
 
     <build>
@@ -53,7 +54,7 @@
             <plugin>
                 <groupId>com.github.kongchen</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.7</version>
+                <version>3.1.8</version>
                 <executions>
                     <execution>
                         <phase>compile</phase>
@@ -70,6 +71,7 @@
                                         <scheme>http</scheme>
                                         <scheme>https</scheme>
                                     </schemes>
+                                    <outputFormats>json</outputFormats>
                                     <basePath>/nifi-registry-api</basePath>
                                     <info>
                                         <title>Apache NiFi Registry REST API</title>
@@ -123,7 +125,7 @@
             <plugin>
                 <groupId>io.swagger.codegen.v3</groupId>
                 <artifactId>swagger-codegen-maven-plugin</artifactId>
-                <version>3.0.33</version>
+                <version>3.0.46</version>
                 <executions>
                     <execution>
                         <phase>compile</phase>
@@ -147,70 +149,6 @@
             </dependencies>
             </plugin>
             <plugin>
-                <groupId>com.googlecode.maven-download-plugin</groupId>
-                <artifactId>download-maven-plugin</artifactId>
-                <version>1.6.8</version>
-                <executions>
-                    <execution>
-                        <id>download-swagger-ui</id>
-                        <!-- This plugin downloads swagger UI static assets during the build, to be
-                             served by the web app to render the dynamically generated Swagger spec.
-                             For offline development, or to build without the swagger UI, activate
-                             the "no-swagger-ui" maven profile during the build with the "-P" flag -->
-                        <goals>
-                            <goal>wget</goal>
-                        </goals>
-                        <configuration>
-                            <url>https://github.com/swagger-api/swagger-ui/archive/v${swagger.ui.version}.tar.gz</url>
-                            <unpack>true</unpack>
-                            <outputDirectory>${project.build.directory}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>bundle-swagger-ui</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <sequential>
-                                    <echo>Copy static Swagger UI files to target</echo>
-                                    <copy todir="${project.build.directory}/classes/static/swagger">
-                                        <fileset dir="${project.build.directory}/swagger-ui-${swagger.ui.version}/dist">
-                                            <include name="**" />
-                                        </fileset>
-                                    </copy>
-                                    <echo>Disable schema validation by removing validatorUrl</echo>
-                                    <replace token="https://online.swagger.io/validator" value="" dir="${project.build.directory}/classes/static/swagger">
-                                        <include name="swagger-ui-bundle.js" />
-                                        <include name="swagger-ui-standalone-preset.js" />
-                                    </replace>
-                                    <echo>Rename 'index.html' to 'ui.html'</echo>
-                                    <move file="${project.build.directory}/classes/static/swagger/index.html" tofile="${project.build.directory}/classes/static/swagger/ui.html" />
-                                    <echo>Replace default swagger.json location</echo>
-                                    <replace token="http://petstore.swagger.io/v2/swagger.json" value="/nifi-registry-api/swagger/swagger.json" dir="${project.build.directory}/classes/static/swagger">
-                                        <include name="ui.html" />
-                                    </replace>
-                                    <echo>Copy swagger.json into static assets folder</echo>
-                                    <copy todir="${project.build.directory}/classes/static/swagger">
-                                        <fileset dir="${project.build.directory}/swagger">
-                                            <include name="*.json" />
-                                        </fileset>
-                                    </copy>
-                                </sequential>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
@@ -221,6 +159,84 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>include-swagger-ui</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.7.1</version>
+                        <executions>
+                            <execution>
+                                <id>download-swagger-ui</id>
+                                <!-- This plugin downloads swagger UI static assets during the build, to be
+                                     served by the web app to render the dynamically generated Swagger spec.
+                                     For offline development, or to build without the swagger UI, deactivate
+                                     the "include-swagger-ui" maven profile during the build with the following
+                                     profile option: -P'!include-swagger-ui' -->
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://github.com/swagger-api/swagger-ui/archive/v${swagger.ui.version}.tar.gz</url>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>bundle-swagger-ui</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <sequential>
+                                            <echo>Copy static Swagger UI files to target</echo>
+                                            <copy todir="${project.build.directory}/classes/static/swagger">
+                                                <fileset dir="${project.build.directory}/swagger-ui-${swagger.ui.version}/dist">
+                                                    <include name="**" />
+                                                </fileset>
+                                            </copy>
+                                            <echo>Disable schema validation by removing validatorUrl</echo>
+                                            <replace token="https://online.swagger.io/validator" value="" dir="${project.build.directory}/classes/static/swagger">
+                                                <include name="swagger-ui-bundle.js" />
+                                                <include name="swagger-ui-standalone-preset.js" />
+                                            </replace>
+                                            <echo>Rename 'index.html' to 'ui.html'</echo>
+                                            <move file="${project.build.directory}/classes/static/swagger/index.html" tofile="${project.build.directory}/classes/static/swagger/ui.html" />
+                                            <echo>Replace default swagger.json location</echo>
+                                            <replace token="http://petstore.swagger.io/v2/swagger.json" value="/nifi-registry-api/swagger/swagger.json" dir="${project.build.directory}/classes/static/swagger">
+                                                <include name="ui.html" />
+                                            </replace>
+                                            <echo>Copy swagger.json into static assets folder</echo>
+                                            <copy todir="${project.build.directory}/classes/static/swagger">
+                                                <fileset dir="${project.build.directory}/swagger">
+                                                    <include name="*.json" />
+                                                </fileset>
+                                            </copy>
+                                        </sequential>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
@@ -245,11 +261,6 @@
                 <exclusion>
                     <groupId>org.springframework</groupId>
                     <artifactId>spring-aop</artifactId>
-                </exclusion>
-                <!-- JDK 8 will already have jaxb-api, and JDKs above 8 we activate a profile to include it -->
-                <exclusion>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -331,13 +342,24 @@
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-cert</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <!-- Required for compatibility with JAXB 2 generated objects for configuration parsing -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
@@ -396,23 +418,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.spockframework</groupId>
-            <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib-nodep</artifactId>
-            <version>2.2.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-util</artifactId>
             <version>${jetty.version}</version>
@@ -425,18 +430,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-json</artifactId>
-            <version>2.5.18</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>2.5.18</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>

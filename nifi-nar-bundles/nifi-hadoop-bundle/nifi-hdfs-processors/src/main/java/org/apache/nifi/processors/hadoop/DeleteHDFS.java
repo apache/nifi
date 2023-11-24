@@ -139,7 +139,6 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         // If this processor has an incoming connection, then do not run unless a
         // FlowFile is actually sent through
         if (originalFlowFile == null && context.hasIncomingConnection()) {
-            context.yield();
             return;
         }
 
@@ -201,7 +200,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     session.remove(flowFile);
                 }
             } catch (IOException e) {
-                getLogger().error("Error processing delete for flowfile {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
+                getLogger().error("Error processing delete for flowfile {} due to {}", flowFile, e.getMessage(), e);
                 session.transfer(flowFile, getFailureRelationship());
             }
 

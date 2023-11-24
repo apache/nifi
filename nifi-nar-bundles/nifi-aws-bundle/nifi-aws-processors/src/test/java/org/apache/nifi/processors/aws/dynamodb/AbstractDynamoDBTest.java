@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
+import org.apache.nifi.util.MockFlowFile;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+
+import java.util.List;
 
 /**
  * Provides reused elements and utilities for the AWS DynamoDB related tests
@@ -27,15 +32,42 @@ import com.amazonaws.AmazonServiceException.ErrorType;
  * @see DeleteDynamoDBTest
  */
 public abstract class AbstractDynamoDBTest {
+    public static final String REGION = "us-west-2";
+    public static final String stringHashStringRangeTableName = "StringHashStringRangeTable";
 
-    protected AmazonServiceException getSampleAwsServiceException() {
-        final AmazonServiceException testServiceException = new AmazonServiceException("Test AWS Service Exception");
-        testServiceException.setErrorCode("8673509");
-        testServiceException.setErrorMessage("This request cannot be serviced right now.");
-        testServiceException.setErrorType(ErrorType.Service);
-        testServiceException.setServiceName("Dynamo DB");
-        testServiceException.setRequestId("TestRequestId-1234567890");
+    private static final List<String> errorAttributes = List.of(
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE,
+            AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE
+    );
+
+    protected DynamoDbClient client;
+
+    protected AwsServiceException getSampleAwsServiceException() {
+        final AwsServiceException testServiceException = AwsServiceException.builder()
+                .message("Test AWS Service Exception")
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode("8673509")
+                        .errorMessage("This request cannot be serviced right now.")
+                        .serviceName("Dynamo DB")
+                        .build())
+                .requestId("TestRequestId-1234567890")
+                .build();
 
         return testServiceException;
+    }
+
+    protected static void validateServiceExceptionAttributes(final MockFlowFile flowFile) {
+        errorAttributes.forEach(flowFile::assertAttributeExists);
+    }
+
+    protected static AttributeValue string(final String s) {
+        return AttributeValue.builder().s(s).build();
     }
 }

@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -67,7 +68,6 @@ import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.queue.StatelessFlowFileQueue;
@@ -221,8 +221,6 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ProcessGroup createProcessGroup(final String id) {
-        final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(statelessEngine.getRootVariableRegistry());
-
         return new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
             statelessEngine.getPropertyEncryptor(),
@@ -230,7 +228,6 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getStateManagerProvider(),
             this,
             statelessEngine.getReloadComponent(),
-            mutableVariableRegistry,
             new StatelessNodeTypeProvider(),
             null,
             group -> null);
@@ -355,7 +352,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     }
 
     @Override
-    public void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode) {
+    public void removeFlowRegistryClient(FlowRegistryClientNode clientNode) {
         throw new UnsupportedOperationException("Removing Flow Registry Client is not supported in Stateless NiFi");
     }
 
@@ -394,7 +391,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext =
-                    new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null, statelessEngine.getRootVariableRegistry());
+                    new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
         }
 
@@ -438,6 +435,19 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     protected Authorizable getParameterContextParent() {
+        return null;
+    }
+
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(
+        final String type,
+        final String id,
+        final BundleCoordinate bundleCoordinate,
+        final Set<URL> additionalUrls,
+        final boolean firstTimeAdded,
+        final boolean register,
+        final String classloaderIsolationKey
+    ) {
         return null;
     }
 }

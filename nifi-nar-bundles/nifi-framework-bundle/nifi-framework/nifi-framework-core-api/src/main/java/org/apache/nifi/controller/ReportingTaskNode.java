@@ -21,12 +21,14 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -137,4 +139,5 @@ public interface ReportingTaskNode extends ComponentNode {
 
     void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
 
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory controllerServiceFactory);
 }

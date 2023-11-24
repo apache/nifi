@@ -18,15 +18,14 @@ package org.apache.nifi.registry.bucket;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.Objects;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.link.LinkableEntity;
 import org.apache.nifi.registry.revision.entity.RevisableEntity;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
-
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Objects;
 
 @XmlRootElement
 @ApiModel
@@ -51,7 +50,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
 
     private RevisionInfo revision;
 
-    @ApiModelProperty(value = "An ID to uniquely identify this object.", readOnly = true)
+    @ApiModelProperty(value = "An ID to uniquely identify this object.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }
@@ -69,7 +68,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the bucket was first created. This is set by the server at creation time.", readOnly = true)
+    @ApiModelProperty(value = "The timestamp of when the bucket was first created. This is set by the server at creation time.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public long getCreatedTimestamp() {
         return createdTimestamp;
     }
@@ -105,7 +104,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.allowPublicRead = allowPublicRead;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to this bucket.", readOnly = true)
+    @ApiModelProperty(value = "The access that the current user has to this bucket.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Permissions getPermissions() {
         return permissions;
     }
@@ -116,7 +115,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
 
     @ApiModelProperty(
             value = "The revision of this entity used for optimistic-locking during updates.",
-            readOnly = true
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

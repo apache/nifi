@@ -27,6 +27,7 @@ import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -35,6 +36,7 @@ import java.util.Properties;
  * Note: currently the NiFi Registry backed legacy creation is supported.
  */
 public class CreateRegistryClient extends AbstractNiFiCommand<StringResult> {
+    public static final String DEFAULT_REGISTRY_CLIENT_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
 
     public CreateRegistryClient() {
         super("create-reg-client", StringResult.class);
@@ -59,11 +61,16 @@ public class CreateRegistryClient extends AbstractNiFiCommand<StringResult> {
         final String name = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
         final String url = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_URL);
         final String desc = getArg(properties, CommandOption.REGISTRY_CLIENT_DESC);
+        String type = getArg(properties, CommandOption.REGISTRY_CLIENT_TYPE);
+        if (type == null) {
+            type = DEFAULT_REGISTRY_CLIENT_TYPE;
+        }
 
         final FlowRegistryClientDTO flowRegistryClientDTO = new FlowRegistryClientDTO();
         flowRegistryClientDTO.setName(name);
-        flowRegistryClientDTO.setUri(url);
+        flowRegistryClientDTO.setProperties(Map.of("url", url));
         flowRegistryClientDTO.setDescription(desc);
+        flowRegistryClientDTO.setType(type);
 
         final FlowRegistryClientEntity clientEntity = new FlowRegistryClientEntity();
         clientEntity.setComponent(flowRegistryClientDTO);

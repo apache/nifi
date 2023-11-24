@@ -29,12 +29,12 @@ public class JoinClusterWithMissingConnectionNoData extends NiFiSystemIT {
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
                 .instanceDirectory("target/node1")
-                .flowXml("src/test/resources/flows/missing-connection/with-connection.xml.gz")
+                .flowJson("src/test/resources/flows/missing-connection/with-connection.json.gz")
                 .build(),
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
                 .instanceDirectory("target/node2")
-                .flowXml("src/test/resources/flows/missing-connection/without-connection.xml.gz")
+                .flowJson("src/test/resources/flows/missing-connection/without-connection.json.gz")
                 .build()
         );
     }

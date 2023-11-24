@@ -53,7 +53,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -195,8 +194,8 @@ public class TestReportLineageToAtlas {
         atlasConf.setProperty("atlas.rest.address", atlasUrls);
 
         Consumer<Exception> assertion = e -> assertTrue(
-            e.getCause() instanceof MalformedURLException,
-            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
+            e.getCause() instanceof IllegalArgumentException,
+            "Expected " + IllegalArgumentException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
         );
 
         // WHEN
@@ -391,7 +390,7 @@ public class TestReportLineageToAtlas {
 
         saveAtlasConf(atlasConf);
 
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, controllerServiceLookup);
+        ConfigurationContext configurationContext = new MockConfigurationContext(properties, controllerServiceLookup, null);
 
         testSubject.initialize(initializationContext);
 
@@ -438,7 +437,7 @@ public class TestReportLineageToAtlas {
         when(reportingContext.getProperties()).thenReturn(properties);
         when(reportingContext.getProperty(any())).then(invocation -> new MockPropertyValue(properties.get(invocation.getArguments()[0])));
 
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
+        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
         testSubject.initialize(initializationContext);
         testSubject.setup(configurationContext);
@@ -487,7 +486,7 @@ public class TestReportLineageToAtlas {
     }
 
     private void testNotificationSendingIsSynchronous(Map<PropertyDescriptor, String> properties) throws Exception {
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
+        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
         testSubject.initialize(initializationContext);
         testSubject.setup(configurationContext);
@@ -505,7 +504,7 @@ public class TestReportLineageToAtlas {
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         properties.put(ATLAS_CONF_CREATE, "false");
 
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
+        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
         testSubject.initialize(initializationContext);
         assertThrows(ProcessException.class, () -> testSubject.setup(configurationContext));

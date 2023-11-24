@@ -123,7 +123,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .description("Only files whose names match the given regular expression will be listed")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PATH_FILTER = new PropertyDescriptor.Builder()
@@ -132,7 +132,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .description(String.format("When '%s' is true, then only subdirectories whose paths match the given regular expression will be scanned", RECURSE_SUBDIRECTORIES.getDisplayName()))
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor INCLUDE_TEMPORARY_FILES = new PropertyDescriptor.Builder()

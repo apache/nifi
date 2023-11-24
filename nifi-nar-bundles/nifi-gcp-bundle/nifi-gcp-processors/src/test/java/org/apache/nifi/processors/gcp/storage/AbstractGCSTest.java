@@ -26,7 +26,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,10 +49,20 @@ public abstract class AbstractGCSTest {
     private static final Integer RETRIES = 9;
 
     static final String BUCKET = RemoteStorageHelper.generateBucketName();
+    private AutoCloseable mocksCloseable;
 
     @BeforeEach
     public void setup() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        mocksCloseable = MockitoAnnotations.openMocks(this);
+    }
+
+    @AfterEach
+    public void cleanup() throws Exception {
+        final AutoCloseable closeable = mocksCloseable;
+        mocksCloseable = null;
+        if (closeable != null) {
+            closeable.close();
+        }
     }
 
     public static TestRunner buildNewRunner(Processor processor) throws Exception {

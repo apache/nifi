@@ -103,6 +103,9 @@ public class NiFiInstanceCache {
         }
 
         public void poison(final NiFiInstance toPoison) {
+            if (this.instance == null) {
+                return;
+            }
             final NiFiInstance rawInstance = this.instance.getRawInstance();
 
             if (Objects.equals(rawInstance, toPoison)) {

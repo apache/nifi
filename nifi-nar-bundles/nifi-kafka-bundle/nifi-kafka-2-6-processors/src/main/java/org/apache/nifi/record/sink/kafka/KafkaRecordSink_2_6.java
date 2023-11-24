@@ -75,7 +75,7 @@ import java.util.concurrent.TimeoutException;
         description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
                 + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
                 + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 public class KafkaRecordSink_2_6 extends AbstractControllerService implements KafkaClientComponent, RecordSinkService {
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
@@ -95,7 +95,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
             .description("The name of the Kafka Topic to publish to.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
@@ -115,7 +115,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
                     + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("5 sec")
             .build();
 
@@ -197,7 +197,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
                 .name(propertyDescriptorName)
                 .addValidator(new DynamicPropertyValidator(ProducerConfig.class))
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .build();
     }
 
@@ -222,7 +222,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         try {
             producer = createProducer(kafkaProperties);
         } catch (Exception e) {
-            getLogger().error("Could not create Kafka producer due to {}", new Object[]{e.getMessage()}, e);
+            getLogger().error("Could not create Kafka producer due to {}", e.getMessage(), e);
             throw new InitializationException(e);
         }
     }

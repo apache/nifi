@@ -26,14 +26,15 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -45,7 +46,6 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +64,15 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "sqs.message.id", description = "The unique identifier of the SQS message"),
     @WritesAttribute(attribute = "sqs.receipt.handle", description = "The SQS Receipt Handle that is to be used to delete the message from the queue")
 })
-public class GetSQS extends AbstractSQSProcessor {
+public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder> {
+
+    public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
+            .name("Queue URL")
+            .description("The URL of the queue to get messages from")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
@@ -99,12 +107,6 @@ public class GetSQS extends AbstractSQSProcessor {
             .defaultValue("10")
             .build();
 
-    public static final PropertyDescriptor DYNAMIC_QUEUE_URL = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(QUEUE_URL)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .build();
-
     public static final PropertyDescriptor RECEIVE_MSG_WAIT_TIME = new PropertyDescriptor.Builder()
             .name("Receive Message Wait Time")
             .description("The maximum amount of time to wait on a long polling receive call. Setting this to a value of 1 second or greater will "
@@ -115,11 +117,18 @@ public class GetSQS extends AbstractSQSProcessor {
             .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.SECONDS, 20, TimeUnit.SECONDS))  // 20 seconds is the maximum allowed by SQS
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(DYNAMIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
-                    AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, BATCH_SIZE, TIMEOUT, ENDPOINT_OVERRIDE,
-                    CHARSET, VISIBILITY_TIMEOUT, RECEIVE_MSG_WAIT_TIME, PROXY_HOST, PROXY_HOST_PORT,
-                    PROXY_USERNAME, PROXY_PASSWORD));
+    public static final List<PropertyDescriptor> properties = List.of(
+        QUEUE_URL,
+        REGION,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        AUTO_DELETE,
+        BATCH_SIZE,
+        TIMEOUT,
+        ENDPOINT_OVERRIDE,
+        CHARSET,
+        VISIBILITY_TIMEOUT,
+        RECEIVE_MSG_WAIT_TIME,
+        PROXY_CONFIGURATION_SERVICE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -133,9 +142,7 @@ public class GetSQS extends AbstractSQSProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final String queueUrl = context.getProperty(DYNAMIC_QUEUE_URL).evaluateAttributeExpressions()
-                .getValue();
-
+        final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions().getValue();
         final SqsClient client = getClient(context);
 
         final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
@@ -220,4 +227,10 @@ public class GetSQS extends AbstractSQSProcessor {
                 + " may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
         }
     }
+
+    @Override
+    protected SqsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SqsClient.builder();
+    }
+
 }

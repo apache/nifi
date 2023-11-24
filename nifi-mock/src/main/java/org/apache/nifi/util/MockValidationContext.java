@@ -36,7 +36,6 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.StandardParameterTokenList;
-import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -53,18 +52,16 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final StateManager stateManager;
-    private final VariableRegistry variableRegistry;
     private final Map<PropertyDescriptor, PropertyConfiguration> properties;
     private volatile boolean validateExpressions = true;
 
     public MockValidationContext(final MockProcessContext processContext) {
-        this(processContext, null, VariableRegistry.EMPTY_REGISTRY);
+        this(processContext, null);
     }
 
-    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final VariableRegistry variableRegistry) {
+    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager) {
         this.context = processContext;
         this.stateManager = stateManager;
-        this.variableRegistry = variableRegistry;
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -100,18 +97,18 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, null, true, variableRegistry);
+        return new MockPropertyValue(rawValue, this, null, true, context.getEnvironmentVariables());
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(variableRegistry, ParameterLookup.EMPTY);
+        return new StandardExpressionLanguageCompiler(ParameterLookup.EMPTY);
     }
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, variableRegistry);
-        final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager, variableRegistry);
+        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, context.getEnvironmentVariables());
+        final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager);
         serviceValidationContext.setValidateExpressions(validateExpressions);
         return serviceValidationContext;
     }

@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.email.smtp;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processors.email.ListenSMTP;
-import org.apache.nifi.stream.io.LimitingInputStream;
-import org.apache.nifi.util.StopWatch;
-import org.subethamail.smtp.MessageContext;
-import org.subethamail.smtp.MessageHandler;
-import org.subethamail.smtp.RejectException;
-import org.subethamail.smtp.TooMuchDataException;
-import org.subethamail.smtp.server.SMTPServer;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,6 +30,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.email.ListenSMTP;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.util.StopWatch;
+import org.subethamail.smtp.MessageContext;
+import org.subethamail.smtp.MessageHandler;
+import org.subethamail.smtp.RejectException;
+import org.subethamail.smtp.TooMuchDataException;
+import org.subethamail.smtp.server.SMTPServer;
 
 /**
  * A simple consumer that provides a bridge between 'push' message distribution
@@ -140,10 +140,9 @@ public class SmtpConsumer implements MessageHandler {
         final Certificate[] tlsPeerCertificates = context.getTlsPeerCertificates();
         if (tlsPeerCertificates != null) {
             for (int i = 0; i < tlsPeerCertificates.length; i++) {
-                if (tlsPeerCertificates[i] instanceof X509Certificate) {
-                    X509Certificate x509Cert = (X509Certificate) tlsPeerCertificates[i];
+                if (tlsPeerCertificates[i] instanceof final X509Certificate x509Cert) {
                     attributes.put("smtp.certificate." + i + ".serial", x509Cert.getSerialNumber().toString());
-                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectDN().getName());
+                    attributes.put("smtp.certificate." + i + ".subjectName", StandardPrincipalFormatter.getInstance().getSubject(x509Cert));
                 }
             }
         }

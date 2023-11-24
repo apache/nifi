@@ -21,16 +21,17 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.proxy.StandardProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -52,28 +53,20 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     protected MockWebServer mockWebServer;
 
-    protected void setupControllerService() throws InitializationException {
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.ACCESS_KEY, "awsAccessKey");
-        runner.setProperty(serviceImpl, InvokeAWSGatewayApi.SECRET_KEY, "awsSecretKey");
-        runner.enableControllerService(serviceImpl);
-        runner.setProperty(InvokeAWSGatewayApi.AWS_CREDENTIALS_PROVIDER_SERVICE,
-                "awsCredentialsProvider");
+    protected void setupControllerService() {
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
     protected void setupAuth() {
-        runner.setProperty(InvokeAWSGatewayApi.ACCESS_KEY, "testAccessKey");
-        runner.setProperty(InvokeAWSGatewayApi.SECRET_KEY, "testSecretKey");
+        AuthUtils.enableAccessKey(runner, "awsAccessKey", "awsSecretKey");
     }
 
-    protected void setupCredFile() {
-        runner.setProperty(AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE,
-                "src/test/resources/mock-aws-credentials.properties");
+    protected void setupCredFile() throws InitializationException {
+        AuthUtils.enableCredentialsFile(runner, "src/test/resources/mock-aws-credentials.properties");
     }
 
     public void setupEndpointAndRegion() {
-        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_REGION, "us-east-1");
+        runner.setProperty(InvokeAWSGatewayApi.REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, mockWebServer.url("/").toString());
     }
@@ -324,7 +317,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
 
     @Test
-    // NOTE : Amazon does not support multiple headers with the same name!!!
     public void testMultipleSameHeaders() throws Exception {
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("double", "2").addHeader("double", "2"));
 
@@ -362,7 +354,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // amazon does not support headers with the same name, we'll only get 2 here
         // this is in the amazon layer, we only get Map<String,String> for headers so the 1 has been stripped
         // already
-        bundle1.assertAttributeEquals("double", "2");
+        bundle1.assertAttributeEquals("double", "2,2");
     }
 
     @Test
@@ -1267,20 +1259,23 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         setupEndpointAndRegion();
         URL proxyURL = mockWebServer.url("/").url();
 
-        runner.setVariable("proxy.host", proxyURL.getHost());
-        runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
-        runner.setVariable("proxy.username", "username");
-        runner.setVariable("proxy.password", "password");
+        runner.setEnvironmentVariableValue("proxy.host", proxyURL.getHost());
+        runner.setEnvironmentVariableValue("proxy.port", String.valueOf(proxyURL.getPort()));
+        runner.setEnvironmentVariableValue("proxy.username", "username");
+        runner.setEnvironmentVariableValue("proxy.password", "password");
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST, "${proxy.host}");
 
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST_PORT, "${proxy.port}");
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_USERNAME, "${proxy.username}");
-
-        runner.assertNotValid();
-        runner.setProperty(InvokeAWSGatewayApi.PROXY_PASSWORD, "${proxy.password}");
+        final StandardProxyConfigurationService proxyService = new StandardProxyConfigurationService();
+        runner.addControllerService("proxy", proxyService);
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_TYPE, Proxy.Type.HTTP.name());
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_SERVER_HOST, "${proxy.host}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_SERVER_PORT, "${proxy.port}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_USER_NAME, "${proxy.username}");
+        runner.setProperty(proxyService, StandardProxyConfigurationService.PROXY_USER_PASSWORD, "${proxy.password}");
+        runner.enableControllerService(proxyService);
+        runner.setProperty(InvokeAWSGatewayApi.PROXY_CONFIGURATION_SERVICE, "proxy");
 
         createFlowFiles(runner);
 

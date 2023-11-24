@@ -156,13 +156,13 @@ public class FormatUtils {
      * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String}
      * input. If the resulting value is a decimal (i.e.
      * {@code 25 hours -> TimeUnit.DAYS = 1.04}), the value is rounded.
+     * Use {@link #getPreciseTimeDuration(String, TimeUnit)} if fractional values are desirable
      *
      * @param value the raw String input (i.e. "28 minutes")
      * @param desiredUnit the requested output {@link TimeUnit}
      * @return the whole number value of this duration in the requested units
-     * @deprecated As of Apache NiFi 1.9.0, because this method only returns whole numbers, use {@link #getPreciseTimeDuration(String, TimeUnit)} when possible.
+     * @see #getPreciseTimeDuration(String, TimeUnit)
      */
-    @Deprecated
     public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
         return Math.round(getPreciseTimeDuration(value, desiredUnit));
     }
@@ -217,7 +217,7 @@ public class FormatUtils {
             durationLong = Math.round(durationVal);
         } else {
             // Try reducing the size of the units to make the input a long
-            List wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
+            List<?> wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
             durationLong = (long) wholeResults.get(0);
             specifiedTimeUnit = (TimeUnit) wholeResults.get(1);
         }
@@ -247,7 +247,8 @@ public class FormatUtils {
     protected static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
         // If the value is already a whole number, return it and the current time unit
         if (decimal == Math.rint(decimal)) {
-            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+            final long rounded = Math.round(decimal);
+            return Arrays.asList(new Object[]{rounded, timeUnit});
         } else if (TimeUnit.NANOSECONDS == timeUnit) {
             // The time unit is as small as possible
             if (decimal < 1.0) {

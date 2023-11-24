@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
+import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,9 +36,8 @@ public class TestPutKinesisStream {
     @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisStream.class);
-        runner.setProperty(PutKinesisStream.ACCESS_KEY, "abcd");
-        runner.setProperty(PutKinesisStream.SECRET_KEY, "secret key");
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "kstream");
+        AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
         runner.assertValid();
     }
 
@@ -66,7 +67,7 @@ public class TestPutKinesisStream {
     public void testWithSizeGreaterThan1MB() {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE + 1)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE + 1)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }

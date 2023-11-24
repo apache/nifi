@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.web.link;
 
-import javax.ws.rs.core.Link;
+import jakarta.ws.rs.core.Link;
 
 /**
  * Creates a Link for a given type.

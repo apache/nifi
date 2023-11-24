@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.kubernetes.state.provider;
 
-import org.apache.nifi.components.state.StateMap;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.nifi.components.state.StateMap;
 
 /**
  * Standard implementation of StateMap
@@ -37,15 +36,6 @@ class StandardStateMap implements StateMap {
         this.version = version;
     }
 
-    /**
-     * Get Version returns String.hashCode() or -1 on empty for compatibility
-     *
-     * @return Version
-     */
-    @Override
-    public long getVersion() {
-        return version.map(stateVersion -> stateVersion.hashCode()).orElse(EMPTY_VERSION);
-    }
 
     /**
      * Get State Version

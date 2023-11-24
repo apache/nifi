@@ -110,14 +110,10 @@ public class MockStateManager implements StateManager {
     }
 
     public long getRetrievalCount(final Scope scope) {
-        switch (scope) {
-            case CLUSTER:
-                return clusterRetrievedCount.get();
-            case LOCAL:
-                return localRetrievedCount.get();
-            default:
-                throw new IllegalArgumentException("Invalid scope: " + scope);
-        }
+        return switch (scope) {
+            case CLUSTER -> clusterRetrievedCount.get();
+            case LOCAL -> localRetrievedCount.get();
+        };
     }
 
     @Override

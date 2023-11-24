@@ -95,6 +95,8 @@ UI may become unavailable.
 
 *Reporting Task*: Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks in the User Interface as desired. Common reporting tasks include the ControllerStatusReportingTask, MonitorDiskUsage reporting task, MonitorMemory reporting task, and the StandardGangliaReporter.
 
+*Flow Analysis Rules*: Flow Analysis Rules can analyze components or (parts of) the flow. They may produce rule violations which can help adjust or maintain optimal flow design. The DFM adds and configures Flow Analysis Rules in the User Interface as desired.
+
 *Parameter Provider*: Parameter Providers can provide parameters from an external source to Parameter Contexts.  The parameters of a Parameter Provider may be fetched and applied to all referencing Parameter Contexts.
 
 *Funnel*: A funnel is a NiFi component that is used to combine the data from several Connections into a single Connection.
@@ -117,11 +119,6 @@ UI may become unavailable.
 	Using the mouse to hover over that icon will provide a tool-tip that shows the time and severity (Debug, Info, Warning, Error) of the Bulletin,
 	as well as the message of the Bulletin.
 	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Global Menu.
-
-*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DFMs to select a part of the dataflow
-	(or the entire dataflow) and create a Template. This Template is given a name and can then be dragged onto the canvas just like the other components.
-	As a result, several components may be combined together to make a larger building block from which to create a dataflow.
-	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
 
 *flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the _flow.xml.gz_. This file is located in the `nifi/conf` directory by default.
 	Any change made on the canvas is automatically saved to this file, without the user needing to click a "Save" button.
@@ -193,7 +190,7 @@ The available global access policies are:
 |======================
 |Policy  |Privilege
 |view the UI   |Allows users to view the UI
-|access the controller  |Allows users to view and modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster
+|access the controller  |Allows users to view and modify the controller including Management Controller Services, Reporting Tasks, Flow Analysis Rules, Registry Clients, Parameter Providers and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
 |access restricted components     |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
 components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
@@ -315,7 +312,6 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *Center in view*: This option centers the view of the canvas on the given Processor.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
-- *Create template*: This option allows the user to create a template from the selected Processor.
 - *Copy*: This option places a copy of the selected Processor on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Processor from the canvas.
 
@@ -366,7 +362,6 @@ image::nifi-process-group-menu.png["Process Group Menu"]
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Process Group.
-- *Variables*: This option allows the user to create or configure variables within the NiFi UI.
 - *Enter group*: This option allows the user to enter the Process Group.
 
 NOTE: It is also possible to double-click on the Process Group to enter it.
@@ -383,7 +378,6 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *Download flow definition*: This option allows the user to download the flow definition of the process group as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. There are two options when downloading a flow definition:
 ** -> *Without external services*: Controller services referenced by the selected process group but outside its scope (e.g., services in a parent group) _will not be_ included in the flow definition as services.
 ** -> *With external services*: Controller services referenced by the selected process group but outside its scope (e.g., services in a parent group) _will be_ included in the flow definition.
-- *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
 - *Delete*: This option allows the DFM to delete a Process Group.
@@ -413,7 +407,6 @@ The following options are typically available when you have full privileges to w
 - *Center in view*: This option centers the view of the canvas on the given Remote Process Group.
 - *Go to*: This option opens a view of the remote NiFi instance in a new tab of the browser. Note that if the Site-to-Site configuration is secure, the user must have access to the remote NiFi instance in order to view it.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Remote Process Group and any other components selected on the canvas.
-- *Create template*: This option allows the user to create a template from the selected Remote Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Remote Process Group from the canvas.
 
@@ -428,21 +421,6 @@ several Connections can be funneled into a single Connection, providing the abil
 one Connection, rather than prioritizing the data on each Connection independently.
 
 
-[[template]]
-image:iconTemplate.png["Template"]
-*Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
-dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
-dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
-
-image::instantiate-template.png["Instantiate Template Dialog"]
-
-Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show a question mark
-icon, indicating that there is more information. Hovering over the icon with the mouse will show this description:
-
-image::instantiate-template-description.png["Instantiate Template Dialog"]
-
-
-
 [[label]]
 image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
@@ -453,10 +431,10 @@ choosing `Configure`.
 
 [[component-versioning]]
 === Component Versions
-You have access to information about the version of your Processors, Controller Services, and Reporting Tasks.
+You have access to information about the version of your Processors, Controller Services, Reporting Tasks and Flow Analysis Rules.
 This is especially useful when you are working within a clustered environment with multiple NiFi instances running
 different versions of a component or if you have upgraded to a newer version of a processor. The Add Processor,
-Add Controller Service, and Add Reporting Task dialogs include a column identifying the component version, as well
+Add Controller Service, Add Reporting Task and Add Flow Analysis Rule dialogs include a column identifying the component version, as well
 as the name of the component, the organization or group that created the component, and the NAR bundle that contains
 the component.
 
@@ -599,10 +577,8 @@ The first configuration option is the Scheduling Strategy. There are three possi
 |1-12 or JAN-DEC
 
 |Day of Week
-|1-7 or SUN-SAT
+|0-7 or SUN-SAT (0 or 7 is Sunday)
 
-|Year (optional)
-|empty, 1970-2099
 |===
 
 You typically specify values one of the following ways:
@@ -620,11 +596,8 @@ example, 1L indicates the last Sunday of the month.
 
 For example:
 
-* The string `0 0 13 * * ?` indicates that you want to schedule the processor to run at 1:00 PM every day.
+* The string `0 0 13 * * *` indicates that you want to schedule the processor to run at 1:00 PM every day.
 * The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
-* The string `0 15 10 ? * 6L 2011-2017` indicates that you want to schedule the processor to run at 10:15 AM, on the last Friday of every month, between 2011 and 2017.
-
-For additional information and examples, see the link:https://www.quartz-scheduler.org/documentation/quartz-2.2.2/tutorials/tutorial-lesson-06.html[cron triggers tutorial] in the link:https://www.quartz-scheduler.org/documentation/[Quartz Documentation^].
 
 ===== Concurrent Tasks
 Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
@@ -897,13 +870,11 @@ The values of properties in the flow, including sensitive properties, can be par
  - A sensitive property can only reference a Sensitive Parameter
  - A non-sensitive property can only reference a Non-Sensitive Parameter
  - Properties that reference Controller Services can not use Parameters
- - Parameters cannot be referenced in Reporting Tasks or in Management Controller Services
+ - Parameters cannot be referenced in Reporting Tasks, Flow Analysis Rules or in Management Controller Services
 
 The UI indicates whether a Parameter can be used for a property value.
 
 image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
-
-NOTE: Parameters have numerous advantages over <<Variables>>. In addition to sensitive value support, Parameters offer more granular control over access policies. Additionally, properties that reference Parameters are validated against the substituted value, unlike most properties that reference Variables using Expression Language.
 
 [[parameter-contexts]]
 ==== Parameter Contexts
@@ -974,7 +945,7 @@ is `test.txt`. If each of those Properties is set to `#{File}`, then the follow 
 | Configured Property Value | Expression Language Scope | Effective Property Value | Notes
 
 | #{File} | FlowFile Attributes | test.txt | The filename is resolved by looking at the `filename` attribute.
-| #{File} | Variable Registry Only | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no Variable in the Variable Registry named "filename"
+| #{File} | Environment | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no system property nor environment variable defined at JVM level named "filename"
 | #{File} | None | ${filename} | The literal text "${filename}" will be unevaluated.
 |===
 
@@ -1160,135 +1131,15 @@ NiFi properties have resolution precedence of which you should be aware when cre
 * Processor-specific attributes
 * FlowFile properties 
 * FlowFile attributes 
-* From Variable Registry: 
-** User defined properties (custom properties)
-** System properties 
-** Operating System environment variables
-
-When you are creating custom properties, ensure that each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
-
-There are two ways to use and manage custom properties with Expression Language:
-
-- *Variables*: Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. NiFi automatically picks up new or modified variables. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. See <<Variables>> for more information.
-
-- *Custom Properties File*: Key/value pairs are defined in a custom properties file that is referenced via the `nifi.variable.registry.properties` in _nifi.properties_. NiFi must be restarted for updates to be picked up. See <<Custom_Properties>> for more information.
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Expression Language support for a property is indicated in the UI.
-
-image::el-support-help-text.png[Expression Language Help Text]
-
-[[Variables]]
-==== Variables
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. Variable values cannot reference other variables or make use of Expression Language.
-
-===== Variables Window
-
-To access the Variables window, right-click on the canvas with nothing selected:
-
-image::variables-context_menu-rpg.png["Variables in Context Menu for RPG"]
-
-Select "Variables" from the Context Menu:
-
-image::variables_window_empty.png["Empty Variables Window"]
-
-"Variables" is also available in the right-click Context Menu when a process group is selected:
-
-image::variables-context_menu-pg.png["Variables in Context Menu for PG"]
-
-===== Creating a Variable
-
-In the Variables window, click the `+` button to create a new variable.  Add a name:
-
-image::variable-name.png["Variable Name Creation"]
-
-and a value:
-
-image::variable-value.png["Variable Value Creation"]
-
-Select "Apply":
-
-image::new_variable-apply.png["New Variable Applied"]
-
-Steps to update the variable are performed (Identifying components affected, Stopping affected Processors, etc.).  For example, the Referencing Processors section now lists the "PutFile-Root" processor.  Selecting the name of the processor in the list will navigate to that processor on the canvas.  Looking at the properties of the processor, `${putfile_dir}` is referenced by the Directory property:
-
-image::variable-putfile-property.png["Processor Property Using Variable"]
-
-===== Variable Scope
-
-Variables are scoped by the Process Group they are defined in and are available to any Processor defined at that level and below (i.e., any descendant Processors).
-
-Variables in a descendant group override the value in a parent group.  More specifically, if a variable `x` is declared at the root group and also declared inside a process group, components inside the process group will use the value of `x` defined in the process group.
-
-For example, in addition to the `putfile_dir` variable that exists at the root process group, assume another `putfile_dir` variable was created within Process Group A.  If one of the components within Process Group A references `putfile_dir`, both variables will be listed, but the `putfile_dir` from the root group will have a strikethrough indicating that is is being overridden:
-
-image::variable-overridden.png["Variable Overridden"]
-
-A variable can only be modified for the process group it was created in, which is listed at the top of the Variables window.  To modify a variable defined in a different process group, select the "arrow" icon in that variable's row:
-
-image::variable_window-goto.png["Variable Go To"]
-
-which will navigate to the Variables window for that process group:
-
-image::variable_window-rpg.png["Variables Window for RPG"]
-
-===== Variable Permissions
-
-Variable permissions are based solely on the privileges configured on the corresponding Process Group.
-
-For example, if a user does not have access to View a process group, the Variables window can not be viewed for that process group:
-
-image::variable_insufficient-permissions.png["Insufficient Permissions to View Variables"]
-
-If a user has access to View a process group but does not have access to Modify the process group, the variables can be viewed but not modified.
-
-For information on how to manage privileges on components, see the <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
-
-===== Referencing Controller Services
-
-In addition to Referencing Processors, the Variables window also displays Referencing Controller Services:
-
-image::variables-window_controller-services.png["Referencing Controller Services"]
-
-Selecting the name of the controller service will navigate to that controller service in the Configuration window:
-
-image::variable_nav-controller_services.png["Controller Service Using Variable"]
-
-===== Unauthorized Referencing Components
-
-When View or Modify privileges are not given to a component that references a variable, the UUID of the component will be displayed in the Variables window:
-
-image::variables-window_unauthorized.png["Unauthorized Referencing Components"]
-
-In the above example, the variable `property1` is referenced by a processor that "user1" is not able to view:
-
-image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
-
-[[Custom_Properties]]
-==== Referencing Custom Properties via nifi.properties
-
-WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
-Identify one or more sets of key/value pairs, and give them to your system administrator.
-
-Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
-field in the _nifi.properties_ file is updated with the custom properties location.
-
-NOTE: NiFi must be restarted for these updates to be picked up.
-
-For more information, see the <<administration-guide.adoc#custom_properties,Custom Properties>> section in the System Administrator's Guide.
+* Environment (System properties and Operating System environment variables)
 
 
 [[Controller_Services]]
 === Controller Services
 
-Controller Services are shared services that can be used by reporting tasks, processors, and other services to utilize for configuration or task execution.
+Controller Services are shared services that can be used by reporting tasks, flow analysis rules, processors, and other services to utilize for configuration or task execution.
 
-IMPORTANT: Controller Services defined on the controller level are limited to reporting tasks and other services defined there. Controller Services for use by processors in your dataflow must be defined in the configuration of the root process group or sub-process group(s) where they will be used.
+IMPORTANT: Controller Services defined on the controller level are limited to reporting tasks, flow analysis rules and other services defined there. Controller Services for use by processors in your dataflow must be defined in the configuration of the root process group or sub-process group(s) where they will be used.
 
 NOTE: If your NiFi instance is secured, your ability to view and add Controller Services is dependent on the privileges assigned to you. If you do not have access to one or more Controller Services, you are not able to see or access it in the UI. Access privileges can be assigned on a global or Controller Service-specific basis (see <<UI-with-multi-tenant-authorization>> for more information).
 
@@ -1299,7 +1150,7 @@ To add a Management Controller Service, select Controller Settings from the Glob
 
 image:controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. The window has five tabs: General, Management Controller Services, Reporting Tasks, Registry Clients and Parameter Providers. The General tab provides settings for the overall maximum thread counts of the instance.
+This displays the NiFi Settings window. The window has six tabs: General, Management Controller Services, Reporting Tasks, Flow Analysis Rules, Registry Clients and Parameter Providers. The General tab provides settings for the overall maximum thread counts of the instance.
 
 image:settings-general-tab.png["Controller Settings General Tab"]
 
@@ -1398,6 +1249,49 @@ image:configure-reporting-task-properties.png["Configure Reporting Task Properti
 The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
 When you want to run the Reporting Task, click the "Start" button (image:iconStart.png["Start Button"]).
+
+[[Flow_Analysis_Rules]]
+=== Flow Analysis Rules
+
+Flow Analysis Rules can analyze components or (parts of) the flow. They may produce rule violations which can help adjust or maintain optimal flow design.
+Each rule can either be a Recommendation or a Policy which can be set on the Configure Flow Analysis Rule window.
+Rule violations of Recommendation type rules can be reported and viewed later but otherwise have no impact on functionality.
+Rule violations of Policy type rules can also be reported and viewed later but also impacts functionality: components that violate a Policy become invalid and remain
+so until the rule violation is resolved.
+The DFM adds and configures Flow Analysis Rules similar to the process for Controller Services. To add a Flow Analysis Rule, select Controller Settings from the Global Menu.
+
+image:controller-settings-selection.png["Global Menu - Controller Settings"]
+
+This displays the NiFi Settings window. Select the Flow Analysis Rules tab and click the `+` button in the upper-right corner to create a new Flow Analysis Rule.
+
+image:flow-analysis-rules-tab.png["Flow Analysis Rules Tab"]
+
+The Add Flow Analysis Rule window opens. This window is similar to the Add Processor window. It provides a list of the available Flow Analysis Rules on the right and a tag cloud, showing the most common category tags used for Flow Analysis Rules, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Flow Analysis Rules to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Flow Analysis Rule or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Flow Analysis Rule from the list, the DFM can see a description of the rule below. Select the desired flow analysis rule and click Add, or simply double-click the name of the service to add it.
+
+image:add-flow-analysis-rule-window.png["Add Flow Analysis Rule Window"]
+
+Once a Flow Analysis Rule has been added, the DFM may configure it by clicking the "Configure" button in the far-right column (when the rule is disabled). Other buttons in this column include "Enable", "Disable", "View Configuration", "Remove", "State" and "Access Policies".
+
+image:flow-analysis-rules-configure-buttons.png["Flow Analysis Rules Configure Buttons"]
+
+You can obtain information about Flow Analysis Rules by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
+
+image:flow-analysis-rules-info-buttons.png["Flow Analysis Rules Information Buttons"]
+
+When the DFM clicks the "Configure" button, a Configure Flow Analysis Rule window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Flow Analysis Rule a unique name (if desired). It also lists the UUID, Type, and Bundle information for the rule and provides a setting for its type (Recommendation or Policy). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+
+image:configure-flow-analysis-rule-settings.png["Configure Flow Analysis Rule Settings"]
+
+The Properties tab lists the various properties that may be configured for the rule. The DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-flow-analysis-rule-properties.png["Configure Flow Analysis Rule Properties"]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the rule. After configuring the Flow Analysis Rule, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
+
+When you want the Flow Analysis Rule to be active, click the "Enable" button (image:iconEnable.png["Enable Button"]).
+
+When you want the Flow Analysis Rule to be inactive, click the "Disable" button (image:iconDisable.png["Disable Button"]).
+Disabling a rule also renders all corresponding violations null and void.
 
 
 [[Connecting_Components]]
@@ -2756,13 +2650,8 @@ The following actions are not considered local changes:
 * modifying remote process group URLs
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
 * assigning, creating, modifying or deleting parameter contexts
-* creating, modifying or deleting variables
 
 NOTE: Assigning or creating a parameter context does not trigger a local change because assigning or creating a parameter context on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses a parameter in the parameter context, which will trigger a local change. Modifying a parameter context does not trigger a local change because parameters are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those parameters specific for the given environment. Deleting a parameter context does not trigger a local change because any components that reference parameters in that parameter context will need need to be modified, which will trigger a local change.
-
-NOTE: Creating a variable does not trigger a local change because creating a variable on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses the new variable, which will trigger a local change. Modifying a variable does not trigger a local change because variable values are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those variables specific for the given environment. Deleting a variable does not trigger a local change because the component that references that variable will need need to be modified, which will trigger a local change.
-
-WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. Variables are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
 
 ==== Show Local Changes
 The local changes made to a versioned process group can be viewed in the Show Local Changes dialog by selecting "Version->Show local changes" from the context menu.
@@ -2855,40 +2744,6 @@ Version 1 of a flow does not have a Parameter Context associated with it. A new 
 - A new Parameter Context is created if it does not already exist
 - An existing Parameter Context is assigned (by name) to the Process Group and the values of the Parameter Contexts are merged
 
-
-[[Variables_in_Versioned_Flows]]
-=== Variables in Versioned Flows
-Variables are included when a process group is placed under version control.  If a versioned flow is imported that references a variable not defined in the versioned process group, the reference is maintained if the variable exists.  If the referenced variable does not exist, a copy of the variable will be defined in the process group.  To illustrate, assume the variable “RPG_Var" is defined in the root process group:
-
-image::rpg-variable.png["Root Process Group Defined Variable"]
-
-A process group PG1 is created:
-
-image::PG1_process_group.png["PG1 Process Group"]
-
-The GetFile processor in PG1 references the variable "RPG_Var":
-
-image::PG1_variable_ref_1.png["PG1 References RPG Variable"]
-
-PG1 is saved as a versioned flow:
-
-image::PG1_versioned_flow.png["PG1 Versioned Flow"]
-
-If PG1 versioned flow is imported into this same NiFi instance:
-
-image::PG1_imported_same.png["PG1 Imported to Same NiFi"]
-
-the added GetFile processor will also reference the "RPG_Var" variable that exists in the root process group:
-
-image::PG1_variable_ref_2.png["Both PG1 Reference RPG Variable"]
-
-If PG1 versioned flow is imported into a different NiFi instance where "RPG_Var" does not exist:
-
-image::PG1_imported_diff.png["PG1 Imported to Different NiFi"]
-
-A "RPG_Var" variable is created in the PG1 process group:
-
-image::PG1_variable_ref_PG.png["PG1 References PG Variable Copy"]
 
 [[Restricted_Components_in_Versioned_Flows]]
 === Restricted Components in Versioned Flows
@@ -2992,91 +2847,6 @@ The import fails:
 
 image:import-xyz-flow-fails.png["XYZ Import Fails"]
 
-
-[[templates]]
-== Templates
-DFMs have the ability to build very large and complex DataFlows using NiFi. This is achieved
-by using the basic components: Processor, Funnel, Input/Output Port, Process Group, and Remote Process Group. These
-can be thought of as the most basic building blocks for constructing a DataFlow. At times, though, using these
-small building blocks can become tedious if the same logic needs to be repeated several times.
-
-To solve this issue, NiFi provides the concept of a Template. A Template is a way of combining these basic building
-blocks into larger building blocks. Once a DataFlow has been created, parts of it can be formed into a Template.
-This Template can then be dragged onto the canvas, or can be exported as an XML file and shared with others. Templates
-received from others can then be imported into an instance of NiFi and dragged onto the canvas.
-
-[[Create_Template]]
-=== Creating a Template
-To create a Template, select the components that are to be a part of the template, and then click the
-"Create Template" (image:iconNewTemplate.png["Create Template"]) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
-
-Clicking this button without selecting anything will create a Template that contains all of the contents of the
-current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
-will create a single Template that contains the entire flow.
-
-After clicking this button, the user is prompted to provide a name and an optional description for the template.
-Each template must have a unique name. After entering the name and optional description, clicking the "Create" button
-will generate the template and notify the user that the template was successfully created, or provide an appropriate
-error message if unable to create the template for some reason.
-
-NOTE: It is important to note that if any Processor that is Templated has a sensitive property (such as a password), the value of that
-sensitive property is not included in the Template. As a result, when dragging the Template onto the canvas, newly
-created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any
-Connection that was selected when making the Template is not included in the Template if either the source or the
-destination of the Connection is not also included in the Template.
-
-[[Import_Template]]
-=== Importing a Template
-After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
-the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
-authorization.
-
-From the Operate Palette, click the "Upload Template" (image:iconUploadTemplate.png["Upload Template"]) button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
-dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
-Select the file and click Open.
-Clicking the "Upload" button will attempt to import the Template into this instance of NiFi.
-The Upload Template dialog will update to show "Success" or an error message if there was a problem importing the template.
-
-
-=== Instantiating a Template
-
-Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
-instantiated, or added to the canvas. This is accomplished by dragging the Template icon (
-image:iconTemplate.png["Template"]
-) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
-
-This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
-click the "Add" button. The Template will be added to the canvas with the upper-left-hand side of the Template
-being placed wherever the user dropped the Template icon.
-
-This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
-longer wanted, it may be deleted.
-
-
-[[Manage_Templates]]
-=== Managing Templates
-
-One of the most powerful features of NiFi Templates is the ability to easily export a Template to an XML file
-and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
-of a DataFlow with others. You can select Templates from the Global Menu (see <<User_Interface>>) to open a dialog
-that displays all of the Templates that are currently available,
-filter the templates to see only those of interest, export, and delete Templates.
-
-
-[[Export_Template]]
-==== Exporting a Template
-Once a Template has been created, it can be shared with others in the Template Management page.
-To export a Template, locate the Template in the table. The Filter in the top-right corner
-can be used to help find the appropriate Template if several are available. Then click the "Download" button (image:iconDownloadTemplate.png["Export"]). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported into other instances of NiFi (see <<Import_Template>>).
-
-
-==== Removing a Template
-
-Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
-may be used to find the appropriate Template if several are available) and click the "Delete" button (
-image:iconDelete.png["Delete"]
-). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
-and will no longer be available to add to the canvas.
 
 [[data_provenance]]
 == Data Provenance
@@ -3250,7 +3020,7 @@ Every attempt is made to provide more detailed and specific information around t
 [[other_management_features]]
 == Other Management Features
 
-In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are
+In addition to the Summary Page, Data Provenance Page and Bulletin Board Page, there are
 other tools in the Global Menu (see <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
 all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a
 recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and

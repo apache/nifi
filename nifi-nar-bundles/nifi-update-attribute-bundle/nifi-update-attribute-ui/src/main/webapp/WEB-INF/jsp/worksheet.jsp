@@ -107,6 +107,10 @@
                     <div id="no-rule-selected-label" class="unset">No rule selected.</div>
                     <input type="text" id="selected-rule-name" class="hidden"></input>
                 </div>
+                <div id="selected-rule-comments-container" class="selected-rule-detail">
+                    <div class="large-label">Rule Comments</div>
+                    <textarea id="selected-rule-comments" rows="4" cols="60"></textarea>
+                </div>
                 <div id="selected-rule-conditions-container" class="selected-rule-detail">
                     <div class="large-label-container">
                         <div id="conditions-label" class="large-label">Conditions</div>

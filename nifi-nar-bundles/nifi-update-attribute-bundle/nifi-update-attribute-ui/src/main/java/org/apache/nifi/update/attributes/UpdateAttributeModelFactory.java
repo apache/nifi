@@ -21,7 +21,6 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.update.attributes.dto.ActionDTO;
 import org.apache.nifi.update.attributes.dto.ConditionDTO;
 import org.apache.nifi.update.attributes.dto.RuleDTO;
@@ -51,6 +50,7 @@ public class UpdateAttributeModelFactory {
         final Rule rule = new Rule();
         rule.setId(dto.getId());
         rule.setName(dto.getName());
+        rule.setComments(dto.getComments());
         rule.setConditions(createConditions(dto.getConditions()));
         rule.setActions(createActions(dto.getActions()));
         return rule;
@@ -77,7 +77,7 @@ public class UpdateAttributeModelFactory {
         }
 
         // validate the condition's expression
-        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler(VariableRegistry.EMPTY_REGISTRY, ParameterLookup.EMPTY);
+        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler(ParameterLookup.EMPTY);
         final String syntaxError = elCompiler.validateExpression(dto.getExpression(), false);
         if (syntaxError != null) {
             throw new IllegalArgumentException(syntaxError);

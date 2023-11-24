@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.excel;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -32,16 +41,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -61,7 +60,7 @@ public class TestExcelSchemaInference {
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         try (final InputStream inputStream = getResourceStream("/excel/numbers.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
@@ -81,7 +80,7 @@ public class TestExcelSchemaInference {
     }
 
     private static Stream<Arguments> getLocales() {
-        Locale hindi = new Locale("hin");
+        Locale hindi = Locale.of("hin");
         return Stream.of(
                 Arguments.of(Locale.ENGLISH),
                 Arguments.of(hindi),
@@ -94,7 +93,7 @@ public class TestExcelSchemaInference {
     public void testInferenceIncludesAllRecords() throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
 
         final RecordSchema schema;
         try (final InputStream inputStream = getResourceStream("/excel/simpleDataFormatting.xlsx")) {
@@ -122,7 +121,7 @@ public class TestExcelSchemaInference {
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         properties.put(ExcelReader.REQUIRED_SHEETS, "${required.sheets}");
         properties.put(ExcelReader.STARTING_ROW, "${rows.to.skip}");
-        final PropertyContext context = new MockConfigurationContext(properties, null);
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("required.sheets", "Sheet1");
         attributes.put("rows.to.skip", "2");

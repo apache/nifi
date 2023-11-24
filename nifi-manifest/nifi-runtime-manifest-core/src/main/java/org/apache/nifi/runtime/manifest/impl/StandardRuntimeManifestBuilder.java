@@ -608,8 +608,8 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 return ExpressionLanguageScope.NONE;
             case FLOWFILE_ATTRIBUTES:
                 return ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-            case VARIABLE_REGISTRY:
-                return ExpressionLanguageScope.VARIABLE_REGISTRY;
+            case ENVIRONMENT:
+                return ExpressionLanguageScope.ENVIRONMENT;
             default:
                 throw new IllegalArgumentException("Unknown Expression Language Scope: " + elScope.name());
         }

@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.VersionedDataflow;
@@ -25,6 +26,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -41,6 +43,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     private final Map<String, VersionedControllerService> controllerServices = new HashMap<>();
     private final Map<String, VersionedProcessor> processors = new HashMap<>();
     private final Map<String, VersionedReportingTask> reportingTasks = new HashMap<>();
+    private final Map<String, VersionedFlowAnalysisRule> flowAnalysisRules = new HashMap<>();
     private final Map<String, VersionedPort> inputPorts = new HashMap<>();
     private final Map<String, VersionedPort> outputPorts = new HashMap<>();
     private final Map<String, VersionedRemoteGroupPort> remoteInputPorts = new HashMap<>();
@@ -50,6 +53,9 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public RunningComponentSetFilter(final VersionedDataflow dataflow) {
         dataflow.getControllerServices().forEach(service -> controllerServices.put(service.getInstanceIdentifier(), service));
         dataflow.getReportingTasks().forEach(task -> reportingTasks.put(task.getInstanceIdentifier(), task));
+        if (dataflow.getFlowAnalysisRules() != null) {
+            dataflow.getFlowAnalysisRules().forEach(rule -> flowAnalysisRules.put(rule.getInstanceIdentifier(), rule));
+        }
         flatten(dataflow.getRootGroup());
     }
 
@@ -89,6 +95,12 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public boolean testReportingTask(final ReportingTaskNode reportingTask) {
         final VersionedReportingTask versionedReportingTask = reportingTasks.get(reportingTask.getIdentifier());
         return versionedReportingTask != null && versionedReportingTask.getScheduledState() == ScheduledState.RUNNING;
+    }
+
+    @Override
+    public boolean testFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        final VersionedFlowAnalysisRule versionedFlowAnalysisRule = flowAnalysisRules.get(flowAnalysisRule.getIdentifier());
+        return versionedFlowAnalysisRule != null && versionedFlowAnalysisRule.getScheduledState() == ScheduledState.ENABLED;
     }
 
     @Override

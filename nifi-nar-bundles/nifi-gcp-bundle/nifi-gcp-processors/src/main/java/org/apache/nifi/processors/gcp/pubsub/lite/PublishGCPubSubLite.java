@@ -99,7 +99,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .description("Name of the Google Cloud PubSub Topic. Example: projects/8476107443/locations/europe-west1-d/topics/my-lite-topic")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor ORDERING_KEY = new PropertyDescriptor
@@ -233,7 +233,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                 successfulFlowFiles.addAll(flowFiles);
             } catch (InterruptedException | ExecutionException e) {
                 getLogger().error("Failed to publish the messages to Google Cloud PubSub Lite topic '{}' due to {}, "
-                        + "routing all messages from the batch to failure", new Object[]{topicName, e.getLocalizedMessage()}, e);
+                        + "routing all messages from the batch to failure", topicName, e.getLocalizedMessage(), e);
                 session.transfer(flowFiles, REL_FAILURE);
                 context.yield();
             }

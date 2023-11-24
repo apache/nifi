@@ -17,6 +17,11 @@
 
 package org.apache.nifi.csv;
 
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,8 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.DuplicateHeaderMode;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.CharUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,12 +45,6 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvParser;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 
 public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
@@ -59,10 +58,10 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
+        final Reader reader = new InputStreamReader(BOMInputStream.builder().setInputStream(in).get(), encoding);
 
         CsvSchema.Builder csvSchemaBuilder = CsvSchema.builder()
-                .setColumnSeparator(csvFormat.getDelimiter())
+            .setColumnSeparator(csvFormat.getDelimiterString().charAt(0))
                 .setLineSeparator((csvFormat.getRecordSeparator() == null) ? "\n" : csvFormat.getRecordSeparator())
                 // Can only use comments in Jackson CSV if the correct marker is set
                 .setAllowComments("#" .equals(CharUtils.toString(csvFormat.getCommentMarker())))
@@ -78,7 +77,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 csvSchemaBuilder = csvSchemaBuilder.setSkipFirstDataRow(true);
             }
         }
-        allowDuplicateHeaderNames = csvFormat.getAllowDuplicateHeaderNames();
+        allowDuplicateHeaderNames = csvFormat.getDuplicateHeaderMode() == DuplicateHeaderMode.ALLOW_ALL;
 
         CsvSchema csvSchema = csvSchemaBuilder.build();
 

@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
+import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -29,24 +31,24 @@ import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPE
 
 // This integration test can be run against a mock Kenesis such as
 // https://github.com/mhart/kinesalite or https://github.com/localstack/localstack
+@Disabled("Required external service be running. Needs to be updated to make use of Localstack TestContainer")
 public class ITPutKinesisStreamWithEndpointOverride {
 
     private TestRunner runner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
 
         runner = TestRunners.newTestRunner(PutKinesisStream.class);
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "test");
-        runner.setProperty(PutKinesisStream.ACCESS_KEY, "access key");
-        runner.setProperty(PutKinesisStream.SECRET_KEY, "secret key");
         runner.setProperty(PutKinesisStream.ENDPOINT_OVERRIDE, "http://localhost:4568");
+        AuthUtils.enableAccessKey(runner, "accessKey", "secretKey");
         runner.assertValid();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         runner = null;
 
         System.clearProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY);

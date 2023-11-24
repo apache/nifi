@@ -17,6 +17,8 @@
 package org.apache.nifi.kubernetes.client;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -24,7 +26,19 @@ import org.junit.jupiter.api.Timeout;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class StandardKubernetesClientProviderTest {
+    private static final String DISABLE_AUTO_CONFIG_PROPERTY = "kubernetes.disable.autoConfig";
+
     StandardKubernetesClientProvider provider;
+
+    @BeforeAll
+    static void setDisableAutoConfig() {
+        System.setProperty(DISABLE_AUTO_CONFIG_PROPERTY, Boolean.TRUE.toString());
+    }
+
+    @AfterAll
+    static void clearDisableAutoConfig() {
+        System.clearProperty(DISABLE_AUTO_CONFIG_PROPERTY);
+    }
 
     @BeforeEach
     void setProvider() {

@@ -18,6 +18,18 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -47,36 +59,17 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
-import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.writeRecord;
 
 
@@ -87,68 +80,66 @@ import static org.apache.nifi.processors.solr.SolrUtils.writeRecord;
         description="These parameters will be passed to Solr on the request")
 public class PutSolrRecord extends SolrProcessor {
 
-    public static final PropertyDescriptor UPDATE_PATH = new PropertyDescriptor
-            .Builder().name("Solr Update Path").displayName("Solr Update Path")
-            .description("The path in Solr to post the Flowfile Records")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("/update")
-            .build();
+    public static final PropertyDescriptor UPDATE_PATH = new PropertyDescriptor.Builder()
+        .name("Solr Update Path")
+        .description("The path in Solr to post the FlowFile Records")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue("/update")
+        .build();
 
-    public static final PropertyDescriptor FIELDS_TO_INDEX  = new PropertyDescriptor
-            .Builder().name("Fields To Index").displayName("Fields To Index")
-            .displayName("Fields To Index")
-            .description("Comma-separated list of field names to write")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+    public static final PropertyDescriptor FIELDS_TO_INDEX = new PropertyDescriptor.Builder()
+        .name("Fields To Index")
+        .description("Comma-separated list of field names to write")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
 
-    public static final PropertyDescriptor COMMIT_WITHIN = new PropertyDescriptor
-            .Builder().name("Commit Within").displayName("Commit Within")
-            .description("The number of milliseconds before the given update is committed")
-            .required(false)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("5000")
-            .build();
+    public static final PropertyDescriptor COMMIT_WITHIN = new PropertyDescriptor.Builder()
+        .name("Commit Within")
+        .description("The number of milliseconds before the given update is committed")
+        .required(false)
+        .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue("5000")
+        .build();
 
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor
-            .Builder().name("Batch Size").displayName("Batch Size")
-            .description("The number of solr documents to index per batch")
-            .required(false)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("500")
-            .build();
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+        .name("Batch Size")
+        .description("The number of solr documents to index per batch")
+        .required(false)
+        .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue("500")
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("The original FlowFile")
-            .build();
+        .name("success")
+        .description("The FlowFile is routed to this relationship when it has been successfully sent to Solr")
+        .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("FlowFiles that failed for any reason other than Solr being unreachable")
-            .build();
+        .name("failure")
+        .description("FlowFiles that failed for any reason other than Solr being unreachable")
+        .build();
 
     public static final Relationship REL_CONNECTION_FAILURE = new Relationship.Builder()
-            .name("connection_failure")
-            .description("FlowFiles that failed because Solr is unreachable")
-            .build();
+        .name("connection_failure")
+        .description("FlowFiles that failed because Solr is unreachable")
+        .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("put-solr-record-record-reader").displayName("put-solr-record-record-reader")
-            .displayName("Record Reader")
-            .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
-            .identifiesControllerService(RecordReaderFactory.class)
-            .required(true)
-            .build();
+        .name("put-solr-record-record-reader")
+        .displayName("Record Reader")
+        .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
+        .identifiesControllerService(RecordReaderFactory.class)
+        .required(true)
+        .build();
 
     public static final String COLLECTION_PARAM_NAME = "collection";
     public static final String COMMIT_WITHIN_PARAM_NAME = "commitWithin";
-    public static final String REPEATING_PARAM_PATTERN = "\\w+\\.\\d+";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -166,19 +157,13 @@ public class PutSolrRecord extends SolrProcessor {
         descriptors.add(RECORD_READER);
         descriptors.add(FIELDS_TO_INDEX);
         descriptors.add(COMMIT_WITHIN);
-        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_PRINCIPAL);
-        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
-        descriptors.add(SOLR_MAX_CONNECTIONS);
         descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
-        descriptors.add(ZK_CLIENT_TIMEOUT);
-        descriptors.add(ZK_CONNECTION_TIMEOUT);
         descriptors.add(BATCH_SIZE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -231,7 +216,7 @@ public class PutSolrRecord extends SolrProcessor {
 
         final List<String> fieldList = new ArrayList<>();
         if (!StringUtils.isBlank(fieldsToIndex)) {
-            Arrays.stream(fieldsToIndex.split(",")).forEach( f -> fieldList.add(f.trim()));
+            Arrays.asList(fieldsToIndex.split(",")).forEach(f -> fieldList.add(f.trim()));
         }
         StopWatch timer = new StopWatch(true);
         try (final InputStream in = session.read(flowFile);
@@ -241,15 +226,15 @@ public class PutSolrRecord extends SolrProcessor {
             List<SolrInputDocument> inputDocumentList = new LinkedList<>();
             try {
                 while ((record = reader.nextRecord()) != null) {
-                SolrInputDocument inputDoc = new SolrInputDocument();
-                writeRecord(record, inputDoc,fieldList,EMPTY_STRING);
-                inputDocumentList.add(inputDoc);
-                if(inputDocumentList.size()==batchSize) {
+                    SolrInputDocument inputDoc = new SolrInputDocument();
+                    writeRecord(record, inputDoc, fieldList, EMPTY_STRING);
+                    inputDocumentList.add(inputDoc);
+                    if (inputDocumentList.size() == batchSize) {
+                        index(isSolrCloud, collection, commitWithin, contentStreamPath, requestParams, inputDocumentList);
+                        inputDocumentList = new ArrayList<>();
+                    }
                     index(isSolrCloud, collection, commitWithin, contentStreamPath, requestParams, inputDocumentList);
-                    inputDocumentList = new ArrayList<>();
                 }
-               index(isSolrCloud, collection, commitWithin, contentStreamPath, requestParams, inputDocumentList);
-            }
             } catch (SolrException e) {
                 error.set(e);
             } catch (SolrServerException e) {
@@ -309,7 +294,7 @@ public class PutSolrRecord extends SolrProcessor {
         }
 
         // specify the collection for SolrCloud
-        if (isSolrCloud) {
+        if (collection != null) {
             request.setParam(COLLECTION_PARAM_NAME, collection);
         }
 

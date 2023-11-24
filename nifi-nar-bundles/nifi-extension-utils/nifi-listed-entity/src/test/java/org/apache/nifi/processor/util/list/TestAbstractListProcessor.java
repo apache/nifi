@@ -30,7 +30,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -51,7 +50,6 @@ import org.apache.nifi.util.TestRunners;
 import org.glassfish.jersey.internal.guava.Predicates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -66,7 +64,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -79,34 +76,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAbstractListProcessor {
 
-    /**
-     * @return current timestamp in milliseconds, but truncated at specified target precision (e.g. SECONDS or MINUTES).
-     */
-    private static long getCurrentTimestampMillis(final TimeUnit targetPrecision) {
-        final long timestampInTargetPrecision = targetPrecision.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-        return TimeUnit.MILLISECONDS.convert(timestampInTargetPrecision, targetPrecision);
-    }
-
-    private static long getSleepMillis(final TimeUnit targetPrecision) {
-        return AbstractListProcessor.LISTING_LAG_MILLIS.get(targetPrecision) * 2;
-    }
-
     private ConcreteListProcessor proc;
     private TestRunner runner;
     @TempDir
     private Path testFolder;
-    @RegisterExtension
-    private final ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(
-            () -> {
-                try {
-                    return runner.getStateManager().getState(Scope.LOCAL).toMap();
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to retrieve state", e);
-                }
-            },
-            () -> proc.getEntityList(),
-            () -> runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).stream().map(m -> (FlowFile) m).collect(Collectors.toList())
-    );
 
     @BeforeEach
     public void setup() {
@@ -168,16 +141,14 @@ public class TestAbstractListProcessor {
         runner.run();
 
         final MockStateManager stateManager = runner.getStateManager();
-        final Map<String, String> expectedState = new HashMap<>();
-        // Ensure only timestamp is migrated
-        expectedState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, "1492");
-        expectedState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, "1492");
+        final Map<String, String> expectedState = Map.of(
+            AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, "1492",
+            AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, "1492");
         stateManager.assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
     @Test
-    public void testNoStateToMigrate() throws Exception {
-
+    public void testNoStateToMigrate() {
         runner.run();
 
         final MockStateManager stateManager = runner.getStateManager();

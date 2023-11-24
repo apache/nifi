@@ -160,6 +160,9 @@ public class PythonProcess {
         final List<String> commands = new ArrayList<>();
         commands.add(pythonCommand);
 
+        String pythonPath = pythonApiDirectory.getAbsolutePath();
+
+
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
             commands.add("-m");
             commands.add("debugpy");
@@ -167,6 +170,8 @@ public class PythonProcess {
             commands.add(processConfig.getDebugHost() + ":" + processConfig.getDebugPort());
             commands.add("--log-to");
             commands.add(processConfig.getDebugLogsDirectory().getAbsolutePath());
+
+            pythonPath = pythonPath + File.pathSeparator + virtualEnvHome.getAbsolutePath();
         }
 
         commands.add(controllerPyFile.getAbsolutePath());
@@ -175,7 +180,7 @@ public class PythonProcess {
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("LOGS_DIR", pythonLogsDirectory.getAbsolutePath());
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
-        processBuilder.environment().put("PYTHONPATH", pythonApiDirectory.getAbsolutePath());
+        processBuilder.environment().put("PYTHONPATH", pythonPath);
         processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
         processBuilder.environment().put("AUTH_TOKEN", authToken);
         processBuilder.inheritIO();
@@ -230,9 +235,9 @@ public class PythonProcess {
     private void installDebugPy() throws IOException {
         final String pythonCommand = processConfig.getPythonCommand();
 
-        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--upgrade", "debugpy", "--target",
-            processConfig.getPythonWorkingDirectory().getAbsolutePath());
-        processBuilder.directory(virtualEnvHome.getParentFile());
+        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--no-cache-dir", "--upgrade", "debugpy", "--target",
+            virtualEnvHome.getAbsolutePath());
+        processBuilder.directory(virtualEnvHome);
 
         final String command = String.join(" ", processBuilder.command());
         logger.debug("Installing DebugPy to Virtual Env {} using command {}", virtualEnvHome, command);

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
@@ -43,7 +42,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.glassfish.jersey.client.ClientConfig;
@@ -52,9 +50,9 @@ import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonP
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.WebTarget;
 import java.net.URI;
 
 /**
@@ -66,7 +64,6 @@ public class JerseyNiFiClient implements NiFiClient {
     static final int DEFAULT_CONNECT_TIMEOUT = 10000;
     static final int DEFAULT_READ_TIMEOUT = 10000;
 
-    @VisibleForTesting
     public final Client client;
     private final WebTarget baseTarget;
 
@@ -197,16 +194,6 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
         return new JerseyPoliciesClient(baseTarget, requestConfig);
-    }
-
-    @Override
-    public TemplatesClient getTemplatesClient() {
-        return new JerseyTemplatesClient(baseTarget);
-    }
-
-    @Override
-    public TemplatesClient getTemplatesClient(RequestConfig requestConfig) {
-        return new JerseyTemplatesClient(baseTarget, requestConfig);
     }
 
     @Override

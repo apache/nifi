@@ -65,7 +65,10 @@ import java.util.Set;
     @WritesAttribute(attribute = ValidateJson.ERROR_ATTRIBUTE_KEY, description = "If the flow file is routed to the invalid relationship "
             + ", this attribute will contain the error message resulting from the validation failure.")
 })
-@CapabilityDescription("Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards.")
+@CapabilityDescription("Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards. " +
+        "This Processor does not support input containing multiple JSON objects, such as newline-delimited JSON. If the input FlowFile contains " +
+        "newline-delimited JSON, only the first line will be validated."
+)
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Validating JSON requires reading FlowFile content into memory")
 @Restricted(
         restrictions = {

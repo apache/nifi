@@ -30,7 +30,6 @@ public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryPro
     @Override
     public void onEnabled(ConfigurationContext context) {
         delegate = new JMSConnectionFactoryHandlerForTest(context, getLogger());
-        delegate.setConnectionFactoryProperties();
     }
 
     public Map<String, Object> getConfiguredProperties() {

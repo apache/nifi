@@ -52,7 +52,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
@@ -64,35 +64,28 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardFlowConfigurationDAO;
-import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -118,7 +111,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final boolean autoResumeState;
     private final Authorizer authorizer;
 
-    // Lock is used to protect the flow.xml file.
+    // Lock is used to protect the flow.json.gz file.
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -157,11 +150,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final FlowController controller,
             final NiFiProperties nifiProperties,
             final RevisionManager revisionManager,
-            final Authorizer authorizer,
-            final FlowSerializationStrategy serializationStrategy) throws IOException {
+            final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, authorizer,
-                serializationStrategy);
+        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
@@ -172,8 +163,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final RevisionManager revisionManager,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, authorizer,
-                FlowSerializationStrategy.WRITE_XML_AND_JSON);
+        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, authorizer);
     }
 
     private StandardFlowService(
@@ -183,17 +173,15 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final boolean configuredForClustering,
             final ClusterCoordinator clusterCoordinator,
             final RevisionManager revisionManager,
-            final Authorizer authorizer,
-            final FlowSerializationStrategy serializationStrategy) throws IOException {
+            final Authorizer authorizer) throws IOException {
 
         this.nifiProperties = nifiProperties;
         this.controller = controller;
 
-
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = nifiProperties.getAutoResumeState();
 
-        dao = new StandardFlowConfigurationDAO(nifiProperties, controller.getExtensionManager(), serializationStrategy);
+        dao = new StandardFlowConfigurationDAO(nifiProperties, controller.getExtensionManager());
         this.clusterCoordinator = clusterCoordinator;
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);
@@ -472,7 +460,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
              * the response will be null and we should load the local dataflow
              * and heartbeat until a manager is located.
              */
-            final boolean localFlowEmpty = StandardFlowSynchronizer.isFlowEmpty(proposedFlow);
+            final boolean localFlowEmpty = VersionedFlowSynchronizer.isFlowEmpty(proposedFlow);
             final ConnectionResponse response = connect(true, localFlowEmpty, proposedFlow);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't
@@ -820,68 +808,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
             throw new FlowSynchronizationException("Failed to load flow because unable to connect to cluster and local flow is empty");
         }
-
-
-
-        final List<Template> templates = loadTemplates();
-        for (final Template template : templates) {
-            final Template existing = rootGroup.getTemplate(template.getIdentifier());
-            if (existing == null) {
-                logger.info("Imported Template '{}' to Root Group", template.getDetails().getName());
-                rootGroup.addTemplate(template);
-            } else {
-                logger.info("Template '{}' was already present in Root Group so will not import from file", template.getDetails().getName());
-            }
-        }
-    }
-
-    /**
-     * In NiFi 0.x, templates were stored in a templates directory as separate
-     * files. They are now stored in the flow itself. If there already are
-     * templates in that directory, though, we want to restore them.
-     *
-     * @return the templates found in the templates directory
-     * @throws IOException if unable to read from the file system
-     */
-    public List<Template> loadTemplates() throws IOException {
-        final Path templatePath = nifiProperties.getTemplateDirectory();
-
-        final File[] files = templatePath.toFile().listFiles(pathname -> {
-            final String lowerName = pathname.getName().toLowerCase();
-            return lowerName.endsWith(".template") || lowerName.endsWith(".xml");
-        });
-
-        if (files == null) {
-            return Collections.emptyList();
-        }
-
-        final List<Template> templates = new ArrayList<>();
-        for (final File file : files) {
-            try (final FileInputStream fis = new FileInputStream(file);
-                    final BufferedInputStream bis = new BufferedInputStream(fis)) {
-
-                final TemplateDTO templateDto;
-                try {
-                    templateDto = TemplateDeserializer.deserialize(bis);
-                } catch (final Exception e) {
-                    logger.error("Unable to interpret " + file + " as a Template. Skipping file.");
-                    continue;
-                }
-
-                if (templateDto.getId() == null) {
-                    // If there is no ID assigned, we need to assign one. We do this by generating
-                    // an ID from the name. This is because we know that Template Names are unique
-                    // and are consistent across all nodes in the cluster.
-                    final String uuid = UUID.nameUUIDFromBytes(templateDto.getName().getBytes(StandardCharsets.UTF_8)).toString();
-                    templateDto.setId(uuid);
-                }
-
-                final Template template = new Template(templateDto);
-                templates.add(template);
-            }
-        }
-
-        return templates;
     }
 
     private ConnectionResponse connect(final boolean retryOnCommsFailure, final boolean retryIndefinitely, final DataFlow dataFlow) throws ConnectionException {
@@ -1025,7 +951,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setNodeId(nodeId);
 
             // load new controller state
-            loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL);
+            loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
 
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);

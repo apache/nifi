@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -73,6 +74,23 @@ public interface ComponentStateDAO {
      * @param reportingTask reporting task
      */
     void clearState(ReportingTaskNode reportingTask);
+
+    /**
+     * Gets the state for the specified flow analysis rule.
+     *
+     * @param flowAnalysisRule flow analysis rule
+     * @param scope     scope
+     * @return state map
+     */
+
+    StateMap getState(FlowAnalysisRuleNode flowAnalysisRule, Scope scope);
+
+    /**
+     * Clears the state for the specified flow analysis rule.
+     *
+     * @param flowAnalysisRule flow analysis rule
+     */
+    void clearState(FlowAnalysisRuleNode flowAnalysisRule);
 
     /**
      * Gets the state for the specified parameter provider.

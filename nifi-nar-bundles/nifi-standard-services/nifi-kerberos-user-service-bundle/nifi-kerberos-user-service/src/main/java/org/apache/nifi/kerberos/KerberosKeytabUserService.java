@@ -46,7 +46,7 @@ public class KerberosKeytabUserService extends AbstractKerberosUserService imple
             .name("Kerberos Keytab")
             .description("Kerberos keytab associated with the principal.")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
 

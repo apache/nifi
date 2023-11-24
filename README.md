@@ -16,6 +16,10 @@
 
 [![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions/workflows/ci-workflow.yml)
 [![system-tests](https://github.com/apache/nifi/workflows/system-tests/badge.svg)](https://github.com/apache/nifi/actions/workflows/system-tests.yml)
+[![integration-tests](https://github.com/apache/nifi/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/integration-tests.yml)
+[![docker-tests](https://github.com/apache/nifi/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/docker-tests.yml)
+[![dependency-check](https://github.com/apache/nifi/workflows/dependency-check/badge.svg)](https://github.com/apache/nifi/actions/workflows/dependency-check.yml)
+[![codecov](https://codecov.io/gh/apache/nifi/branch/main/graph/badge.svg)](https://codecov.io/gh/apache/nifi)
 [![Docker pulls](https://img.shields.io/docker/pulls/apache/nifi.svg)](https://hub.docker.com/r/apache/nifi/)
 [![Version](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-utils.svg)](https://nifi.apache.org/download.html)
 [![Slack](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://s.apache.org/nifi-community-slack)
@@ -61,11 +65,11 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - Multiple teams can manage and share specific portions of the flow
 
 ## Minimum Recommendations
-* JDK 17.0.6
+* JDK 21
 * Apache Maven 3.9.2
 
 ## Minimum Requirements
-* JDK 17.0.6
+* JDK 21
 * Apache Maven 3.9.2
 
 ## Getting Started
@@ -210,7 +214,7 @@ To run MiNiFi:
 - View the logs located in the logs folder
   $ tail -F ~/example-minifi-deploy/logs/minifi-app.log
 
-- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit, which aids in adapting NiFi templates to MiNiFi YAML configuration file format.
+- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit.
 
 - If you are testing ongoing development, you will likely want to stop your instance.
 

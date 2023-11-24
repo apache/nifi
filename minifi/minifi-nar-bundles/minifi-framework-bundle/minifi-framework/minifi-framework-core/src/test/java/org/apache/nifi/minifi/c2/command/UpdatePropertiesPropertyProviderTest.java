@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import static org.apache.nifi.minifi.MiNiFiProperties.GRACEFUL_SHUTDOWN_SECOND;
-import static org.apache.nifi.minifi.MiNiFiProperties.JAVA;
-import static org.apache.nifi.minifi.MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD;
-import static org.apache.nifi.minifi.MiNiFiProperties.PROPERTIES_BY_KEY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.GRACEFUL_SHUTDOWN_SECOND;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.JAVA;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD;
 import static org.apache.nifi.minifi.c2.command.UpdatePropertiesPropertyProvider.AVAILABLE_PROPERTIES;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.sortedPropertiesByKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
@@ -32,7 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.nifi.minifi.MiNiFiProperties;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -77,7 +77,7 @@ class UpdatePropertiesPropertyProviderTest {
     }
 
     private static LinkedHashSet<UpdatableProperty> getUpdatableProperties(Properties props) {
-        return PROPERTIES_BY_KEY.values()
+        return sortedPropertiesByKey().values()
             .stream()
             .filter(property -> !property.isSensitive())
             .filter(MiNiFiProperties::isModifiable)

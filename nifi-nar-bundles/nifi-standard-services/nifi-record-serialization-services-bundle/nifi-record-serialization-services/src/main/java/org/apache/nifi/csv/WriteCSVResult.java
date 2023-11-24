@@ -17,6 +17,13 @@
 
 package org.apache.nifi.csv;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -29,14 +36,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private final RecordSchema recordSchema;
@@ -61,7 +60,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         this.timestampFormat = timestampFormat;
         this.includeHeaderLine = includeHeaderLine;
 
-        final CSVFormat formatWithHeader = csvFormat.withSkipHeaderRecord(true);
+        final CSVFormat formatWithHeader = csvFormat.builder().setSkipHeaderRecord(true).build();
         final OutputStreamWriter streamWriter = new OutputStreamWriter(out, charSet);
         printer = new CSVPrinter(streamWriter, formatWithHeader);
 

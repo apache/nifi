@@ -19,18 +19,17 @@ package org.apache.nifi.registry.flow;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.Map;
+import java.util.Objects;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * <p>
@@ -111,7 +110,7 @@ public class VersionedFlowSnapshot {
         this.parameterProviders = parameterProviders;
     }
 
-    @ApiModelProperty(value = "The flow this snapshot is for", readOnly = true)
+    @ApiModelProperty(value = "The flow this snapshot is for", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public VersionedFlow getFlow() {
         return flow;
     }
@@ -120,7 +119,7 @@ public class VersionedFlowSnapshot {
         this.flow = flow;
     }
 
-    @ApiModelProperty(value = "The bucket where the flow is located", readOnly = true)
+    @ApiModelProperty(value = "The bucket where the flow is located", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Bucket getBucket() {
         return bucket;
     }

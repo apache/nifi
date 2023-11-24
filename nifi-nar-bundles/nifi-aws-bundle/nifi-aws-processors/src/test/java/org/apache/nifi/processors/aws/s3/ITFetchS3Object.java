@@ -17,8 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -36,14 +35,10 @@ import java.util.Map;
  */
 public class ITFetchS3Object extends AbstractS3IT {
     @Test
-    public void testSimpleGet() throws IOException {
+    public void testSimpleGet() throws IOException, InitializationException {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
-
-        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.S3_REGION, REGION);
-        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
+        final TestRunner runner = initRunner(FetchS3Object.class);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test-file");
@@ -59,15 +54,10 @@ public class ITFetchS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testSimpleGetEncrypted() throws IOException {
+    public void testSimpleGetEncrypted() throws IOException, InitializationException {
         putTestFileEncrypted("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
-
-        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.S3_REGION, REGION);
-        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(FetchS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test-file");
         runner.enqueue(new byte[0], attrs);
@@ -85,20 +75,7 @@ public class ITFetchS3Object extends AbstractS3IT {
     public void testFetchS3ObjectUsingCredentialsProviderService() throws Throwable {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
-
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.enableControllerService(serviceImpl);
-        runner.assertValid(serviceImpl);
-
-        runner.setProperty(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.setProperty(FetchS3Object.S3_REGION, REGION);
-        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(FetchS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test-file");
         runner.enqueue(new byte[0], attrs);
@@ -110,12 +87,12 @@ public class ITFetchS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testTryToFetchNotExistingFile() {
+    public void testTryToFetchNotExistingFile() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
-        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.S3_REGION, REGION);
-        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
+        setSecureProperties(runner);
+        runner.setProperty(FetchS3Object.S3_REGION, getRegion());
+        runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "no-such-a-file");
@@ -127,16 +104,11 @@ public class ITFetchS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testContentsOfFileRetrieved() throws IOException {
+    public void testContentsOfFileRetrieved() throws IOException, InitializationException {
         String key = "folder/1.txt";
         putTestFile(key, getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
-
-        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.S3_REGION, REGION);
-        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
-
+        final TestRunner runner = initRunner(FetchS3Object.class);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", key);
         runner.enqueue(new byte[0], attrs);

@@ -33,7 +33,7 @@ td {text-align: left}
 <h3>Description</h3>
 
 <p>
-    The ScriptedFilterRecord Processor provides the ability to use a scripting language, such as Groovy or Jyton in order to remove Records from an incoming FlowFile.
+    The ScriptedFilterRecord Processor provides the ability to use a scripting language, such as Groovy in order to remove Records from an incoming FlowFile.
     NiFi provides several different Processors that can be used to work with Records in different ways. Each of these processors has its pros and cons.
     The ScriptedFilterRecord is intended to work together with these processors and be used as a pre-processing step before processing the FlowFile with more performance consuming Processors, like ScriptedTransformRecord.
 </p>
@@ -144,16 +144,6 @@ return recordIndex < 2 ? true : false
     </code>
 </pre>
 
-<p>
-    Example Script (Python):
-</p>
-
-<pre>
-    <code>
-_ = True if (recordIndex < 2) else False
-    </code>
-</pre>
-
 <h3>Filtering based on Record contents</h3>
 
 <p>
@@ -213,17 +203,6 @@ if (record.getValue("allyOf") == "Athens") {
 } else {
    return false;
 }
-    </code>
-</pre>
-
-<p>
-    Example Script (Python):
-</p>
-
-<pre>
-    <code>
-allyOf = record.getValue("allyOf")
-_ = True if (allyOf == "Athens") else False
     </code>
 </pre>
 

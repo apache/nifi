@@ -20,7 +20,6 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
-import java.util.Set;
 
 /**
  * The details for a port within this NiFi flow.
@@ -34,8 +33,6 @@ public class PortDTO extends ComponentDTO {
     private String type;
     private Boolean transmitting;
     private Integer concurrentlySchedulableTaskCount;
-    private Set<String> userAccessControl;
-    private Set<String> groupAccessControl;
     private Boolean allowRemoteAccess;
     private String portFunction;
 
@@ -127,34 +124,6 @@ public class PortDTO extends ComponentDTO {
 
     public void setTransmitting(Boolean transmitting) {
         this.transmitting = transmitting;
-    }
-
-    /**
-     * @return groups that are allowed to access this port
-     */
-    @ApiModelProperty(
-            value = "The user groups that are allowed to access the port."
-    )
-    public Set<String> getGroupAccessControl() {
-        return groupAccessControl;
-    }
-
-    public void setGroupAccessControl(Set<String> groupAccessControl) {
-        this.groupAccessControl = groupAccessControl;
-    }
-
-    /**
-     * @return users that are allowed to access this port
-     */
-    @ApiModelProperty(
-            value = "The users that are allowed to access the port."
-    )
-    public Set<String> getUserAccessControl() {
-        return userAccessControl;
-    }
-
-    public void setUserAccessControl(Set<String> userAccessControl) {
-        this.userAccessControl = userAccessControl;
     }
 
     /**

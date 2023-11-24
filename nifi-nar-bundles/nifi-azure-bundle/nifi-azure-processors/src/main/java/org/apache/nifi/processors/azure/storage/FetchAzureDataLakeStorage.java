@@ -24,11 +24,17 @@ import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.azure.storage.file.datalake.models.DownloadRetryOptions;
 import com.azure.storage.file.datalake.models.FileRange;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -42,20 +48,44 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
-@CapabilityDescription("Fetch the provided file from Azure Data Lake Storage")
+@CapabilityDescription("Fetch the specified file from Azure Data Lake Storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
         @WritesAttribute(attribute = "azure.datalake.storage.statusCode", description = "The HTTP error code (if available) from the failed operation"),
         @WritesAttribute(attribute = "azure.datalake.storage.errorCode", description = "The Azure Data Lake Storage moniker of the failed operation"),
         @WritesAttribute(attribute = "azure.datalake.storage.errorMessage", description = "The Azure Data Lake Storage error message from the failed operation")
 })
+@MultiProcessorUseCase(
+    description = "Retrieve all files in an Azure DataLake Storage directory",
+    keywords = {"azure", "datalake", "adls", "state", "retrieve", "fetch", "all", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListAzureDataLakeStorage.class,
+            configuration = """
+                The "Filesystem Name" property should be set to the name of the Azure Filesystem (also known as a Container) that files reside in. \
+                    If the flow being built is to be reused elsewhere, it's a good idea to parameterize this property by setting it to something like `#{AZURE_FILESYSTEM}`.
+                Configure the "Directory Name" property to specify the name of the directory in the file system. \
+                    If the flow being built is to be reused elsewhere, it's a good idea to parameterize this property by setting it to something like `#{AZURE_DIRECTORY}`.
+
+                The "ADLS Credentials" property should specify an instance of the ADLSCredentialsService in order to provide credentials for accessing the filesystem.
+
+                The 'success' Relationship of this Processor is then connected to FetchAzureDataLakeStorage.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchAzureDataLakeStorage.class,
+            configuration = """
+                "Filesystem Name" = "${azure.filesystem}"
+                "Directory Name" = "${azure.directory}"
+                "File Name" = "${azure.filename}"
+
+                The "ADLS Credentials" property should specify an instance of the ADLSCredentialsService in order to provide credentials for accessing the filesystem.
+                """
+        )
+    }
+)
 public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()

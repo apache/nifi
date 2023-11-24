@@ -21,28 +21,26 @@ import com.google.cloud.pubsub.v1.TopicAdminSettings;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.SocketAddress;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
-import javax.annotation.Nullable;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 public abstract class AbstractGCPubSubWithProxyProcessor extends AbstractGCPubSubProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                PROJECT_ID,
-                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS),
-                GCP_CREDENTIALS_PROVIDER_SERVICE)
+        return List.of(
+            PROJECT_ID,
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS),
+            GCP_CREDENTIALS_PROVIDER_SERVICE
         );
     }
+
     protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, () -> {
             final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();

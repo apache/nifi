@@ -17,6 +17,10 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static java.nio.ByteBuffer.wrap;
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static org.apache.commons.io.IOUtils.toByteArray;
 import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
 import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
@@ -27,17 +31,13 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
-import java.security.Security;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
@@ -45,9 +45,9 @@ import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.server.Request;
@@ -62,25 +62,13 @@ import org.slf4j.LoggerFactory;
 
 public class RestChangeIngestor implements ChangeIngestor {
 
-    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP;
-
-    static {
-        HashMap<String, Supplier<Differentiator<ByteBuffer>>> tempMap = new HashMap<>();
-        tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator);
-
-        DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
-
     public static final String GET_TEXT = "This is a config change listener for an Apache NiFi - MiNiFi instance.\n" +
-            "Use this rest server to upload a conf.yml to configure the MiNiFi instance.\n" +
-            "Send a POST http request to '/' to upload the file.";
-    public static final String OTHER_TEXT = "This is not a support HTTP operation. Please use GET to get more information or POST to upload a new config.yml file.\n";
+        "Use this rest server to upload a flow.json to configure the MiNiFi instance.\n" +
+        "Send a POST http request to '/' to upload the file.";
+    public static final String OTHER_TEXT = "This is not a supported HTTP operation. Please use GET to get more information or POST to upload a new flow.json file.\n";
     public static final String POST = "POST";
     public static final String GET = "GET";
-    private final static Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
-    private static final String RECEIVE_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".receive.http";
+    public static final String RECEIVE_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".receive.http";
     public static final String PORT_KEY = RECEIVE_HTTP_BASE_KEY + ".port";
     public static final String HOST_KEY = RECEIVE_HTTP_BASE_KEY + ".host";
     public static final String TRUSTSTORE_LOCATION_KEY = RECEIVE_HTTP_BASE_KEY + ".truststore.location";
@@ -91,12 +79,19 @@ public class RestChangeIngestor implements ChangeIngestor {
     public static final String KEYSTORE_TYPE_KEY = RECEIVE_HTTP_BASE_KEY + ".keystore.type";
     public static final String NEED_CLIENT_AUTH_KEY = RECEIVE_HTTP_BASE_KEY + ".need.client.auth";
     public static final String DIFFERENTIATOR_KEY = RECEIVE_HTTP_BASE_KEY + ".differentiator";
+
+    private final static Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
+
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+
+    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP = Map.of(
+        WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator
+    );
+
     private final Server jetty;
 
     private volatile Differentiator<ByteBuffer> differentiator;
     private volatile ConfigurationChangeNotifier configurationChangeNotifier;
-    private volatile ConfigurationFileHolder configurationFileHolder;
-    private volatile Properties properties;
 
     public RestChangeIngestor() {
         QueuedThreadPool queuedThreadPool = new QueuedThreadPool();
@@ -106,36 +101,23 @@ public class RestChangeIngestor implements ChangeIngestor {
 
     @Override
     public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
-        this.configurationFileHolder = configurationFileHolder;
-        this.properties = properties;
-        logger.info("Initializing");
-        String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
+        logger.info("Initializing RestChangeIngestor");
+        this.differentiator = ofNullable(properties.getProperty(DIFFERENTIATOR_KEY))
+            .filter(not(String::isBlank))
+            .map(differentiator -> ofNullable(DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiator))
+                .map(Supplier::get)
+                .orElseThrow(unableToFindDifferentiatorExceptionSupplier(differentiator)))
+            .orElseGet(WholeConfigDifferentiator::getByteBufferDifferentiator);
+        this.differentiator.initialize(configurationFileHolder);
 
-        if (differentiatorName != null && !differentiatorName.isEmpty()) {
-            Supplier<Differentiator<ByteBuffer>> differentiatorSupplier = DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiatorName);
-            if (differentiatorSupplier == null) {
-                throw new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiatorName + " which does not " +
-                        "correspond to any in the PullHttpChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
-            }
-            differentiator = differentiatorSupplier.get();
-        } else {
-            differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
-        }
-        differentiator.initialize(configurationFileHolder);
-
-        // create the secure connector if keystore location is specified
-        if (properties.getProperty(KEYSTORE_LOCATION_KEY) != null) {
-            createSecureConnector(properties);
-        } else {
-            // create the unsecure connector otherwise
-            createConnector(properties);
-        }
+        ofNullable(properties.getProperty(KEYSTORE_LOCATION_KEY))
+            .ifPresentOrElse(keyStoreLocation -> createSecureConnector(properties), () -> createConnector(properties));
 
         this.configurationChangeNotifier = configurationChangeNotifier;
 
         HandlerCollection handlerCollection = new HandlerCollection(true);
         handlerCollection.addHandler(new JettyHandler());
-        jetty.setHandler(handlerCollection);
+        this.jetty.setHandler(handlerCollection);
     }
 
     @Override
@@ -190,22 +172,34 @@ public class RestChangeIngestor implements ChangeIngestor {
         KeyStore trustStore = null;
 
         try (FileInputStream keyStoreStream = new FileInputStream(properties.getProperty(KEYSTORE_LOCATION_KEY))) {
-            keyStore = new StandardKeyStoreBuilder()
-                .type(properties.getProperty(KEYSTORE_TYPE_KEY))
+            final String keyStoreType = properties.getProperty(KEYSTORE_TYPE_KEY);
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                .type(keyStoreType)
                 .inputStream(keyStoreStream)
-                .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
-                .build();
+                .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray());
+
+            if (KeystoreType.BCFKS.getType().equals(keyStoreType)) {
+                builder.provider(BOUNCY_CASTLE_PROVIDER);
+            }
+
+            keyStore = builder.build();
         } catch (IOException ioe) {
             throw new UncheckedIOException("Key Store loading failed", ioe);
         }
 
         if (properties.getProperty(TRUSTSTORE_LOCATION_KEY) != null) {
+            final String trustStoreType = properties.getProperty(TRUSTSTORE_TYPE_KEY);
             try (FileInputStream trustStoreStream = new FileInputStream(properties.getProperty(TRUSTSTORE_LOCATION_KEY))) {
-                trustStore = new StandardKeyStoreBuilder()
-                    .type(properties.getProperty(TRUSTSTORE_TYPE_KEY))
+                final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder()
+                    .type(trustStoreType)
                     .inputStream(trustStoreStream)
-                    .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray())
-                    .build();
+                    .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray());
+
+                if (KeystoreType.BCFKS.getType().equals(trustStoreType)) {
+                    builder.provider(BOUNCY_CASTLE_PROVIDER);
+                }
+
+                trustStore = builder.build();
             } catch (IOException ioe) {
                 throw new UncheckedIOException("Trust Store loading failed", ioe);
             }
@@ -231,7 +225,13 @@ public class RestChangeIngestor implements ChangeIngestor {
         logger.info("HTTPS Connector added for Host [{}] and Port [{}]", https.getHost(), https.getPort());
     }
 
-    protected void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
+    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(String differentiator) {
+        return () -> new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiator
+            + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
+    }
+
+    // Method exposed only for enable testing
+    void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
         this.differentiator = differentiator;
     }
 
@@ -239,7 +239,7 @@ public class RestChangeIngestor implements ChangeIngestor {
 
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
-                throws IOException {
+            throws IOException {
 
             logRequest(request);
 
@@ -249,13 +249,9 @@ public class RestChangeIngestor implements ChangeIngestor {
                 int statusCode;
                 String responseText;
                 try {
-                    ByteBuffer readOnlyNewConfig =
-                        ConfigTransformer.overrideNonFlowSectionsFromOriginalSchema(
-                            IOUtils.toByteArray(request.getInputStream()), configurationFileHolder.getConfigFileReference().get().duplicate(), properties);
-
-                    if (differentiator.isNew(readOnlyNewConfig)) {
-
-                        Collection<ListenerHandleResult> listenerHandleResults = configurationChangeNotifier.notifyListeners(readOnlyNewConfig);
+                    ByteBuffer newFlowConfig = wrap(toByteArray(request.getInputStream())).duplicate();
+                    if (differentiator.isNew(newFlowConfig)) {
+                        Collection<ListenerHandleResult> listenerHandleResults = configurationChangeNotifier.notifyListeners(newFlowConfig);
 
                         statusCode = 200;
                         for (ListenerHandleResult result : listenerHandleResults) {
@@ -312,6 +308,5 @@ public class RestChangeIngestor implements ChangeIngestor {
             logger.info("request content type = " + request.getContentType());
             logger.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
         }
-
     }
 }

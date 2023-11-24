@@ -194,7 +194,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                 // If no code was provided, assume it is in the content of the incoming flow file
                 code = IOUtils.toString(inputStream, charset);
             } catch (IOException ioe) {
-                log.error("Error reading input flowfile, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
+                log.error("Error reading input flowfile, penalizing and routing to failure", flowFile, ioe.getMessage(), ioe);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
@@ -224,7 +224,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                 }
             }
         } catch (IOException | SessionManagerException e) {
-            log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", new Object[]{flowFile, e.getMessage()}, e);
+            log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", flowFile, e.getMessage(), e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

@@ -27,10 +27,7 @@ limitations under the License.
     <packaging>nar</packaging>
 
     <description>MiNiFi: Framework NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>

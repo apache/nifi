@@ -98,7 +98,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             final MongoClientSettings clientSettings = builder.build();
             return MongoClients.create(clientSettings);
         } catch (Exception e) {
-            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
+            getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
         }
     }

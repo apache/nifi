@@ -76,7 +76,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .name("url")
         .displayName("Schema Registry URLs")
         .description("A comma-separated list of URLs of the Schema Registry to interact with")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("http://localhost:8081")
         .required(true)
         .addValidator(new MultipleURLValidator())

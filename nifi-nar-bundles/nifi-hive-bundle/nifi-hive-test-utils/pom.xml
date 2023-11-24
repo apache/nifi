@@ -59,6 +59,12 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <!-- Add Jetty 10 websocket for Hadoop YarnClientImpl.shellToContainer -->
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-jetty-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
@@ -80,13 +86,24 @@
                         <groupId>commons-logging</groupId>
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
+                    <!-- Exclude Jetty 9.4 -->
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.websocket</groupId>
+                        <artifactId>websocket-client</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <!-- Override Guava 27 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.1-jre</version>
+                <version>32.1.2-jre</version>
+            </dependency>
+            <!-- Override Jettison from Hive -->
+            <dependency>
+                <groupId>org.codehaus.jettison</groupId>
+                <artifactId>jettison</artifactId>
+                <version>1.5.4</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -161,7 +178,7 @@
                     <artifactId>guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>
@@ -178,6 +195,11 @@
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derbytools</artifactId>
+            <version>${derby.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
             <version>${derby.version}</version>
         </dependency>
         <dependency>
@@ -206,7 +228,7 @@
                     <artifactId>woodstox-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy-all</artifactId>
                 </exclusion>
                 <exclusion>

@@ -17,15 +17,15 @@
 
 package org.apache.nifi.csv;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.DuplicateHeaderMode;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -85,11 +85,11 @@ public class CSVUtilsTest {
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
 
-        assertEquals('|', csvFormat.getDelimiter());
+        assertEquals("|", csvFormat.getDelimiterString());
         assertEquals('\'', (char) csvFormat.getQuoteCharacter());
         assertEquals('^', (char) csvFormat.getEscapeCharacter());
         assertEquals('~', (char) csvFormat.getCommentMarker());
-        assertTrue(csvFormat.getAllowDuplicateHeaderNames());
+        assertEquals(DuplicateHeaderMode.ALLOW_ALL, csvFormat.getDuplicateHeaderMode());
     }
 
     @Test
@@ -104,11 +104,11 @@ public class CSVUtilsTest {
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, attributes);
 
-        assertEquals('|', csvFormat.getDelimiter());
+        assertEquals("|", csvFormat.getDelimiterString());
         assertEquals('\'', (char) csvFormat.getQuoteCharacter());
         assertEquals('^', (char) csvFormat.getEscapeCharacter());
         assertEquals('~', (char) csvFormat.getCommentMarker());
-        assertFalse(csvFormat.getAllowDuplicateHeaderNames());
+        assertEquals(DuplicateHeaderMode.DISALLOW, csvFormat.getDuplicateHeaderMode());
     }
 
     @Test
@@ -117,7 +117,7 @@ public class CSVUtilsTest {
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
 
-        assertEquals(',', csvFormat.getDelimiter());
+        assertEquals(",", csvFormat.getDelimiterString());
         assertEquals('"', (char) csvFormat.getQuoteCharacter());
         assertNull(csvFormat.getEscapeCharacter());
         assertNull(csvFormat.getCommentMarker());
@@ -135,7 +135,7 @@ public class CSVUtilsTest {
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, attributes);
 
-        assertEquals(',', csvFormat.getDelimiter());
+        assertEquals(",", csvFormat.getDelimiterString());
         assertEquals('"', (char) csvFormat.getQuoteCharacter());
         assertEquals('\\', (char) csvFormat.getEscapeCharacter());
         assertNull(csvFormat.getCommentMarker());
@@ -150,6 +150,6 @@ public class CSVUtilsTest {
         properties.put(CSVUtils.COMMENT_MARKER, commentMarker);
         properties.put(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES, allowDuplicateHeaderNames);
 
-        return new MockConfigurationContext(properties, null);
+        return new MockConfigurationContext(properties, null, null);
     }
 }

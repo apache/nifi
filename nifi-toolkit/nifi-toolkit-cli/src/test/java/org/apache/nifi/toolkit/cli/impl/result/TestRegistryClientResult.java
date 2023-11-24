@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,17 +49,16 @@ public class TestRegistryClientResult {
         this.printStream = new PrintStream(outputStream, true);
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void testWriteSimpleRegistryClientsResult() throws IOException {
         final FlowRegistryClientDTO r1 = new FlowRegistryClientDTO();
         r1.setName("Registry 1");
-        r1.setUri("http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080");
+        r1.setProperties(Map.of("url", "http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080"));
         r1.setId(UUID.fromString("ea752054-22c6-4fc0-b851-967d9a3837cb").toString());
 
         final FlowRegistryClientDTO r2 = new FlowRegistryClientDTO();
         r2.setName("Registry 2 with a longer than usual name");
-        r2.setUri("http://localhost:18080");
+        r2.setProperties(Map.of("url", "http://localhost:18080"));
         r2.setId(UUID.fromString("ddf5f289-7502-46df-9798-4b0457c1816b").toString());
 
         final FlowRegistryClientEntity clientEntity1 = new FlowRegistryClientEntity();
@@ -79,14 +79,16 @@ public class TestRegistryClientResult {
         final RegistryClientsResult result = new RegistryClientsResult(ResultType.SIMPLE, flowRegistryClientsEntity);
         result.write(printStream);
 
-        final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = "\n" +
-                "#   Name                                   Id                                     Uri                                                               \n" +
-                "-   ------------------------------------   ------------------------------------   ---------------------------------------------------------------   \n" +
-                "1   Registry 1                             ea752054-22c6-4fc0-b851-967d9a3837cb   http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080   \n" +
-                "2   Registry 2 with a longer than usu...   ddf5f289-7502-46df-9798-4b0457c1816b   http://localhost:18080                                            \n" +
-                "\n";
+        final String expected = """
+
+            #   Name                                   Id                                     Properties                                                             \s
+            -   ------------------------------------   ------------------------------------   ---------------------------------------------------------------------  \s
+            1   Registry 1                             ea752054-22c6-4fc0-b851-967d9a3837cb   {url=http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080}  \s
+            2   Registry 2 with a longer than usu...   ddf5f289-7502-46df-9798-4b0457c1816b   {url=http://localhost:18080}                                           \s
+
+            """;
 
         assertEquals(expected, resultOut);
     }

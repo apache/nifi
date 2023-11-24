@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -76,15 +59,27 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public class StandardPublicPort extends AbstractPort implements PublicPort {
 
     private static final String CATEGORY = "Site to Site";
 
     private static final Logger logger = LoggerFactory.getLogger(StandardPublicPort.class);
 
-
-    private final AtomicReference<Set<String>> groupAccessControl = new AtomicReference<>(new HashSet<>());
-    private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<>(new HashSet<>());
     private final boolean secure;
     private final Authorizer authorizer;
     private final List<IdentityMapping> identityMappings;
@@ -308,26 +303,6 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         } finally {
             requestLock.unlock();
         }
-    }
-
-    @Override
-    public void setGroupAccessControl(Set<String> groups) {
-        groupAccessControl.set(new HashSet<>(requireNonNull(groups)));
-    }
-
-    @Override
-    public Set<String> getGroupAccessControl() {
-        return Collections.unmodifiableSet(groupAccessControl.get());
-    }
-
-    @Override
-    public void setUserAccessControl(Set<String> users) {
-        userAccessControl.set(new HashSet<>(requireNonNull(users)));
-    }
-
-    @Override
-    public Set<String> getUserAccessControl() {
-        return Collections.unmodifiableSet(userAccessControl.get());
     }
 
     @Override

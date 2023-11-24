@@ -24,22 +24,25 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.sqs.GetSQS;
 import org.apache.nifi.processors.aws.sqs.PutSQS;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.SnsClientBuilder;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +54,7 @@ import java.util.Map;
 @CapabilityDescription("Sends the content of a FlowFile as a notification to the Amazon Simple Notification Service")
 @DynamicProperty(name = "A name of an attribute to be added to the notification", value = "The attribute value", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "User specified dynamic Properties are added as attributes to the notification")
-public class PutSNS extends AbstractSNSProcessor {
+public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder> {
 
     public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder()
             .name("Character Set")
@@ -61,6 +64,7 @@ public class PutSNS extends AbstractSNSProcessor {
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
             .build();
+
     public static final PropertyDescriptor USE_JSON_STRUCTURE = new PropertyDescriptor.Builder()
             .name("Use JSON Structure")
             .description("If true, the contents of the FlowFile must be JSON with a top-level element named 'default'."
@@ -70,6 +74,7 @@ public class PutSNS extends AbstractSNSProcessor {
             .allowableValues("true", "false")
             .required(true)
             .build();
+
     public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
             .name("E-mail Subject")
             .description("The optional subject to use for any subscribers that are subscribed via E-mail")
@@ -96,10 +101,38 @@ public class PutSNS extends AbstractSNSProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                    USE_JSON_STRUCTURE, CHARACTER_ENCODING, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD,
-                    MESSAGEGROUPID, MESSAGEDEDUPLICATIONID));
+
+    public static final PropertyDescriptor ARN = new PropertyDescriptor.Builder()
+            .name("Amazon Resource Name (ARN)")
+            .description("The name of the resource to which notifications should be published")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected static final AllowableValue ARN_TYPE_TOPIC = new AllowableValue("Topic ARN", "Topic ARN", "The ARN is the name of a topic");
+    protected static final AllowableValue ARN_TYPE_TARGET = new AllowableValue("Target ARN", "Target ARN", "The ARN is the name of a particular Target, used to notify a specific subscriber");
+    public static final PropertyDescriptor ARN_TYPE = new PropertyDescriptor.Builder()
+            .name("ARN Type")
+            .description("The type of Amazon Resource Name that is being used.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .allowableValues(ARN_TYPE_TOPIC, ARN_TYPE_TARGET)
+            .defaultValue(ARN_TYPE_TOPIC.getValue())
+            .build();
+
+
+    public static final List<PropertyDescriptor> properties = List.of(
+            ARN,
+            ARN_TYPE,
+            SUBJECT,
+            REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            TIMEOUT,
+            USE_JSON_STRUCTURE,
+            CHARACTER_ENCODING,
+            MESSAGEGROUPID,
+            MESSAGEDEDUPLICATIONID);
 
     public static final int MAX_SIZE = 256 * 1024;
 
@@ -134,9 +167,13 @@ public class PutSNS extends AbstractSNSProcessor {
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_ENCODING).evaluateAttributeExpressions(flowFile).getValue());
 
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        session.exportTo(flowFile, baos);
-        final String message = new String(baos.toByteArray(), charset);
+        final String message;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            session.exportTo(flowFile, baos);
+            message = baos.toString(charset);
+        } catch (final IOException ioe) {
+            throw new ProcessException("Failed to read FlowFile content", ioe);
+        }
 
         final SnsClient client = getClient(context);
 
@@ -194,6 +231,11 @@ public class PutSNS extends AbstractSNSProcessor {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    protected SnsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SnsClient.builder();
     }
 
 }

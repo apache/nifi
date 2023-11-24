@@ -111,7 +111,6 @@ public class FileUserGroupProviderTest {
         when(properties.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null, ParameterLookup.EMPTY));
         when(configurationContext.getProperties()).then((invocation) -> {
             final Map<String, String> properties = new HashMap<>();
@@ -119,11 +118,6 @@ public class FileUserGroupProviderTest {
             final PropertyValue tenantFile = configurationContext.getProperty(FileUserGroupProvider.PROP_TENANTS_FILE);
             if (tenantFile != null) {
                 properties.put(FileUserGroupProvider.PROP_TENANTS_FILE, tenantFile.getValue());
-            }
-
-            final PropertyValue legacyAuthFile = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
-            if (legacyAuthFile != null) {
-                properties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, legacyAuthFile.getValue());
             }
 
             int i = 1;
@@ -149,141 +143,6 @@ public class FileUserGroupProviderTest {
     public void cleanup() throws Exception {
         deleteFile(primaryTenants);
         deleteFile(restoreTenants);
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        userGroupProvider.onConfigured(configurationContext);
-
-        // verify all users got created correctly
-        final Set<User> users = userGroupProvider.getUsers();
-        assertEquals(6, users.size());
-
-        final User user1 = userGroupProvider.getUserByIdentity("user1");
-        assertNotNull(user1);
-
-        final User user2 = userGroupProvider.getUserByIdentity("user2");
-        assertNotNull(user2);
-
-        final User user3 = userGroupProvider.getUserByIdentity("user3");
-        assertNotNull(user3);
-
-        final User user4 = userGroupProvider.getUserByIdentity("user4");
-        assertNotNull(user4);
-
-        final User user5 = userGroupProvider.getUserByIdentity("user5");
-        assertNotNull(user5);
-
-        final User user6 = userGroupProvider.getUserByIdentity("user6");
-        assertNotNull(user6);
-
-        // verify one group got created
-        final Set<Group> groups = userGroupProvider.getGroups();
-        assertEquals(1, groups.size());
-        final Group group1 = groups.iterator().next();
-        assertEquals("group1", group1.getName());
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvidedWithIdentityMappings() throws Exception {
-        final Properties props = new Properties();
-        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
-        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
-
-        properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
-        userGroupProvider.setNiFiProperties(properties);
-
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        userGroupProvider.onConfigured(configurationContext);
-
-        final User user1 = userGroupProvider.getUserByIdentity("user1");
-        assertNotNull(user1);
-
-        final User user2 = userGroupProvider.getUserByIdentity("user2");
-        assertNotNull(user2);
-
-        final User user3 = userGroupProvider.getUserByIdentity("user3");
-        assertNotNull(user3);
-
-        final User user4 = userGroupProvider.getUserByIdentity("user4");
-        assertNotNull(user4);
-
-        final User user5 = userGroupProvider.getUserByIdentity("user5");
-        assertNotNull(user5);
-
-        final User user6 = userGroupProvider.getUserByIdentity("user6");
-        assertNotNull(user6);
-
-        // verify one group got created
-        final Set<Group> groups = userGroupProvider.getGroups();
-        assertEquals(1, groups.size());
-        final Group group1 = groups.iterator().next();
-        assertEquals("group1", group1.getName());
-    }
-
-    @Test
-    public void testOnConfiguredWhenLegacyUsersFileProvidedWithIdentityMappingsAndTransforms() throws Exception {
-        final Properties props = new Properties();
-        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
-        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
-        props.setProperty("nifi.security.identity.mapping.transform.dn1", "UPPER");
-
-        props.setProperty("nifi.security.group.mapping.pattern.anygroup", "^(.*)$");
-        props.setProperty("nifi.security.group.mapping.value.anygroup", "$1");
-        props.setProperty("nifi.security.group.mapping.transform.anygroup", "UPPER");
-
-        properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
-        userGroupProvider.setNiFiProperties(properties);
-
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        userGroupProvider.onConfigured(configurationContext);
-
-        final User user1 = userGroupProvider.getUserByIdentity("USER1");
-        assertNotNull(user1);
-
-        final User user2 = userGroupProvider.getUserByIdentity("USER2");
-        assertNotNull(user2);
-
-        final User user3 = userGroupProvider.getUserByIdentity("USER3");
-        assertNotNull(user3);
-
-        final User user4 = userGroupProvider.getUserByIdentity("USER4");
-        assertNotNull(user4);
-
-        final User user5 = userGroupProvider.getUserByIdentity("USER5");
-        assertNotNull(user5);
-
-        final User user6 = userGroupProvider.getUserByIdentity("USER6");
-        assertNotNull(user6);
-
-        // verify one group got created
-        final Set<Group> groups = userGroupProvider.getGroups();
-        assertEquals(1, groups.size());
-        final Group group1 = groups.iterator().next();
-        assertEquals("GROUP1", group1.getName());
-    }
-
-    @Test
-    public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
-
-        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> userGroupProvider.onConfigured(configurationContext));
     }
 
     @Test

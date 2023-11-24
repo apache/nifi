@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.ProvenanceReporter;
-import org.apache.nifi.state.MockStateManager;
-import org.junit.jupiter.api.Assertions;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -63,12 +43,32 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.state.MockStateManager;
+import org.junit.jupiter.api.Assertions;
 
 public class MockProcessSession implements ProcessSession {
 
     private final Map<Relationship, List<MockFlowFile>> transferMap = new ConcurrentHashMap<>();
     private final MockFlowFileQueue processorQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
+    private final Set<Long> created = new HashSet<>();
     private final List<MockFlowFile> penalized = new ArrayList<>();
     private final Processor processor;
 
@@ -213,6 +213,10 @@ public class MockProcessSession implements ProcessSession {
             if (removedFlowFiles.remove(flowFile.getId())) {
                 newOwner.removedFlowFiles.add(flowFile.getId());
             }
+
+            if (created.remove(flowFile.getId())) {
+                newOwner.created.add(flowFile.getId());
+            }
         }
 
         final Set<String> flowFileIds = flowFiles.stream()
@@ -226,8 +230,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile clone(FlowFile flowFile) {
         flowFile = validateState(flowFile);
         final MockFlowFile newFlowFile = new MockFlowFile(sharedState.nextFlowFileId(), flowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -242,8 +245,7 @@ public class MockProcessSession implements ProcessSession {
         final byte[] newContent = Arrays.copyOfRange(((MockFlowFile) flowFile).getData(), (int) offset, (int) (offset + size));
         newFlowFile.setData(newContent);
 
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -290,6 +292,7 @@ public class MockProcessSession implements ProcessSession {
         beingProcessed.clear();
         currentVersions.clear();
         originalVersions.clear();
+        created.clear();
 
         for (final Map.Entry<String, Long> entry : counterMap.entrySet()) {
             sharedState.adjustCounter(entry.getKey(), entry.getValue());
@@ -339,8 +342,7 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public MockFlowFile create() {
         final MockFlowFile flowFile = new MockFlowFile(sharedState.nextFlowFileId());
-        currentVersions.put(flowFile.getId(), flowFile);
-        beingProcessed.add(flowFile.getId());
+        updateStateWithNewFlowFile(flowFile);
         return flowFile;
     }
 
@@ -348,8 +350,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile create(final FlowFile flowFile) {
         MockFlowFile newFlowFile = create();
         newFlowFile = (MockFlowFile) inheritAttributes(flowFile, newFlowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -357,8 +358,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile create(final Collection<FlowFile> flowFiles) {
         MockFlowFile newFlowFile = create();
         newFlowFile = (MockFlowFile) inheritAttributes(flowFiles, newFlowFile);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        beingProcessed.add(newFlowFile.getId());
+        updateStateWithNewFlowFile(newFlowFile);
         return newFlowFile;
     }
 
@@ -583,12 +583,7 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
-    public void read(final FlowFile flowFile, final InputStreamCallback callback) {
-        read(flowFile, false, callback);
-    }
-
-    @Override
-    public void read(FlowFile flowFile, boolean allowSessionStreamManagement, final InputStreamCallback callback) {
+    public void read(FlowFile flowFile, final InputStreamCallback callback) {
         if (callback == null || flowFile == null) {
             throw new IllegalArgumentException("argument cannot be null");
         }
@@ -603,9 +598,7 @@ public class MockProcessSession implements ProcessSession {
         incrementReadCount(flowFile);
         try {
             callback.process(bais);
-            if(!allowSessionStreamManagement){
-                bais.close();
-            }
+            bais.close();
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         } finally {
@@ -802,9 +795,11 @@ public class MockProcessSession implements ProcessSession {
 
         for (final List<MockFlowFile> list : transferMap.values()) {
             for (final MockFlowFile flowFile : list) {
-                processorQueue.offer(flowFile);
-                if (penalize) {
-                    penalized.add(flowFile);
+                if (!created.contains(flowFile.getId())) {
+                    processorQueue.offer(flowFile);
+                    if (penalize) {
+                        penalized.add(flowFile);
+                    }
                 }
             }
         }
@@ -812,9 +807,11 @@ public class MockProcessSession implements ProcessSession {
         for (final Long flowFileId : beingProcessed) {
             final MockFlowFile flowFile = originalVersions.get(flowFileId);
             if (flowFile != null) {
-                processorQueue.offer(flowFile);
-                if (penalize) {
-                    penalized.add(flowFile);
+                if (!created.contains(flowFile.getId())) {
+                    processorQueue.offer(flowFile);
+                    if (penalize) {
+                        penalized.add(flowFile);
+                    }
                 }
             }
         }
@@ -824,6 +821,7 @@ public class MockProcessSession implements ProcessSession {
         currentVersions.clear();
         originalVersions.clear();
         transferMap.clear();
+        created.clear();
         clearTransferState();
         if (!penalize) {
             penalized.clear();
@@ -856,6 +854,15 @@ public class MockProcessSession implements ProcessSession {
         // which is called when a flow file is transferred to a relationship.
         mockFlowFile.setLastEnqueuedDate(System.currentTimeMillis());
         mockFlowFile.setEnqueuedIndex(enqueuedIndex.incrementAndGet());
+    }
+
+    private void updateStateWithNewFlowFile(MockFlowFile newFlowFile) {
+        if (newFlowFile == null) {
+            throw new IllegalArgumentException("argument cannot be null");
+        }
+        currentVersions.put(newFlowFile.getId(), newFlowFile);
+        beingProcessed.add(newFlowFile.getId());
+        created.add(newFlowFile.getId());
     }
 
     @Override
@@ -927,16 +934,15 @@ public class MockProcessSession implements ProcessSession {
         if (!(flowFile instanceof MockFlowFile)) {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
-
         final MockFlowFile mockFlowFile = validateState(flowFile);
-        writeRecursionSet.add(flowFile);
+        writeRecursionSet.add(mockFlowFile);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
                 super.close();
 
                 writeRecursionSet.remove(mockFlowFile);
-                final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), flowFile);
+                final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), mockFlowFile);
                 currentVersions.put(newFlowFile.getId(), newFlowFile);
 
                 newFlowFile.setData(toByteArray());
@@ -969,12 +975,12 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
-    public MockFlowFile write(final FlowFile flowFile, final StreamCallback callback) {
+    public MockFlowFile write(FlowFile flowFile, final StreamCallback callback) {
+        flowFile = validateState(flowFile);
         if (callback == null || flowFile == null) {
             throw new IllegalArgumentException("argument cannot be null");
         }
-        final MockFlowFile mock = validateState(flowFile);
-
+        final MockFlowFile mock = (MockFlowFile) flowFile;
         final ByteArrayInputStream in = new ByteArrayInputStream(mock.getData());
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -987,7 +993,7 @@ public class MockProcessSession implements ProcessSession {
             writeRecursionSet.remove(flowFile);
         }
 
-        final MockFlowFile newFlowFile = new MockFlowFile(mock.getId(), flowFile);
+        final MockFlowFile newFlowFile = new MockFlowFile(flowFile.getId(), flowFile);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         newFlowFile.setData(out.toByteArray());
 
@@ -1073,6 +1079,7 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile newFlowFile = new MockFlowFile(destination.getId(), destination);
         newFlowFile.setData(baos.toByteArray());
         currentVersions.put(newFlowFile.getId(), newFlowFile);
+        created.add(newFlowFile.getId());
 
         return newFlowFile;
     }

@@ -1,0 +1,39 @@
+[
+    {
+        "id": "rec-1",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message"
+    },
+    {
+        "id": null,
+        "op": "create",
+        "index": "bulk_a",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-3",
+        "op": null,
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-4",
+        "index": null,
+        "type": "message",
+        "msg": "Hello"
+    },
+    {
+        "op": "create",
+        "index": "bulk_a",
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-6",
+        "op": "create",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": null
+    }
+]

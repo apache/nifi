@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -61,6 +60,10 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
+import org.apache.nifi.migration.StandardRelationshipConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -78,7 +81,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.VerifiableProcessor;
-import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -86,9 +88,9 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.ThreadUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.support.CronExpression;
 
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
@@ -178,21 +180,20 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-                                 final ControllerServiceProvider controllerServiceProvider, final ComponentVariableRegistry variableRegistry,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
+                                 final ControllerServiceProvider controllerServiceProvider, final ReloadComponent reloadComponent,
+                                 final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider, processor.getComponent().getClass().getSimpleName(),
-            processor.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
+            processor.getComponent().getClass().getCanonicalName(), reloadComponent, extensionManager, validationTrigger, false);
     }
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-                                 final ControllerServiceProvider controllerServiceProvider,
-                                 final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
+                                 final ControllerServiceProvider controllerServiceProvider, final String componentType, final String componentCanonicalClass,
                                  final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
                                  final boolean isExtensionMissing) {
 
-        super(uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+        super(uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
 
         final ProcessorDetails processorDetails = new ProcessorDetails(processor);
@@ -229,27 +230,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
-                try {
-                    this.setSchedulingStrategy(dsc.strategy());
-                } catch (Throwable ex) {
-                    LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                }
-                try {
-                    this.setSchedulingPeriod(dsc.period());
-                } catch (Throwable ex) {
-                    this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
-                    LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                }
-                if (!processorDetails.isTriggeredSerially()) {
-                    try {
-                        setMaxConcurrentTasks(dsc.concurrentTasks());
-                    } catch (Throwable ex) {
-                        LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s", ex.getMessage()), ex);
-                    }
-                }
+                setSchedulingStrategy(dsc.strategy());
+                setSchedulingPeriod(dsc.period());
+                setMaxConcurrentTasks(dsc.concurrentTasks());
             }
-        } catch (Throwable ex) {
-            LOG.error(String.format("Error while setting default schedule from DefaultSchedule annotation: %s",ex.getMessage()),ex);
+        } catch (final Exception e) {
+            LOG.error("Error while setting default schedule from DefaultSchedule annotation", e);
         }
     }
 
@@ -273,9 +259,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return processorRef.get().getBundleCoordinate();
     }
 
-    /**
-     * @return comments about this specific processor instance
-     */
     @Override
     public String getComments() {
         return comments.get();
@@ -306,14 +289,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return getProcessor().getClass().isAnnotationPresent(DeprecationNotice.class);
     }
 
-
-    /**
-     * Provides and opportunity to retain information about this particular
-     * processor instance
-     *
-     * @param comments
-     *            new comments
-     */
     @Override
     public synchronized void setComments(final String comments) {
         this.comments.set(CharacterFilterUtils.filterInvalidXmlCharacters(comments));
@@ -335,9 +310,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public synchronized void setStyle(final Map<String, String> style) {
+    public void setStyle(final Map<String, String> style) {
         if (style != null) {
-            this.style.set(Collections.unmodifiableMap(new HashMap<>(style)));
+            this.style.set(Map.copyOf(style));
         }
     }
 
@@ -356,7 +331,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public boolean isIsolated() {
         return executionNode == ExecutionNode.PRIMARY;
     }
@@ -445,22 +419,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (relationships == null) {
             relationships = new HashSet<>();
         }
+
         return Collections.unmodifiableSet(relationships);
     }
 
-    /**
-     * @return the value of the processor's {@link CapabilityDescription}
-     *         annotation, if one exists, else <code>null</code>.
-     */
-    public String getProcessorDescription() {
-        final Processor processor = processorRef.get().getProcessor();
-        final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
-        String description = null;
-        if (capDesc != null) {
-            description = capDesc.value();
-        }
-        return description;
-    }
 
     @Override
     public synchronized void setName(final String name) {
@@ -732,12 +694,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 if (!destinations.containsKey(connection)) {
                     for (final Relationship relationship : connection.getRelationships()) {
                         final Relationship rel = getRelationship(relationship.getName());
-                        Set<Connection> set = connections.get(rel);
-                        if (set == null) {
-                            set = new HashSet<>();
-                            connections.put(rel, set);
-                        }
-
+                        final Set<Connection> set = connections.computeIfAbsent(rel, k -> new HashSet<>());
                         set.add(connection);
 
                         destinations.put(connection, connection.getDestination());
@@ -785,12 +742,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         final Set<Connection> connectionsForRelationship = getConnections(rel);
                         if (connectionsForRelationship != null && connectionsForRelationship.size() == 1 && this.isRunning()
                             && !isAutoTerminated(rel) && getRelationships().contains(rel)) {
-                            // if we are running and we do not terminate undefined
-                            // relationships and this is the only
-                            // connection that defines the given relationship, and
-                            // that relationship is required,
-                            // then it is not legal to remove this relationship from
-                            // this connection.
+
+                            // if we are running and we do not terminate undefined relationships and this is the only
+                            // connection that defines the given relationship, and that relationship is required,
+                            // then it is not legal to remove this relationship from this connection.
                             throw new IllegalStateException("Cannot remove relationship " + rel.getName()
                                 + " from Connection " + connection + " because doing so would invalidate " + this
                                 + ", which is currently running");
@@ -805,11 +760,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
                 // add the connection in for all relationships listed.
                 for (final Relationship rel : connection.getRelationships()) {
-                    Set<Connection> set = connections.get(rel);
-                    if (set == null) {
-                        set = new HashSet<>();
-                        connections.put(rel, set);
-                    }
+                    final Set<Connection> set = connections.computeIfAbsent(rel, k -> new HashSet<>());
                     set.add(connection);
                 }
 
@@ -944,16 +895,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return nonSelfDestinations;
     }
 
-    public Set<Connectable> getDestinations(final Relationship relationship) {
-        final Set<Connectable> destinationSet = new HashSet<>();
-        final Set<Connection> relationshipConnections = connections.get(relationship);
-        if (relationshipConnections != null) {
-            for (final Connection connection : relationshipConnections) {
-                destinationSet.add(destinations.get(connection));
-            }
-        }
-        return destinationSet;
-    }
 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
@@ -975,17 +916,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return undefined;
     }
 
-    /**
-     * Determines if the given node is a destination for this node
-     *
-     * @param node
-     *            node
-     * @return true if is a direct destination node; false otherwise
-     */
-    boolean isRelated(final ProcessorNode node) {
-        return this.destinations.containsValue(node);
-    }
-
     @Override
     public boolean isRunning() {
         final ScheduledState state = getScheduledState();
@@ -994,14 +924,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isValidationNecessary() {
-        switch (getPhysicalScheduledState()) {
-            case STOPPED:
-            case STOPPING:
-            case STARTING:
-                return true;
-        }
-
-        return false;
+        return switch (getPhysicalScheduledState()) {
+            case STOPPED, STOPPING, STARTING -> true;
+            default -> false;
+        };
     }
 
     @Override
@@ -1185,7 +1111,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public List<ValidationResult> validateConfig() {
 
         final List<ValidationResult> results = new ArrayList<>();
@@ -1229,7 +1154,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 switch (schedulingStrategy) {
                     case CRON_DRIVEN: {
                         try {
-                            new CronExpression(evaluatedSchedulingPeriod);
+                            CronExpression.parse(evaluatedSchedulingPeriod);
                         } catch (final Exception e) {
                             results.add(new ValidationResult.Builder()
                                     .subject(RUN_SCHEDULE)
@@ -1595,7 +1520,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private void activateThread() {
         final Thread thread = Thread.currentThread();
-        final Long timestamp = System.currentTimeMillis();
+        final long timestamp = System.currentTimeMillis();
         activeThreads.put(thread, new ActiveTask(timestamp));
     }
 
@@ -1614,9 +1539,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         for (final Map.Entry<Thread, ActiveTask> entry : activeThreads.entrySet()) {
             final Thread thread = entry.getKey();
             final ActiveTask activeTask = entry.getValue();
-            final Long timestamp = activeTask.getStartTime();
+            final long timestamp = activeTask.getStartTime();
             final long activeMillis = now - timestamp;
-            final ThreadInfo threadInfo = threadInfoMap.get(thread.getId());
+            final ThreadInfo threadInfo = threadInfoMap.get(thread.threadId());
 
             final String stackTrace = ThreadUtils.createStackTrace(threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds());
 
@@ -2150,6 +2075,55 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // references and establishing new references.
         updateControllerServiceReferences();
     }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> rawPropertyValues, final ControllerServiceFactory serviceFactory) {
+        try {
+            migrateProperties(rawPropertyValues, serviceFactory);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        try {
+            migrateRelationships();
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Relationship Configuration for {}.", this, e);
+        }
+    }
+
+    private void migrateProperties(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final Processor processor = getProcessor();
+
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), getIdentifier())) {
+            processor.migrateProperties(propertyConfig);
+        }
+
+        if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the processor's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
+            overwriteProperties(propertyConfig.getProperties());
+        }
+    }
+
+
+    private void migrateRelationships() {
+        final Processor processor = getProcessor();
+
+        final StandardRelationshipConfiguration relationshipConfig = new StandardRelationshipConfiguration(this);
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getProcessor().getClass(), getProcessor().getIdentifier())) {
+            processor.migrateRelationships(relationshipConfig);
+        }
+    }
+
 
     private void updateControllerServiceReferences() {
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {

@@ -21,9 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,9 +47,9 @@ public class WholeConfigDifferentiatorTest {
     @BeforeAll
     public static void setConfiguration() throws IOException {
         dummyRequest = new Request.Builder()
-                .get()
-                .url("https://nifi.apache.org/index.html")
-                .build();
+            .get()
+            .url("https://nifi.apache.org/index.html")
+            .build();
 
         defaultConfigBuffer = ByteBuffer.wrap(FileUtils.readFileToByteArray(defaultConfigPath.toFile()));
         newConfigBuffer = ByteBuffer.wrap(FileUtils.readFileToByteArray(newConfigPath.toFile()));
@@ -60,28 +58,6 @@ public class WholeConfigDifferentiatorTest {
 
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(defaultConfigBuffer));
     }
-
-    // InputStream differentiator methods
-
-    @Test
-    public void TestSameInputStream() throws IOException {
-        Differentiator<InputStream> differentiator = WholeConfigDifferentiator.getInputStreamDifferentiator();
-        differentiator.initialize(configurationFileHolder);
-
-        FileInputStream fileInputStream = new FileInputStream(defaultConfigPath.toFile());
-        assertFalse(differentiator.isNew(fileInputStream));
-    }
-
-    @Test
-    public void TestNewInputStream() throws IOException {
-        Differentiator<InputStream> differentiator = WholeConfigDifferentiator.getInputStreamDifferentiator();
-        differentiator.initialize(configurationFileHolder);
-
-        FileInputStream fileInputStream = new FileInputStream(newConfigPath.toFile());
-        assertTrue(differentiator.isNew(fileInputStream));
-    }
-
-    // Bytebuffer differentiator methods
 
     @Test
     public void TestSameByteBuffer() throws IOException {

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
@@ -26,7 +27,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import java.io.IOException;
@@ -107,7 +107,7 @@ public interface FlowClient {
      *
      * @return cluster summary response
      */
-    ClusteSummaryEntity getClusterSummary() throws NiFiClientException, IOException;
+    ClusterSummaryEntity getClusterSummary() throws NiFiClientException, IOException;
 
     /**
      * Retrieves the controller services for the reporting tasks.
@@ -124,18 +124,25 @@ public interface FlowClient {
     ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException;
 
     /**
+     * Retrieves the snapshot of all reporting tasks and their respective controller services.
+     *
+     * @return the snapshot
+     */
+    VersionedReportingTaskSnapshot getReportingTaskSnapshot() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the snapshot of the given reporting task and it's respective controller services.
+     *
+     * @return the snapshot
+     */
+    VersionedReportingTaskSnapshot getReportingTaskSnapshot(String reportingTaskId) throws NiFiClientException, IOException;
+
+    /**
      * Retrieves the parameter providers.
      *
      * @return the parameter providers entity
      */
     ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException;
-
-    /**
-     * Retrieves the all templates.
-     *
-     * @return the templates entity
-     */
-    TemplatesEntity getTemplates() throws NiFiClientException, IOException;
 
     /**
      * Retrives the status for the connection with the given ID

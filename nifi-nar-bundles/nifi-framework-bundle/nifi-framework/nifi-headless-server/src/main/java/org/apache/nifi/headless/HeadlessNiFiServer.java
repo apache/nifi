@@ -18,7 +18,6 @@ package org.apache.nifi.headless;
 
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.impl.StandardAuditService;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
@@ -30,7 +29,6 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -53,8 +51,6 @@ import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
@@ -104,7 +100,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             logger.info("Loading Flow...");
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
-            AuditService auditService = new StandardAuditService();
+            AuditService auditService = new HeadlessAuditService();
             Authorizer authorizer = new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
@@ -130,7 +126,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
             final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
             final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
-            VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
             final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
@@ -145,16 +140,15 @@ public class HeadlessNiFiServer implements NiFiServer {
                     auditService,
                     encryptor,
                     bulletinRepository,
-                    variableRegistry,
                     extensionManager,
-                    statusHistoryRepository);
+                    statusHistoryRepository,
+                    null);
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     props,
                     null, // revision manager
-                    authorizer,
-                    FlowSerializationStrategy.WRITE_XML_ONLY);
+                    authorizer);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);
@@ -251,6 +245,10 @@ public class HeadlessNiFiServer implements NiFiServer {
 
     protected FlowController getFlowController() {
         return flowController;
+    }
+
+    protected FlowService getFlowService() {
+        return flowService;
     }
 
     protected NiFiProperties getNiFiProperties() {

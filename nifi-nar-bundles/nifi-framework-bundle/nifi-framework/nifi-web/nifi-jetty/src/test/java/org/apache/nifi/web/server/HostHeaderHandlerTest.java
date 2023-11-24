@@ -49,40 +49,18 @@ public class HostHeaderHandlerTest {
             "FFFF:129.144.52.38",
             "::FFFF:129.144.52.38");
 
-    private static List<String> defaultHostsAndPorts150;
     private static List<String> defaultHostsAndPorts;
 
     @BeforeAll
     public static void setUpOnce() throws Exception {
         String actualHostname = InetAddress.getLocalHost().getHostName().toLowerCase();
         List<String> defaultHosts150 = Arrays.asList(DEFAULT_HOSTNAME, "localhost", actualHostname);
-        defaultHostsAndPorts150 = buildHostsWithPorts(defaultHosts150, DEFAULT_PORT);
         String actualIp = InetAddress.getLocalHost().getHostAddress();
         String loopbackIp = InetAddress.getLoopbackAddress().getHostAddress();
         List<String> defaultHosts = new ArrayList<>(defaultHosts150);
         defaultHosts.remove(DEFAULT_HOSTNAME);
         defaultHosts.addAll(Arrays.asList("[::1]", "127.0.0.1", actualIp, loopbackIp));
         defaultHostsAndPorts = buildHostsWithPorts(defaultHosts, DEFAULT_PORT);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testConstructorShouldAcceptSingleValues() {
-        HostHeaderHandler handler = new HostHeaderHandler(DEFAULT_HOSTNAME, DEFAULT_PORT);
-
-        assertTrue(handler.hostHeaderIsValid(DEFAULT_HOSTNAME));
-        assertTrue(handler.hostHeaderIsValid(DEFAULT_HOSTNAME + ":" + DEFAULT_PORT));
-    }
-
-    /**
-     * The feature was introduced in Apache NiFi 1.5.0 but the behavior was changed following that release to include the actual IP address of the server, IPv6 ::1, and 127.0.0.1.
-     */
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testShouldHandle_1_5_0_DefaultValues() {
-        HostHeaderHandler handler = new HostHeaderHandler(DEFAULT_HOSTNAME, DEFAULT_PORT);
-
-        defaultHostsAndPorts150.forEach(host -> assertTrue(handler.hostHeaderIsValid(host)));
     }
 
     @Test

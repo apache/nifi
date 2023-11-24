@@ -26,8 +26,11 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,9 +49,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
-import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
 
 @TriggerSerially
@@ -58,7 +61,7 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 @CapabilityDescription("Generates a SQL select query, or uses a provided statement, and executes it to fetch all rows whose values in the specified "
         + "Maximum Value column(s) are larger than the "
         + "previously-seen maxima. Query result will be converted to the format specified by the record writer. Expression Language is supported for several properties, but no incoming "
-        + "connections are permitted. The Variable Registry may be used to provide values for any property containing Expression Language. If it is desired to "
+        + "connections are permitted. The Environment/System properties may be used to provide values for any property containing Expression Language. If it is desired to "
         + "leverage flow file attributes to perform these queries, the GenerateTableFetch and/or ExecuteSQL processors can be used for this purpose. "
         + "Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
         + "a timer or cron expression, using the standard scheduling methods. This processor is intended to be run on the Primary Node only. FlowFile attribute "
@@ -87,10 +90,84 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
 })
 @DynamicProperty(name = "initial.maxvalue.<max_value_column>", value = "Initial maximum value for the specified column",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY, description = "Specifies an initial max value for max value column(s). Properties should "
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT, description = "Specifies an initial max value for max value column(s). Properties should "
         + "be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time the table is accessed (when a Maximum Value Column is specified).")
 @PrimaryNodeOnly
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@UseCase(
+    description = "Retrieve all rows from a database table.",
+    keywords = {"jdbc", "rdbms", "cdc", "database", "table", "stream"},
+    configuration = """
+        Configure the "Database Connection Pooling Service" to specify a Connection Pooling Service so that the Processor knows how to connect to the database.
+        Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+        Set the "Table Name" property to the name of the table to retrieve records from.
+        Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+        Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+            an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+        Set the "Initial Load Strategy" property to "Start at Beginning".
+        Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+            A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+            memory utilization.
+        """
+)
+@UseCase(
+    description = "Perform an incremental load of a single database table, fetching only new rows as they are added to the table.",
+    keywords = {"incremental load", "rdbms", "jdbc", "cdc", "database", "table", "stream"},
+    configuration = """
+        Configure the "Database Connection Pooling Service" to specify a Connection Pooling Service so that the Processor knows how to connect to the database.
+        Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+        Set the "Table Name" property to the name of the table to retrieve records from.
+        Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+        Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+            an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+        Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
+        Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+            A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+            memory utilization.
+        """
+)
+@MultiProcessorUseCase(
+    description = "Perform an incremental load of multiple database tables, fetching only new rows as they are added to the tables.",
+    keywords = {"incremental load", "rdbms", "jdbc", "cdc", "database", "table", "stream"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListDatabaseTables.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" property to specify a Connection Pool that is applicable for interacting with your database.
+
+                Set the "Catalog" property to the name of the database Catalog;
+                set the "Schema Pattern" property to a Java Regular Expression that matches all database Schemas that should be included; and
+                set the "Table Name Pattern" property to a Java Regular Expression that matches the names of all tables that should be included.
+                In order to perform an incremental load of all tables, leave the Catalog, Schema Pattern, and Table Name Pattern unset.
+
+                Leave the RecordWriter property unset.
+
+                Connect the 'success' relationship to QueryDatabaseTableRecord.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = QueryDatabaseTableRecord.class,
+            configuration = """
+                Configure the "Database Connection Pooling Service" to the same Connection Pool that was used in ListDatabaseTables.
+                Set the "Database Type" property to the type of database to query, or "Generic" if the database vendor is not listed.
+                Set the "Table Name" property to "${db.table.fullname}"
+                Configure the "Record Writer" to specify a Record Writer that is appropriate for the desired output format.
+                Set the "Maximum-value Columns" property to a comma-separated list of columns whose values can be used to determine which values are new. For example, this might be set to
+                    an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
+                Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
+                Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
+                Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+                Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
+                    A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
+                    memory utilization.
+                """
+        )
+    }
+)
 public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
     public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()

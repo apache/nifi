@@ -21,14 +21,17 @@ import org.apache.commons.lang3.Validate;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -91,7 +94,8 @@ public class GenericDataConverters {
 
         @Override
         public LocalTime convert(Object data) {
-            return DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
+            Time time = DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null);
+            return time == null ? null : time.toLocalTime();
         }
     }
 
@@ -106,7 +110,7 @@ public class GenericDataConverters {
         @Override
         public LocalDateTime convert(Object data) {
             final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return convertedTimestamp.toLocalDateTime();
+            return convertedTimestamp == null ? null : convertedTimestamp.toLocalDateTime();
         }
     }
 
@@ -121,7 +125,7 @@ public class GenericDataConverters {
         @Override
         public OffsetDateTime convert(Object data) {
             final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
+            return convertedTimestamp == null ? null : OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
         }
     }
 
@@ -129,6 +133,9 @@ public class GenericDataConverters {
 
         @Override
         public byte[] convert(Object data) {
+            if (data == null) {
+                return null;
+            }
             final UUID uuid = DataTypeUtils.toUUID(data);
             ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
             byteBuffer.putLong(uuid.getMostSignificantBits());
@@ -147,6 +154,9 @@ public class GenericDataConverters {
 
         @Override
         public byte[] convert(Byte[] data) {
+            if (data == null) {
+                return null;
+            }
             Validate.isTrue(data.length == length, String.format("Cannot write byte array of length %s as fixed[%s]", data.length, length));
             return ArrayUtils.toPrimitive(data);
         }
@@ -156,6 +166,9 @@ public class GenericDataConverters {
 
         @Override
         public ByteBuffer convert(Byte[] data) {
+            if (data == null) {
+                return null;
+            }
             return ByteBuffer.wrap(ArrayUtils.toPrimitive(data));
         }
     }
@@ -171,6 +184,9 @@ public class GenericDataConverters {
 
         @Override
         public BigDecimal convert(Object data) {
+            if (data == null) {
+                return null;
+            }
             if (data instanceof BigDecimal) {
                 BigDecimal bigDecimal = (BigDecimal) data;
                 Validate.isTrue(bigDecimal.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale %s for value: %s", precision, scale, bigDecimal.scale(), data);
@@ -194,6 +210,9 @@ public class GenericDataConverters {
         @Override
         @SuppressWarnings("unchecked")
         public List<T> convert(S[] data) {
+            if (data == null) {
+                return null;
+            }
             final int numElements = data.length;
             final List<T> result = new ArrayList<>(numElements);
             for (int i = 0; i < numElements; i += 1) {
@@ -219,6 +238,9 @@ public class GenericDataConverters {
         @Override
         @SuppressWarnings("unchecked")
         public Map<TK, TV> convert(Map<SK, SV> data) {
+            if (data == null) {
+                return null;
+            }
             final int mapSize = data.size();
             final Object[] keyArray = data.keySet().toArray();
             final Object[] valueArray = data.values().toArray();
@@ -245,14 +267,24 @@ public class GenericDataConverters {
 
             for (DataConverter<?, ?> converter : converters) {
                 final Optional<RecordField> recordField = recordSchema.getField(converter.getSourceFieldName());
-                final RecordField field = recordField.get();
-                // creates a record field accessor for every data converter
-                getters.put(converter.getTargetFieldName(), createFieldGetter(field.getDataType(), field.getFieldName(), field.isNullable()));
+                if (recordField.isEmpty()) {
+                    final Types.NestedField missingField = schema.field(converter.getTargetFieldName());
+                    if (missingField != null) {
+                        getters.put(converter.getTargetFieldName(), createFieldGetter(convertSchemaTypeToDataType(missingField.type()), missingField.name(), missingField.isOptional()));
+                    }
+                } else {
+                    final RecordField field = recordField.get();
+                    // creates a record field accessor for every data converter
+                    getters.put(converter.getTargetFieldName(), createFieldGetter(field.getDataType(), field.getFieldName(), field.isNullable()));
+                }
             }
         }
 
         @Override
         public GenericRecord convert(Record data) {
+            if (data == null) {
+                return null;
+            }
             final GenericRecord record = GenericRecord.create(schema);
 
             for (DataConverter<?, ?> converter : converters) {
@@ -266,5 +298,55 @@ public class GenericDataConverters {
         private <S, T> T convert(Record record, DataConverter<S, T> converter) {
             return converter.convert((S) getters.get(converter.getTargetFieldName()).getFieldOrNull(record));
         }
+    }
+
+    public static DataType convertSchemaTypeToDataType(Type schemaType) {
+        switch (schemaType.typeId()) {
+            case BOOLEAN:
+                return RecordFieldType.BOOLEAN.getDataType();
+            case INTEGER:
+                return RecordFieldType.INT.getDataType();
+            case LONG:
+                return RecordFieldType.LONG.getDataType();
+            case FLOAT:
+                return RecordFieldType.FLOAT.getDataType();
+            case DOUBLE:
+                return RecordFieldType.DOUBLE.getDataType();
+            case DATE:
+                return RecordFieldType.DATE.getDataType();
+            case TIME:
+                return RecordFieldType.TIME.getDataType();
+            case TIMESTAMP:
+                return RecordFieldType.TIMESTAMP.getDataType();
+            case STRING:
+                return RecordFieldType.STRING.getDataType();
+            case UUID:
+                return RecordFieldType.UUID.getDataType();
+            case FIXED:
+            case BINARY:
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case DECIMAL:
+                return RecordFieldType.DECIMAL.getDataType();
+            case STRUCT:
+                // Build a record type from the struct type
+                Types.StructType structType = schemaType.asStructType();
+                List<Types.NestedField> fields = structType.fields();
+                List<RecordField> recordFields = new ArrayList<>(fields.size());
+                for (Types.NestedField field : fields) {
+                    DataType dataType = convertSchemaTypeToDataType(field.type());
+                    recordFields.add(new RecordField(field.name(), dataType, field.isOptional()));
+                }
+                RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
+            case LIST:
+                // Build a list type from the elements
+                Types.ListType listType = schemaType.asListType();
+                return RecordFieldType.ARRAY.getArrayDataType(convertSchemaTypeToDataType(listType.elementType()), listType.isElementOptional());
+            case MAP:
+                // Build a map type from the elements
+                Types.MapType mapType = schemaType.asMapType();
+                return RecordFieldType.MAP.getMapDataType(convertSchemaTypeToDataType(mapType.valueType()), mapType.isValueOptional());
+        }
+        throw new IllegalArgumentException("Invalid or unsupported type: " + schemaType);
     }
 }

@@ -31,14 +31,12 @@ Apache NiFi MiNiFi is an Apache NiFi project, designed to collect data at its so
 
 # Before You Begin
 MiNiFi Java Agent is supported on the following operating systems:
-* Red Hat Enterprise Linux / CentOS 6 (64-bit)
 * Red Hat Enterprise Linux / CentOS 7 (64-bit)
-* Ubuntu Precise (12.04) (64-bit)
-* Ubuntu Trusty (14.04) (64-bit)
-* Ubuntu Xenial (16.04) (64-bit)
+* Red Hat Enterprise Linux / CentOS 8 (64-bit)
 * Ubuntu Bionic (18.04) (64-bit)
-* Debian 7
-* SUSE Linux Enterprise Server (SLES) 11 SP3 (64-bit)
+* Ubuntu Focal Fossa (20.04) (64-bit)
+* Debian 9
+* SUSE Linux Enterprise Server (SLES) 12 SP5 (64-bit)
 
 You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/minifi/download.html).
 
@@ -97,21 +95,16 @@ You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, a
 
 1. Launch NiFi
 2. Create a dataflow.
-3. Convert your dataflow into a template.
-4. Download your template as an .xml file. For more information on working with templates, see the [Templates](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#templates) section in the *User Guide*.
-5. From the MiNiFi Toolkit, run the following command to turn your .xml file into a .yml file:
-```
-config.sh transform input_file output_file
-```
-6. Move your new .yml file to `minifi/conf`.
-7. Rename your .yml file _config.yml_.
+3. Export the dataflow in JSON format.
+4. Move your new .json file to `minifi/conf`.
+5. Rename your .json file _flow.json.raw_.
 
 **Note:** You can use one template at a time, per MiNiFi instance.
 
-**Result:** Once you have your _config.yml_ file in the `minifi/conf` directory, launch that instance of MiNiFi and your dataflow begins automatically.
+**Result:** Once you have your _flow.json.raw_ file in the `minifi/conf` directory, launch that instance of MiNiFi and your dataflow begins automatically.
 
 ### Utilizing a C2 Server via the c2 protocol
-If you have a [C2 server](../../../../minifi-c2/README.md) running, you can expose the whole _config.yml_ for the agent to download. As the agent is heartbeating via the C2 protocol, changes in flow version will trigger automatic config updates.
+If you have a [C2 server](../../../../minifi-c2/README.md) running, you can expose the whole _flow.json_ for the agent to download. As the agent is heartbeating via the C2 protocol, changes in flow version will trigger automatic config updates.
 
 1. Launch C2 server
 2. Configure MiNiFi for C2 capability
@@ -137,8 +130,8 @@ c2.agent.class=agentClassName
 ### Manually
 To load a new dataflow for a MiNiFi instance to run:
 
-1. Create a new _config.yml_ file with the new dataflow.
-2. Replace the existing _config.yml_ in `minifi/conf` with the new file.
+1. Create a new _flow.json.raw_ file with the new dataflow.
+2. Replace the existing _flow.json.raw_ in `minifi/conf` with the new file.
 3. Restart MiNiFi.
 
 ### Utilizing C2 protocol
@@ -169,7 +162,6 @@ MiNiFi is able to use the following processors out of the box:
 * ControlRate
 * ConvertCharacterSet
 * DuplicateFlowFile
-* EncryptContent
 * EvaluateJsonPath
 * EvaluateRegularExpression
 * EvaluateXPath
@@ -257,21 +249,22 @@ You can secure your MiNiFi dataflow using keystore or trust store SSL protocols,
 To run a MiNiFi dataflow securely:
 
 1. Create your dataflow template as discussed above.
-2. Move it to `minifi/conf` and rename _config.yml_.
-3. Manually modify the Security Properties section of _config.yml_. For example:
+2. Move it to `minifi/conf` and rename _flow.json.raw_.
+3. Fill in the following properties in bootstrap.conf. The flow definition will automatically pick up the necessary properties
 ```
-Security Properties:
-keystore:  
-keystore type:
-keystore password:
-key password:
-truststore:
-truststore type:
-truststore password:
-ssl protocol: TLS
-Sensitive Props:
-key:
-algorithm: NIFI_PBKDF2_AES_GCM_256
+nifi.minifi.security.keystore=
+nifi.minifi.security.keystoreType=
+nifi.minifi.security.keystorePasswd=
+nifi.minifi.security.keyPasswd=
+nifi.minifi.security.truststore=
+nifi.minifi.security.truststoreType=
+nifi.minifi.security.truststorePasswd=
+nifi.minifi.security.ssl.protocol=
+
+nifi.minifi.flow.use.parent.ssl=false
+
+nifi.minifi.sensitive.props.key=
+nifi.minifi.sensitive.props.algorithm=
 ```
 
 # Managing MiNiFi

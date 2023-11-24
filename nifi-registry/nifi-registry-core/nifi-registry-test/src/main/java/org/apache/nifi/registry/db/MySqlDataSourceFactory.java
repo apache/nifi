@@ -21,7 +21,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.script.ScriptException;
 import javax.sql.DataSource;
 import java.sql.SQLException;
