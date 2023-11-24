@@ -48,10 +48,9 @@ public class TableSchema {
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
         this.quotedIdentifierString = quotedIdentifierString;
-        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(translateColumnNames, translationStrategy, translationRegex);
         this.requiredColumnNames = new ArrayList<>();
         for (final ColumnDescription desc : columnDescriptions) {
-            columns.put(normalizer.getColName(desc.getColumnName()), desc);
+            columns.put(ColumnNameNormalizerUtility.getNormalizedName(desc.getColumnName(), translateColumnNames, translationStrategy, translationRegex), desc);
             if (desc.isRequired()) {
                 requiredColumnNames.add(desc.getColumnName());
             }
@@ -138,9 +137,9 @@ public class TableSchema {
                 }
             } else {
                 // Parse the Update Keys field and normalize the column names
-                final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(translateColumnNames, translationStrategy, translationRegex);
                 for (final String updateKey : updateKeys.split(",")) {
-                    primaryKeyColumns.add(normalizer.getColName(updateKey.trim()));
+                    primaryKeyColumns.add(ColumnNameNormalizerUtility.getNormalizedName(updateKey.trim(),
+                            translateColumnNames, translationStrategy, translationRegex));
                 }
             }
 
