@@ -33,9 +33,9 @@ public class ColumnNameNormalizerUtility {
      * Normalizes the given column name based on the specified strategy.
      *
      * @param colName The column name to be normalized.
-     * @param isTranslationEnabled
+     * @param isTranslationEnabled Boolean value to denote normalization is enabled
      * @param strategy The TranslationStrategy for normalizing column name
-     * @param translationRegex
+     * @param translationRegex Regex For translation
      * @return The normalized column name as a String.
      */
     public static String getNormalizedName(final String colName, boolean isTranslationEnabled, TranslationStrategy strategy, String translationRegex) {
