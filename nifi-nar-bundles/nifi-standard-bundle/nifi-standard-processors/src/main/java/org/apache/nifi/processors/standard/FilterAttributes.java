@@ -26,7 +26,6 @@ import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -41,21 +40,30 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SideEffectFree
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"attributes", "modification", "filter", "retain", "delete", "Attribute Expression Language"})
-@CapabilityDescription("Filters the Attributes for a FlowFile against a set of attribute names to retain or remove")
+@Tags({"attributes", "modification", "filter", "retain", "remove", "delete", "regex", "regular expression", "Attribute Expression Language"})
+@CapabilityDescription("Filters the Attributes of a FlowFile according to a specified strategy")
 @UseCase(
-        description = "Retain only a specified set of FlowFile attributes",
+        description = "Retain all FlowFile attributes matching a regular expression",
         configuration = """
-        Define a "Delimiter" that does not occur in the names of any of the attributes to retain.
-        Specify the set of "Attributes to filter" using the delimiter defined before.
-        Set "Filter mode" to "Retain".
-        """
+                Set "Filter mode" to "Retain".
+                Set "Attribute matching strategy" to "Use regular expression".
+                Specify the "Regular expression to filter attributes", e.g. "my-property|a-prefix[.].*".
+                """
+)
+@UseCase(
+        description = "Remove only a specified set of FlowFile attributes",
+        configuration = """
+                Set "Filter mode" to "Remove".
+                Set "Attribute matching strategy" to "Enumerate attributes".
+                Specify the set of "Set of attributes to filter" using the delimiter comma ',', e.g. "my-property,other,filename".
+                """
 )
 public class FilterAttributes extends AbstractProcessor {
 
@@ -64,24 +72,6 @@ public class FilterAttributes extends AbstractProcessor {
 
     private final static Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
 
-    public static final PropertyDescriptor ATTRIBUTE_SET = new PropertyDescriptor.Builder()
-            .name("ATTRIBUTE_SET")
-            .displayName("Attributes to filter")
-            .description("A set of attribute names to filter from FlowFiles. Each attribute name is separated by the delimiter.")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
-            .name("DELIMITER")
-            .displayName("Delimiter")
-            .description("One or multiple characters that separates one attribute name value from another.")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue(",")
-            .build();
 
     public static final AllowableValue FILTER_MODE_VALUE_RETAIN = new AllowableValue(
             "RETAIN",
@@ -105,7 +95,52 @@ public class FilterAttributes extends AbstractProcessor {
             .defaultValue(FILTER_MODE_VALUE_RETAIN.getValue())
             .build();
 
-    private final static List<PropertyDescriptor> properties = List.of(ATTRIBUTE_SET, DELIMITER, FILTER_MODE);
+    public static final AllowableValue MATCHING_STRATEGY_VALUE_ENUMERATION = new AllowableValue(
+            "ENUMERATION",
+            "Enumerate attributes",
+            "Provides a set of attribute keys to filter for, separated by a comma delimiter ','."
+    );
+
+    public static final AllowableValue MATCHING_STRATEGY_VALUE_REGEX = new AllowableValue(
+            "REGEX",
+            "Use regular expression",
+            "Provides a regular expression to match keys of attributes to filter for."
+    );
+
+    public static final PropertyDescriptor MATCHING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("MATCHING_STRATEGY")
+            .displayName("Attribute matching strategy")
+            .description("Specifies the strategy to filter attributes by.")
+            .required(true)
+            .allowableValues(MATCHING_STRATEGY_VALUE_ENUMERATION, MATCHING_STRATEGY_VALUE_REGEX)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .defaultValue(MATCHING_STRATEGY_VALUE_ENUMERATION.getValue())
+            .build();
+
+    public static final PropertyDescriptor ATTRIBUTE_SET = new PropertyDescriptor.Builder()
+            .name("ATTRIBUTE_SET")
+            .displayName("Set of attributes to filter")
+            .description("A set of attribute names to filter from FlowFiles. Each attribute name is separated by the comma delimiter ','.")
+            .required(true)
+            .dependsOn(MATCHING_STRATEGY, MATCHING_STRATEGY_VALUE_ENUMERATION)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor ATTRIBUTE_REGEX = new PropertyDescriptor.Builder()
+            .name("ATTRIBUTE_REGEX")
+            .displayName("Regular expression to filter attributes")
+            .description("A regular expression to match names of attributes to filter from FlowFiles.")
+            .required(true)
+            .dependsOn(MATCHING_STRATEGY, MATCHING_STRATEGY_VALUE_REGEX)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    private final static String DELIMITER_VALUE = ",";
+
+    private final static List<PropertyDescriptor> properties =
+            List.of(FILTER_MODE, MATCHING_STRATEGY, ATTRIBUTE_SET, ATTRIBUTE_REGEX);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -117,17 +152,21 @@ public class FilterAttributes extends AbstractProcessor {
         return properties;
     }
 
-    private Set<String> preCalculatedAttributes;
-
+    private volatile Predicate<String> cachedMatchingPredicate;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        if (context.getProperty(ATTRIBUTE_SET).isExpressionLanguagePresent()
-                || context.getProperty(DELIMITER).isExpressionLanguagePresent()) {
-            // the attribute set may rely on FlowFile attributes; thus we cannot pre-calculate them
-            preCalculatedAttributes = null;
-        } else {
-            preCalculatedAttributes = calculateAttributeSet(context, null);
+        final MatchingStrategy matchingStrategy = getMatchingStrategy(context);
+
+        cachedMatchingPredicate = null;
+
+        if (matchingStrategy == MatchingStrategy.ENUMERATION
+                && !context.getProperty(ATTRIBUTE_SET).isExpressionLanguagePresent()) {
+            cachedMatchingPredicate = determineMatchingPredicateBasedOnEnumeration(context, null);
+        }
+        if (matchingStrategy == MatchingStrategy.REGEX
+                && !context.getProperty(ATTRIBUTE_REGEX).isExpressionLanguagePresent()) {
+            cachedMatchingPredicate = determineMatchingPredicateBasedOnRegex(context, null);
         }
     }
 
@@ -138,46 +177,54 @@ public class FilterAttributes extends AbstractProcessor {
             return;
         }
 
-        final Set<String> declaredAttributes;
-        if (preCalculatedAttributes != null) {
-            declaredAttributes = preCalculatedAttributes;
-        } else {
-            declaredAttributes = calculateAttributeSet(context, flowFile);
-        }
+        final Predicate<String> matchingPredicate = determineMatchingPredicate(context, flowFile);
 
         final FilterMode filterMode = getFilterMode(context, flowFile);
-        final Set<String> attributesToRemove = computeAttributesToRemove(flowFile, filterMode, declaredAttributes);
+        final Predicate<String> isMatched = switch (filterMode) {
+            case RETAIN -> matchingPredicate;
+            case REMOVE -> matchingPredicate.negate();
+        };
 
-        session.removeAllAttributes(flowFile, attributesToRemove);
-        session.transfer(flowFile, REL_SUCCESS);
+        final Set<String> attributesToRemove = new HashSet<>(flowFile.getAttributes().keySet());
+        attributesToRemove.removeIf(isMatched);
+
+        final FlowFile updatedFlowFile = session.removeAllAttributes(flowFile, attributesToRemove);
+        session.transfer(updatedFlowFile, REL_SUCCESS);
     }
 
-    private static Set<String> calculateAttributeSet(ProcessContext context, FlowFile flowFile) {
-        final String attributeSet = getAttributeSet(context, flowFile);
-        final String delimiter = getDelimiter(context, flowFile);
-
-        return parseAttributeSet(attributeSet, delimiter);
-    }
-
-    private static String getAttributeSet(ProcessContext context, FlowFile flowFile) {
-        PropertyValue attributeSetProperty = context.getProperty(ATTRIBUTE_SET);
-
-        if (flowFile != null) {
-            attributeSetProperty = attributeSetProperty.evaluateAttributeExpressions(flowFile);
+    private Predicate<String> determineMatchingPredicate(ProcessContext context, FlowFile flowFile) {
+        if (cachedMatchingPredicate != null) {
+            return cachedMatchingPredicate;
         }
 
-        return attributeSetProperty.getValue();
+        final MatchingStrategy matchingStrategy = getMatchingStrategy(context);
+        return switch (matchingStrategy) {
+            case ENUMERATION -> determineMatchingPredicateBasedOnEnumeration(context, flowFile);
+            case REGEX -> determineMatchingPredicateBasedOnRegex(context, flowFile);
+        };
     }
 
-    private static String getDelimiter(ProcessContext context, FlowFile flowFile) {
-        PropertyValue delimiterProperty = context.getProperty(DELIMITER);
+    /* enumeration */
 
-        if (flowFile != null) {
-            delimiterProperty = delimiterProperty.evaluateAttributeExpressions(flowFile);
-        }
+    private static Predicate<String> determineMatchingPredicateBasedOnEnumeration(ProcessContext context, FlowFile flowFile) {
+        final String attributeSetDeclaration = getAttributeSet(context, flowFile);
+        final String delimiter = getDelimiter();
 
-        return delimiterProperty.getValue();
+        Set<String> attributeSet = Arrays.stream(attributeSetDeclaration.split(Pattern.quote(delimiter)))
+                .map(String::trim)
+                .filter(attributeName -> !attributeName.isBlank())
+                .collect(Collectors.toUnmodifiableSet());
+
+        return attributeSet::contains;
     }
+
+    private static Predicate<String> determineMatchingPredicateBasedOnRegex(ProcessContext context, FlowFile flowFile) {
+        Pattern attributeRegex = getAttributeRegex(context, flowFile);
+
+        return attributeRegex.asMatchPredicate();
+    }
+
+    /* properties */
 
     private static FilterMode getFilterMode(ProcessContext context, FlowFile flowFile) {
         final String rawFilterMode = context
@@ -191,26 +238,38 @@ public class FilterAttributes extends AbstractProcessor {
         return FilterMode.RETAIN;
     }
 
-    private static Set<String> parseAttributeSet(final String attributeSetDeclaration, final String delimiter) {
-        return Arrays.stream(attributeSetDeclaration.split(Pattern.quote(delimiter)))
-                .map(String::trim)
-                .filter(attributeName -> !attributeName.isBlank())
-                .collect(Collectors.toUnmodifiableSet());
+    private static MatchingStrategy getMatchingStrategy(ProcessContext context) {
+        final String rawMatchingStrategy = context
+                .getProperty(MATCHING_STRATEGY)
+                .getValue();
+
+        if (MATCHING_STRATEGY_VALUE_REGEX.getValue().equals(rawMatchingStrategy)) {
+            return MatchingStrategy.REGEX;
+        }
+        return MatchingStrategy.ENUMERATION;
     }
 
-    private static Set<String> computeAttributesToRemove(FlowFile flowFile, FilterMode filterMode, Set<String> declaredAttributes) {
-        if (filterMode == FilterMode.REMOVE) {
-            return declaredAttributes;
-        }
+    private static String getAttributeSet(ProcessContext context, FlowFile flowFile) {
+        return context.getProperty(ATTRIBUTE_SET).evaluateAttributeExpressions(flowFile).getValue();
+    }
 
-        final Set<String> attributesToRemove = new HashSet<>(flowFile.getAttributes().keySet());
-        attributesToRemove.removeAll(declaredAttributes);
+    private static String getDelimiter() {
+        return DELIMITER_VALUE;
+    }
 
-        return attributesToRemove;
+    private static Pattern getAttributeRegex(ProcessContext context, FlowFile flowFile) {
+        return Pattern.compile(
+                context.getProperty(ATTRIBUTE_REGEX).evaluateAttributeExpressions(flowFile).getValue()
+        );
     }
 
     private enum FilterMode {
         RETAIN,
         REMOVE,
+    }
+
+    private enum MatchingStrategy {
+        ENUMERATION,
+        REGEX,
     }
 }
