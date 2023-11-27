@@ -112,6 +112,7 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -P contrib-check
+          -P include-new-ui
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
