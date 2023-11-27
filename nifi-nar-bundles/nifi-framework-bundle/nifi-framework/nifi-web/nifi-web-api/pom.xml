@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.24.0-SNAPSHOT</version>
+        <version>1.25.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-api</artifactId>
     <packaging>war</packaging>
@@ -199,7 +199,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-identity</artifactId>
-            <version>1.24.0-SNAPSHOT</version>
+            <version>1.25.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -210,7 +210,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
-            <version>1.24.0-SNAPSHOT</version>
+            <version>1.25.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -267,7 +267,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-prometheus-utils</artifactId>
-            <version>1.24.0-SNAPSHOT</version>
+            <version>1.25.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -383,7 +383,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-h2-database-migrator</artifactId>
-            <version>1.24.0-SNAPSHOT</version>
+            <version>1.25.0-SNAPSHOT</version>
         </dependency>
 
         <!-- testing dependencies -->
