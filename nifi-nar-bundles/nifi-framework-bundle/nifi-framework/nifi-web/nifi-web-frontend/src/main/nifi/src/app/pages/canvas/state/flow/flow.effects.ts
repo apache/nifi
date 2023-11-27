@@ -85,6 +85,7 @@ import { CreateConnection } from '../../ui/connection/create-connection/create-c
 import { EditConnectionComponent } from '../../ui/connection/edit-connection/edit-connection.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/process-group/group-components/group-components.component';
+import { EditProcessGroup } from '../../ui/process-group/edit-process-group/edit-process-group.component';
 
 @Injectable()
 export class FlowEffects {
@@ -651,6 +652,8 @@ export class FlowEffects {
                         return of(FlowActions.openEditProcessorDialog({ request }));
                     case ComponentType.Connection:
                         return of(FlowActions.openEditConnectionDialog({ request }));
+                    case ComponentType.ProcessGroup:
+                        return of(FlowActions.openEditProcessGroupDialog({ request }));
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
@@ -773,18 +776,20 @@ export class FlowEffects {
 
                     // TODO - inline service creation...
 
-                    editDialogReference.componentInstance.editProcessor.pipe(take(1)).subscribe((payload: any) => {
-                        this.store.dispatch(
-                            FlowActions.updateProcessor({
-                                request: {
-                                    id: request.entity.id,
-                                    uri: request.uri,
-                                    type: request.type,
-                                    payload
-                                }
-                            })
-                        );
-                    });
+                    editDialogReference.componentInstance.editProcessor
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                FlowActions.updateProcessor({
+                                    request: {
+                                        id: request.entity.id,
+                                        uri: request.uri,
+                                        type: request.type,
+                                        payload
+                                    }
+                                })
+                            );
+                        });
 
                     editDialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(FlowActions.clearFlowApiError());
@@ -850,6 +855,61 @@ export class FlowEffects {
                             });
                         }
 
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.entity.id,
+                                            componentType: request.type
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditProcessGroupDialog),
+                map((action) => action.request),
+                switchMap((action) =>
+                    this.flowService.getParameterContexts().pipe(
+                        take(1),
+                        map((response) => [action, response.parameterContexts])
+                    )
+                ),
+                tap(([request, parameterContexts]) => {
+                    const editDialogReference = this.dialog.open(EditProcessGroup, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.parameterContexts = parameterContexts;
+
+                    editDialogReference.componentInstance.editProcessGroup
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                FlowActions.updateComponent({
+                                    request: {
+                                        id: request.entity.id,
+                                        uri: request.uri,
+                                        type: request.type,
+                                        payload
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(FlowActions.clearFlowApiError());
                         this.store.dispatch(
                             FlowActions.selectComponents({

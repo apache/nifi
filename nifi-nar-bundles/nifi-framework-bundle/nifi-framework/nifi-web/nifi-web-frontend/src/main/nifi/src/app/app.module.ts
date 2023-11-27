@@ -44,8 +44,6 @@ import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
         BrowserModule,
         AppRoutingModule,
         BrowserAnimationsModule,
-        FlowDesignerModule,
-        LoginModule,
         HttpClientModule,
         HttpClientXsrfModule.withOptions({
             cookieName: '__Secure-Request-Token',
