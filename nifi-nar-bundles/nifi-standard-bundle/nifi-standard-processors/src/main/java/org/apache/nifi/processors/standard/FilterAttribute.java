@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
                 Specify the set of "Set of attributes to filter" using the delimiter comma ',', e.g. "my-property,other,filename".
                 """
 )
-public class FilterAttributes extends AbstractProcessor {
+public class FilterAttribute extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("All successful FlowFiles are routed to this relationship").name("success").build();
@@ -203,8 +203,6 @@ public class FilterAttributes extends AbstractProcessor {
             case REGEX -> determineMatchingPredicateBasedOnRegex(context, flowFile);
         };
     }
-
-    /* enumeration */
 
     private static Predicate<String> determineMatchingPredicateBasedOnEnumeration(ProcessContext context, FlowFile flowFile) {
         final String attributeSetDeclaration = getAttributeSet(context, flowFile);

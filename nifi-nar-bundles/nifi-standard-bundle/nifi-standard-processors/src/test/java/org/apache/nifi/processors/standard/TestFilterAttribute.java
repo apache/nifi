@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FilterAttributesTest {
+class TestFilterAttribute {
 
-    private final TestRunner runner = TestRunners.newTestRunner(FilterAttributes.class);
+    private final TestRunner runner = TestRunners.newTestRunner(FilterAttribute.class);
 
     private final String exampleContent = "lorem ipsum dolor sit amet";
 
@@ -89,7 +89,7 @@ class FilterAttributesTest {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttributes.FILTER_MODE, FilterAttributes.FILTER_MODE_VALUE_REMOVE);
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FILTER_MODE_VALUE_REMOVE);
             }
 
             @Test
@@ -198,8 +198,8 @@ class FilterAttributesTest {
         }
 
         private void runTestWith(Map<String, String> attributes, String attributeSet, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttributes.MATCHING_STRATEGY, FilterAttributes.MATCHING_STRATEGY_VALUE_ENUMERATION);
-            runner.setProperty(FilterAttributes.ATTRIBUTE_SET, attributeSet);
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MATCHING_STRATEGY_VALUE_ENUMERATION);
+            runner.setProperty(FilterAttribute.ATTRIBUTE_SET, attributeSet);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);
             final Map<String, String> inputAttributes = input.getAttributes();
@@ -208,8 +208,8 @@ class FilterAttributesTest {
 
             runner.run();
 
-            runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, 1);
-            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS).getFirst();
+            runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, 1);
+            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS).getFirst();
             result.assertContentEquals(exampleContent);
             for (String expectedName : expectedAttributes) {
                 final String expectedValue = inputAttributes.get(expectedName);
@@ -267,7 +267,7 @@ class FilterAttributesTest {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttributes.FILTER_MODE, FilterAttributes.FILTER_MODE_VALUE_REMOVE);
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FILTER_MODE_VALUE_REMOVE);
             }
 
             @Test
@@ -320,8 +320,8 @@ class FilterAttributesTest {
         }
 
         private void runTestWith(Map<String, String> attributes, String regexPattern, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttributes.MATCHING_STRATEGY, FilterAttributes.MATCHING_STRATEGY_VALUE_REGEX);
-            runner.setProperty(FilterAttributes.ATTRIBUTE_REGEX, regexPattern);
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MATCHING_STRATEGY_VALUE_REGEX);
+            runner.setProperty(FilterAttribute.ATTRIBUTE_REGEX, regexPattern);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);
             final Map<String, String> inputAttributes = input.getAttributes();
@@ -330,8 +330,8 @@ class FilterAttributesTest {
 
             runner.run();
 
-            runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, 1);
-            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS).getFirst();
+            runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, 1);
+            final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS).getFirst();
             result.assertContentEquals(exampleContent);
             for (String expectedName : expectedAttributes) {
                 final String expectedValue = inputAttributes.get(expectedName);
@@ -356,11 +356,11 @@ class FilterAttributesTest {
                     "bar", "" + i
             ));
         }
-        runner.setProperty(FilterAttributes.ATTRIBUTE_SET, "foo");
+        runner.setProperty(FilterAttribute.ATTRIBUTE_SET, "foo");
 
         runner.run(flowFileCount);
-        runner.assertAllFlowFilesTransferred(FilterAttributes.REL_SUCCESS, flowFileCount);
-        List<MockFlowFile> resultFlowFiles = runner.getFlowFilesForRelationship(FilterAttributes.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, flowFileCount);
+        List<MockFlowFile> resultFlowFiles = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS);
         for (final MockFlowFile resultFlowFile : resultFlowFiles) {
             resultFlowFile.assertAttributeExists("foo");
             resultFlowFile.assertAttributeNotExists("bar");
