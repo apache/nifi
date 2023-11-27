@@ -38,6 +38,11 @@ const routes: Routes = [
             )
     },
     {
+        path: 'counters',
+        canMatch: [authGuard],
+        loadChildren: () => import('./pages/counters/feature/counters.module').then((m) => m.CountersModule)
+    },
+    {
         path: '',
         canMatch: [authGuard],
         loadChildren: () => import('./pages/canvas/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
