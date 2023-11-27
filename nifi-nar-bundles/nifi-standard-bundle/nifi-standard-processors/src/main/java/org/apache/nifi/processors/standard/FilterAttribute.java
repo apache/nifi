@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "modification", "filter", "retain", "remove", "delete", "regex", "regular expression", "Attribute Expression Language"})
 @CapabilityDescription("Filters the Attributes of a FlowFile according to a specified strategy")
-public class FilterAttributes extends AbstractProcessor {
+public class FilterAttribute extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("All successful FlowFiles are routed to this relationship").name("success").build();
