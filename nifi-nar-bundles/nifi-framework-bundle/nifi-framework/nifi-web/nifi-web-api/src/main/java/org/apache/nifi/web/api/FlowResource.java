@@ -681,6 +681,7 @@ public class FlowResource extends ApplicationResource {
 
         // create the response entity
         final ReportingTasksEntity entity = new ReportingTasksEntity();
+        entity.setCurrentTime(new Date());
         entity.setReportingTasks(reportingTasks);
 
         // generate the response
@@ -2826,6 +2827,8 @@ public class FlowResource extends ApplicationResource {
         }
 
         final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
+        parameterContexts.forEach(entity -> entity.setUri(generateResourceUri("parameter-contexts", entity.getId())));
+
         final ParameterContextsEntity entity = new ParameterContextsEntity();
         entity.setParameterContexts(parameterContexts);
         entity.setCurrentTime(new Date());

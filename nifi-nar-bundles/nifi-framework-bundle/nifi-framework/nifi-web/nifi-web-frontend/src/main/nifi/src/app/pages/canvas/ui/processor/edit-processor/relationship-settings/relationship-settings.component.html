@@ -1,0 +1,110 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="relationship-settings flex gap-x-4">
+    <div class="w-96">
+        <div class="flex flex-col">
+            <div class="flex items-center gap-x-1.5">
+                <div>Automatically Terminate/Retry Relationships</div>
+                <mat-icon
+                    class="info-icon"
+                    title="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."
+                    >info_outline</mat-icon
+                >
+            </div>
+            <div class="flex flex-col gap-y-3">
+                <div *ngFor="let relationship of relationships; index as i" class="flex flex-col gap-y-1.5">
+                    <div class="value">{{ relationship.name }}</div>
+                    <div class="flex items-center gap-x-2">
+                        <mat-checkbox
+                            [(ngModel)]="relationship.autoTerminate"
+                            name="autoTerminate-{{ i }}"
+                            (change)="handleChanged()"
+                            [disabled]="isDisabled"
+                            >terminate</mat-checkbox
+                        >
+                        <mat-checkbox
+                            [(ngModel)]="relationship.retry"
+                            name="retry-{{ i }}"
+                            (change)="handleChanged()"
+                            [disabled]="isDisabled"
+                            >retry</mat-checkbox
+                        >
+                    </div>
+                    <div *ngIf="hasDescription(relationship)" class="ml-2">{{ relationship.description }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="w-80">
+        <div *ngIf="isRelationshipRetried()" class="flex flex-col">
+            <div>
+                <mat-form-field>
+                    <mat-label>Number of Retry Attempts</mat-label>
+                    <input
+                        matInput
+                        [(ngModel)]="retryCount"
+                        type="number"
+                        name="retryCount"
+                        (keyup)="handleChanged()"
+                        [disabled]="isDisabled" />
+                    <mat-icon
+                        matSuffix
+                        class="info-icon"
+                        title="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."
+                        >info_outline</mat-icon
+                    >
+                </mat-form-field>
+            </div>
+            <div class="flex flex-col mb-6">
+                <div class="flex items-center gap-x-1.5">
+                    <div>Retry Back Off Policy</div>
+                    <mat-icon
+                        class="info-icon"
+                        title="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles. Yield: No other FlowFile processing will occur until all retry attempts have been made."
+                        >info_outline</mat-icon
+                    >
+                </div>
+                <mat-radio-group
+                    [(ngModel)]="backoffMechanism"
+                    (change)="handleChanged()"
+                    [disabled]="isDisabled"
+                    class="flex gap-x-2">
+                    <mat-radio-button value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
+                    <mat-radio-button value="YIELD_PROCESSOR">Yield</mat-radio-button>
+                </mat-radio-group>
+            </div>
+            <div>
+                <mat-form-field>
+                    <mat-label>Retry Maximum Back Off Period</mat-label>
+                    <input
+                        matInput
+                        [(ngModel)]="maxBackoffPeriod"
+                        type="text"
+                        (keyup)="handleChanged()"
+                        [disabled]="isDisabled" />
+                    <mat-icon
+                        matSuffix
+                        class="info-icon"
+                        title="Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs."
+                        >info_outline</mat-icon
+                    >
+                </mat-form-field>
+            </div>
+        </div>
+    </div>
+</div>

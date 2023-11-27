@@ -136,6 +136,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTEXT_PATH_ALL = "/*";
     private static final String CONTEXT_PATH_ROOT = "/";
     private static final String CONTEXT_PATH_NIFI = "/nifi";
+    private static final String CONTEXT_PATH_NF = "/nf";
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
     private static final String CONTEXT_PATH_NIFI_CONTENT_VIEWER = "/nifi-content-viewer";
     private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
@@ -233,6 +234,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // locate each war being deployed
         File webUiWar = null;
+        File webNewUiWar = null;
         File webApiWar = null;
         File webErrorWar = null;
         File webDocsWar = null;
@@ -250,6 +252,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 webDocsWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-content-viewer")) {
                 webContentViewerWar = war;
+            } else if (war.getName().toLowerCase().startsWith("nifi-web-frontend")) {
+                webNewUiWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
             } else {
@@ -304,8 +308,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // add the servlets which serve the HTML documentation within the documentation web app
         addDocsServlets(webDocsContext);
-
         webAppContextHandlers.addHandler(webDocsContext);
+
+        // conditionally add the new ui
+        if (webNewUiWar != null) {
+            final WebAppContext newUiContext = loadWar(webNewUiWar, CONTEXT_PATH_NF, frameworkClassLoader);
+            newUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
+            newUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
+            newUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
+            newUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
+            webAppContextHandlers.addHandler(newUiContext);
+        }
 
         // load the web error app
         final WebAppContext webErrorContext = loadWar(webErrorWar, CONTEXT_PATH_ROOT, frameworkClassLoader);
