@@ -90,6 +90,9 @@
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
 
+    <!-- Suppress non-error messages due to Sawmill ProcessorFactoriesLoader emitting a large amount of WARNS. -->
+    <logger name="io.logz.sawmill.ProcessorFactoriesLoader" level="ERROR"/>
+
     <!--
         Logger for capturing Bootstrap logs and MiNiFi's standard error and standard out.
     -->

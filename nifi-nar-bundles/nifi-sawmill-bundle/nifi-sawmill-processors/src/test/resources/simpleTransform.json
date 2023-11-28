@@ -1,0 +1,25 @@
+{
+  "steps": [
+    {
+      "anonymize": {
+        "config": {
+          "fields": [
+            "checksum"
+          ],
+          "algorithm": "MD5",
+          "key": "ThisIsMyHashingKey"
+        }
+      }
+    },
+    {
+      "rename": {
+        "config": {
+          "renames": {
+            "FieldFrom1": "FieldTo1",
+            "FieldFrom2": "FieldTo2"
+          }
+        }
+      }
+    }
+  ]
+}

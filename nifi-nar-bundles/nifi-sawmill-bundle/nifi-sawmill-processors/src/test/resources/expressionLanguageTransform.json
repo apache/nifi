@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {
+      "anonymize": {
+        "config": {
+          "fields": [
+            "checksum2"
+          ],
+          "algorithm": "MD5",
+          "key": "${hashing.key}"
+        }
+      }
+    }
+  ]
+}
