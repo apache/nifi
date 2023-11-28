@@ -201,7 +201,6 @@ describe('ComboEditor', () => {
                 component.okClicked();
                 expect(component.ok.next).toHaveBeenCalledWith(item?.value);
             });
-
         }
     });
 

@@ -80,7 +80,7 @@ export class ComboEditor {
     @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
         this._getParameters = getParameters;
 
-        this.supportsParameters = true;
+        this.supportsParameters = getParameters != null;
         this.initialAllowableValues();
     }
 
@@ -184,31 +184,33 @@ export class ComboEditor {
                 this._getParameters(this.sensitive)
                     .pipe(take(1))
                     .subscribe((parameters) => {
-                        // capture the value of i which will be the id of the first
-                        // parameter
-                        this.configuredParameterId = i;
+                        if (parameters.length > 0) {
+                            // capture the value of i which will be the id of the first
+                            // parameter
+                            this.configuredParameterId = i;
 
-                        // create allowable values for each parameter
-                        parameters.forEach((parameter) => {
-                            const parameterItem: AllowableValueItem = {
-                                id: i++,
-                                displayName: parameter.name,
-                                value: '#{' + parameter.name + '}',
-                                description: parameter.description
-                            };
-                            this.parameterAllowableValues.push(parameterItem);
-                            this.itemLookup.set(parameterItem.id, parameterItem);
+                            // create allowable values for each parameter
+                            parameters.forEach((parameter) => {
+                                const parameterItem: AllowableValueItem = {
+                                    id: i++,
+                                    displayName: parameter.name,
+                                    value: '#{' + parameter.name + '}',
+                                    description: parameter.description
+                                };
+                                this.parameterAllowableValues.push(parameterItem);
+                                this.itemLookup.set(parameterItem.id, parameterItem);
 
-                            // if the configured parameter is still available,
-                            // capture the id, so we can auto select it
-                            if (parameterItem.value === this.configuredValue) {
-                                this.configuredParameterId = parameterItem.id;
+                                // if the configured parameter is still available,
+                                // capture the id, so we can auto select it
+                                if (parameterItem.value === this.configuredValue) {
+                                    this.configuredParameterId = parameterItem.id;
+                                }
+                            });
+
+                            // if combo still set to reference a parameter, set the default value
+                            if (this.comboEditorForm.get('value')?.value == this.referencesParametersId) {
+                                this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId)
                             }
-                        });
-
-                        // if combo still set to reference a parameter, set the default value
-                        if (this.comboEditorForm.get('value')?.value == this.referencesParametersId) {
-                            this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId)
                         }
 
                         this.parametersLoaded = true;
@@ -241,7 +243,11 @@ export class ComboEditor {
         this.showParameterAllowableValues = value === this.referencesParametersId;
 
         if (this.showParameterAllowableValues) {
-            this.comboEditorForm.addControl('parameterReference', new FormControl(this.configuredParameterId, Validators.required));
+            if (this.configuredParameterId === -1) {
+                this.comboEditorForm.addControl('parameterReference', new FormControl(null, Validators.required));
+            } else {
+                this.comboEditorForm.addControl('parameterReference', new FormControl(this.configuredParameterId, Validators.required));
+            }
         } else {
             this.comboEditorForm.removeControl('parameterReference');
         }
