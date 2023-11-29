@@ -209,7 +209,7 @@ export class ComboEditor {
 
                             // if combo still set to reference a parameter, set the default value
                             if (this.comboEditorForm.get('value')?.value == this.referencesParametersId) {
-                                this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId)
+                                this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
                             }
                         }
 
@@ -246,7 +246,10 @@ export class ComboEditor {
             if (this.configuredParameterId === -1) {
                 this.comboEditorForm.addControl('parameterReference', new FormControl(null, Validators.required));
             } else {
-                this.comboEditorForm.addControl('parameterReference', new FormControl(this.configuredParameterId, Validators.required));
+                this.comboEditorForm.addControl(
+                    'parameterReference',
+                    new FormControl(this.configuredParameterId, Validators.required)
+                );
             }
         } else {
             this.comboEditorForm.removeControl('parameterReference');
@@ -277,9 +280,12 @@ export class ComboEditor {
             if (selectedItem) {
                 // if the value currently references a parameter emit the parameter, get the parameter reference control and emit that value
                 if (selectedItem.id == this.referencesParametersId) {
-                    const parameterReferenceControl: AbstractControl | null = this.comboEditorForm.get('parameterReference');
+                    const parameterReferenceControl: AbstractControl | null =
+                        this.comboEditorForm.get('parameterReference');
                     if (parameterReferenceControl) {
-                        const selectedParameterItem: AllowableValueItem | undefined = this.itemLookup.get(parameterReferenceControl.value);
+                        const selectedParameterItem: AllowableValueItem | undefined = this.itemLookup.get(
+                            parameterReferenceControl.value
+                        );
                         if (selectedParameterItem) {
                             this.ok.next(selectedParameterItem.value);
                         }

@@ -84,7 +84,7 @@ describe('NfEditor', () => {
                 name: 'group.id',
                 displayName: 'Group ID',
                 description:
-                  "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
+                    "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
                 required: true,
                 sensitive: false,
                 dynamic: false,

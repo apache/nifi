@@ -189,7 +189,7 @@ describe('ComboEditor', () => {
                 return of(parameters);
             };
             fixture.detectChanges();
-            fixture.whenStable().then(function() {
+            fixture.whenStable().then(() => {
                 const formValue = component.comboEditorForm.get('value')?.value;
                 expect(component.itemLookup.get(formValue)?.value).toEqual(item?.value);
                 expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
@@ -213,7 +213,7 @@ describe('ComboEditor', () => {
                 return of(parameters);
             };
             fixture.detectChanges();
-            fixture.whenStable().then(function() {
+            fixture.whenStable().then(() => {
                 const formValue = component.comboEditorForm.get('value')?.value;
                 expect(component.itemLookup.get(formValue)?.value).toEqual('#{' + parameters[0].value + '}');
                 expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
