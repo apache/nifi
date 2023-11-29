@@ -68,7 +68,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -239,37 +238,45 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         final ConsumeSlackClient client = initializeClient(slackApp);
 
         // Split channel ID's by commas and trim any white space
-        final List<String> channelIds = new ArrayList<>();
-        final String channelIdsValue = context.getProperty(CHANNEL_IDS).getValue();
-        Arrays.stream(channelIdsValue.split(","))
+        final List<String> channels = new ArrayList<>();
+        final String channelsValue = context.getProperty(CHANNEL_IDS).getValue();
+        Arrays.stream(channelsValue.split(","))
             .map(String::trim)
             .filter(s -> !s.isEmpty())
-            .forEach(channelIds::add);
+            .forEach(channels::add);
 
-        // If any of the Channel ID's is a channel name instead, fetch all channel ID's and replace names with ID's
-        final boolean lookupChannels = channelIds.stream().anyMatch(id -> id.startsWith("#"));
-        if (lookupChannels) {
-            final Map<String, String> channelMapping = client.fetchChannelIds();
-            final ListIterator<String> channelItr = channelIds.listIterator();
-
-            while (channelItr.hasNext()) {
-                final String channelIdOrName = channelItr.next().replace("#", "");
-                final String resolved = channelMapping.get(channelIdOrName);
-                if (resolved != null) {
-                    channelItr.remove();
-                    channelItr.add(resolved);
-                    getLogger().info("Resolved Channel {} to ID {}", channelIdOrName, resolved);
-                }
-            }
-        }
+        // Fetch all channel ID's to have a name/ID channel mapping
+        Map<String, String> channelMapping = client.fetchChannelIds();
 
         // Create ConsumeChannel objects for each Channel ID
         final UsernameLookup usernameLookup = new UsernameLookup(client, getLogger());
 
         final List<ConsumeChannel> consumeChannels = new ArrayList<>();
-        for (final String channelId : channelIds) {
+        for (final String channel : channels) {
+
+            String channelName;
+            String channelId;
+
+            final String channelIdOrName = channel.replace("#", "");
+            channelId = channelMapping.get(channelIdOrName);
+
+            if(channelId != null) {
+                channelName = channelIdOrName;
+                getLogger().info("Resolved Channel {} to ID {}", channelName, channelId);
+            } else {
+                channelId = channelIdOrName;
+                channelName = channelMapping
+                        .keySet()
+                        .stream()
+                        .filter(entry -> channelIdOrName.equals(channelMapping.get(entry)))
+                        .findFirst()
+                        .orElse("");
+                getLogger().info("Resolved Channel ID {} to name {}", channelId, channelName);
+            }
+
             final ConsumeChannel consumeChannel = new ConsumeChannel.Builder()
                 .channelId(channelId)
+                .channelName(channelName)
                 .batchSize(context.getProperty(BATCH_SIZE).asInteger())
                 .client(client)
                 .includeMessageBlocks(context.getProperty(INCLUDE_MESSAGE_BLOCKS).asBoolean())
