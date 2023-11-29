@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "modification", "filter", "retain", "remove", "delete", "regex", "regular expression", "Attribute Expression Language"})
-@CapabilityDescription("Filters the Attributes of a FlowFile according to a specified strategy")
+@CapabilityDescription("Filters the attributes of a FlowFile by retaining specified attributes and removing the rest or by removing specified attributes and retaining the rest.")
 @UseCase(
         description = "Retain all FlowFile attributes matching a regular expression",
         configuration = """
@@ -91,7 +91,7 @@ public class FilterAttribute extends AbstractProcessor {
             .description("Specifies the strategy to apply on filtered attributes. Either 'Remove' or 'Retain' only the matching attributes.")
             .required(true)
             .allowableValues(FILTER_MODE_VALUE_RETAIN, FILTER_MODE_VALUE_REMOVE)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(FILTER_MODE_VALUE_RETAIN.getValue())
             .build();
 
@@ -179,7 +179,7 @@ public class FilterAttribute extends AbstractProcessor {
 
         final Predicate<String> matchingPredicate = determineMatchingPredicate(context, flowFile);
 
-        final FilterMode filterMode = getFilterMode(context, flowFile);
+        final FilterMode filterMode = getFilterMode(context);
         final Predicate<String> isMatched = switch (filterMode) {
             case RETAIN -> matchingPredicate;
             case REMOVE -> matchingPredicate.negate();
@@ -224,10 +224,9 @@ public class FilterAttribute extends AbstractProcessor {
 
     /* properties */
 
-    private static FilterMode getFilterMode(ProcessContext context, FlowFile flowFile) {
+    private static FilterMode getFilterMode(ProcessContext context) {
         final String rawFilterMode = context
                 .getProperty(FILTER_MODE)
-                .evaluateAttributeExpressions(flowFile)
                 .getValue();
 
         if (FILTER_MODE_VALUE_REMOVE.getValue().equals(rawFilterMode)) {
