@@ -414,7 +414,7 @@
         <dependency>
             <groupId>com.unboundid</groupId>
             <artifactId>unboundid-ldapsdk</artifactId>
-            <version>6.0.9</version>
+            <version>6.0.10</version>
             <scope>test</scope>
         </dependency>
         <dependency>
