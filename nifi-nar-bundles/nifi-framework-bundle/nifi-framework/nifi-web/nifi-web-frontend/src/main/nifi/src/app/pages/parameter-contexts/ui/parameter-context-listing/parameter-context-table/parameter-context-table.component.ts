@@ -24,7 +24,7 @@ import { ParameterContextEntity } from '../../../state/parameter-context-listing
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
-    styleUrls: ['./parameter-context-table.component.scss']
+    styleUrls: ['./parameter-context-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
 export class ParameterContextTable implements AfterViewInit {
     @Input() set parameterContexts(parameterContextEntities: ParameterContextEntity[]) {

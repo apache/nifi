@@ -38,7 +38,7 @@ import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/valida
     standalone: true,
     templateUrl: './controller-service-table.component.html',
     imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NgClass, NifiTooltipDirective],
-    styleUrls: ['./controller-service-table.component.scss']
+    styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
 })
 export class ControllerServiceTable implements AfterViewInit {
     @Input() set controllerServices(controllerServiceEntities: ControllerServiceEntity[]) {
