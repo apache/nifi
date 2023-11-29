@@ -98,7 +98,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
                 final HttpMethodAuthorizationRules authorizationRules = resourceTypeAuthorizationRules.get(resourceType);
                 if (authorizationRules != null) {
                     final String httpMethodStr = httpServletRequest.getMethod().toUpperCase();
-                    HttpMethod httpMethod = HttpMethod.resolve(httpMethodStr);
+                    HttpMethod httpMethod = HttpMethod.valueOf(httpMethodStr);
 
                     // Only require authorization for HTTP methods included in this resource type's rule set
                     if (httpMethod != null && authorizationRules.requiresAuthorization(httpMethod)) {

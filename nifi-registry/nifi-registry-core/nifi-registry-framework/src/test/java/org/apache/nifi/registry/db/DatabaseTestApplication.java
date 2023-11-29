@@ -21,8 +21,6 @@ import org.mockito.Mockito;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 
 /**
  * Sets up the application context for database repository tests.
@@ -33,12 +31,6 @@ import org.springframework.context.annotation.FilterType;
  * The DataSourceFactory is excluded so that Spring Boot will load an in-memory H2 database.
  */
 @SpringBootApplication
-@ComponentScan(
-        excludeFilters = {
-                @ComponentScan.Filter(
-                        type = FilterType.ASSIGNABLE_TYPE,
-                        value = DataSourceFactory.class)
-        })
 public class DatabaseTestApplication {
 
     public static void main(String[] args) {

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry;
 
-import org.apache.nifi.registry.db.DataSourceFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.ComponentScan;
@@ -30,12 +29,6 @@ import java.util.TimeZone;
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         value = SpringBootServletInitializer.class), // Avoid loading NiFiRegistryApiApplication
-                @ComponentScan.Filter(
-                        type = FilterType.ASSIGNABLE_TYPE,
-                        value = DataSourceFactory.class), // Avoid loading DataSourceFactory
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX,
-                        pattern = "org\\.apache\\.nifi\\.registry\\.NiFiRegistryPropertiesFactory"), // Avoid loading NiFiRegistryPropertiesFactory
         })
 public class NiFiRegistryTestApiApplication extends SpringBootServletInitializer {
 
