@@ -347,8 +347,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     resolvePropertyValue(property: Property): string | null {
-        const allowableValues: AllowableValueEntity[] = property.descriptor.allowableValues;
-        if (this.nifiCommon.isEmpty(allowableValues)) {
+        const allowableValues: AllowableValueEntity[] | undefined = property.descriptor.allowableValues;
+        if (allowableValues == null || this.nifiCommon.isEmpty(allowableValues)) {
             return property.value;
         } else {
             const allowableValue: AllowableValueEntity | undefined = allowableValues.find(
@@ -392,7 +392,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         // TODO - add Input() for supportsGoTo? currently only false in summary table
 
         const descriptor: PropertyDescriptor = item.descriptor;
-        if (item.value && descriptor.identifiesControllerService) {
+        if (item.value && descriptor.identifiesControllerService && descriptor.allowableValues) {
             return descriptor.allowableValues.some(
                 (entity: AllowableValueEntity) => entity.allowableValue.value == item.value
             );

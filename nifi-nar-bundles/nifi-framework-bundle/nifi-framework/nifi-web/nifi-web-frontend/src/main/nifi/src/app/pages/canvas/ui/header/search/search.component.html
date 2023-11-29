@@ -190,7 +190,7 @@
                 </a>
                 <ng-template #resultLink>
                     <a [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
-                        {{ result.name }}
+                        {{ result.name ? result.name : result.id }}
                     </a>
                 </ng-template>
             </li>

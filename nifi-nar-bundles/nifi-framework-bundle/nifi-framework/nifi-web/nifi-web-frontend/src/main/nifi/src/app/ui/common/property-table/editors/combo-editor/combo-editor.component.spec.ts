@@ -18,10 +18,57 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ComboEditor } from './combo-editor.component';
+import { PropertyItem } from '../../property-table.component';
+import { Parameter } from '../../../../../state/shared';
+import { of } from 'rxjs';
 
 describe('ComboEditor', () => {
     let component: ComboEditor;
     let fixture: ComponentFixture<ComboEditor>;
+
+    let item: PropertyItem | null = null;
+    let parameters: Parameter[] = [
+        {
+            name: 'one',
+            description: 'Description for one.',
+            sensitive: false,
+            value: 'value',
+            provided: false,
+            referencingComponents: [],
+            parameterContext: {
+                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                    name: 'params 1'
+                }
+            },
+            inherited: false
+        },
+        {
+            name: 'two',
+            description: 'Description for two.',
+            sensitive: false,
+            value: 'value',
+            provided: false,
+            referencingComponents: [],
+            parameterContext: {
+                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                    name: 'params 1'
+                }
+            },
+            inherited: false
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -29,8 +76,9 @@ describe('ComboEditor', () => {
         });
         fixture = TestBed.createComponent(ComboEditor);
         component = fixture.componentInstance;
-        component.supportsParameters = false;
-        component.item = {
+
+        // re-establish the item before each test execution
+        item = {
             property: 'Destination',
             value: 'flowfile-attribute',
             descriptor: {
@@ -69,10 +117,114 @@ describe('ComboEditor', () => {
             dirty: false,
             type: 'required'
         };
-        fixture.detectChanges();
     });
 
     it('should create', () => {
-        expect(component).toBeTruthy();
+        if (item) {
+            component.item = item;
+            fixture.detectChanges();
+
+            expect(component).toBeTruthy();
+        }
+    });
+
+    it('verify combo value', () => {
+        if (item) {
+            component.item = item;
+            fixture.detectChanges();
+
+            const formValue = component.comboEditorForm.get('value')?.value;
+            expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
+            expect(component.comboEditorForm.get('parameterReference')).toBeNull();
+
+            spyOn(component.ok, 'next');
+            component.okClicked();
+            expect(component.ok.next).toHaveBeenCalledWith(item.value);
+        }
+    });
+
+    it('verify combo not required with null value and default', () => {
+        if (item) {
+            item.value = null;
+            item.descriptor.required = false;
+
+            component.item = item;
+            fixture.detectChanges();
+
+            const formValue = component.comboEditorForm.get('value')?.value;
+            expect(component.itemLookup.get(formValue)?.value).toEqual(item.descriptor.defaultValue);
+            expect(component.comboEditorForm.get('parameterReference')).toBeNull();
+
+            spyOn(component.ok, 'next');
+            component.okClicked();
+            expect(component.ok.next).toHaveBeenCalledWith(item.descriptor.defaultValue);
+        }
+    });
+
+    it('verify combo not required with null value and no default', () => {
+        if (item) {
+            item.value = null;
+            item.descriptor.required = false;
+            item.descriptor.defaultValue = undefined;
+
+            component.item = item;
+            fixture.detectChanges();
+
+            const formValue = component.comboEditorForm.get('value')?.value;
+            expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
+            expect(component.comboEditorForm.get('parameterReference')).toBeNull();
+
+            spyOn(component.ok, 'next');
+            component.okClicked();
+            expect(component.ok.next).toHaveBeenCalledWith(item.value);
+        }
+    });
+
+    it('verify combo with parameter reference', () => {
+        if (item) {
+            item.value = '#{one}';
+
+            component.item = item;
+            component.getParameters = (sensitive: boolean) => {
+                return of(parameters);
+            };
+            fixture.detectChanges();
+            fixture.whenStable().then(() => {
+                const formValue = component.comboEditorForm.get('value')?.value;
+                expect(component.itemLookup.get(formValue)?.value).toEqual(item?.value);
+                expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
+
+                const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
+                expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
+
+                spyOn(component.ok, 'next');
+                component.okClicked();
+                expect(component.ok.next).toHaveBeenCalledWith(item?.value);
+            });
+        }
+    });
+
+    it('verify combo with missing parameter reference', () => {
+        if (item) {
+            item.value = '#{three}';
+
+            component.item = item;
+            component.getParameters = (sensitive: boolean) => {
+                return of(parameters);
+            };
+            fixture.detectChanges();
+            fixture.whenStable().then(() => {
+                const formValue = component.comboEditorForm.get('value')?.value;
+                expect(component.itemLookup.get(formValue)?.value).toEqual('#{' + parameters[0].value + '}');
+                expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
+
+                const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
+                expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
+
+                spyOn(component.ok, 'next');
+                component.okClicked();
+                expect(component.ok.next).toHaveBeenCalledWith('#{' + parameters[0].value + '}');
+            });
+        }
     });
 });

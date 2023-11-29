@@ -15,18 +15,7 @@
  * limitations under the License.
  */
 
-import {
-    AfterViewInit,
-    Component,
-    ElementRef,
-    EventEmitter,
-    Input,
-    OnDestroy,
-    Output,
-    Renderer2,
-    ViewChild,
-    ViewContainerRef
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output, Renderer2, ViewContainerRef } from '@angular/core';
 import { PropertyItem } from '../../property-table.component';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
