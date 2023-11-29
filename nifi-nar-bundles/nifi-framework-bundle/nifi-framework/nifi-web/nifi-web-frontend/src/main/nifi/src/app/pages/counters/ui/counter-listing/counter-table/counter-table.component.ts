@@ -15,12 +15,12 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CounterEntity } from '../../../state/counter-listing';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { debounceTime, filter } from 'rxjs';
+import { debounceTime } from 'rxjs';
 
 @Component({
     selector: 'counter-table',
@@ -94,7 +94,6 @@ export class CounterTable implements AfterViewInit {
     }
 
     @Output() resetCounter: EventEmitter<CounterEntity> = new EventEmitter<CounterEntity>();
-    @Output() selectCounter: EventEmitter<CounterEntity> = new EventEmitter<CounterEntity>();
 
     @ViewChild(MatSort) sort!: MatSort;
 
