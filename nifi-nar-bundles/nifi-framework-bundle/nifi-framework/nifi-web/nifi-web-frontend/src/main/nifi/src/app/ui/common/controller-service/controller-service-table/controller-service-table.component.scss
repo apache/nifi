@@ -17,56 +17,12 @@
 
 @use '@angular/material' as mat;
 
-.controller-service-table {
+.controller-service-table.listing-table {
     @include mat.table-density(-4);
 
     table {
-        width: 100%;
-
-        td,
-        th {
-            max-width: 300px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 8px;
-        }
-
-        th {
-            background-color: #728e9b;
-            color: #fff;
-        }
-
-        tr:hover {
-            background-color: #dce3e6 !important;
-        }
-
-        .selected {
-            background-color: #ffef85 !important;
-        }
-
-        .even {
-            background-color: #f4f6f7;
-        }
-
-        .fa,
-        .icon {
-            color: #004849;
-            width: 10px;
-            height: 14px;
-            text-align: center;
-        }
-
         .mat-column-moreDetails {
             min-width: 90px;
         }
-
-        .mat-column-actions {
-            min-width: 115px;
-        }
     }
-}
-
-::ng-deep .mat-sort-header-arrow {
-    color: #fff;
 }

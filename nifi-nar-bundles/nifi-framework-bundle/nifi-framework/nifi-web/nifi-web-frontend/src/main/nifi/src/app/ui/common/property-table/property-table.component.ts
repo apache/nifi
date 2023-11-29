@@ -87,7 +87,7 @@ export interface PropertyItem extends Property {
         RouterLink,
         AsyncPipe
     ],
-    styleUrls: ['./property-table.component.scss'],
+    styleUrls: ['./property-table.component.scss', '../../../../assets/styles/listing-table.scss'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,

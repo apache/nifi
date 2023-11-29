@@ -28,7 +28,7 @@ import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../..
 @Component({
     selector: 'reporting-task-table',
     templateUrl: './reporting-task-table.component.html',
-    styleUrls: ['./reporting-task-table.component.scss']
+    styleUrls: ['./reporting-task-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
 export class ReportingTaskTable implements AfterViewInit {
     @Input() set reportingTasks(reportingTaskEntities: ReportingTaskEntity[]) {
