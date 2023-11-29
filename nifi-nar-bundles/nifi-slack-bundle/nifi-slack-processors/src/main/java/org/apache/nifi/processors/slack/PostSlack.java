@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -85,6 +86,14 @@ import java.util.stream.Collectors;
                 " The property name will not be used by the processor.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttribute(attribute="slack.file.url", description = "The Slack URL of the uploaded file. It will be added if 'Upload FlowFile' has been set to 'Yes'.")
+@DeprecationNotice(
+    alternatives = {PublishSlack.class},
+    reason = "This Processor is more difficult to configure than necessary, and exposes intricate nuances of the Slack API that need not be exposed. " +
+             "Additionally, it lacks some capabilities, such as responding to messages in threads. It interacts directly with the Slack API instead of " +
+             "making use of the Slack-provided SDK, which makes the Processor much more brittle. Additionally, it does not make clear the differences " +
+             "between PutSlack and PostSlack. Each provides slightly different capabilities. " +
+             "PublishSlack combines the capabilities of both Processors in a simpler configuration that makes use of Slack's standard REST API."
+)
 public class PostSlack extends AbstractProcessor {
 
     private static final String SLACK_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage";
