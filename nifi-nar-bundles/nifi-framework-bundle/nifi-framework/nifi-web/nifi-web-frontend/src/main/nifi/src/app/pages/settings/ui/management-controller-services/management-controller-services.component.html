@@ -30,6 +30,8 @@
                 <controller-service-table
                     [selectedServiceId]="selectedServiceId$ | async"
                     [controllerServices]="serviceState.controllerServices"
+                    [formatScope]="formatScope"
+                    [definedByCurrentGroup]="definedByCurrentGroup"
                     (selectControllerService)="selectControllerService($event)"
                     (configureControllerService)="configureControllerService($event)"
                     (deleteControllerService)="deleteControllerService($event)"></controller-service-table>

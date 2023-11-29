@@ -32,12 +32,22 @@ import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
+import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'controller-service-table',
     standalone: true,
     templateUrl: './controller-service-table.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NgClass, NifiTooltipDirective],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        NgIf,
+        NgClass,
+        NifiTooltipDirective,
+        RouterLink
+    ],
     styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
 })
 export class ControllerServiceTable implements AfterViewInit {
@@ -60,6 +70,8 @@ export class ControllerServiceTable implements AfterViewInit {
         };
     }
     @Input() selectedServiceId!: string;
+    @Input() formatScope!: (entity: ControllerServiceEntity) => string;
+    @Input() definedByCurrentGroup!: (entity: ControllerServiceEntity) => boolean;
 
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
@@ -175,14 +187,12 @@ export class ControllerServiceTable implements AfterViewInit {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    formatScope(entity: ControllerServiceEntity): string {
-        // TODO - how to resolve parent pg label (breadcrumb?)
-        return 'Controller';
-    }
-
-    definedByCurrentGroup(entity: ControllerServiceEntity): boolean {
-        // TODO
-        return true;
+    getServiceLink(entity: ControllerServiceEntity): string[] {
+        if (entity.parentGroupId == null) {
+            return ['/settings', 'management-controller-services', entity.id];
+        } else {
+            return ['/process-groups', entity.parentGroupId, 'controller-services', entity.id];
+        }
     }
 
     isDisabled(entity: ControllerServiceEntity): boolean {

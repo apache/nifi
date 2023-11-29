@@ -21,7 +21,7 @@ import { Observable, tap } from 'rxjs';
 import { NiFiState } from '../../state';
 import { Store } from '@ngrx/store';
 import { stopUserPolling } from '../../state/user/user.actions';
-import { stopProcessGroupPolling } from '../../pages/canvas/state/flow/flow.actions';
+import { stopProcessGroupPolling } from '../../pages/flow-designer/state/flow/flow.actions';
 
 @Injectable({
     providedIn: 'root'

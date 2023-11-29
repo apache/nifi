@@ -241,6 +241,7 @@ export interface ControllerServiceEntity {
     revision: Revision;
     bulletins: BulletinEntity[];
     id: string;
+    parentGroupId?: string;
     uri: string;
     status: any;
     component: any;
