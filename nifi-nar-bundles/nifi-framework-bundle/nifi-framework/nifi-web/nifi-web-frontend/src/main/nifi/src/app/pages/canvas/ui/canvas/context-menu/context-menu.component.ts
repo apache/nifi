@@ -286,15 +286,18 @@ export class ContextMenu implements OnInit {
                 clazz: 'fa fa-gear',
                 text: 'Configure',
                 action: function (store: Store<CanvasState>, selection: any) {
-                    const selectionData = selection.datum();
-                    store.dispatch(
-                        navigateToEditComponent({
-                            request: {
-                                type: selectionData.type,
-                                id: selectionData.id
-                            }
-                        })
-                    );
+                    // TODO - when selection is empty support configuring the current Process Group
+                    if (!selection.empty()) {
+                        const selectionData = selection.datum();
+                        store.dispatch(
+                            navigateToEditComponent({
+                                request: {
+                                    type: selectionData.type,
+                                    id: selectionData.id
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

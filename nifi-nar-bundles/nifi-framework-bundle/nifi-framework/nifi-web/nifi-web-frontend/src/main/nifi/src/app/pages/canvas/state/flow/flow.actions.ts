@@ -258,6 +258,11 @@ export const openEditConnectionDialog = createAction(
     props<{ request: EditConnectionDialogRequest }>()
 );
 
+export const openEditProcessGroupDialog = createAction(
+    '[Canvas] Open Edit Process Group Dialog',
+    props<{ request: EditComponentDialogRequest }>()
+);
+
 export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponentRequest }>());
 
 export const updateComponentSuccess = createAction(
