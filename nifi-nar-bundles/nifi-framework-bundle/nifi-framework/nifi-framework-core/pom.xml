@@ -191,7 +191,7 @@
         <dependency>
             <groupId>org.questdb</groupId>
             <artifactId>questdb</artifactId>
-            <version>7.2</version>
+            <version>7.3.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
